@@ -1,0 +1,27 @@
+# macOS
+.DS_Store
+
+# IntelliJ / Android Studio local state
+.idea/
+*.iml
+
+# Local agent/tooling state
+.agents/
+
+# Gradle / Kotlin local build state
+.gradle/
+.kotlin/
+build/
+**/build/
+local.properties
+
+# Node prototype dependencies and generated output
+node_modules/
+**/node_modules/
+dist/
+**/dist/
+.npm-cache/
+**/.npm-cache/
+
+# Logs
+*.log
