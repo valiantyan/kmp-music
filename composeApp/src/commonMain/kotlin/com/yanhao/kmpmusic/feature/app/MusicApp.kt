@@ -1,17 +1,25 @@
 package com.yanhao.kmpmusic.feature.app
 
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -33,26 +41,33 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.yanhao.kmpmusic.core.theme.KmpMusicTheme
+import com.yanhao.kmpmusic.core.theme.LocalMusicScale
 import com.yanhao.kmpmusic.core.theme.MusicColors
+import com.yanhao.kmpmusic.core.theme.MusicDimens
+import com.yanhao.kmpmusic.core.theme.scaledDp
+import com.yanhao.kmpmusic.core.theme.scaledSp
 import com.yanhao.kmpmusic.domain.model.Song
 import com.yanhao.kmpmusic.domain.usecase.ScanStatus
-import com.yanhao.kmpmusic.feature.components.PlayingGlyph
 import com.yanhao.kmpmusic.feature.components.SongRow
 import com.yanhao.kmpmusic.feature.components.coverArtPainter
 import com.yanhao.kmpmusic.feature.screen.AlbumDetailScreen
@@ -75,41 +90,65 @@ fun MusicApp(
 ) {
     val state: MusicAppUiState = controller.uiState
     KmpMusicTheme(themeMode = state.themeMode) {
-        Box(
+        BoxWithConstraints(
             modifier = Modifier
                 .fillMaxSize()
+                .background(Color(0xFFEFF3F5))
                 .background(
                     brush = Brush.radialGradient(
-                        colors = listOf(MusicColors.Accent.copy(alpha = 0.10f), MaterialTheme.colorScheme.background),
+                        colors = listOf(MusicColors.Accent.copy(alpha = 0.10f), Color.Transparent),
+                        center = Offset(x = 120f, y = 110f),
+                        radius = 520f,
                     ),
                 ),
             contentAlignment = Alignment.TopCenter,
         ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .widthIn(max = 430.dp)
-                    .background(MaterialTheme.colorScheme.background),
+            val appWidth: androidx.compose.ui.unit.Dp = if (maxWidth < MusicDimens.AppMaxWidth) {
+                maxWidth
+            } else {
+                MusicDimens.AppMaxWidth
+            }
+            val visualScale: Float = (appWidth.value / MusicDimens.AppMaxWidth.value).coerceAtMost(maximumValue = 1f)
+            val currentDensity: Density = LocalDensity.current
+            CompositionLocalProvider(
+                LocalMusicScale provides visualScale,
+                LocalDensity provides Density(
+                    density = currentDensity.density,
+                    fontScale = 1f,
+                ),
             ) {
-                AppContent(state = state, controller = controller)
-                MiniPlayer(
-                    song = state.currentSong,
-                    isPlaying = state.isPlaying,
-                    isTopLevel = state.navigationState.isTopLevel,
-                    onOpen = { controller.navigateToSecondary(SecondaryScreen.Player) },
-                    onToggle = controller::togglePlayback,
-                    onPrev = { controller.moveTrack(direction = -1) },
-                    onQueue = controller::openQueue,
-                    modifier = Modifier.align(Alignment.BottomCenter),
-                )
-                if (state.navigationState.isTopLevel) {
+                Box(
+                    modifier = Modifier
+                        .width(appWidth)
+                        .fillMaxHeight()
+                        .background(
+                            brush = Brush.radialGradient(
+                                colors = listOf(MusicColors.Accent.copy(alpha = 0.16f), Color.Transparent),
+                                center = Offset(x = 135f * visualScale, y = 130f * visualScale),
+                                radius = 420f * visualScale,
+                            ),
+                        )
+                        .background(MaterialTheme.colorScheme.background.copy(alpha = 0.96f)),
+                ) {
+                    AppContent(state = state, controller = controller)
+                    MiniPlayer(
+                        song = state.currentSong,
+                        isPlaying = state.isPlaying,
+                        isTopLevel = state.navigationState.isTopLevel,
+                        onOpen = { controller.navigateToSecondary(SecondaryScreen.Player) },
+                        onToggle = controller::togglePlayback,
+                        onPrev = { controller.moveTrack(direction = -1) },
+                        onQueue = controller::openQueue,
+                        modifier = Modifier.align(Alignment.BottomCenter),
+                    )
                     BottomNavigation(
                         rootTab = state.navigationState.rootTab,
+                        isVisible = state.navigationState.isTopLevel,
                         onRootTab = controller::navigateToRoot,
                         modifier = Modifier.align(Alignment.BottomCenter),
                     )
+                    AppOverlays(state = state, controller = controller)
                 }
-                AppOverlays(state = state, controller = controller)
             }
         }
     }
@@ -123,13 +162,21 @@ private fun AppContent(
     state: MusicAppUiState,
     controller: MusicAppController,
 ) {
-    val bottomPadding = if (state.navigationState.isTopLevel) 164.dp else 96.dp
+    val bottomPadding = if (state.navigationState.isTopLevel) {
+        scaledDp(MusicDimens.TopLevelContentBottom)
+    } else {
+        scaledDp(MusicDimens.SecondaryContentBottom)
+    }
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .statusBarsPadding()
             .verticalScroll(rememberScrollState())
-            .padding(start = 21.dp, top = 42.dp, end = 21.dp, bottom = bottomPadding),
+            .padding(
+                start = scaledDp(MusicDimens.PagePaddingHorizontal),
+                top = scaledDp(MusicDimens.PagePaddingTop),
+                end = scaledDp(MusicDimens.PagePaddingHorizontal),
+                bottom = bottomPadding,
+            ),
     ) {
         when (val secondaryScreen = state.navigationState.secondaryScreen) {
             null -> RootScreen(state = state, controller = controller)
@@ -265,37 +312,143 @@ private fun MiniPlayer(
     onQueue: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val bottomPadding = if (isTopLevel) 78.dp else 0.dp
+    val bottomPadding: androidx.compose.ui.unit.Dp by animateDpAsState(
+        targetValue = if (isTopLevel) scaledDp(MusicDimens.MiniPlayerBottomTopLevel) else 0.dp,
+        animationSpec = tween(durationMillis = 780, easing = FastOutSlowInEasing),
+        label = "MiniPlayerBottom",
+    )
     Surface(
         modifier = modifier
             .fillMaxWidth()
-            .padding(start = 21.dp, end = 21.dp, bottom = bottomPadding)
+            .padding(
+                start = scaledDp(MusicDimens.PagePaddingHorizontal),
+                end = scaledDp(MusicDimens.PagePaddingHorizontal),
+                bottom = bottomPadding,
+            )
             .navigationBarsPadding(),
         shape = RoundedCornerShape(18.dp),
-        color = MusicColors.Paper,
-        tonalElevation = 4.dp,
+        color = MusicColors.Paper.copy(alpha = 0.92f),
+        shadowElevation = 14.dp,
         onClick = onOpen,
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(10.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            androidx.compose.foundation.Image(
-                painter = coverArtPainter(song.coverArt),
-                contentDescription = "${song.title} 封面",
-                modifier = Modifier.size(48.dp).clip(RoundedCornerShape(8.dp)),
-                contentScale = ContentScale.Crop,
-            )
-            Column(modifier = Modifier.weight(weight = 1f)) {
-                Text(text = song.title, fontSize = 15.sp, fontWeight = FontWeight.ExtraBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                Text(text = song.artist, color = MusicColors.Muted, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                PlayingGlyph(color = MusicColors.Accent)
+        Box(modifier = Modifier.height(scaledDp(MusicDimens.MiniPlayerHeight))) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(scaledDp(MusicDimens.MiniPlayerHeight))
+                    .padding(start = scaledDp(10.dp), top = scaledDp(8.dp), end = scaledDp(17.dp), bottom = scaledDp(7.dp)),
+                horizontalArrangement = Arrangement.spacedBy(scaledDp(12.dp)),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Row(
+                    modifier = Modifier.weight(weight = 1f),
+                    horizontalArrangement = Arrangement.spacedBy(scaledDp(11.dp)),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    androidx.compose.foundation.Image(
+                        painter = coverArtPainter(song.coverArt),
+                        contentDescription = "${song.title} 封面",
+                        modifier = Modifier.size(scaledDp(45.dp)).clip(RoundedCornerShape(scaledDp(8.dp))),
+                        contentScale = ContentScale.Crop,
+                    )
+                    Column(
+                        modifier = Modifier.weight(weight = 1f),
+                        verticalArrangement = Arrangement.Center,
+                    ) {
+                        Text(
+                            text = song.title,
+                            fontSize = scaledSp(16.sp),
+                            lineHeight = scaledSp(19.sp),
+                            fontWeight = FontWeight.ExtraBold,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                        Text(
+                            text = song.artist,
+                            color = MusicColors.Muted,
+                            fontSize = scaledSp(13.sp),
+                            lineHeight = scaledSp(16.sp),
+                            fontWeight = FontWeight.Medium,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(scaledDp(14.dp)), verticalAlignment = Alignment.CenterVertically) {
+                    MiniControlButton(onClick = onPrev) {
+                        Icon(Icons.Rounded.SkipPrevious, contentDescription = "上一首", tint = MusicColors.Ink)
+                    }
+                    MiniControlButton(onClick = onToggle) {
+                        Icon(if (isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow, contentDescription = if (isPlaying) "暂停" else "播放", tint = MusicColors.Ink)
+                    }
+                    MiniControlButton(onClick = onQueue) {
+                        Icon(Icons.AutoMirrored.Rounded.List, contentDescription = "播放队列", tint = MusicColors.Ink)
+                    }
+                }
             }
-            IconButton(onClick = onPrev) { Icon(Icons.Rounded.SkipPrevious, contentDescription = "上一首") }
-            IconButton(onClick = onToggle) { Icon(if (isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow, contentDescription = if (isPlaying) "暂停" else "播放") }
-            IconButton(onClick = onQueue) { Icon(Icons.AutoMirrored.Rounded.List, contentDescription = "播放队列") }
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomStart)
+                    .fillMaxWidth(fraction = 0.44f)
+                    .height(scaledDp(3.dp))
+                    .background(MusicColors.Accent),
+            )
         }
+    }
+}
+
+/**
+ * 迷你播放器控制按钮使用固定触控区，避免图标变化造成布局跳动。
+ */
+@Composable
+private fun MiniControlButton(
+    onClick: () -> Unit,
+    content: @Composable () -> Unit,
+) {
+    Box(
+        modifier = Modifier
+            .size(width = scaledDp(28.dp), height = scaledDp(42.dp))
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        content()
+    }
+}
+
+/**
+ * 自定义底部导航项，只保留原型需要的图标和文字状态。
+ */
+@Composable
+private fun BottomNavigationItem(
+    tab: RootTab,
+    isSelected: Boolean,
+    isEnabled: Boolean,
+    onClick: () -> Unit,
+) {
+    val itemColor: Color = if (isSelected) MusicColors.Accent else Color(0xFF7D838D)
+    Column(
+        modifier = Modifier
+            .size(width = scaledDp(74.dp), height = scaledDp(58.dp))
+            .clickable(enabled = isEnabled, onClick = onClick),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(3.dp, Alignment.CenterVertically),
+    ) {
+        Icon(
+            imageVector = when (tab) {
+                RootTab.Home -> Icons.Rounded.Home
+                RootTab.Favorites -> Icons.Rounded.Favorite
+                RootTab.Me -> Icons.Rounded.Person
+            },
+            contentDescription = tab.label(),
+            tint = itemColor,
+            modifier = Modifier.size(scaledDp(28.dp)),
+        )
+        Text(
+            text = tab.label(),
+            color = itemColor,
+            fontSize = scaledSp(12.sp),
+            fontWeight = FontWeight.Bold,
+        )
     }
 }
 
@@ -305,26 +458,37 @@ private fun MiniPlayer(
 @Composable
 private fun BottomNavigation(
     rootTab: RootTab,
+    isVisible: Boolean,
     onRootTab: (RootTab) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    NavigationBar(modifier = modifier.fillMaxWidth().navigationBarsPadding()) {
-        RootTab.entries.forEach { tab ->
-            NavigationBarItem(
-                selected = rootTab == tab,
-                onClick = { onRootTab(tab) },
-                icon = {
-                    Icon(
-                        imageVector = when (tab) {
-                            RootTab.Home -> Icons.Rounded.Home
-                            RootTab.Favorites -> Icons.Rounded.Favorite
-                            RootTab.Me -> Icons.Rounded.Person
-                        },
-                        contentDescription = tab.label(),
-                    )
-                },
-                label = { Text(text = tab.label()) },
-            )
+    val offsetY: androidx.compose.ui.unit.Dp by animateDpAsState(
+        targetValue = if (isVisible) 0.dp else scaledDp(MusicDimens.BottomNavHeight),
+        animationSpec = tween(durationMillis = 780, easing = FastOutSlowInEasing),
+        label = "BottomNavOffset",
+    )
+    Surface(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(scaledDp(MusicDimens.BottomNavHeight))
+            .offset(y = offsetY)
+            .navigationBarsPadding()
+            .border(width = 1.dp, color = MusicColors.Line.copy(alpha = 0.86f)),
+        color = MusicColors.Paper,
+    ) {
+        Row(
+            modifier = Modifier.fillMaxSize().padding(start = scaledDp(24.dp), top = scaledDp(10.dp), end = scaledDp(24.dp), bottom = scaledDp(8.dp)),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            RootTab.entries.forEach { tab ->
+                BottomNavigationItem(
+                    tab = tab,
+                    isSelected = rootTab == tab,
+                    isEnabled = isVisible,
+                    onClick = { onRootTab(tab) },
+                )
+            }
         }
     }
 }
