@@ -86,9 +86,9 @@ import com.yanhao.kmpmusic.feature.screen.AlbumDetailScreen
 import com.yanhao.kmpmusic.feature.screen.ArtistDetailScreen
 import com.yanhao.kmpmusic.feature.screen.FavoritesScreen
 import com.yanhao.kmpmusic.feature.screen.HomeScreen
-import com.yanhao.kmpmusic.feature.screen.LocalFolderScreen
 import com.yanhao.kmpmusic.feature.screen.LoginScreen
 import com.yanhao.kmpmusic.feature.screen.MeScreen
+import com.yanhao.kmpmusic.feature.screen.MissingLibraryItemScreen
 import com.yanhao.kmpmusic.feature.screen.PlayerScreen
 import com.yanhao.kmpmusic.feature.screen.SearchScreen
 import com.yanhao.kmpmusic.feature.screen.SettingsScreen
@@ -224,37 +224,53 @@ private fun AppContent(
                     onAlbumOpen = controller::openAlbum,
                     onArtistOpen = controller::openArtist,
                 )
-                SecondaryScreen.Player -> PlayerScreen(
-                    song = state.currentSong,
-                    isPlaying = state.isPlaying,
+                SecondaryScreen.Player -> state.currentSong?.let { song ->
+                    PlayerScreen(
+                        song = song,
+                        isPlaying = state.isPlaying,
+                        onBack = controller::navigateBack,
+                        onToggle = controller::togglePlayback,
+                        onPrev = { controller.moveTrack(direction = -1) },
+                        onNext = { controller.moveTrack(direction = 1) },
+                        onLike = controller::toggleFavorite,
+                        onQueue = controller::openQueue,
+                    )
+                } ?: MissingLibraryItemScreen(
+                    title = "暂无播放",
+                    subtitle = "播放一首本地歌曲后会在这里显示。",
                     onBack = controller::navigateBack,
-                    onToggle = controller::togglePlayback,
-                    onPrev = { controller.moveTrack(direction = -1) },
-                    onNext = { controller.moveTrack(direction = 1) },
-                    onLike = controller::toggleFavorite,
-                    onQueue = controller::openQueue,
                 )
-                SecondaryScreen.AlbumDetail -> AlbumDetailScreen(
-                    album = state.selectedAlbum,
-                    songs = state.songs,
-                    currentSongId = state.currentSongId,
+                SecondaryScreen.AlbumDetail -> state.selectedAlbum?.let { album ->
+                    AlbumDetailScreen(
+                        album = album,
+                        songs = state.songs,
+                        currentSongId = state.currentSongId,
+                        onBack = controller::navigateBack,
+                        onSongOpen = controller::openSong,
+                        onSongPlay = controller::playSong,
+                        onMore = controller::openMore,
+                        onLike = controller::toggleFavorite,
+                    )
+                } ?: MissingLibraryItemScreen(
+                    title = "专辑不可用",
                     onBack = controller::navigateBack,
-                    onSongOpen = controller::openSong,
-                    onSongPlay = controller::playSong,
-                    onMore = controller::openMore,
-                    onLike = controller::toggleFavorite,
                 )
-                SecondaryScreen.ArtistDetail -> ArtistDetailScreen(
-                    artist = state.selectedArtist,
-                    songs = state.songs,
-                    albums = state.albums,
-                    currentSongId = state.currentSongId,
+                SecondaryScreen.ArtistDetail -> state.selectedArtist?.let { artist ->
+                    ArtistDetailScreen(
+                        artist = artist,
+                        songs = state.songs,
+                        albums = state.albums,
+                        currentSongId = state.currentSongId,
+                        onBack = controller::navigateBack,
+                        onSongOpen = controller::openSong,
+                        onSongPlay = controller::playSong,
+                        onMore = controller::openMore,
+                        onLike = controller::toggleFavorite,
+                        onAlbumOpen = controller::openAlbum,
+                    )
+                } ?: MissingLibraryItemScreen(
+                    title = "歌手不可用",
                     onBack = controller::navigateBack,
-                    onSongOpen = controller::openSong,
-                    onSongPlay = controller::playSong,
-                    onMore = controller::openMore,
-                    onLike = controller::toggleFavorite,
-                    onAlbumOpen = controller::openAlbum,
                 )
                 SecondaryScreen.Settings -> SettingsScreen(
                     themeMode = state.themeMode,
@@ -270,13 +286,10 @@ private fun AppContent(
                     onSend = controller::sendLoginMail,
                     onBack = controller::navigateBack,
                 )
-                SecondaryScreen.LocalFolder -> LocalFolderScreen(
-                    songs = state.songs,
-                    currentSongId = state.currentSongId,
+                is SecondaryScreen.LocalMusic -> MissingLibraryItemScreen(
+                    title = "本地音乐",
+                    subtitle = secondaryScreen.initialSection.label(),
                     onBack = controller::navigateBack,
-                    onSongOpen = controller::openSong,
-                    onSongPlay = controller::playSong,
-                    onMore = controller::openMore,
                 )
             }
         }
@@ -310,7 +323,7 @@ private fun RootScreen(
             currentSongId = state.currentSongId,
             onSearch = { controller.navigateToSecondary(SecondaryScreen.Search) },
             onScan = controller::openScan,
-            onLocalFolder = { controller.navigateToSecondary(SecondaryScreen.LocalFolder) },
+            onLocalFolder = { controller.openLocalMusic(section = LocalMusicSection.Songs) },
             onSongOpen = controller::openSong,
             onSongPlay = controller::playSong,
             onMore = controller::openMore,
@@ -346,7 +359,7 @@ private fun RootScreen(
  */
 @Composable
 private fun BottomChrome(
-    song: Song,
+    song: Song?,
     isPlaying: Boolean,
     placement: BottomChromePlacement,
     showsBottomNavigation: Boolean,
@@ -361,7 +374,11 @@ private fun BottomChrome(
     val navigationBarHeight: Dp = with(LocalDensity.current) {
         WindowInsets.navigationBars.getBottom(density = this).toDp()
     }
-    val stackHeight: Dp = scaledDp(MusicDimens.MiniPlayerHeight + MusicDimens.BottomNavHeight)
+    val stackHeight: Dp = if (song == null) {
+        scaledDp(MusicDimens.BottomNavHeight)
+    } else {
+        scaledDp(MusicDimens.MiniPlayerHeight + MusicDimens.BottomNavHeight)
+    }
     val bottomChromeTransition = updateTransition(
         targetState = placement,
         label = "BottomChromePlacement",
@@ -382,7 +399,11 @@ private fun BottomChrome(
     ) { targetPlacement: BottomChromePlacement ->
         when (targetPlacement) {
             BottomChromePlacement.TopLevel -> 0.dp
-            BottomChromePlacement.MiniPlayerOnly -> scaledDp(MusicDimens.BottomNavHeight)
+            BottomChromePlacement.MiniPlayerOnly -> if (song == null) {
+                stackHeight + navigationBarHeight
+            } else {
+                scaledDp(MusicDimens.BottomNavHeight)
+            }
             BottomChromePlacement.Hidden -> stackHeight + navigationBarHeight
         }
     }
@@ -411,15 +432,17 @@ private fun BottomChrome(
                     .height(stackHeight)
                     .offset(y = stackOffset),
             ) {
-                MiniPlayer(
-                    song = song,
-                    isPlaying = isPlaying,
-                    onOpen = onOpen,
-                    onToggle = onToggle,
-                    onPrev = onPrev,
-                    onQueue = onQueue,
-                    modifier = Modifier.align(Alignment.TopCenter),
-                )
+                if (song != null) {
+                    MiniPlayer(
+                        song = song,
+                        isPlaying = isPlaying,
+                        onOpen = onOpen,
+                        onToggle = onToggle,
+                        onPrev = onPrev,
+                        onQueue = onQueue,
+                        modifier = Modifier.align(Alignment.TopCenter),
+                    )
+                }
                 BottomNavigation(
                     rootTab = rootTab,
                     isEnabled = showsBottomNavigation,
@@ -717,5 +740,17 @@ private fun RootTab.label(): String {
         RootTab.Home -> "首页"
         RootTab.Favorites -> "收藏"
         RootTab.Me -> "我的"
+    }
+}
+
+/**
+ * 本地音乐分段中文名，用于 Task 8 页面完成前的路由兜底。
+ */
+private fun LocalMusicSection.label(): String {
+    return when (this) {
+        LocalMusicSection.Songs -> "歌曲"
+        LocalMusicSection.Albums -> "专辑"
+        LocalMusicSection.Artists -> "歌手"
+        LocalMusicSection.Sources -> "来源"
     }
 }

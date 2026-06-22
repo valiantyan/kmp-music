@@ -1,6 +1,7 @@
 package com.yanhao.kmpmusic.domain.repository
 
 import com.yanhao.kmpmusic.domain.model.PlaybackState
+import com.yanhao.kmpmusic.domain.model.PlaybackHistory
 import com.yanhao.kmpmusic.domain.model.QueueState
 
 /**
@@ -26,4 +27,14 @@ interface PlaybackRepository {
      * 保存播放队列。
      */
     fun saveQueueState(state: QueueState)
+
+    /**
+     * 读取真实播放历史。
+     */
+    fun getPlaybackHistory(): PlaybackHistory
+
+    /**
+     * 保存真实播放历史。
+     */
+    fun savePlaybackHistory(history: PlaybackHistory)
 }

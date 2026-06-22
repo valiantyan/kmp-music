@@ -1,5 +1,6 @@
 package com.yanhao.kmpmusic.domain.usecase
 
+import com.yanhao.kmpmusic.domain.model.PlaybackHistory
 import com.yanhao.kmpmusic.domain.model.PlaybackState
 import com.yanhao.kmpmusic.domain.model.QueueState
 import com.yanhao.kmpmusic.domain.model.Song
@@ -30,9 +31,9 @@ interface TogglePlaybackUseCase {
  */
 interface MoveQueueUseCase {
     /**
-     * 按方向移动队列，`direction` 为 1 表示下一首，-1 表示上一首。
+     * 按方向移动已有队列，队列为空或当前歌曲缺失时保持原状态。
      */
-    operator fun invoke(direction: Int, fallbackSongs: List<Song>): PlaybackState
+    operator fun invoke(direction: Int): PlaybackState
 }
 
 /**
@@ -55,6 +56,13 @@ class PlaySongUseCaseImpl(
         )
         playbackRepository.saveQueueState(state = QueueState(songIds = nextQueueIds))
         playbackRepository.savePlaybackState(state = nextState)
+        val currentHistory: List<String> = playbackRepository.getPlaybackHistory().songIds
+        val nextHistory: List<String> = listOf(song.id) + currentHistory.filterNot { songId ->
+            songId == song.id
+        }
+        playbackRepository.savePlaybackHistory(
+            history = PlaybackHistory(songIds = nextHistory.take(n = 50)),
+        )
         return nextState
     }
 }
@@ -80,24 +88,21 @@ class TogglePlaybackUseCaseImpl(
 class MoveQueueUseCaseImpl(
     private val playbackRepository: PlaybackRepository,
 ) : MoveQueueUseCase {
-    /** 基于队列循环切歌，队列为空时退回全量歌曲。 */
-    override operator fun invoke(direction: Int, fallbackSongs: List<Song>): PlaybackState {
-        val queueIds: List<String> = playbackRepository.getQueueState().songIds
-        val playbackSource: List<String> = if (queueIds.isEmpty()) {
-            fallbackSongs.map { song -> song.id }
-        } else {
-            queueIds
-        }
-        if (playbackSource.isEmpty()) {
-            return playbackRepository.getPlaybackState()
-        }
+    /** 基于显式队列循环切歌，不用全曲库静默替换缺失歌曲。 */
+    override operator fun invoke(direction: Int): PlaybackState {
         val currentState: PlaybackState = playbackRepository.getPlaybackState()
-        val currentIndex: Int = playbackSource.indexOf(currentState.currentSongId).let { index ->
-            if (index >= 0) index else 0
+        val queueIds: List<String> = playbackRepository.getQueueState().songIds
+        if (queueIds.isEmpty()) {
+            return currentState
         }
-        val nextIndex: Int = (currentIndex + direction + playbackSource.size) % playbackSource.size
+        val currentSongId: String = currentState.currentSongId ?: return currentState
+        val currentIndex: Int = queueIds.indexOf(currentSongId)
+        if (currentIndex < 0) {
+            return currentState
+        }
+        val nextIndex: Int = (currentIndex + direction + queueIds.size) % queueIds.size
         val nextState: PlaybackState = PlaybackState(
-            currentSongId = playbackSource[nextIndex],
+            currentSongId = queueIds[nextIndex],
             isPlaying = true,
         )
         playbackRepository.savePlaybackState(state = nextState)

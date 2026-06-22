@@ -26,7 +26,7 @@ fun FavoritesScreen(
     songs: List<Song>,
     albums: List<Album>,
     artists: List<Artist>,
-    currentSongId: String,
+    currentSongId: String?,
     section: FavoriteSection,
     onSection: (FavoriteSection) -> Unit,
     onSongOpen: (Song) -> Unit,

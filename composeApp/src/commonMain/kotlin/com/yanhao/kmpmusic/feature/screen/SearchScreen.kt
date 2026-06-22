@@ -52,7 +52,7 @@ fun SearchScreen(
     query: String,
     scope: SearchScope,
     result: SearchResult,
-    currentSongId: String,
+    currentSongId: String?,
     onBack: () -> Unit,
     onQuery: (String) -> Unit,
     onScope: (SearchScope) -> Unit,

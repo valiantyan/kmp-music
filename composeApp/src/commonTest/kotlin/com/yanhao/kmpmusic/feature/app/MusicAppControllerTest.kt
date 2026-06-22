@@ -1,6 +1,10 @@
 package com.yanhao.kmpmusic.feature.app
 
+import com.yanhao.kmpmusic.data.InMemoryPlaybackRepository
+import com.yanhao.kmpmusic.domain.model.LocalMusicScanRequest
 import com.yanhao.kmpmusic.domain.model.SearchScope
+import com.yanhao.kmpmusic.domain.model.Song
+import kotlinx.coroutines.runBlocking
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -12,6 +16,67 @@ import kotlin.test.assertTrue
  * [MusicAppController] 的核心交互测试，覆盖原型迁移后的关键状态规则。
  */
 class MusicAppControllerTest {
+    /**
+     * App 启动后不能把 seed 曲库或扫描结果预填成真实播放状态。
+     */
+    @Test
+    fun initialStateHasNoPlaybackBeforeUserAction(): Unit {
+        val controller = MusicAppController()
+        assertNull(controller.uiState.currentSongId)
+        assertNull(controller.uiState.currentSong)
+        assertFalse(controller.uiState.isPlaying)
+        assertTrue(controller.uiState.queueSongIds.isEmpty())
+        assertTrue(controller.uiState.songs.isEmpty())
+        assertTrue(controller.uiState.localSongPreview.isEmpty())
+        assertTrue(controller.uiState.recentSongs.isEmpty())
+    }
+
+    /**
+     * 查看全部应进入本地音乐二级页，底部 Tab 隐藏但 mini-player 策略保持普通二级页。
+     */
+    @Test
+    fun openLocalMusicUsesSecondaryChrome(): Unit {
+        val controller = MusicAppController()
+        controller.openLocalMusic(section = LocalMusicSection.Songs)
+        assertEquals(
+            expected = SecondaryScreen.LocalMusic(initialSection = LocalMusicSection.Songs),
+            actual = controller.uiState.navigationState.secondaryScreen,
+        )
+        assertEquals(
+            expected = AppChromeMode.SecondaryWithMiniPlayer,
+            actual = controller.uiState.navigationState.chromeMode,
+        )
+    }
+
+    /**
+     * 扫描完成只应填充本地歌曲预览，不应把扫描结果冒充最近播放。
+     */
+    @Test
+    fun scanDoesNotPopulateRecentPlayback(): Unit = runBlocking {
+        val controller = MusicAppController()
+        controller.scanLocalMusic(request = LocalMusicScanRequest.Refresh)
+        assertEquals(expected = 8, actual = controller.uiState.songs.size)
+        assertEquals(expected = 6, actual = controller.uiState.localSongPreview.size)
+        assertEquals(expected = 8, actual = controller.uiState.libraryStats.songCount)
+        assertTrue(controller.uiState.localMusicSources.isNotEmpty())
+        assertTrue(controller.uiState.recentSongs.isEmpty())
+    }
+
+    /**
+     * 用户真正播放歌曲后，最近播放才出现该歌曲。
+     */
+    @Test
+    fun playSongAddsRecentPlayback(): Unit = runBlocking {
+        val controller = MusicAppController()
+        controller.scanLocalMusic(request = LocalMusicScanRequest.Refresh)
+        val targetSong: Song = controller.uiState.songs.first()
+        controller.playSong(song = targetSong)
+        assertEquals(
+            expected = listOf(targetSong.id),
+            actual = controller.uiState.recentSongs.map { song -> song.id },
+        )
+    }
+
     /**
      * 二级页面应隐藏主导航，并保留返回前的根 Tab。
      */
@@ -31,22 +96,59 @@ class MusicAppControllerTest {
      * 播放歌曲后当前歌曲、播放状态和队列应同步。
      */
     @Test
-    fun playSongUpdatesPlaybackAndQueue(): Unit {
+    fun playSongUpdatesPlaybackAndQueue(): Unit = runBlocking {
         val controller = MusicAppController()
-        val targetSong = controller.uiState.songs.first { song -> song.id == "best" }
+        controller.scanLocalMusic(request = LocalMusicScanRequest.Refresh)
+        val targetSong: Song = controller.uiState.songs.first { song ->
+            song.title == "The Best of Me"
+        }
         controller.playSong(song = targetSong)
-        assertEquals("best", controller.uiState.currentSongId)
+        assertEquals(targetSong.id, controller.uiState.currentSongId)
         assertTrue(controller.uiState.isPlaying)
-        assertTrue(controller.uiState.queueSongIds.contains("best"))
+        assertTrue(controller.uiState.queueSongIds.contains(targetSong.id))
     }
 
     /**
-     * 队列切歌应循环移动并保持播放状态。
+     * 用户播放歌曲后才会写入真实播放历史，重复播放同一首时保持最近一次在最前。
      */
     @Test
-    fun moveTrackChangesCurrentSong(): Unit {
+    fun playSongRecordsPlaybackHistory(): Unit = runBlocking {
+        val playbackRepository = InMemoryPlaybackRepository()
+        val controller = MusicAppController(playbackRepository = playbackRepository)
+        controller.scanLocalMusic(request = LocalMusicScanRequest.Refresh)
+        val firstSong: Song = controller.uiState.songs.first { song -> song.title == "海边的梦" }
+        val secondSong: Song = controller.uiState.songs.first { song -> song.title == "The Best of Me" }
+        controller.playSong(song = firstSong)
+        controller.playSong(song = secondSong)
+        controller.playSong(song = firstSong)
+        assertEquals(
+            expected = listOf(firstSong.id, secondSong.id),
+            actual = playbackRepository.getPlaybackHistory().songIds,
+        )
+    }
+
+    /**
+     * 队列为空时切歌不能用完整曲库第一首静默替换当前播放。
+     */
+    @Test
+    fun moveTrackDoesNotUseSongsAsImplicitQueue(): Unit {
         val controller = MusicAppController()
-        val originalSongId = controller.uiState.currentSongId
+        controller.moveTrack(direction = 1)
+        assertNull(controller.uiState.currentSongId)
+        assertFalse(controller.uiState.isPlaying)
+        assertTrue(controller.uiState.queueSongIds.isEmpty())
+    }
+
+    /**
+     * 用户播放形成显式队列后，队列切歌才应循环移动并保持播放状态。
+     */
+    @Test
+    fun moveTrackChangesCurrentSong(): Unit = runBlocking {
+        val controller = MusicAppController()
+        controller.scanLocalMusic(request = LocalMusicScanRequest.Refresh)
+        controller.playSong(song = controller.uiState.songs[0])
+        controller.playSong(song = controller.uiState.songs[1])
+        val originalSongId: String? = controller.uiState.currentSongId
         controller.moveTrack(direction = 1)
         assertNotEquals(originalSongId, controller.uiState.currentSongId)
         assertTrue(controller.uiState.isPlaying)
@@ -56,19 +158,22 @@ class MusicAppControllerTest {
      * 收藏状态应同时同步到集合和歌曲列表。
      */
     @Test
-    fun toggleFavoriteSyncsSongList(): Unit {
+    fun toggleFavoriteSyncsSongList(): Unit = runBlocking {
         val controller = MusicAppController()
-        controller.toggleFavorite(songId = "summer-waltz")
-        assertTrue(controller.uiState.likedSongIds.contains("summer-waltz"))
-        assertTrue(controller.uiState.songs.first { song -> song.id == "summer-waltz" }.isLiked)
+        controller.scanLocalMusic(request = LocalMusicScanRequest.Refresh)
+        val targetSong: Song = controller.uiState.songs.first { song -> song.title == "Summer Waltz" }
+        controller.toggleFavorite(songId = targetSong.id)
+        assertTrue(controller.uiState.likedSongIds.contains(targetSong.id))
+        assertTrue(controller.uiState.songs.first { song -> song.id == targetSong.id }.isLiked)
     }
 
     /**
      * 搜索范围为歌曲时不应返回专辑和歌手。
      */
     @Test
-    fun searchScopeLimitsResultTypes(): Unit {
+    fun searchScopeLimitsResultTypes(): Unit = runBlocking {
         val controller = MusicAppController()
+        controller.scanLocalMusic(request = LocalMusicScanRequest.Refresh)
         controller.setSearchQuery(query = "旅行团")
         controller.setSearchScope(scope = SearchScope.Songs)
         val result = controller.search()
@@ -119,8 +224,9 @@ class MusicAppControllerTest {
      * 系统返回键在二级页应回到一级页，而不是交给系统直接退出 App。
      */
     @Test
-    fun systemBackReturnsFromSecondaryScreen(): Unit {
+    fun systemBackReturnsFromSecondaryScreen(): Unit = runBlocking {
         val controller = MusicAppController()
+        controller.scanLocalMusic(request = LocalMusicScanRequest.Refresh)
         controller.navigateToRoot(tab = RootTab.Favorites)
         controller.navigateToSecondary(screen = SecondaryScreen.AlbumDetail)
         assertTrue(controller.uiState.canHandleSystemBack)
@@ -159,6 +265,9 @@ class MusicAppControllerTest {
         assertEquals(AppChromeMode.SecondaryWithMiniPlayer, controller.uiState.navigationState.chromeMode)
         assertFalse(controller.uiState.navigationState.chromeMode.showsBottomNavigation)
         assertEquals(BottomChromePlacement.MiniPlayerOnly, controller.uiState.navigationState.chromeMode.bottomChromePlacement)
+        controller.navigateBack()
+        controller.openLocalMusic(section = LocalMusicSection.Songs)
+        assertEquals(AppChromeMode.SecondaryWithMiniPlayer, controller.uiState.navigationState.chromeMode)
         controller.navigateToSecondary(screen = SecondaryScreen.Player)
         assertEquals(AppChromeMode.SecondaryFullscreen, controller.uiState.navigationState.chromeMode)
         assertFalse(controller.uiState.navigationState.chromeMode.showsBottomNavigation)

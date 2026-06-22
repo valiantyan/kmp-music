@@ -8,19 +8,22 @@ import com.yanhao.kmpmusic.data.InMemoryFavoritesRepository
 import com.yanhao.kmpmusic.data.InMemoryMusicLibraryRepository
 import com.yanhao.kmpmusic.data.InMemoryPlaybackRepository
 import com.yanhao.kmpmusic.data.InMemoryUserPreferencesRepository
-import com.yanhao.kmpmusic.data.SeedMusicLibraryRepository
 import com.yanhao.kmpmusic.domain.model.Album
 import com.yanhao.kmpmusic.domain.model.Artist
+import com.yanhao.kmpmusic.domain.model.LibrarySnapshot
+import com.yanhao.kmpmusic.domain.model.LocalMusicScanProgress
+import com.yanhao.kmpmusic.domain.model.LocalMusicScanRequest
+import com.yanhao.kmpmusic.domain.model.LocalMusicScanState
 import com.yanhao.kmpmusic.domain.model.PlaybackState
 import com.yanhao.kmpmusic.domain.model.QueueState
 import com.yanhao.kmpmusic.domain.model.SearchScope
 import com.yanhao.kmpmusic.domain.model.Song
 import com.yanhao.kmpmusic.domain.model.ThemeMode
 import com.yanhao.kmpmusic.domain.repository.FavoritesRepository
+import com.yanhao.kmpmusic.domain.repository.LocalMusicScanner
 import com.yanhao.kmpmusic.domain.repository.MusicLibraryRepository
 import com.yanhao.kmpmusic.domain.repository.PlaybackRepository
 import com.yanhao.kmpmusic.domain.repository.UserPreferencesRepository
-import com.yanhao.kmpmusic.domain.usecase.GetHomeMusicUseCaseImpl
 import com.yanhao.kmpmusic.domain.usecase.MoveQueueUseCase
 import com.yanhao.kmpmusic.domain.usecase.MoveQueueUseCaseImpl
 import com.yanhao.kmpmusic.domain.usecase.PlaySongUseCase
@@ -39,15 +42,11 @@ import com.yanhao.kmpmusic.domain.usecase.TogglePlaybackUseCaseImpl
  * App 状态控制器，替代原型中的 React `useState` 集群。
  */
 class MusicAppController(
-    musicLibraryRepository: MusicLibraryRepository = SeedMusicLibraryRepository(),
+    private val musicLibraryRepository: MusicLibraryRepository = InMemoryMusicLibraryRepository(),
+    private val localMusicScanner: LocalMusicScanner = FakeLocalMusicScanner(),
     private val playbackRepository: PlaybackRepository = InMemoryPlaybackRepository(),
     private val userPreferencesRepository: UserPreferencesRepository = InMemoryUserPreferencesRepository(),
 ) {
-    // 首页数据获取用例。
-    private val getHomeMusicUseCase = GetHomeMusicUseCaseImpl(
-        musicLibraryRepository = musicLibraryRepository,
-    )
-
     // 搜索用例。
     private val searchMusicUseCase: SearchMusicUseCase = SearchMusicUseCaseImpl(
         musicLibraryRepository = musicLibraryRepository,
@@ -76,8 +75,8 @@ class MusicAppController(
 
     // 本地扫描用例。
     private val scanLocalMusicUseCase: ScanLocalMusicUseCase = ScanLocalMusicUseCaseImpl(
-        localMusicScanner = FakeLocalMusicScanner(),
-        musicLibraryRepository = InMemoryMusicLibraryRepository(),
+        localMusicScanner = localMusicScanner,
+        musicLibraryRepository = musicLibraryRepository,
     )
 
     /**
@@ -157,6 +156,28 @@ class MusicAppController(
         return false
     }
 
+    /** 扫描本地音乐并同步曲库快照。 */
+    suspend fun scanLocalMusic(request: LocalMusicScanRequest = LocalMusicScanRequest.Refresh) {
+        uiState = uiState.copy(
+            scanState = LocalMusicScanState.Scanning(
+                progress = LocalMusicScanProgress(currentSourceName = "本地音乐"),
+            ),
+            scanStatus = ScanStatus.Idle,
+            isQueueOpen = false,
+            moreSongId = null,
+        )
+        val snapshot: LibrarySnapshot = scanLocalMusicUseCase(
+            request = request,
+            likedSongIds = uiState.likedSongIds,
+        )
+        syncLibrarySnapshot(snapshot = snapshot)
+    }
+
+    /** 打开本地音乐二级页并指定初始分段。 */
+    fun openLocalMusic(section: LocalMusicSection = LocalMusicSection.Songs) {
+        navigateToSecondary(screen = SecondaryScreen.LocalMusic(initialSection = section))
+    }
+
     /** 播放歌曲但留在当前页面。 */
     fun playSong(song: Song) {
         val playbackState: PlaybackState = playSongUseCase(song = song)
@@ -177,21 +198,21 @@ class MusicAppController(
 
     /** 切换上一首或下一首。 */
     fun moveTrack(direction: Int) {
-        val playbackState: PlaybackState = moveQueueUseCase(
-            direction = direction,
-            fallbackSongs = uiState.songs,
-        )
+        val playbackState: PlaybackState = moveQueueUseCase(direction = direction)
         syncPlaybackState(playbackState = playbackState)
     }
 
     /** 切换收藏并同步歌曲状态。 */
     fun toggleFavorite(songId: String) {
         val likedSongIds: Set<String> = toggleFavoriteUseCase(songId = songId)
+        val songsWithLikes: List<Song> = uiState.songs.map { song ->
+            song.copy(isLiked = likedSongIds.contains(song.id))
+        }
         uiState = uiState.copy(
             likedSongIds = likedSongIds,
-            songs = uiState.songs.map { song ->
-                song.copy(isLiked = likedSongIds.contains(song.id))
-            },
+            songs = songsWithLikes,
+            recentSongs = buildRecentSongs(songs = songsWithLikes),
+            localSongPreview = songsWithLikes.take(n = 6),
         )
     }
 
@@ -269,7 +290,7 @@ class MusicAppController(
         }
         val nextQueueIds: List<String> = uiState.queueSongIds.filterNot { id -> id == songId }
         playbackRepository.saveQueueState(state = QueueState(songIds = nextQueueIds))
-        val nextCurrentSongId: String = if (songId == uiState.currentSongId) {
+        val nextCurrentSongId: String? = if (songId == uiState.currentSongId) {
             nextQueueIds.first()
         } else {
             uiState.currentSongId
@@ -312,7 +333,10 @@ class MusicAppController(
 
     /** 关闭扫描弹层。 */
     fun closeScan() {
-        uiState = uiState.copy(scanStatus = ScanStatus.Idle)
+        uiState = uiState.copy(
+            scanStatus = ScanStatus.Idle,
+            scanState = LocalMusicScanState.Idle,
+        )
     }
 
     /** 打开清理缓存确认。 */
@@ -345,22 +369,28 @@ class MusicAppController(
 
     // 创建初始状态，保证仓库初始化顺序集中。
     private fun createInitialState(): MusicAppUiState {
-        val homeMusic = getHomeMusicUseCase()
+        val snapshot: LibrarySnapshot = musicLibraryRepository.getSnapshot()
         val playbackState: PlaybackState = playbackRepository.getPlaybackState()
         val queueState: QueueState = playbackRepository.getQueueState()
-        val likedSongIds: Set<String> = homeMusic.songs.filter { song ->
+        val likedSongIds: Set<String> = snapshot.songs.filter { song ->
             song.isLiked
         }.map { song ->
             song.id
         }.toSet()
         return MusicAppUiState(
-            songs = homeMusic.songs,
-            albums = homeMusic.albums,
-            artists = homeMusic.artists,
+            songs = snapshot.songs,
+            albums = snapshot.albums,
+            artists = snapshot.artists,
             likedSongIds = likedSongIds,
             currentSongId = playbackState.currentSongId,
             isPlaying = playbackState.isPlaying,
             queueSongIds = queueState.songIds,
+            libraryStats = snapshot.stats,
+            localMusicSources = snapshot.sources,
+            localMusicProblems = snapshot.problems,
+            recentSongs = buildRecentSongs(songs = snapshot.songs),
+            localSongPreview = snapshot.songs.take(n = 6),
+            scanState = snapshot.scanState,
             themeMode = userPreferencesRepository.getThemeMode(),
         )
     }
@@ -371,6 +401,34 @@ class MusicAppController(
             currentSongId = playbackState.currentSongId,
             isPlaying = playbackState.isPlaying,
             queueSongIds = playbackRepository.getQueueState().songIds,
+            recentSongs = buildRecentSongs(songs = uiState.songs),
         )
+    }
+
+    // 曲库快照是首页、搜索、收藏和我的页的唯一列表来源。
+    private fun syncLibrarySnapshot(snapshot: LibrarySnapshot) {
+        val likedSongIds: Set<String> = favoritesRepository.getLikedSongIds()
+        val songsWithLikes: List<Song> = snapshot.songs.map { song ->
+            song.copy(isLiked = likedSongIds.contains(song.id) || song.isLiked)
+        }
+        uiState = uiState.copy(
+            songs = songsWithLikes,
+            albums = snapshot.albums,
+            artists = snapshot.artists,
+            libraryStats = snapshot.stats,
+            localMusicSources = snapshot.sources,
+            localMusicProblems = snapshot.problems,
+            scanState = snapshot.scanState,
+            likedSongIds = likedSongIds + songsWithLikes.filter { song -> song.isLiked }.map { song -> song.id },
+            recentSongs = buildRecentSongs(songs = songsWithLikes),
+            localSongPreview = songsWithLikes.take(n = 6),
+        )
+    }
+
+    // 最近播放只读取播放历史，不从扫描结果自动生成。
+    private fun buildRecentSongs(songs: List<Song>): List<Song> {
+        return playbackRepository.getPlaybackHistory().songIds
+            .mapNotNull { songId -> songs.firstOrNull { song -> song.id == songId } }
+            .take(n = 2)
     }
 }

@@ -276,7 +276,7 @@ private fun LoginEmailField(
 @Composable
 fun LocalFolderScreen(
     songs: List<Song>,
-    currentSongId: String,
+    currentSongId: String?,
     onBack: () -> Unit,
     onSongOpen: (Song) -> Unit,
     onSongPlay: (Song) -> Unit,

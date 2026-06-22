@@ -2,6 +2,10 @@ package com.yanhao.kmpmusic.feature.app
 
 import com.yanhao.kmpmusic.domain.model.Album
 import com.yanhao.kmpmusic.domain.model.Artist
+import com.yanhao.kmpmusic.domain.model.LibraryStats
+import com.yanhao.kmpmusic.domain.model.LocalMusicProblem
+import com.yanhao.kmpmusic.domain.model.LocalMusicScanState
+import com.yanhao.kmpmusic.domain.model.LocalMusicSourceSummary
 import com.yanhao.kmpmusic.domain.model.SearchScope
 import com.yanhao.kmpmusic.domain.model.Song
 import com.yanhao.kmpmusic.domain.model.ThemeMode
@@ -23,6 +27,16 @@ enum class FavoriteSection {
     Songs,
     Albums,
     Artists,
+}
+
+/**
+ * 本地音乐二级页分段。
+ */
+enum class LocalMusicSection {
+    Songs,
+    Albums,
+    Artists,
+    Sources,
 }
 
 /**
@@ -78,7 +92,7 @@ sealed interface SecondaryScreen {
     data object ArtistDetail : SecondaryScreen
     data object Settings : SecondaryScreen
     data object Login : SecondaryScreen
-    data object LocalFolder : SecondaryScreen
+    data class LocalMusic(val initialSection: LocalMusicSection = LocalMusicSection.Songs) : SecondaryScreen
 }
 
 /**
@@ -113,7 +127,7 @@ data class NavigationState(
         SecondaryScreen.AlbumDetail,
         SecondaryScreen.ArtistDetail,
         SecondaryScreen.Login,
-        SecondaryScreen.LocalFolder,
+        is SecondaryScreen.LocalMusic,
         -> AppChromeMode.SecondaryWithMiniPlayer
     }
 
@@ -137,7 +151,7 @@ private fun SecondaryScreen.routeName(): String {
         SecondaryScreen.ArtistDetail -> "ArtistDetail"
         SecondaryScreen.Settings -> "Settings"
         SecondaryScreen.Login -> "Login"
-        SecondaryScreen.LocalFolder -> "LocalFolder"
+        is SecondaryScreen.LocalMusic -> "LocalMusic:${initialSection.name}"
     }
 }
 
@@ -149,9 +163,15 @@ data class MusicAppUiState(
     val albums: List<Album>,
     val artists: List<Artist>,
     val likedSongIds: Set<String>,
-    val currentSongId: String,
+    val currentSongId: String?,
     val isPlaying: Boolean,
     val queueSongIds: List<String>,
+    val libraryStats: LibraryStats = LibraryStats(),
+    val localMusicSources: List<LocalMusicSourceSummary> = emptyList(),
+    val localMusicProblems: List<LocalMusicProblem> = emptyList(),
+    val recentSongs: List<Song> = emptyList(),
+    val localSongPreview: List<Song> = emptyList(),
+    val scanState: LocalMusicScanState = LocalMusicScanState.Idle,
     val navigationState: NavigationState = NavigationState(),
     val favoriteSection: FavoriteSection = FavoriteSection.Songs,
     val selectedAlbumId: String = "river-year",
@@ -167,9 +187,11 @@ data class MusicAppUiState(
     val isMailSent: Boolean = false,
 ) {
     /**
-     * 当前播放歌曲，缺失时回退到第一首。
+     * 当前播放歌曲，没有真实播放时不显示迷你播放器。
      */
-    val currentSong: Song = songs.firstOrNull { song -> song.id == currentSongId } ?: songs.first()
+    val currentSong: Song? = currentSongId?.let { songId ->
+        songs.firstOrNull { song -> song.id == songId }
+    }
 
     /**
      * 当前播放队列歌曲。
@@ -189,12 +211,12 @@ data class MusicAppUiState(
             !navigationState.isTopLevel
 
     /**
-     * 当前专辑详情对象。
+     * 当前专辑详情对象，曲库为空或专辑缺失时为 null。
      */
-    val selectedAlbum: Album = albums.firstOrNull { album -> album.id == selectedAlbumId } ?: albums.first()
+    val selectedAlbum: Album? = albums.firstOrNull { album -> album.id == selectedAlbumId }
 
     /**
-     * 当前歌手详情对象。
+     * 当前歌手详情对象，曲库为空或歌手缺失时为 null。
      */
-    val selectedArtist: Artist = artists.firstOrNull { artist -> artist.id == selectedArtistId } ?: artists.first()
+    val selectedArtist: Artist? = artists.firstOrNull { artist -> artist.id == selectedArtistId }
 }

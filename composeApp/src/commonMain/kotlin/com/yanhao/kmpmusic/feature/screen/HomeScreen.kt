@@ -52,7 +52,7 @@ import com.yanhao.kmpmusic.feature.components.coverArtPainter
 fun HomeScreen(
     songs: List<Song>,
     albums: List<Album>,
-    currentSongId: String,
+    currentSongId: String?,
     onSearch: () -> Unit,
     onScan: () -> Unit,
     onLocalFolder: () -> Unit,

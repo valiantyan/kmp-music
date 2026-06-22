@@ -34,7 +34,7 @@ import com.yanhao.kmpmusic.feature.components.coverArtPainter
 fun AlbumDetailScreen(
     album: Album,
     songs: List<Song>,
-    currentSongId: String,
+    currentSongId: String?,
     onBack: () -> Unit,
     onSongOpen: (Song) -> Unit,
     onSongPlay: (Song) -> Unit,
@@ -71,7 +71,7 @@ fun ArtistDetailScreen(
     artist: Artist,
     songs: List<Song>,
     albums: List<Album>,
-    currentSongId: String,
+    currentSongId: String?,
     onBack: () -> Unit,
     onSongOpen: (Song) -> Unit,
     onSongPlay: (Song) -> Unit,
@@ -100,6 +100,22 @@ fun ArtistDetailScreen(
                 AlbumCard(album = album, onOpen = onAlbumOpen, modifier = Modifier.weight(weight = 1f))
             }
         }
+    }
+}
+
+/**
+ * 曲库条目缺失时的二级页兜底，避免空库状态崩溃。
+ */
+@Composable
+fun MissingLibraryItemScreen(
+    title: String,
+    subtitle: String = "重新扫描后再试",
+    message: String = "当前曲库中找不到这个条目。",
+    onBack: () -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(20.dp)) {
+        AppHeader(title = title, subtitle = subtitle, onBack = onBack)
+        Text(text = message, color = MusicColors.Muted)
     }
 }
 
