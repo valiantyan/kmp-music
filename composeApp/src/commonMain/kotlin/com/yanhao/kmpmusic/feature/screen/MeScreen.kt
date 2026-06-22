@@ -5,6 +5,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -17,6 +18,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.yanhao.kmpmusic.core.theme.MusicColors
@@ -28,6 +30,11 @@ import com.yanhao.kmpmusic.feature.components.ArtistRow
 import com.yanhao.kmpmusic.feature.components.PrimaryPill
 import com.yanhao.kmpmusic.feature.components.SectionTitle
 import com.yanhao.kmpmusic.feature.components.coverArtPainter
+
+/**
+ * 我的页收藏摘要最多展示 3 张，完整内容通过“查看”进入，避免窄屏被数据数量挤坏。
+ */
+private const val FAVORITE_ALBUM_PREVIEW_COUNT = 3
 
 /**
  * 我的页，提供登录、收藏资产和设置入口。
@@ -60,8 +67,8 @@ fun MeScreen(
         Surface(shape = RoundedCornerShape(20.dp), color = MusicColors.Paper, tonalElevation = 1.dp) {
             Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
                 SectionTitle(title = "我的收藏", actionLabel = "查看", onAction = { albums.firstOrNull()?.let(onAlbumOpen) })
-                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    albums.forEach { album ->
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    albums.take(FAVORITE_ALBUM_PREVIEW_COUNT).forEach { album ->
                         Column(
                             modifier = Modifier.weight(weight = 1f).clickable { onAlbumOpen(album) },
                             verticalArrangement = Arrangement.spacedBy(7.dp),
@@ -69,10 +76,19 @@ fun MeScreen(
                             Image(
                                 painter = coverArtPainter(album.coverArt),
                                 contentDescription = "${album.title} 封面",
-                                modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(11.dp)),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .aspectRatio(ratio = 1f)
+                                    .clip(RoundedCornerShape(11.dp)),
                                 contentScale = ContentScale.Crop,
                             )
-                            Text(text = album.title, color = MusicColors.Muted, fontSize = 12.sp, maxLines = 1)
+                            Text(
+                                text = album.title,
+                                color = MusicColors.Muted,
+                                fontSize = 12.sp,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
                         }
                     }
                 }
