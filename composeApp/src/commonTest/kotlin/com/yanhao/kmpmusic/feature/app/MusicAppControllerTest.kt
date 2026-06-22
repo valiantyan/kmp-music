@@ -196,6 +196,39 @@ class MusicAppControllerTest {
     }
 
     /**
+     * 搜索必须读取扫描后的曲库快照，而不是 seed/mock 仓库。
+     */
+    @Test
+    fun searchReadsScannedSnapshot(): Unit = runBlocking {
+        val controller = MusicAppController()
+        controller.scanLocalMusic(request = LocalMusicScanRequest.Refresh)
+        controller.setSearchQuery(query = "One Summer")
+        controller.setSearchScope(scope = SearchScope.Songs)
+        assertEquals(
+            expected = listOf("One Summer's Day"),
+            actual = controller.search().songs.map { song -> song.title },
+        )
+    }
+
+    /**
+     * 我的页统计应来自同一份曲库快照。
+     */
+    @Test
+    fun libraryStatsComeFromScannedSnapshot(): Unit = runBlocking {
+        val controller = MusicAppController()
+        controller.scanLocalMusic(request = LocalMusicScanRequest.Refresh)
+        assertEquals(expected = 8, actual = controller.uiState.libraryStats.songCount)
+        assertEquals(
+            expected = controller.uiState.albums.size,
+            actual = controller.uiState.libraryStats.albumCount,
+        )
+        assertEquals(
+            expected = controller.uiState.artists.size,
+            actual = controller.uiState.libraryStats.artistCount,
+        )
+    }
+
+    /**
      * 一级 Tab 切换后不应存在二级页面。
      */
     @Test

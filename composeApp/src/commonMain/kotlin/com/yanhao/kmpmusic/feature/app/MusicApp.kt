@@ -380,6 +380,8 @@ private fun RootScreen(
         RootTab.Me -> MeScreen(
             albums = state.albums,
             artists = state.artists,
+            libraryStats = state.libraryStats,
+            favoriteCount = state.likedSongIds.size,
             onSettings = { controller.navigateToSecondary(SecondaryScreen.Settings) },
             onLogin = { controller.navigateToSecondary(SecondaryScreen.Login) },
             onAlbumOpen = controller::openAlbum,

@@ -25,6 +25,7 @@ import com.yanhao.kmpmusic.core.theme.MusicColors
 import com.yanhao.kmpmusic.domain.model.Album
 import com.yanhao.kmpmusic.domain.model.Artist
 import com.yanhao.kmpmusic.domain.model.CoverArt
+import com.yanhao.kmpmusic.domain.model.LibraryStats
 import com.yanhao.kmpmusic.feature.components.AppHeader
 import com.yanhao.kmpmusic.feature.components.ArtistRow
 import com.yanhao.kmpmusic.feature.components.PrimaryPill
@@ -43,6 +44,8 @@ private const val FAVORITE_ALBUM_PREVIEW_COUNT = 3
 fun MeScreen(
     albums: List<Album>,
     artists: List<Artist>,
+    libraryStats: LibraryStats,
+    favoriteCount: Int,
     onSettings: () -> Unit,
     onLogin: () -> Unit,
     onAlbumOpen: (Album) -> Unit,
@@ -63,7 +66,10 @@ fun MeScreen(
                 PrimaryPill(text = "立即登录", onClick = onLogin, modifier = Modifier.fillMaxWidth())
             }
         }
-        MetricRow()
+        MetricRow(
+            libraryStats = libraryStats,
+            favoriteCount = favoriteCount,
+        )
         Surface(shape = RoundedCornerShape(20.dp), color = MusicColors.Paper, tonalElevation = 1.dp) {
             Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
                 SectionTitle(title = "我的收藏", actionLabel = "查看", onAction = { albums.firstOrNull()?.let(onAlbumOpen) })
@@ -107,9 +113,16 @@ fun MeScreen(
  * 我的页统计指标。
  */
 @Composable
-private fun MetricRow() {
+private fun MetricRow(
+    libraryStats: LibraryStats,
+    favoriteCount: Int,
+) {
     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-        listOf("本地专辑" to "86", "歌手" to "128", "收藏" to "42").forEach { item ->
+        listOf(
+            "本地专辑" to libraryStats.albumCount.toString(),
+            "歌手" to libraryStats.artistCount.toString(),
+            "收藏" to favoriteCount.toString(),
+        ).forEach { item ->
             Surface(
                 modifier = Modifier.weight(weight = 1f),
                 shape = RoundedCornerShape(18.dp),
