@@ -1,17 +1,27 @@
 package com.yanhao.kmpmusic.core.theme
 
+import androidx.compose.foundation.IndicationNodeFactory
+import androidx.compose.foundation.LocalIndication
+import androidx.compose.foundation.interaction.InteractionSource
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.LocalRippleConfiguration
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.ProvidableCompositionLocal
 import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.drawscope.ContentDrawScope
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.material3.Typography
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.node.DelegatableNode
+import androidx.compose.ui.node.DrawModifierNode
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -92,6 +102,7 @@ fun scaledSp(value: TextUnit): TextUnit {
 /**
  * App 主题入口，沿用原型浅色为默认模式。
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun KmpMusicTheme(
     themeMode: ThemeMode,
@@ -122,8 +133,39 @@ fun KmpMusicTheme(
     MaterialTheme(
         colorScheme = colors,
         typography = MusicTypography,
-        content = content,
-    )
+    ) {
+        CompositionLocalProvider(
+            LocalIndication provides NoVisualIndication,
+            LocalRippleConfiguration provides null,
+            content = content,
+        )
+    }
+}
+
+/**
+ * 无视觉反馈的点击指示器，用于保留点击语义但移除原型不需要的灰色 pressed 背景。
+ */
+private object NoVisualIndication : IndicationNodeFactory {
+    override fun create(interactionSource: InteractionSource): DelegatableNode {
+        return NoVisualIndicationNode()
+    }
+
+    override fun equals(other: Any?): Boolean {
+        return other === this
+    }
+
+    override fun hashCode(): Int {
+        return 0
+    }
+}
+
+/**
+ * 只绘制原始内容，不额外绘制 ripple、pressed state 或 hover state。
+ */
+private class NoVisualIndicationNode : Modifier.Node(), DrawModifierNode {
+    override fun ContentDrawScope.draw() {
+        drawContent()
+    }
 }
 
 /**
