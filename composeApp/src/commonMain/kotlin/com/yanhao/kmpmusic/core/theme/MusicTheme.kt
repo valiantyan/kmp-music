@@ -59,6 +59,8 @@ object MusicDimens {
     val SongCoverSize: Dp = 62.dp
     val DenseSongCoverSize: Dp = 52.dp
     val AlbumRadius: Dp = 14.dp
+    val AlbumTextTopGap: Dp = 8.dp
+    val AlbumTextLineGap: Dp = 3.dp
 }
 
 /**

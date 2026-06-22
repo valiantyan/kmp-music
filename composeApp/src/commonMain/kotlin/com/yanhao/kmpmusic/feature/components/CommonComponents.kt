@@ -300,7 +300,6 @@ fun AlbumCard(
 ) {
     Column(
         modifier = modifier.clickable { onOpen(album) },
-        verticalArrangement = Arrangement.spacedBy(scaledDp(7.dp)),
     ) {
         Image(
             painter = coverArtPainter(album.coverArt),
@@ -312,9 +311,32 @@ fun AlbumCard(
                 .clip(RoundedCornerShape(scaledDp(MusicDimens.AlbumRadius))),
             contentScale = ContentScale.Crop,
         )
-        Text(text = album.title, fontSize = scaledSp(13.sp), fontWeight = FontWeight.ExtraBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-        Text(text = album.artist, color = MusicColors.Muted, fontSize = scaledSp(14.sp), maxLines = 1, overflow = TextOverflow.Ellipsis)
-        Text(text = "${album.songCount} 首", color = MusicColors.Muted, fontSize = scaledSp(14.sp))
+        Spacer(modifier = Modifier.height(scaledDp(MusicDimens.AlbumTextTopGap)))
+        Column(verticalArrangement = Arrangement.spacedBy(scaledDp(MusicDimens.AlbumTextLineGap))) {
+            Text(
+                text = album.title,
+                fontSize = scaledSp(13.sp),
+                lineHeight = scaledSp(16.sp),
+                fontWeight = FontWeight.ExtraBold,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Text(
+                text = album.artist,
+                color = MusicColors.Muted,
+                fontSize = scaledSp(13.sp),
+                lineHeight = scaledSp(16.sp),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Text(
+                text = "${album.songCount} 首",
+                color = MusicColors.Muted,
+                fontSize = scaledSp(13.sp),
+                lineHeight = scaledSp(16.sp),
+                maxLines = 1,
+            )
+        }
     }
 }
 
