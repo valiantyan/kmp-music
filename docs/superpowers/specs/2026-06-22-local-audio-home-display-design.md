@@ -1,10 +1,13 @@
-# 本地音频扫描结果首页展示设计
+# 本地音频扫描结果首页展示与数据来源设计
 
 ## 背景
 
 当前 App 首页、收藏页、我的页展示的是 seed/mock 曲库数据。接入真实本地音频扫描后，扫描结果已经是可播放音频，必须以真实曲库数据进入现有 App，而不能继续用 mock 歌曲冒充扫描结果。
 
-本设计聚焦一个问题：扫描出的可播放音频列表数据，应该在现有 App 中在哪里显示、怎么显示。
+本设计聚焦两个问题：
+
+1. 扫描出的可播放音频列表数据，应该在现有 App 中在哪里显示、怎么显示。
+2. Android、iOS、Desktop 的音频来源如何进入同一份本地曲库状态，再被首页、收藏、我的、搜索和播放队列消费。
 
 ## 已确认方案
 
@@ -20,6 +23,89 @@
 ```
 
 `最近播放` 继续存在，语义保持为用户真实播放历史。`本地歌曲` 才显示扫描出来的可播放音频预览。
+
+## 数据来源与平台边界
+
+本设计继承 `docs/LOCAL_AUDIO_DISCOVERY_PRD.md` 的平台边界。UI 展示的真实歌曲必须来自平台 scanner / importer 产生的扫描结果，不能继续来自 seed/mock 数据。
+
+| 平台 | P0 数据来源 | 首页主操作文案 | `sourceKind` | `localUri` 形态 | 关键约束 |
+| --- | --- | --- | --- | --- | --- |
+| Android | 用户授权后的 `MediaStore.Audio` 查询结果 | `授权并扫描` / `重新扫描` | `androidMediaStore` | `content://` URI | 不手写全盘遍历，不把 `MediaStore.Files` 结果默认当音乐。 |
+| iOS | 用户通过 Files / Document Picker 显式选择并导入到 App 沙盒的音频 | `导入音频` / `继续导入` | `iosImportedFile` | App 沙盒内 file URL | 不写成“扫描整机音乐”，不承诺全设备扫描。 |
+| Desktop | 用户选择的音乐文件夹递归扫描结果 | `选择音乐文件夹` / `重新扫描` | `desktopFolder` | file path / file URI | 不默认扫描全盘，不扫描系统目录。 |
+| iOS P1 | 可选评估的系统音乐资料库 | 不进入 P0 首页主流程 | `iosMediaLibrary` | 仅限可本地播放 asset URL | Apple Music、云端、DRM、无 asset URL 条目不能进入可播放列表。 |
+
+### 来源入口文案
+
+首页 `本地音乐库` 卡片的主按钮按当前平台和状态显示：
+
+- Android 未授权：`授权并扫描`
+- Android 已授权或已有扫描结果：`重新扫描`
+- iOS 未导入：`导入音频`
+- iOS 已导入：`继续导入`
+- Desktop 未选择文件夹：`选择音乐文件夹`
+- Desktop 已选择文件夹：`重新扫描`
+
+这些文案是 UI 与数据来源的契约。特别是 iOS P0 只能使用 `导入音频` 或 `从 Files 选择音频`，不能显示 `扫描本机音乐`。
+
+### 可展示数据范围
+
+首页 `本地歌曲` 只展示扫描结果中当前可播放的歌曲：
+
+- `localUri` 存在且由平台 scanner / importer 产生。
+- `sourceKind` 明确。
+- 文件或媒体条目未被标记为 missing、unreadable、unsupported。
+- 用户取消选择、权限拒绝、格式不支持等失败条目不进入歌曲列表，只进入扫描状态或来源问题。
+
+部分失败不影响成功歌曲展示。例如 128 首可播放、2 个文件不可读时，首页仍展示 128 首中的前 6 条，并在卡片或二级来源页提示 `2 个文件读取失败`。
+
+## 数据入库与合并规则
+
+平台 scanner 不直接驱动 Composable。扫描结果先合并为本地曲库快照，再由页面读取。
+
+### 稳定标识
+
+每首扫描歌曲需要形成稳定 key：
+
+```text
+sourceKey = sourceKind + ":" + sourceId
+```
+
+`sourceId` 来源：
+
+- Android：MediaStore `_ID` 或等价稳定媒体 id。
+- iOS imported file：导入后沙盒文件 id / 路径 hash / 持久化记录 id。
+- Desktop folder：规范化 file path hash。
+
+App 内 `Song.id` 由 `sourceKey` 派生或通过映射表持久化，保证重新扫描后收藏、最近播放和播放队列可以继续匹配。
+
+### 合并策略
+
+扫描成功后按 `sourceKey` 合并：
+
+- 新 sourceKey：新增歌曲。
+- 已存在 sourceKey：更新 title、artist、album、durationMs、mimeType、sizeBytes、modifiedAt、coverArt、localUri 等元数据。
+- 本轮缺失但来源仍可访问：标记为 `fileMissing` 或从可播放列表移除，并保留必要的历史引用。
+- 不可读、格式不支持、metadataUnavailable：记录到扫描问题，不进入首页 `本地歌曲` 可播放列表。
+
+### 用户状态保留
+
+扫描刷新不能破坏用户状态：
+
+- 收藏按 `Song.id` / `sourceKey` 保留。
+- 最近播放按真实播放历史保留，但渲染时过滤当前不可播放歌曲。
+- 播放队列按稳定 id 尝试保留；如果歌曲缺失，播放链路展示错误或跳过，不静默替换为 mock 歌曲。
+- 当前播放歌曲如果仍可访问，继续保持全局红色文本和播放中标识。
+
+### 聚合规则
+
+专辑、歌手和统计值从当前可播放歌曲派生：
+
+- 专辑：按 normalized album 聚合；album 缺失归入 `未知专辑`。
+- 歌手：按 normalized artist 聚合；artist 缺失归入 `未知歌手`。
+- 首页卡片歌曲数：当前可播放歌曲数量。
+- 首页卡片专辑数 / 歌手数：聚合后的专辑和歌手数量。
+- `本地专辑`：从聚合专辑中选择前 3 个展示，排序默认按专辑内最近 modifiedAt。
 
 ## 页面职责
 
@@ -71,6 +157,19 @@
 - 歌曲
 - 专辑
 - 歌手
+
+## UI 区块与数据来源映射
+
+| UI 区块 | 数据来源 | 派生规则 | 不允许 |
+| --- | --- | --- | --- |
+| 首页 `本地音乐库` 卡片 | `LibrarySnapshot.stats` + `LocalMusicScanState` | 展示可播放歌曲数、专辑数、歌手数、当前平台入口文案、上次扫描状态。 | 不写死 `1,248 / 86 / 128`。 |
+| 首页 `最近播放` | `PlaybackHistory` + 当前曲库快照 | 显示真实播放过且当前仍可播放的歌曲，最多 2 条。 | 不用扫描列表冒充最近播放。 |
+| 首页 `本地歌曲` | 当前曲库快照的 `playableSongs` | 按 `modifiedAt desc` 取前 6 条；无 `modifiedAt` 时保持 scanner 返回顺序。 | 不展示 unreadable / unsupported / missing 条目。 |
+| 首页 `本地专辑` | 当前曲库快照的 `albums` 聚合 | 从可播放歌曲按专辑聚合，展示前 3 个。 | 不继续使用 seed 专辑数量和封面冒充真实专辑。 |
+| 收藏页 | `FavoritesRepository` + 当前曲库快照 | 只展示用户收藏且仍可匹配的歌曲、专辑、歌手。 | 不把全部扫描结果自动加入收藏。 |
+| 我的页统计 | 当前曲库快照 + 收藏集合 | 专辑数、歌手数来自曲库；收藏数来自收藏集合。 | 不写死统计值。 |
+| 搜索页 | 当前曲库快照 | 搜索歌曲、专辑、歌手的真实聚合结果。 | 不搜索 seed/mock 数据。 |
+| 播放队列 | `PlaybackRepository` + 当前曲库快照 | 队列 id 映射为当前仍可播放的歌曲；失败时进入播放错误模型。 | 不用其他歌曲静默替换缺失歌曲。 |
 
 ## 首页本地歌曲区
 
@@ -134,6 +233,19 @@
 
 ## 空态与异常态
 
+首页状态由 `LocalMusicScanState`、来源状态和曲库快照共同决定。
+
+| 状态 | 首页卡片 | `最近播放` | `本地歌曲` | `本地专辑` |
+| --- | --- | --- | --- | --- |
+| `idle` 且无来源 | 显示平台入口：Android 授权、iOS 导入、Desktop 选择文件夹。 | 有历史则显示仍可播放历史；否则显示空态或隐藏。 | 不显示。 | 不显示。 |
+| `waitingForPermission` | 显示等待授权 / 等待选择来源。 | 保留上一轮可播放历史。 | 保留上一轮成功结果；无结果时不显示。 | 保留上一轮聚合；无结果时不显示。 |
+| `importing` | iOS 显示导入中。 | 保留上一轮可播放历史。 | 保留上一轮成功结果；无结果时显示导入中占位。 | 保留上一轮聚合。 |
+| `scanning` | 显示扫描中和进度摘要。 | 保留上一轮可播放历史。 | 保留上一轮成功结果；无结果时显示扫描中占位。 | 保留上一轮聚合。 |
+| `done` 且有歌曲 | 展示真实统计和上次扫描摘要。 | 展示真实播放历史。 | 展示最多 6 条可播放歌曲。 | 展示真实聚合专辑。 |
+| `done` 且无歌曲 | 展示 `0 首歌曲` 和恢复入口。 | 显示空态或隐藏。 | 显示 `未找到支持的音频文件`。 | 不显示。 |
+| `error` 且有旧结果 | 展示错误摘要和恢复入口。 | 展示仍可播放历史。 | 展示上一轮可播放歌曲，并提示结果可能不是最新。 | 展示上一轮聚合。 |
+| `error` 且无结果 | 展示错误摘要和恢复入口。 | 显示空态或隐藏。 | 不显示。 | 不显示。 |
+
 ### 未扫描
 
 首页本地音乐库卡片显示扫描入口。
@@ -178,15 +290,61 @@
 
 ```text
 LocalMusicScanner
+  -> LocalMusicScanResult(added / updated / removed / failed)
   -> ScanLocalMusicUseCase
+  -> LibrarySync / Merge Policy
   -> MusicLibraryRepository
+  -> LibrarySnapshot
   -> MusicAppController / MusicAppUiState
   -> HomeScreen / FavoritesScreen / MeScreen / SearchScreen
 ```
 
-首页 `本地歌曲` 使用 `uiState.songs` 的派生预览列表。
+### common 层职责
+
+common 层定义平台无关数据和状态：
+
+- `LocalMusicScanner` 接口。
+- `LocalMusicScanRequest`：扫描全部、重新扫描、扫描指定来源。
+- `LocalMusicScanState`：`idle`、`waitingForPermission`、`importing`、`scanning`、`done`、`error`。
+- `LocalMusicScanProgress`：已处理数量、已发现数量、当前来源。
+- `LocalMusicScanResult`：新增、更新、删除、失败条目。
+- `MusicFileMetadata`：平台无关音频元数据。
+- `LocalMusicSourceKind`：`androidMediaStore`、`iosImportedFile`、`iosMediaLibrary`、`desktopFolder`。
+- `LocalMusicScanError`：`permissionDenied`、`userCancelled`、`folderUnavailable`、`fileMissing`、`fileUnreadable`、`unsupportedFormat`、`metadataUnavailable`、`securityScopeExpired`、`unknown`。
+
+common 层禁止包含 Android `ContentResolver`、iOS `UIDocumentPickerViewController`、Desktop `Files.walk` 等平台 API。
+
+### 平台层职责
+
+平台层只负责发现音频和读取元数据：
+
+- Android：`AndroidMediaStoreScanner` 查询 `MediaStore.Audio`，输出 `content://` URI。
+- iOS：`IosDocumentMusicImporter` 打开 Files / Document Picker，导入 App 沙盒后输出 file URL。
+- Desktop：`DesktopFolderMusicScanner` 基于用户选择文件夹递归扫描，输出 file path / URI。
+
+平台层不决定首页展示数量、收藏规则、最近播放规则，也不直接更新 Composable。
+
+### Repository 快照
+
+`MusicLibraryRepository` 对 UI 暴露稳定快照：
+
+```text
+LibrarySnapshot
+├── songs: List<Song>
+├── albums: List<Album>
+├── artists: List<Artist>
+├── stats: LibraryStats
+├── sources: List<LocalMusicSourceSummary>
+├── scanState: LocalMusicScanState
+├── lastScanSummary: LocalMusicLastScanSummary?
+└── problems: List<LocalMusicProblem>
+```
+
+首页 `本地歌曲` 使用 `LibrarySnapshot.songs` 的派生预览列表。
 
 二级 `本地音乐` 页使用同一份 `uiState.songs / albums / artists`，不维护另一套列表数据。
+
+`MusicAppUiState` 可以继续保留 `songs / albums / artists` 以适配现有页面，但这些字段必须来自 `LibrarySnapshot`，而不是 `SeedMusicLibraryRepository`。
 
 ## 数据模型要求
 
@@ -207,6 +365,22 @@ LocalMusicScanner
 - `coverArt`
 
 `localUri` 必须由平台 scanner 或 fake scanner 生成，UI 不能拼接。
+
+### 展示模型与扫描模型
+
+扫描模型和展示模型可以分层，避免让 UI 背负平台字段。
+
+```text
+MusicFileMetadata
+  -> LibraryTrack
+  -> Song / Album / Artist
+```
+
+- `MusicFileMetadata`：scanner 输出，保留 sourceId、sourceKind、localUri、mimeType、sizeBytes、modifiedAt 等来源字段。
+- `LibraryTrack`：曲库内部实体，负责稳定 id、可播放状态、扫描问题、用户状态关联。
+- `Song`：页面展示和播放入口使用的模型，可由 `LibraryTrack` 映射而来。
+
+如果直接扩展现有 `Song`，必须保持字段不可变，并补充 `durationMs`、`localUri`、`sourceKind` 等真实数据字段。UI 仍只读取展示所需字段。
 
 ## 交互规则
 
@@ -229,12 +403,45 @@ LocalMusicScanner
 
 需要调整或新增：
 
-- `MusicAppUiState`：增加曲库统计、扫描状态、来源状态、最近扫描时间或派生字段。
+- `LocalMusicScanner`：建立平台无关接口和 fake scanner，承接 Android/iOS/Desktop 真实实现。
+- `LocalMusicScanRequest / LocalMusicScanState / LocalMusicScanResult / LocalMusicScanError`：定义扫描请求、状态、结果和错误模型。
+- `MusicFileMetadata / LibraryTrack`：承载真实来源字段、稳定 id、localUri 和可播放状态。
+- `MusicLibraryRepository`：从 seed 实现演进为可接收扫描结果并输出 `LibrarySnapshot` 的曲库仓库。
+- `MusicAppUiState`：增加曲库统计、扫描状态、来源状态、最近扫描时间、扫描问题或对应派生字段。
 - `HomeScreen`：新增 `本地歌曲` section，最多展示 6 条。
 - 新增 `SecondaryScreen.LocalMusic` 路由：承载全量歌曲/专辑/歌手/来源分段。
 - `MusicAppController`：提供 `openLocalMusic(section = LocalMusicSection.Songs)` 导航动作。
-- `MusicLibraryRepository`：从 seed 实现演进为可接收扫描结果的曲库仓库。
-- 测试：覆盖首页本地歌曲预览数量、查看全部导航、最近播放不被扫描结果污染、空态和部分失败状态。
+- 平台 source set：分别实现 `AndroidMediaStoreScanner`、`IosDocumentMusicImporter`、`DesktopFolderMusicScanner`。
+- 测试：覆盖扫描结果合并、首页本地歌曲预览数量、查看全部导航、最近播放不被扫描结果污染、空态和部分失败状态。
+
+## 分阶段落地建议
+
+### 阶段 1：共享数据边界与 fake scanner
+
+- 在 common 层定义扫描接口、状态、错误、来源和元数据模型。
+- 建立 fake scanner，输出带 `sourceKind`、`sourceId`、`localUri`、`modifiedAt` 的可播放测试数据。
+- `MusicLibraryRepository` 支持接收扫描结果并生成 `LibrarySnapshot`。
+- 首页 `本地歌曲` 先消费 fake scanner 结果，验证 UI 和状态流。
+
+### 阶段 2：首页与二级本地音乐页
+
+- 首页新增 `本地歌曲`，最多 6 条。
+- `查看全部` 进入 `SecondaryScreen.LocalMusic` 的歌曲分段。
+- 二级页提供歌曲、专辑、歌手、来源分段。
+- 搜索、收藏、我的页统计改为消费同一份 `LibrarySnapshot`。
+
+### 阶段 3：平台真实来源
+
+- Android 接 `MediaStore.Audio`，生成 `androidMediaStore` 数据。
+- iOS 接 Document Picker 导入沙盒，生成 `iosImportedFile` 数据。
+- Desktop 接用户选择文件夹扫描，生成 `desktopFolder` 数据。
+- 每个平台都必须把权限拒绝、用户取消、空结果、部分失败映射到统一状态。
+
+### 阶段 4：播放链路衔接
+
+- 播放 UseCase 只消费 scanner 生成的 `localUri` / `PlayableMedia`。
+- 播放失败时回写曲库问题状态，例如文件缺失、权限失效、格式不支持。
+- 当前播放歌曲在首页 `本地歌曲`、搜索、收藏、专辑页等列表中继续同步红色播放态。
 
 ## 验收标准
 
@@ -246,3 +453,9 @@ LocalMusicScanner
 - 搜索结果来自真实曲库。
 - 元数据缺失时有稳定兜底，不出现空白标题或崩溃。
 - 权限拒绝、空结果、部分失败都有明确 UI 状态。
+- Android 来源使用 `androidMediaStore`，歌曲 `localUri` 为平台 scanner 生成的 `content://` URI。
+- iOS P0 来源使用 `iosImportedFile`，入口文案为 `导入音频` 或 `从 Files 选择音频`，不出现 `扫描整机音乐`。
+- Desktop 来源使用 `desktopFolder`，入口文案为 `选择音乐文件夹`，不默认扫描全盘。
+- `localUri` 不由 UI 拼接。
+- 重新扫描后通过稳定 `sourceKey` 保留收藏、最近播放和播放队列引用。
+- seed/mock 数据只允许作为 fake scanner 或测试数据存在，不能冒充真实扫描结果。
