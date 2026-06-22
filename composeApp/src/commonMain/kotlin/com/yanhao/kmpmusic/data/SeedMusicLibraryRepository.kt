@@ -3,6 +3,10 @@ package com.yanhao.kmpmusic.data
 import com.yanhao.kmpmusic.domain.model.Album
 import com.yanhao.kmpmusic.domain.model.Artist
 import com.yanhao.kmpmusic.domain.model.CoverArt
+import com.yanhao.kmpmusic.domain.model.LibrarySnapshot
+import com.yanhao.kmpmusic.domain.model.LibraryStats
+import com.yanhao.kmpmusic.domain.model.LocalMusicScanResult
+import com.yanhao.kmpmusic.domain.model.LocalMusicScanState
 import com.yanhao.kmpmusic.domain.model.Song
 import com.yanhao.kmpmusic.domain.repository.MusicLibraryRepository
 
@@ -95,6 +99,30 @@ class SeedMusicLibraryRepository : MusicLibraryRepository {
 
     // 生成后的完整歌曲列表，保证专辑数量和曲目列表一致。
     private val songs: List<Song> = buildSongs()
+
+    /** 获取原型曲库快照。 */
+    override fun getSnapshot(): LibrarySnapshot {
+        return LibrarySnapshot(
+            songs = songs,
+            albums = albums,
+            artists = artists,
+            stats = LibraryStats(
+                songCount = songs.size,
+                albumCount = albums.size,
+                artistCount = artists.size,
+            ),
+            sources = emptyList(),
+            scanState = LocalMusicScanState.Idle,
+            lastScanSummary = null,
+            problems = emptyList(),
+        )
+    }
+
+    /** 原型 seed 仓库不接收扫描写入，真实扫描写入 [InMemoryMusicLibraryRepository]。 */
+    override fun applyScanResult(
+        scanResult: LocalMusicScanResult,
+        likedSongIds: Set<String>,
+    ): LibrarySnapshot = getSnapshot()
 
     /** 获取原型歌曲列表。 */
     override fun getSongs(): List<Song> = songs

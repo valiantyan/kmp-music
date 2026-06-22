@@ -114,6 +114,32 @@ class MergeLocalMusicScanResultUseCaseTest {
         assertEquals(expected = "--:--", actual = song.duration)
     }
 
+    /**
+     * 扫描用例必须通过 scanner 和 repository 产出同一份曲库快照。
+     */
+    @Test
+    fun scanUseCaseStoresSnapshotInRepository(): Unit = kotlinx.coroutines.runBlocking {
+        val repository: com.yanhao.kmpmusic.data.InMemoryMusicLibraryRepository =
+            com.yanhao.kmpmusic.data.InMemoryMusicLibraryRepository()
+        val scanner: com.yanhao.kmpmusic.data.FakeLocalMusicScanner =
+            com.yanhao.kmpmusic.data.FakeLocalMusicScanner()
+        val scanUseCase: ScanLocalMusicUseCase = ScanLocalMusicUseCaseImpl(
+            localMusicScanner = scanner,
+            musicLibraryRepository = repository,
+        )
+
+        val snapshot: LibrarySnapshot = scanUseCase(
+            request = com.yanhao.kmpmusic.domain.model.LocalMusicScanRequest.Refresh,
+            likedSongIds = emptySet(),
+        )
+
+        assertEquals(expected = snapshot.songs, actual = repository.getSnapshot().songs)
+        assertTrue(actual = snapshot.songs.size >= 6)
+        assertTrue(actual = snapshot.songs.all { song ->
+            song.localUri.startsWith(prefix = "fake://local-audio/")
+        })
+    }
+
     // 构造平台无关扫描元数据，让测试只关注合并规则。
     private fun metadata(
         sourceId: String,

@@ -3,7 +3,9 @@ package com.yanhao.kmpmusic.feature.app
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import com.yanhao.kmpmusic.data.FakeLocalMusicScanner
 import com.yanhao.kmpmusic.data.InMemoryFavoritesRepository
+import com.yanhao.kmpmusic.data.InMemoryMusicLibraryRepository
 import com.yanhao.kmpmusic.data.InMemoryPlaybackRepository
 import com.yanhao.kmpmusic.data.InMemoryUserPreferencesRepository
 import com.yanhao.kmpmusic.data.SeedMusicLibraryRepository
@@ -73,7 +75,10 @@ class MusicAppController(
     )
 
     // 本地扫描用例。
-    private val scanLocalMusicUseCase: ScanLocalMusicUseCase = ScanLocalMusicUseCaseImpl()
+    private val scanLocalMusicUseCase: ScanLocalMusicUseCase = ScanLocalMusicUseCaseImpl(
+        localMusicScanner = FakeLocalMusicScanner(),
+        musicLibraryRepository = InMemoryMusicLibraryRepository(),
+    )
 
     /**
      * Compose 可观察 UI 状态。
