@@ -52,10 +52,10 @@ object MusicDimens {
     val LibraryCardRadius: Dp = 22.dp
     val HeroFolderSize: Dp = 126.dp
     val MiniPlayerHeight: Dp = 68.dp
-    val MiniPlayerBottomTopLevel: Dp = 78.dp
     val BottomNavHeight: Dp = 78.dp
     val TopLevelContentBottom: Dp = 210.dp
     val SecondaryContentBottom: Dp = 96.dp
+    val FullscreenContentBottom: Dp = 28.dp
     val SongCoverSize: Dp = 62.dp
     val DenseSongCoverSize: Dp = 52.dp
     val AlbumRadius: Dp = 14.dp

@@ -26,6 +26,49 @@ enum class FavoriteSection {
 }
 
 /**
+ * 底部全局 chrome 的整体位置策略。
+ */
+enum class BottomChromePlacement {
+    TopLevel,
+    MiniPlayerOnly,
+    Hidden,
+}
+
+/**
+ * 页面内容底部避让策略。
+ */
+enum class ContentBottomSpace {
+    TopLevel,
+    SecondaryWithMiniPlayer,
+    Fullscreen,
+}
+
+/**
+ * 页面全局 chrome 策略，统一管理底部 Tab、迷你播放器和页面留白。
+ */
+enum class AppChromeMode(
+    val showsBottomNavigation: Boolean,
+    val bottomChromePlacement: BottomChromePlacement,
+    val contentBottomSpace: ContentBottomSpace,
+) {
+    TopLevel(
+        showsBottomNavigation = true,
+        bottomChromePlacement = BottomChromePlacement.TopLevel,
+        contentBottomSpace = ContentBottomSpace.TopLevel,
+    ),
+    SecondaryWithMiniPlayer(
+        showsBottomNavigation = false,
+        bottomChromePlacement = BottomChromePlacement.MiniPlayerOnly,
+        contentBottomSpace = ContentBottomSpace.SecondaryWithMiniPlayer,
+    ),
+    SecondaryFullscreen(
+        showsBottomNavigation = false,
+        bottomChromePlacement = BottomChromePlacement.Hidden,
+        contentBottomSpace = ContentBottomSpace.Fullscreen,
+    ),
+}
+
+/**
  * 二级页面路由。
  */
 sealed interface SecondaryScreen {
@@ -50,6 +93,22 @@ data class NavigationState(
      * 是否处于一级页面。
      */
     val isTopLevel: Boolean = secondaryScreen == null
+
+    /**
+     * 当前页面对应的全局 chrome 策略。
+     */
+    val chromeMode: AppChromeMode = when (secondaryScreen) {
+        null -> AppChromeMode.TopLevel
+        SecondaryScreen.Player,
+        SecondaryScreen.Settings,
+        -> AppChromeMode.SecondaryFullscreen
+        SecondaryScreen.Search,
+        SecondaryScreen.AlbumDetail,
+        SecondaryScreen.ArtistDetail,
+        SecondaryScreen.Login,
+        SecondaryScreen.LocalFolder,
+        -> AppChromeMode.SecondaryWithMiniPlayer
+    }
 }
 
 /**

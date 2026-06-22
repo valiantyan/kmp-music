@@ -58,6 +58,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.yanhao.kmpmusic.core.theme.KmpMusicTheme
@@ -130,20 +131,22 @@ fun MusicApp(
                         )
                         .background(MaterialTheme.colorScheme.background.copy(alpha = 0.96f)),
                 ) {
-                    AppContent(state = state, controller = controller)
-                    MiniPlayer(
+                    val chromeMode: AppChromeMode = state.navigationState.chromeMode
+                    AppContent(
+                        state = state,
+                        controller = controller,
+                        chromeMode = chromeMode,
+                    )
+                    BottomChrome(
                         song = state.currentSong,
                         isPlaying = state.isPlaying,
-                        isTopLevel = state.navigationState.isTopLevel,
+                        placement = chromeMode.bottomChromePlacement,
+                        showsBottomNavigation = chromeMode.showsBottomNavigation,
+                        rootTab = state.navigationState.rootTab,
                         onOpen = { controller.navigateToSecondary(SecondaryScreen.Player) },
                         onToggle = controller::togglePlayback,
                         onPrev = { controller.moveTrack(direction = -1) },
                         onQueue = controller::openQueue,
-                        modifier = Modifier.align(Alignment.BottomCenter),
-                    )
-                    BottomNavigation(
-                        rootTab = state.navigationState.rootTab,
-                        isVisible = state.navigationState.isTopLevel,
                         onRootTab = controller::navigateToRoot,
                         modifier = Modifier.align(Alignment.BottomCenter),
                     )
@@ -161,12 +164,9 @@ fun MusicApp(
 private fun AppContent(
     state: MusicAppUiState,
     controller: MusicAppController,
+    chromeMode: AppChromeMode,
 ) {
-    val bottomPadding = if (state.navigationState.isTopLevel) {
-        scaledDp(MusicDimens.TopLevelContentBottom)
-    } else {
-        scaledDp(MusicDimens.SecondaryContentBottom)
-    }
+    val bottomPadding: Dp = getContentBottomPadding(contentBottomSpace = chromeMode.contentBottomSpace)
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -253,6 +253,18 @@ private fun AppContent(
 }
 
 /**
+ * 根据 chrome 策略计算页面底部避让空间，避免隐藏播放器后留下空白。
+ */
+@Composable
+private fun getContentBottomPadding(contentBottomSpace: ContentBottomSpace): Dp {
+    return when (contentBottomSpace) {
+        ContentBottomSpace.TopLevel -> scaledDp(MusicDimens.TopLevelContentBottom)
+        ContentBottomSpace.SecondaryWithMiniPlayer -> scaledDp(MusicDimens.SecondaryContentBottom)
+        ContentBottomSpace.Fullscreen -> scaledDp(MusicDimens.FullscreenContentBottom)
+    }
+}
+
+/**
  * 渲染一级页面。
  */
 @Composable
@@ -299,33 +311,83 @@ private fun RootScreen(
 }
 
 /**
- * 全局迷你播放器，二级页面时贴齐底部，一级页面时位于 Tab 上方。
+ * 全局底部 chrome 容器，mini 与 Tab 保持相对位置并整体移动。
+ */
+@Composable
+private fun BottomChrome(
+    song: Song,
+    isPlaying: Boolean,
+    placement: BottomChromePlacement,
+    showsBottomNavigation: Boolean,
+    rootTab: RootTab,
+    onOpen: () -> Unit,
+    onToggle: () -> Unit,
+    onPrev: () -> Unit,
+    onQueue: () -> Unit,
+    onRootTab: (RootTab) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val stackOffset: Dp by animateDpAsState(
+        targetValue = when (placement) {
+            BottomChromePlacement.TopLevel -> 0.dp
+            BottomChromePlacement.MiniPlayerOnly -> scaledDp(MusicDimens.BottomNavHeight)
+            BottomChromePlacement.Hidden -> scaledDp(MusicDimens.BottomNavHeight + MusicDimens.MiniPlayerHeight)
+        },
+        animationSpec = tween(durationMillis = 780, easing = FastOutSlowInEasing),
+        label = "BottomChromeOffset",
+    )
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .navigationBarsPadding(),
+    ) {
+        Box(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth()
+                .height(scaledDp(MusicDimens.MiniPlayerHeight + MusicDimens.BottomNavHeight))
+                .offset(y = stackOffset),
+        ) {
+            MiniPlayer(
+                song = song,
+                isPlaying = isPlaying,
+                onOpen = onOpen,
+                onToggle = onToggle,
+                onPrev = onPrev,
+                onQueue = onQueue,
+                modifier = Modifier.align(Alignment.TopCenter),
+            )
+            BottomNavigation(
+                rootTab = rootTab,
+                isEnabled = showsBottomNavigation,
+                onRootTab = onRootTab,
+                modifier = Modifier.align(Alignment.BottomCenter),
+            )
+        }
+    }
+}
+
+/**
+ * 全局迷你播放器。
  */
 @Composable
 private fun MiniPlayer(
     song: Song,
     isPlaying: Boolean,
-    isTopLevel: Boolean,
     onOpen: () -> Unit,
     onToggle: () -> Unit,
     onPrev: () -> Unit,
     onQueue: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val bottomPadding: androidx.compose.ui.unit.Dp by animateDpAsState(
-        targetValue = if (isTopLevel) scaledDp(MusicDimens.MiniPlayerBottomTopLevel) else 0.dp,
-        animationSpec = tween(durationMillis = 780, easing = FastOutSlowInEasing),
-        label = "MiniPlayerBottom",
-    )
     Surface(
         modifier = modifier
             .fillMaxWidth()
             .padding(
                 start = scaledDp(MusicDimens.PagePaddingHorizontal),
                 end = scaledDp(MusicDimens.PagePaddingHorizontal),
-                bottom = bottomPadding,
             )
-            .navigationBarsPadding(),
+            .height(scaledDp(MusicDimens.MiniPlayerHeight)),
         shape = RoundedCornerShape(18.dp),
         color = MusicColors.Paper.copy(alpha = 0.92f),
         shadowElevation = 14.dp,
@@ -458,21 +520,14 @@ private fun BottomNavigationItem(
 @Composable
 private fun BottomNavigation(
     rootTab: RootTab,
-    isVisible: Boolean,
+    isEnabled: Boolean,
     onRootTab: (RootTab) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val offsetY: androidx.compose.ui.unit.Dp by animateDpAsState(
-        targetValue = if (isVisible) 0.dp else scaledDp(MusicDimens.BottomNavHeight),
-        animationSpec = tween(durationMillis = 780, easing = FastOutSlowInEasing),
-        label = "BottomNavOffset",
-    )
     Surface(
         modifier = modifier
             .fillMaxWidth()
             .height(scaledDp(MusicDimens.BottomNavHeight))
-            .offset(y = offsetY)
-            .navigationBarsPadding()
             .border(width = 1.dp, color = MusicColors.Line.copy(alpha = 0.86f)),
         color = MusicColors.Paper,
     ) {
@@ -485,7 +540,7 @@ private fun BottomNavigation(
                 BottomNavigationItem(
                     tab = tab,
                     isSelected = rootTab == tab,
-                    isEnabled = isVisible,
+                    isEnabled = isEnabled,
                     onClick = { onRootTab(tab) },
                 )
             }

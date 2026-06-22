@@ -1,0 +1,1808 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>从零实现移动端底部 Chrome：Mini Player + Bottom Tab 整体动画</title>
+  <style>
+    :root {
+      --bg: #f3f7f8;
+      --paper: #ffffff;
+      --ink: #071014;
+      --muted: #64717c;
+      --line: #dfe8eb;
+      --soft: #f8fbfb;
+      --accent: #17b59e;
+      --accent-dark: #0f8f7c;
+      --accent-soft: #e7f8f5;
+      --blue-soft: #eef5ff;
+      --red: #e84848;
+      --red-soft: #fff0f0;
+      --yellow-soft: #fff8df;
+      --code: #10191d;
+      --shadow: 0 18px 52px rgba(20, 35, 40, 0.12);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      margin: 0;
+      background:
+        radial-gradient(circle at 14% 0%, rgba(23, 181, 158, 0.18), transparent 34rem),
+        linear-gradient(180deg, #fbfdfd 0%, var(--bg) 100%);
+      color: var(--ink);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      line-height: 1.75;
+    }
+
+    main {
+      width: min(1120px, calc(100% - 36px));
+      margin: 0 auto;
+      padding: 44px 0 72px;
+    }
+
+    h1,
+    h2,
+    h3 {
+      letter-spacing: 0;
+      line-height: 1.25;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(34px, 5vw, 56px);
+      line-height: 1.08;
+    }
+
+    h2 {
+      margin: 0 0 14px;
+      font-size: 29px;
+    }
+
+    h3 {
+      margin: 24px 0 10px;
+      font-size: 20px;
+    }
+
+    p {
+      margin: 10px 0;
+    }
+
+    a {
+      color: var(--accent-dark);
+      font-weight: 800;
+      text-decoration: none;
+    }
+
+    code,
+    pre {
+      font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+    }
+
+    code {
+      padding: 2px 6px;
+      border-radius: 7px;
+      background: #eef4f5;
+      color: #0d6b5f;
+      font-size: 0.92em;
+    }
+
+    pre {
+      margin: 14px 0 0;
+      padding: 18px;
+      border-radius: 16px;
+      background: var(--code);
+      color: #eaf3f1;
+      overflow-x: auto;
+      line-height: 1.56;
+      font-size: 14px;
+    }
+
+    pre code {
+      padding: 0;
+      background: transparent;
+      color: inherit;
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 360px;
+      gap: 40px;
+      align-items: center;
+      margin-bottom: 26px;
+    }
+
+    .eyebrow {
+      margin: 0 0 10px;
+      color: var(--accent-dark);
+      font-size: 14px;
+      font-weight: 900;
+    }
+
+    .lead {
+      max-width: 780px;
+      margin-top: 18px;
+      color: var(--muted);
+      font-size: 18px;
+    }
+
+    .pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 22px;
+    }
+
+    .pill {
+      padding: 7px 12px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: var(--paper);
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    .phone {
+      position: relative;
+      height: 600px;
+      border: 1px solid rgba(223, 232, 235, 0.95);
+      border-radius: 38px;
+      overflow: hidden;
+      background: linear-gradient(180deg, #fbfdfd 0%, #f8fafb 100%);
+      box-shadow: var(--shadow);
+      padding: 30px 22px;
+    }
+
+    .phone h2 {
+      font-size: 30px;
+      margin-bottom: 4px;
+    }
+
+    .phone p {
+      color: var(--muted);
+      font-weight: 700;
+    }
+
+    .fake-card {
+      height: 138px;
+      margin-top: 26px;
+      padding: 22px;
+      border: 1px solid #caece8;
+      border-radius: 22px;
+      background: linear-gradient(135deg, rgba(235, 251, 248, 0.95), #fff);
+    }
+
+    .fake-card strong {
+      display: block;
+      font-size: 18px;
+      margin-bottom: 12px;
+    }
+
+    .fake-card b {
+      display: block;
+      font-size: 36px;
+      line-height: 1;
+    }
+
+    .fake-list {
+      display: grid;
+      gap: 18px;
+      margin-top: 28px;
+    }
+
+    .fake-row {
+      display: grid;
+      grid-template-columns: 54px 1fr 36px;
+      gap: 14px;
+      align-items: center;
+    }
+
+    .cover {
+      width: 54px;
+      height: 54px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #89d5df, #243c4a);
+    }
+
+    .fake-row:nth-child(2) .cover {
+      background: linear-gradient(135deg, #24272c, #e4b24f);
+    }
+
+    .line,
+    .line-small {
+      display: block;
+      height: 11px;
+      border-radius: 999px;
+      background: #11191d;
+    }
+
+    .line-small {
+      width: 72%;
+      margin-top: 9px;
+      background: #a7b0b8;
+    }
+
+    .dot {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: #eef3f4;
+    }
+
+    .bottom-demo {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      padding: 0 22px;
+    }
+
+    .mini {
+      height: 68px;
+      display: grid;
+      grid-template-columns: 46px 1fr 96px;
+      align-items: center;
+      gap: 12px;
+      padding: 9px 16px 9px 10px;
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.94);
+      box-shadow: 0 12px 34px rgba(20, 35, 40, 0.13);
+    }
+
+    .mini-cover {
+      width: 46px;
+      height: 46px;
+      border-radius: 9px;
+      background: linear-gradient(135deg, #7bd4e4, #234354);
+    }
+
+    .mini-title,
+    .mini-subtitle {
+      height: 12px;
+      border-radius: 999px;
+      background: #071014;
+    }
+
+    .mini-title {
+      width: 88px;
+    }
+
+    .mini-subtitle {
+      width: 70px;
+      height: 10px;
+      margin-top: 8px;
+      background: #9aa3ab;
+    }
+
+    .mini-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 16px;
+    }
+
+    .mini-actions span {
+      width: 10px;
+      height: 20px;
+      border-radius: 999px;
+      background: #071014;
+    }
+
+    .tabs {
+      height: 78px;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      align-items: center;
+      margin: 0 -22px;
+      border-top: 1px solid var(--line);
+      background: #fff;
+      color: #7d858e;
+      text-align: center;
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+    .tabs span:first-child {
+      color: var(--accent);
+    }
+
+    .toc {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+      margin: 26px 0;
+    }
+
+    .toc a {
+      display: block;
+      padding: 14px 15px;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.9);
+      color: var(--ink);
+      box-shadow: 0 10px 28px rgba(20, 35, 40, 0.05);
+      font-size: 14px;
+    }
+
+    section {
+      margin-top: 22px;
+      padding: 30px;
+      border: 1px solid rgba(223, 232, 235, 0.92);
+      border-radius: 20px;
+      background: rgba(255, 255, 255, 0.93);
+      box-shadow: 0 12px 38px rgba(20, 35, 40, 0.06);
+    }
+
+    .goal,
+    .why,
+    .check,
+    .warning {
+      padding: 16px 18px;
+      border-radius: 16px;
+      margin: 14px 0;
+    }
+
+    .goal {
+      background: var(--accent-soft);
+      border-left: 5px solid var(--accent);
+      font-weight: 900;
+    }
+
+    .why {
+      background: var(--blue-soft);
+      border: 1px solid #d8e8ff;
+    }
+
+    .check {
+      background: #f3fbf7;
+      border: 1px solid #cdeede;
+    }
+
+    .warning {
+      background: var(--red-soft);
+      border: 1px solid #ffd2d2;
+      color: #742727;
+    }
+
+    .step {
+      display: grid;
+      grid-template-columns: 48px 1fr;
+      gap: 14px;
+      padding: 22px 0;
+      border-top: 1px solid var(--line);
+    }
+
+    .step:first-of-type {
+      border-top: 0;
+    }
+
+    .num {
+      width: 38px;
+      height: 38px;
+      display: grid;
+      place-items: center;
+      border-radius: 50%;
+      background: var(--accent);
+      color: #fff;
+      font-weight: 900;
+    }
+
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+      margin-top: 16px;
+    }
+
+    .card {
+      padding: 18px;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: var(--paper);
+    }
+
+    .card strong {
+      display: block;
+      color: var(--accent-dark);
+      margin-bottom: 8px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      overflow: hidden;
+      margin-top: 16px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+    }
+
+    th,
+    td {
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      background: var(--accent-soft);
+      color: #0c6f61;
+      font-size: 14px;
+    }
+
+    tr:last-child td {
+      border-bottom: 0;
+    }
+
+    .copy-title {
+      display: inline-block;
+      margin-top: 16px;
+      padding: 5px 9px;
+      border-radius: 9px;
+      background: var(--yellow-soft);
+      color: #765b13;
+      font-size: 13px;
+      font-weight: 900;
+    }
+
+    .qa {
+      padding-top: 16px;
+      margin-top: 16px;
+      border-top: 1px solid var(--line);
+    }
+
+    .qa strong {
+      display: block;
+      margin-bottom: 6px;
+    }
+
+    .footer {
+      margin-top: 26px;
+      color: var(--muted);
+      text-align: center;
+      font-size: 14px;
+    }
+
+    @media (max-width: 920px) {
+      main {
+        width: min(100% - 28px, 720px);
+        padding-top: 34px;
+      }
+
+      .hero,
+      .toc,
+      .cards {
+        grid-template-columns: 1fr;
+      }
+
+      .phone {
+        max-width: 380px;
+        margin: 0 auto;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header class="hero">
+      <div>
+        <p class="eyebrow">零基础也能照着做的实现教程</p>
+        <h1>从零实现移动端底部 Chrome：Mini Player + Bottom Tab 整体动画</h1>
+        <p class="lead">
+          这不是一份“总结文档”，而是一份施工手册。你可以按顺序打开文件、复制代码、运行检查。
+          每一步都会告诉你：要做什么、为什么这么做、复制到哪里、做完如何确认自己没有做错。
+        </p>
+        <div class="pills">
+          <span class="pill">适合：完全小白</span>
+          <span class="pill">目标：能复制实现</span>
+          <span class="pill">框架：Compose / KMP</span>
+          <span class="pill">成果：整体底部动画</span>
+        </div>
+      </div>
+
+      <aside class="phone" aria-label="底部 Chrome 效果示意">
+        <h2>首页</h2>
+        <p>本地音乐 · 随时随地畅听</p>
+        <div class="fake-card">
+          <strong>本地音乐库</strong>
+          <b>1,248</b>
+          <p>86 张专辑 · 128 位歌手</p>
+        </div>
+        <div class="fake-list">
+          <div class="fake-row"><div class="cover"></div><div><span class="line"></span><span class="line-small"></span></div><div class="dot"></div></div>
+          <div class="fake-row"><div class="cover"></div><div><span class="line"></span><span class="line-small"></span></div><div class="dot"></div></div>
+        </div>
+        <div class="bottom-demo">
+          <div class="mini">
+            <div class="mini-cover"></div>
+            <div><div class="mini-title"></div><div class="mini-subtitle"></div></div>
+            <div class="mini-actions"><span></span><span></span><span></span></div>
+          </div>
+          <div class="tabs"><span>首页</span><span>收藏</span><span>我的</span></div>
+        </div>
+      </aside>
+    </header>
+
+    <nav class="toc" aria-label="目录">
+      <a href="#standalone">先跑通独立版</a>
+      <a href="#before">0. 开始前先懂目标</a>
+      <a href="#mental-model">1. 用人话理解</a>
+      <a href="#files">2. 你要改哪些文件</a>
+      <a href="#preflight">3. 复刻前置条件</a>
+      <a href="#steps">4. 照着做：10 个步骤</a>
+      <a href="#test">5. 运行检查</a>
+      <a href="#mistakes">6. 常见错误</a>
+      <a href="#acceptance">7. 交互验收</a>
+      <a href="#glossary">8. 术语表</a>
+    </nav>
+
+    <section id="standalone">
+      <h2>先跑通独立版：这是 100% 脱离当前项目的黄金路径</h2>
+      <div class="goal">
+        如果你是完全新人，不要先改真实项目。先在任意 Compose 项目里新建一个 <code>BottomChromeStandalone.kt</code>，复制本节完整代码，然后在 App 入口调用 <code>BottomChromeStandaloneLesson()</code>。
+      </div>
+      <p>
+        这一节的目标不是做最终高保真视觉，而是让你 100% 复刻出核心交互：一级页显示 mini + tab，普通二级页只露出 mini，沉浸页整体隐藏，并且它们是一个父容器整体运动。
+      </p>
+      <div class="warning">
+        为什么必须先给单文件完整版本：如果只给碎片代码，小白会卡在 import、缺少类、函数放哪里、入口怎么调用这些问题上。下面这份代码把模型、状态、UI、动画和演示按钮全部放在一个文件里，先保证能跑。
+      </div>
+      <span class="copy-title">第 1 步：新建 BottomChromeStandalone.kt，复制下面整段</span>
+      <pre><code>// 这一组 import 是动画需要的工具：animateDpAsState 负责让位置变化变成平滑动画。
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.tween
+
+// 这一组 import 是页面布局和点击需要的工具：Box 负责叠放，Column/Row 负责纵向和横向排列。
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
+
+// 这一组 import 是 Material UI 基础组件：按钮、卡片容器、文字、主题。
+import androidx.compose.material3.Button
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+
+// 这一组 import 是 Compose 状态工具：remember + mutableStateOf 让按钮点击后页面能变化。
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
+
+// 一级页面的三个主导航。真实项目里可以换成自己的首页、收藏、我的。
+enum class RootTab {
+    Home,
+    Favorites,
+    Me,
+}
+
+// 二级页面类型。这里故意只保留四种，用来演示两类二级页面：
+// Search/AlbumDetail 是“普通二级页”，Player/Settings 是“沉浸二级页”。
+sealed interface SecondaryScreen {
+    data object Search : SecondaryScreen
+    data object AlbumDetail : SecondaryScreen
+    data object Player : SecondaryScreen
+    data object Settings : SecondaryScreen
+}
+
+// Mini Player 需要显示的最小歌曲信息。
+// 真实音乐 App 可以继续增加封面、时长、专辑名等字段。
+data class Song(
+    val id: String,
+    val title: String,
+    val artist: String,
+)
+
+// BottomChromePlacement 只管一件事：底部整体容器应该停在哪里。
+// 注意：这里控制的是“父容器”位置，不是单独控制 MiniPlayer 或 BottomNavigation。
+enum class BottomChromePlacement {
+    // 一级页：MiniPlayer 和 BottomNavigation 都在屏幕内。
+    TopLevel,
+    // 普通二级页：父容器整体下移一个 Tab 高度，只露出 MiniPlayer。
+    MiniPlayerOnly,
+    // 沉浸页：父容器整体下移 MiniPlayer + Tab 的总高度，完全藏起来。
+    Hidden,
+}
+
+// ContentBottomSpace 只管页面内容底部应该留多少空间。
+// 这样可以避免底部控件挡住列表，也避免控件隐藏后底部还空一大块。
+enum class ContentBottomSpace {
+    TopLevel,
+    SecondaryWithMiniPlayer,
+    Fullscreen,
+}
+
+// AppChromeMode 是“当前页面的底部规则包”。
+// 一个页面不是只决定 Tab 显不显示，还要同时决定底部容器位置和内容留白。
+enum class AppChromeMode(
+    // BottomNavigation 是否允许显示和点击。
+    val showsBottomNavigation: Boolean,
+    // BottomChrome 父容器的位置。
+    val bottomChromePlacement: BottomChromePlacement,
+    // 页面内容底部留白策略。
+    val contentBottomSpace: ContentBottomSpace,
+) {
+    // 一级页：Tab 显示，父容器在底部，内容留出完整底部区域。
+    TopLevel(
+        showsBottomNavigation = true,
+        bottomChromePlacement = BottomChromePlacement.TopLevel,
+        contentBottomSpace = ContentBottomSpace.TopLevel,
+    ),
+    // 普通二级页：Tab 不显示，只露出 MiniPlayer。
+    SecondaryWithMiniPlayer(
+        showsBottomNavigation = false,
+        bottomChromePlacement = BottomChromePlacement.MiniPlayerOnly,
+        contentBottomSpace = ContentBottomSpace.SecondaryWithMiniPlayer,
+    ),
+    // 沉浸二级页：MiniPlayer 和 Tab 都不显示。
+    SecondaryFullscreen(
+        showsBottomNavigation = false,
+        bottomChromePlacement = BottomChromePlacement.Hidden,
+        contentBottomSpace = ContentBottomSpace.Fullscreen,
+    ),
+}
+
+// NavigationState 是当前页面位置。
+// rootTab 记录当前一级 Tab；secondaryScreen 为 null 表示当前就在一级页。
+data class NavigationState(
+    val rootTab: RootTab = RootTab.Home,
+    val secondaryScreen: SecondaryScreen? = null,
+) {
+    // 这是整套方案最重要的一行思想：
+    // 页面只告诉我们自己是谁，chromeMode 自动推导底部区域应该怎么表现。
+    val chromeMode: AppChromeMode = when (secondaryScreen) {
+        // 没有二级页面，就是首页/收藏/我的这样的一级页。
+        null -> AppChromeMode.TopLevel
+        // 搜索和专辑详情属于普通二级页：隐藏 Tab，只露出 MiniPlayer。
+        SecondaryScreen.Search,
+        SecondaryScreen.AlbumDetail,
+        -> AppChromeMode.SecondaryWithMiniPlayer
+        // 播放页和设置页属于沉浸页：整个 BottomChrome 都隐藏。
+        SecondaryScreen.Player,
+        SecondaryScreen.Settings,
+        -> AppChromeMode.SecondaryFullscreen
+    }
+}
+
+// 所有和底部高度有关的数字集中放在这里。
+// 新人不要把 68.dp、78.dp 散落到很多地方，否则后面改高度会很痛苦。
+object BottomChromeDimens {
+    val MiniPlayerHeight: Dp = 68.dp
+    val BottomNavHeight: Dp = 78.dp
+}
+
+// 这是这份独立教程的入口组件。
+// 在 App() 里调用 BottomChromeStandaloneLesson() 就可以看到完整演示。
+@Composable
+fun BottomChromeStandaloneLesson() {
+    // 当前选中的一级 Tab。点击 BottomNavigation 时会改变它。
+    var rootTab: RootTab by remember { mutableStateOf(RootTab.Home) }
+    // 当前是否进入二级页面。null 表示停留在一级页。
+    var secondaryScreen: SecondaryScreen? by remember { mutableStateOf(null) }
+    // 当前是否正在播放。这里只用于演示“播放/暂停”文字变化。
+    var isPlaying: Boolean by remember { mutableStateOf(true) }
+
+    // 把当前页面位置组合成 NavigationState。
+    val navigationState = NavigationState(
+        rootTab = rootTab,
+        secondaryScreen = secondaryScreen,
+    )
+
+    // 从导航状态推导出底部 Chrome 的显示策略。
+    // 后面页面内容、BottomChrome 都应该读这个 chromeMode，避免各写各的判断。
+    val chromeMode: AppChromeMode = navigationState.chromeMode
+
+    // 演示用的当前歌曲。真实项目里通常来自播放器状态。
+    val currentSong = Song(
+        id = "demo",
+        title = "海边的梦",
+        artist = "旅行团乐队",
+    )
+    MaterialTheme {
+        // 根 Box 负责把页面内容和 BottomChrome 叠在一起。
+        // 页面内容先放进去，BottomChrome 再 align 到底部。
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color(0xFFF3F7F8)),
+        ) {
+            // 中间页面内容：这里提供三个按钮，方便你切换三种底部状态。
+            DemoPageContent(
+                secondaryScreen = secondaryScreen,
+                onTopLevel = { secondaryScreen = null },
+                onMiniOnly = { secondaryScreen = SecondaryScreen.AlbumDetail },
+                onFullscreen = { secondaryScreen = SecondaryScreen.Player },
+            )
+
+            // 真正的底部整体容器。
+            // 注意：这里只调用 BottomChrome，不再分别调用 MiniPlayer 和 BottomNavigation。
+            BottomChrome(
+                song = currentSong,
+                isPlaying = isPlaying,
+                placement = chromeMode.bottomChromePlacement,
+                showsBottomNavigation = chromeMode.showsBottomNavigation,
+                rootTab = rootTab,
+                // 点击 MiniPlayer 时进入播放页，也就是沉浸页。
+                onOpen = { secondaryScreen = SecondaryScreen.Player },
+                onToggle = { isPlaying = !isPlaying },
+                onPrev = { },
+                onQueue = { },
+                // 点击任意 Tab 时回到一级页，所以 secondaryScreen 要清空。
+                onRootTab = { tab ->
+                    rootTab = tab
+                    secondaryScreen = null
+                },
+                modifier = Modifier.align(Alignment.BottomCenter),
+            )
+        }
+    }
+}
+
+// 演示页面内容，不参与底部动画。
+// 它只负责提供三个按钮，让新人能立刻看到三种 BottomChrome 状态。
+@Composable
+private fun DemoPageContent(
+    secondaryScreen: SecondaryScreen?,
+    onTopLevel: () -> Unit,
+    onMiniOnly: () -> Unit,
+    onFullscreen: () -> Unit,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = 22.dp, vertical = 42.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp),
+    ) {
+        Text(
+            text = when (secondaryScreen) {
+                // null 表示一级页。
+                null -> "一级页面：首页 / 收藏 / 我的"
+                // Search/AlbumDetail 表示普通二级页。
+                SecondaryScreen.Search,
+                SecondaryScreen.AlbumDetail,
+                -> "普通二级页面：只显示 Mini Player"
+                // Player/Settings 表示沉浸二级页。
+                SecondaryScreen.Player,
+                SecondaryScreen.Settings,
+                -> "沉浸二级页面：底部 Chrome 整体隐藏"
+            },
+            style = MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.Bold,
+        )
+        Text(text = "点击下面三个按钮，观察 Mini Player 和 Bottom Tab 是否作为一个整体移动。")
+        Button(onClick = onTopLevel) {
+            Text(text = "一级页：显示 Mini + Tab")
+        }
+        Button(onClick = onMiniOnly) {
+            Text(text = "普通二级页：只露出 Mini")
+        }
+        Button(onClick = onFullscreen) {
+            Text(text = "播放/设置页：整体隐藏")
+        }
+    }
+}
+
+// BottomChrome 是本教程的核心组件。
+// 它是“底部托盘”：里面装着 MiniPlayer 和 BottomNavigation，并且只有它负责上下移动。
+@Composable
+private fun BottomChrome(
+    song: Song,
+    isPlaying: Boolean,
+    placement: BottomChromePlacement,
+    showsBottomNavigation: Boolean,
+    rootTab: RootTab,
+    onOpen: () -> Unit,
+    onToggle: () -> Unit,
+    onPrev: () -> Unit,
+    onQueue: () -> Unit,
+    onRootTab: (RootTab) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    // stackOffset 是整个底部托盘的 Y 方向偏移。
+    // 重点：只动画这个父容器，不要让 MiniPlayer 和 BottomNavigation 各自动。
+    val stackOffset: Dp by animateDpAsState(
+        targetValue = when (placement) {
+            // 一级页：托盘不偏移，MiniPlayer + Tab 都露出来。
+            BottomChromePlacement.TopLevel -> 0.dp
+            // 普通二级页：托盘下移一个 Tab 高度，所以 Tab 掉到屏幕外，只剩 MiniPlayer。
+            BottomChromePlacement.MiniPlayerOnly -> BottomChromeDimens.BottomNavHeight
+            // 沉浸页：托盘下移 MiniPlayer + Tab 的总高度，所以两者都离开屏幕。
+            BottomChromePlacement.Hidden -> BottomChromeDimens.BottomNavHeight + BottomChromeDimens.MiniPlayerHeight
+        },
+        animationSpec = tween(durationMillis = 780, easing = FastOutSlowInEasing),
+        label = "BottomChromeOffset",
+    )
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .navigationBarsPadding(),
+    ) {
+        // 这个内部 Box 就是托盘本体，高度等于 MiniPlayer + BottomNavigation。
+        // offset(y = stackOffset) 让整个托盘一起移动。
+        Box(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth()
+                .height(BottomChromeDimens.MiniPlayerHeight + BottomChromeDimens.BottomNavHeight)
+                .offset(y = stackOffset),
+        ) {
+            // MiniPlayer 固定贴在托盘顶部。
+            MiniPlayer(
+                song = song,
+                isPlaying = isPlaying,
+                onOpen = onOpen,
+                onToggle = onToggle,
+                onPrev = onPrev,
+                onQueue = onQueue,
+                modifier = Modifier.align(Alignment.TopCenter),
+            )
+            // BottomNavigation 固定贴在托盘底部。
+            BottomNavigation(
+                rootTab = rootTab,
+                isEnabled = showsBottomNavigation,
+                onRootTab = onRootTab,
+                modifier = Modifier.align(Alignment.BottomCenter),
+            )
+        }
+    }
+}
+
+// MiniPlayer 只负责画播放器小条。
+// 它不应该知道自己在一级页还是二级页，也不应该写上下移动动画。
+@Composable
+private fun MiniPlayer(
+    song: Song,
+    isPlaying: Boolean,
+    onOpen: () -> Unit,
+    onToggle: () -> Unit,
+    onPrev: () -> Unit,
+    onQueue: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 22.dp)
+            .height(BottomChromeDimens.MiniPlayerHeight)
+            .clickable(onClick = onOpen),
+        shape = RoundedCornerShape(18.dp),
+        color = Color.White,
+        shadowElevation = 12.dp,
+    ) {
+        // 横向排列：封面色块、歌曲文字、三个操作文字。
+        Row(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 12.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            // 这里用绿色方块模拟专辑封面，真实项目可以换成 Image。
+            Box(
+                modifier = Modifier
+                    .size(46.dp)
+                    .clip(RoundedCornerShape(9.dp))
+                    .background(Color(0xFF17B59E)),
+            )
+            // 歌曲标题和歌手名，占据中间剩余空间。
+            Column(modifier = Modifier.weight(1f)) {
+                Text(text = song.title, fontWeight = FontWeight.Bold)
+                Text(text = song.artist, color = Color(0xFF7D858E))
+            }
+            // 这些文字按钮只是为了让独立版能跑通；真实项目可以换成图标。
+            Text(text = "上一", modifier = Modifier.clickable(onClick = onPrev))
+            Text(text = if (isPlaying) "暂停" else "播放", modifier = Modifier.clickable(onClick = onToggle))
+            Text(text = "队列", modifier = Modifier.clickable(onClick = onQueue))
+        }
+    }
+}
+
+// BottomNavigation 只负责画三个一级 Tab。
+// 它不写上下移动动画，只用 isEnabled 控制隐藏状态下不能误触。
+@Composable
+private fun BottomNavigation(
+    rootTab: RootTab,
+    isEnabled: Boolean,
+    onRootTab: (RootTab) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(BottomChromeDimens.BottomNavHeight),
+        color = Color.White,
+        shadowElevation = 0.dp,
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 24.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            // RootTab.entries 会依次拿到 Home、Favorites、Me。
+            RootTab.entries.forEach { tab ->
+                Text(
+                    text = when (tab) {
+                        RootTab.Home -> "首页"
+                        RootTab.Favorites -> "收藏"
+                        RootTab.Me -> "我的"
+                    },
+                    color = if (rootTab == tab) Color(0xFF17B59E) else Color(0xFF7D858E),
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.clickable(enabled = isEnabled) {
+                        onRootTab(tab)
+                    },
+                )
+            }
+        }
+    }
+}</code></pre>
+      <span class="copy-title">第 2 步：在你的 App 入口调用</span>
+      <pre><code>@Composable
+fun App() {
+    BottomChromeStandaloneLesson()
+}</code></pre>
+      <div class="check">
+        成功标准：你能看到三个按钮。点“普通二级页”时，整个底部区域下移，只露出 Mini Player；点“播放/设置页”时，Mini Player 和 Tab 一起移出屏幕；点“一级页”时，它们一起回来。
+      </div>
+    </section>
+
+    <section id="before">
+      <h2>0. 开始前先懂目标</h2>
+      <div class="goal">
+        最终效果：Mini Player 和 Bottom Tab 不再各自动，而是被一个叫 BottomChrome 的父容器包起来，页面切换时整个父容器一起移动。
+      </div>
+      <p>
+        你要实现的不是“隐藏某个按钮”，而是建立一套底部区域的规则。这个规则会回答三个问题：
+      </p>
+      <ul>
+        <li>当前页面要不要显示 Bottom Tab？</li>
+        <li>当前页面要不要显示 Mini Player？</li>
+        <li>页面内容底部应该留多少空间，才不会被底部控件挡住？</li>
+      </ul>
+      <div class="why">
+        为什么要这样做：如果每个页面自己决定显示隐藏，很快会出现很多零散判断。后面加播放页、设置页、歌词页时，底部动画会越来越难维护。
+      </div>
+    </section>
+
+    <section id="mental-model">
+      <h2>1. 用人话理解：不要移动两块积木，要移动整个托盘</h2>
+      <p>
+        先把 <code>Mini Player</code> 和 <code>Bottom Tab</code> 想象成放在同一个托盘上的两块积木。
+        用户切换页面时，应该看到的是“托盘”上下移动，而不是两块积木各自乱跑。
+      </p>
+      <pre><code>BottomChrome 这个托盘
+├── MiniPlayer      第一块积木：正在播放的小条
+└── BottomNavigation 第二块积木：首页 / 收藏 / 我的</code></pre>
+      <div class="cards">
+        <div class="card">
+          <strong>首页</strong>
+          托盘完全露出来，所以 Mini Player 和 Bottom Tab 都看得见。
+        </div>
+        <div class="card">
+          <strong>专辑详情页</strong>
+          托盘向下移动一点，Bottom Tab 掉到屏幕外，只剩 Mini Player 露出来。
+        </div>
+        <div class="card">
+          <strong>播放页 / 设置页</strong>
+          托盘继续向下移动，Mini Player 和 Bottom Tab 都离开屏幕。
+        </div>
+      </div>
+    </section>
+
+    <section id="files">
+      <h2>2. 你要改哪些文件</h2>
+      <p>在当前 KMP Music 项目里，只需要关注这 4 个文件：</p>
+      <table>
+        <thead>
+          <tr>
+            <th>文件</th>
+            <th>它负责什么</th>
+            <th>你会做什么</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>MusicAppModels.kt</code></td>
+            <td>定义页面、导航、全局 UI 状态</td>
+            <td>新增 ChromeMode，告诉 App 当前页面底部区域该怎么显示</td>
+          </tr>
+          <tr>
+            <td><code>MusicTheme.kt</code></td>
+            <td>统一管理尺寸、颜色、字体</td>
+            <td>确认 Mini Player 和 Bottom Tab 的高度 token</td>
+          </tr>
+          <tr>
+            <td><code>MusicApp.kt</code></td>
+            <td>真正把页面、Mini Player、Bottom Tab 画出来</td>
+            <td>新增 BottomChrome 父容器，让它整体移动</td>
+          </tr>
+          <tr>
+            <td><code>MusicAppControllerTest.kt</code></td>
+            <td>测试导航和播放状态</td>
+            <td>加测试，确认不同页面对应正确的底部 Chrome 状态</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="check">
+        小白检查：如果你不知道文件在哪里，可以在编辑器里搜索文件名。不要同时打开太多文件，按下面步骤一个一个改。
+      </div>
+    </section>
+
+    <section id="preflight">
+      <h2>3. 复刻前置条件：先确认你手里有没有这些东西</h2>
+      <div class="warning">
+        重要结论：如果是在 KMP Music 当前项目里，下面步骤可以直接照做；如果是在一个全新项目里，必须先准备这一节的最小骨架，否则复制代码会因为缺少类、函数或 import 而报错。
+      </div>
+      <div class="check">
+        阅读方法：标着“当前项目”的代码用于 KMP Music；标着“全新项目”的代码用于从零复刻。如果你是在新项目里学习，优先复制“全新项目”代码块。
+      </div>
+      <p>你不需要先理解所有代码，但要知道这些名字必须存在：</p>
+      <table>
+        <thead>
+          <tr>
+            <th>名字</th>
+            <th>它是什么</th>
+            <th>没有它会怎样</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>RootTab</code></td>
+            <td>首页 / 收藏 / 我的 三个主 Tab</td>
+            <td>BottomNavigation 不知道有几个 tab</td>
+          </tr>
+          <tr>
+            <td><code>SecondaryScreen</code></td>
+            <td>搜索、播放页、设置页等二级页面</td>
+            <td>NavigationState 无法判断当前页面属于哪类</td>
+          </tr>
+          <tr>
+            <td><code>NavigationState</code></td>
+            <td>当前导航状态</td>
+            <td>无法派生 AppChromeMode</td>
+          </tr>
+          <tr>
+            <td><code>Song</code></td>
+            <td>当前歌曲数据</td>
+            <td>MiniPlayer 不知道显示哪首歌</td>
+          </tr>
+          <tr>
+            <td><code>MiniPlayer</code></td>
+            <td>底部播放小条</td>
+            <td>BottomChrome 里没有第一块内容</td>
+          </tr>
+          <tr>
+            <td><code>BottomNavigation</code></td>
+            <td>底部主导航</td>
+            <td>BottomChrome 里没有第二块内容</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>如果你是全新项目，先复制这个最小导航骨架</h3>
+      <p><strong>放在哪里：</strong>可以新建一个 <code>AppModels.kt</code>。如果你的项目已有类似文件，就放到已有导航模型文件里。</p>
+      <span class="copy-title">全新项目最小骨架</span>
+      <pre><code>// 一级页面 Tab。真实项目可以按自己的产品改名字，但至少要有一组主 Tab。
+enum class RootTab {
+    Home,
+    Favorites,
+    Me,
+}
+
+// 二级页面。普通二级页和沉浸二级页会对应不同的底部 Chrome 状态。
+sealed interface SecondaryScreen {
+    data object Search : SecondaryScreen
+    data object Player : SecondaryScreen
+    data object AlbumDetail : SecondaryScreen
+    data object ArtistDetail : SecondaryScreen
+    data object Settings : SecondaryScreen
+    data object Login : SecondaryScreen
+    data object LocalFolder : SecondaryScreen
+}
+
+// 当前导航状态。secondaryScreen 为 null 代表当前在一级页。
+data class NavigationState(
+    val rootTab: RootTab = RootTab.Home,
+    val secondaryScreen: SecondaryScreen? = null,
+    val previousRootTab: RootTab = RootTab.Home,
+) {
+    // 这里先只判断是不是一级页，后面步骤会继续加入 chromeMode。
+    val isTopLevel: Boolean = secondaryScreen == null
+}</code></pre>
+
+      <h3>如果你是全新项目，再准备一个最小 Song</h3>
+      <p><strong>为什么：</strong>MiniPlayer 至少要知道歌曲标题和歌手名。真实项目可以有更多字段，这里只放最小可运行版本。</p>
+      <span class="copy-title">全新项目最小 Song</span>
+      <pre><code>// Mini Player 显示歌曲时至少需要标题和歌手名。
+data class Song(
+    val id: String,
+    val title: String,
+    val artist: String,
+)</code></pre>
+
+      <h3>MusicApp.kt 需要这些 import</h3>
+      <p>如果你复制后看到红色报错，第一件事就是检查 import。Compose 会自动导入一部分，但小白最好先对照这份清单。</p>
+      <span class="copy-title">常用 import 清单</span>
+      <pre><code>import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Alignment
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.Row
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp</code></pre>
+
+      <h3>如果你是全新项目，先准备最小尺寸工具</h3>
+      <p>KMP Music 里有 <code>scaledDp</code>，它负责按屏幕宽度缩放尺寸。全新项目如果暂时没有这个函数，可以先用最小版本跑通。</p>
+      <span class="copy-title">全新项目最小尺寸工具</span>
+      <pre><code>// 所有底部高度统一放在这里，避免到处写散落的数字。
+object MusicDimens {
+    val MiniPlayerHeight: Dp = 68.dp
+    val BottomNavHeight: Dp = 78.dp
+    val TopLevelContentBottom: Dp = 210.dp
+    val SecondaryContentBottom: Dp = 96.dp
+    val FullscreenContentBottom: Dp = 28.dp
+}
+
+// 全新项目先不做缩放，直接返回原始 dp；真实项目可以后续替换成响应式缩放。
+@Composable
+fun scaledDp(value: Dp): Dp = value</code></pre>
+
+      <h3>如果你是全新项目，先准备最小 MiniPlayer</h3>
+      <p>这不是最终视觉稿，只是为了让新人复制后能立刻编译运行。等整体动画跑通后，再替换成真实 UI。</p>
+      <span class="copy-title">全新项目最小 MiniPlayer</span>
+      <pre><code>// 这是最小播放器小条，只负责展示和点击，不负责上下移动。
+@Composable
+private fun MiniPlayer(
+    song: Song,
+    isPlaying: Boolean,
+    onOpen: () -> Unit,
+    onToggle: () -> Unit,
+    onPrev: () -> Unit,
+    onQueue: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    // Surface 是白色播放器容器。
+    Surface(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(MusicDimens.MiniPlayerHeight)
+            .clickable(onClick = onOpen),
+        color = Color.White,
+    ) {
+        // Row 让封面、歌曲信息、按钮横向排列。
+        Row(
+            modifier = Modifier.padding(horizontal = 16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            // 左侧歌曲文字区域。
+            Column {
+                Text(text = song.title, fontWeight = FontWeight.Bold)
+                Text(text = song.artist)
+            }
+            // 右侧演示按钮。真实项目可以换成图标按钮。
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(text = "上一", modifier = Modifier.clickable(onClick = onPrev))
+                Text(text = if (isPlaying) "暂停" else "播放", modifier = Modifier.clickable(onClick = onToggle))
+                Text(text = "队列", modifier = Modifier.clickable(onClick = onQueue))
+            }
+        }
+    }
+}</code></pre>
+
+      <h3>如果你是全新项目，先准备最小 BottomNavigation</h3>
+      <span class="copy-title">全新项目最小 BottomNavigation</span>
+      <pre><code>// 这是最小底部导航，只负责显示三个 Tab，不负责上下移动。
+@Composable
+private fun BottomNavigation(
+    rootTab: RootTab,
+    isEnabled: Boolean,
+    onRootTab: (RootTab) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    // Row 让三个 Tab 横向平均分布。
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(MusicDimens.BottomNavHeight)
+            .background(Color.White),
+        horizontalArrangement = Arrangement.SpaceAround,
+    ) {
+        // 遍历 Home/Favorites/Me 三个 Tab。
+        RootTab.entries.forEach { tab ->
+            Text(
+                text = tab.name,
+                fontWeight = if (rootTab == tab) FontWeight.Bold else FontWeight.Normal,
+                modifier = Modifier.clickable(enabled = isEnabled) {
+                    onRootTab(tab)
+                },
+            )
+        }
+    }
+}</code></pre>
+
+      <div class="check">
+        这一节的意义：把“缺少类”“缺少 import”“不知道放哪”这些新手最容易卡住的问题提前解决。确认这些名字都存在后，再进入下一节。
+      </div>
+    </section>
+
+    <section id="steps">
+      <h2>4. 照着做：10 个步骤</h2>
+
+      <div class="step">
+        <div class="num">1</div>
+        <div>
+          <h3>在模型里定义“底部托盘的位置”</h3>
+          <p><strong>打开文件：</strong><code>MusicAppModels.kt</code></p>
+          <p><strong>放在哪里：</strong>找到 <code>enum class FavoriteSection</code> 结束的地方，在它下面粘贴。</p>
+          <p><strong>为什么：</strong>我们先给底部托盘起三个位置名字，后面代码就不用猜数字。</p>
+          <span class="copy-title">复制这段</span>
+          <pre><code>/**
+ * 底部全局 chrome 的整体位置策略。
+ * 注意：这是父容器的位置，不是 MiniPlayer 或 BottomNavigation 自己的位置。
+ */
+enum class BottomChromePlacement {
+    // 一级页：父容器完整露出。
+    TopLevel,
+    // 普通二级页：父容器下移一个 Tab 高度，只露出 MiniPlayer。
+    MiniPlayerOnly,
+    // 沉浸页：父容器完全移出屏幕。
+    Hidden,
+}</code></pre>
+          <div class="check">做完检查：你现在有三个状态：一级页、只显示 Mini Player、完全隐藏。</div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="num">2</div>
+        <div>
+          <h3>定义“页面内容底部要留多少空间”</h3>
+          <p><strong>还是同一个文件：</strong><code>MusicAppModels.kt</code></p>
+          <p><strong>放在哪里：</strong>紧跟在 <code>BottomChromePlacement</code> 后面。</p>
+          <p><strong>为什么：</strong>底部控件显示时，列表内容不能被挡住；底部控件隐藏时，也不能留下奇怪空白。</p>
+          <span class="copy-title">复制这段</span>
+          <pre><code>/**
+ * 页面内容底部避让策略。
+ * 它解决的是“页面内容会不会被底部控件遮住”的问题。
+ */
+enum class ContentBottomSpace {
+    TopLevel,
+    SecondaryWithMiniPlayer,
+    Fullscreen,
+}</code></pre>
+          <div class="check">做完检查：你现在能分别表达“一级页留白、二级页播放器留白、全屏页留白”。</div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="num">3</div>
+        <div>
+          <h3>把底部显示规则合成一个 AppChromeMode</h3>
+          <p><strong>还是同一个文件：</strong><code>MusicAppModels.kt</code></p>
+          <p><strong>放在哪里：</strong>紧跟在 <code>ContentBottomSpace</code> 后面。</p>
+          <p><strong>为什么：</strong>一个页面的底部规则不只一个值。它同时包括：Tab 是否显示、BottomChrome 在哪里、内容留白是多少。</p>
+          <span class="copy-title">复制这段</span>
+          <pre><code>/**
+ * 页面全局 chrome 策略，统一管理底部 Tab、迷你播放器和页面留白。
+ * 一个页面只对应一种 AppChromeMode，后续所有底部 UI 都读它。
+ */
+enum class AppChromeMode(
+    // BottomNavigation 是否可见/可点。
+    val showsBottomNavigation: Boolean,
+    // BottomChrome 父容器应该停在哪里。
+    val bottomChromePlacement: BottomChromePlacement,
+    // 页面内容底部应该留多少空间。
+    val contentBottomSpace: ContentBottomSpace,
+) {
+    // 一级页：MiniPlayer + BottomNavigation 都显示。
+    TopLevel(
+        showsBottomNavigation = true,
+        bottomChromePlacement = BottomChromePlacement.TopLevel,
+        contentBottomSpace = ContentBottomSpace.TopLevel,
+    ),
+    // 普通二级页：隐藏 BottomNavigation，只露出 MiniPlayer。
+    SecondaryWithMiniPlayer(
+        showsBottomNavigation = false,
+        bottomChromePlacement = BottomChromePlacement.MiniPlayerOnly,
+        contentBottomSpace = ContentBottomSpace.SecondaryWithMiniPlayer,
+    ),
+    // 沉浸二级页：整个底部 Chrome 都隐藏。
+    SecondaryFullscreen(
+        showsBottomNavigation = false,
+        bottomChromePlacement = BottomChromePlacement.Hidden,
+        contentBottomSpace = ContentBottomSpace.Fullscreen,
+    ),
+}</code></pre>
+          <div class="why">
+            为什么要合成一个：这样页面内容、Mini Player、Bottom Tab 都读取同一份规则，不会出现“控件隐藏了，但内容还留着空白”的错位。
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="num">4</div>
+        <div>
+          <h3>让 NavigationState 自动算出当前 ChromeMode</h3>
+          <p><strong>还是同一个文件：</strong><code>MusicAppModels.kt</code></p>
+          <p><strong>放在哪里：</strong>找到 <code>data class NavigationState</code> 里面的 <code>isTopLevel</code>，在它下面粘贴。</p>
+          <p><strong>为什么：</strong>页面只说“我是谁”，不要让每个页面自己控制底部控件。</p>
+          <span class="copy-title">复制这段</span>
+          <pre><code>/**
+ * 当前页面对应的全局 chrome 策略。
+ * 这是页面和底部 chrome 的唯一映射入口，后续不要在各页面散写 if。
+ */
+val chromeMode: AppChromeMode = when (secondaryScreen) {
+    // secondaryScreen 为 null 表示当前是首页/收藏/我的。
+    null -> AppChromeMode.TopLevel
+    // 播放页、设置页不需要 MiniPlayer，所以用全屏模式。
+    SecondaryScreen.Player,
+    SecondaryScreen.Settings,
+    -> AppChromeMode.SecondaryFullscreen
+    // 其它二级页面保留 MiniPlayer，但隐藏 Bottom Tab。
+    SecondaryScreen.Search,
+    SecondaryScreen.AlbumDetail,
+    SecondaryScreen.ArtistDetail,
+    SecondaryScreen.Login,
+    SecondaryScreen.LocalFolder,
+    -> AppChromeMode.SecondaryWithMiniPlayer
+}</code></pre>
+          <div class="check">
+            做完检查：播放页和设置页会隐藏整个 BottomChrome；搜索、专辑、歌手、本地文件夹会只显示 Mini Player；首页、收藏、我的显示完整底部。
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="num">5</div>
+        <div>
+          <h3>确认尺寸 token：父容器要知道自己有多高</h3>
+          <p><strong>打开文件：</strong><code>MusicTheme.kt</code></p>
+          <p><strong>找到：</strong><code>object MusicDimens</code></p>
+          <p><strong>确认里面有：</strong><code>MiniPlayerHeight</code>、<code>BottomNavHeight</code>、<code>TopLevelContentBottom</code>、<code>SecondaryContentBottom</code> 和 <code>FullscreenContentBottom</code>。</p>
+          <span class="copy-title">如果没有，就补上这些尺寸</span>
+          <pre><code>val MiniPlayerHeight: Dp = 68.dp
+val BottomNavHeight: Dp = 78.dp
+val TopLevelContentBottom: Dp = 210.dp
+val SecondaryContentBottom: Dp = 96.dp
+val FullscreenContentBottom: Dp = 28.dp</code></pre>
+          <div class="why">
+            为什么要用 token：动画偏移需要知道“下移多少”。普通二级页下移一个 Bottom Tab 高度；全屏页下移 Mini Player + Bottom Tab 的总高度。
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="num">6</div>
+        <div>
+          <h3>让页面内容根据 ChromeMode 留底部空间</h3>
+          <p><strong>打开文件：</strong><code>MusicApp.kt</code></p>
+          <p><strong>找到：</strong><code>AppContent</code> 里面计算 <code>bottomPadding</code> 的地方。</p>
+          <p><strong>替换成：</strong>读取 <code>chromeMode.contentBottomSpace</code>。</p>
+          <p><strong>如果你是全新项目：</strong>最小 <code>DemoScreen</code> 可以先跳过这一步；等你有滚动列表或真实页面内容时，再按这一节给内容加底部留白。</p>
+          <span class="copy-title">复制这段函数</span>
+          <pre><code>// 根据 chromeMode 统一计算页面内容底部留白。
+@Composable
+private fun getContentBottomPadding(contentBottomSpace: ContentBottomSpace): Dp {
+    return when (contentBottomSpace) {
+        // 一级页底部有 MiniPlayer + BottomNavigation，所以留白最大。
+        ContentBottomSpace.TopLevel -> scaledDp(MusicDimens.TopLevelContentBottom)
+        // 普通二级页底部只有 MiniPlayer，所以留白中等。
+        ContentBottomSpace.SecondaryWithMiniPlayer -> scaledDp(MusicDimens.SecondaryContentBottom)
+        // 沉浸页没有底部 Chrome，所以只留一点基础空间。
+        ContentBottomSpace.Fullscreen -> scaledDp(MusicDimens.FullscreenContentBottom)
+    }
+}</code></pre>
+          <span class="copy-title">AppContent 里这样使用</span>
+          <pre><code>val bottomPadding: Dp = getContentBottomPadding(
+    contentBottomSpace = chromeMode.contentBottomSpace,
+)</code></pre>
+          <p><strong>还要检查：</strong><code>AppContent</code> 函数参数里必须有 <code>chromeMode: AppChromeMode</code>。</p>
+          <span class="copy-title">AppContent 函数头应该长这样</span>
+          <pre><code>// AppContent 必须接收 chromeMode，这样内容留白和底部 Chrome 使用同一份规则。
+@Composable
+private fun AppContent(
+    state: MusicAppUiState,
+    controller: MusicAppController,
+    chromeMode: AppChromeMode,
+) {
+    // 这里不要再用 isTopLevel 单独判断，统一读 chromeMode.contentBottomSpace。
+    val bottomPadding: Dp = getContentBottomPadding(
+        contentBottomSpace = chromeMode.contentBottomSpace,
+    )
+    // 下面保留你原来的页面内容
+}</code></pre>
+          <div class="check">做完检查：播放页、设置页不应该因为播放器隐藏而留下很大的底部空白。</div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="num">7</div>
+        <div>
+          <h3>新增 BottomChrome：真正的“底部托盘”</h3>
+          <p><strong>还是文件：</strong><code>MusicApp.kt</code></p>
+          <p><strong>放在哪里：</strong>放在 <code>MiniPlayer</code> 函数上方。</p>
+          <p><strong>为什么：</strong>之前 Mini Player 和 Bottom Tab 是兄弟节点，会各自动。现在要把它们变成父子结构，由父容器统一移动。</p>
+          <span class="copy-title">复制这段</span>
+          <pre><code>// BottomChrome 是父容器，负责整体动画。
+@Composable
+private fun BottomChrome(
+    song: Song,
+    isPlaying: Boolean,
+    placement: BottomChromePlacement,
+    showsBottomNavigation: Boolean,
+    rootTab: RootTab,
+    onOpen: () -> Unit,
+    onToggle: () -> Unit,
+    onPrev: () -> Unit,
+    onQueue: () -> Unit,
+    onRootTab: (RootTab) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    // 唯一的位移动画。不要再给 MiniPlayer 或 BottomNavigation 单独写位移动画。
+    val stackOffset: Dp by animateDpAsState(
+        targetValue = when (placement) {
+            // 一级页不移动。
+            BottomChromePlacement.TopLevel -> 0.dp
+            // 普通二级页下移一个 Tab 高度。
+            BottomChromePlacement.MiniPlayerOnly -> scaledDp(MusicDimens.BottomNavHeight)
+            // 沉浸页下移 MiniPlayer + Tab 总高度。
+            BottomChromePlacement.Hidden -> scaledDp(MusicDimens.BottomNavHeight + MusicDimens.MiniPlayerHeight)
+        },
+        animationSpec = tween(durationMillis = 780, easing = FastOutSlowInEasing),
+        label = "BottomChromeOffset",
+    )
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .navigationBarsPadding(),
+    ) {
+        // 这个 Box 是真正会移动的“底部托盘”。
+        Box(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth()
+                .height(scaledDp(MusicDimens.MiniPlayerHeight + MusicDimens.BottomNavHeight))
+                .offset(y = stackOffset),
+        ) {
+            // MiniPlayer 固定在托盘顶部。
+            MiniPlayer(
+                song = song,
+                isPlaying = isPlaying,
+                onOpen = onOpen,
+                onToggle = onToggle,
+                onPrev = onPrev,
+                onQueue = onQueue,
+                modifier = Modifier.align(Alignment.TopCenter),
+            )
+            // BottomNavigation 固定在托盘底部。
+            BottomNavigation(
+                rootTab = rootTab,
+                isEnabled = showsBottomNavigation,
+                onRootTab = onRootTab,
+                modifier = Modifier.align(Alignment.BottomCenter),
+            )
+        }
+    }
+}</code></pre>
+          <div class="why">
+            关键理解：动画只在 <code>BottomChrome</code> 上。Mini Player 和 Bottom Tab 自己不再上下移动，所以用户看到的是整体运动。
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="num">8</div>
+        <div>
+          <h3>调整 MiniPlayer：它不再负责上下移动</h3>
+          <p><strong>还是文件：</strong><code>MusicApp.kt</code></p>
+          <p><strong>找到：</strong>原来的 <code>MiniPlayer</code> 函数。</p>
+          <p><strong>为什么：</strong>现在移动的是 BottomChrome 父容器，所以 MiniPlayer 内部不能再有自己的 <code>offset</code> 或底部位移动画。</p>
+          <p><strong>要删除：</strong>如果 MiniPlayer 里还有 <code>placement</code>、<code>isTopLevel</code>、<code>animateDpAsState</code> 控制上下位置，都删掉。</p>
+          <span class="copy-title">MiniPlayer 函数参数应该变成这样</span>
+          <pre><code>@Composable
+private fun MiniPlayer(
+    song: Song,
+    isPlaying: Boolean,
+    onOpen: () -> Unit,
+    onToggle: () -> Unit,
+    onPrev: () -> Unit,
+    onQueue: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    // 这里保留你的 Mini Player UI
+    // 不要再写上下移动动画
+}</code></pre>
+          <div class="check">做完检查：搜索 <code>MiniPlayerOffset</code>、<code>MiniPlayerBottom</code>、<code>MiniPlayerPlacement</code>，应该搜不到。</div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="num">9</div>
+        <div>
+          <h3>调整 BottomNavigation：它不再负责上下移动</h3>
+          <p><strong>还是文件：</strong><code>MusicApp.kt</code></p>
+          <p><strong>找到：</strong>原来的 <code>BottomNavigation</code> 函数。</p>
+          <p><strong>为什么：</strong>Tab 是否露出来由 BottomChrome 整体位置决定。BottomNavigation 只需要知道现在能不能点击。</p>
+          <p><strong>要删除：</strong>如果 BottomNavigation 里还有 <code>isVisible</code> 和自己的 <code>offset</code> 动画，删掉。</p>
+          <span class="copy-title">BottomNavigation 函数参数应该变成这样</span>
+          <pre><code>@Composable
+private fun BottomNavigation(
+    rootTab: RootTab,
+    isEnabled: Boolean,
+    onRootTab: (RootTab) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    // 这里保留你的 Bottom Tab UI
+    // 每个 tab 点击时使用 isEnabled 控制是否可点
+}</code></pre>
+          <div class="check">做完检查：搜索 <code>BottomNavOffset</code>，应该搜不到。</div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="num">10</div>
+        <div>
+          <h3>在 App 根部使用 BottomChrome</h3>
+          <p><strong>还是文件：</strong><code>MusicApp.kt</code></p>
+          <p><strong>找到：</strong>原本分别调用 <code>MiniPlayer(...)</code> 和 <code>BottomNavigation(...)</code> 的地方。</p>
+          <p><strong>做法：</strong>删除这两个独立调用，换成一个 <code>BottomChrome(...)</code>。</p>
+          <span class="copy-title">复制这段</span>
+          <pre><code>val chromeMode: AppChromeMode = state.navigationState.chromeMode
+
+BottomChrome(
+    song = state.currentSong,
+    isPlaying = state.isPlaying,
+    placement = chromeMode.bottomChromePlacement,
+    showsBottomNavigation = chromeMode.showsBottomNavigation,
+    rootTab = state.navigationState.rootTab,
+    onOpen = { controller.navigateToSecondary(SecondaryScreen.Player) },
+    onToggle = controller::togglePlayback,
+    onPrev = { controller.moveTrack(direction = -1) },
+    onQueue = controller::openQueue,
+    onRootTab = controller::navigateToRoot,
+    modifier = Modifier.align(Alignment.BottomCenter),
+)</code></pre>
+          <p><strong>如果你是全新项目，还没有 <code>state</code> 和 <code>controller</code>：</strong>先用下面这个最小示例跑通整体动画结构。</p>
+          <span class="copy-title">全新项目最小调用示例</span>
+          <pre><code>@Composable
+fun DemoScreen() {
+    val navigationState = NavigationState()
+    val chromeMode: AppChromeMode = navigationState.chromeMode
+    val currentSong = Song(
+        id = "demo",
+        title = "海边的梦",
+        artist = "旅行团乐队",
+    )
+    Box(modifier = Modifier.fillMaxSize()) {
+        Text(text = "页面内容区域")
+        BottomChrome(
+            song = currentSong,
+            isPlaying = true,
+            placement = chromeMode.bottomChromePlacement,
+            showsBottomNavigation = chromeMode.showsBottomNavigation,
+            rootTab = navigationState.rootTab,
+            onOpen = { },
+            onToggle = { },
+            onPrev = { },
+            onQueue = { },
+            onRootTab = { },
+            modifier = Modifier.align(Alignment.BottomCenter),
+        )
+    }
+}</code></pre>
+          <div class="check">
+            做完检查：代码里不应该再有一个 MiniPlayer 和一个 BottomNavigation 分别作为根 Box 的兄弟节点。它们应该都在 BottomChrome 里面。
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="test">
+      <h2>5. 运行检查：确认没有做坏</h2>
+      <p>复制完代码后，先不要急着看动画。先让项目编译和测试通过。</p>
+      <span class="copy-title">在终端运行</span>
+      <pre><code>./gradlew :composeApp:compileDebugKotlinAndroid :composeApp:desktopTest</code></pre>
+      <p>如果你只想打出可安装的 Android APK，运行：</p>
+      <pre><code>./gradlew :composeApp:assembleDebug</code></pre>
+      <div class="check">
+        看到 <code>BUILD SUCCESSFUL</code> 就代表代码层面通过。APK 一般在 <code>composeApp/build/outputs/apk/debug/composeApp-debug.apk</code>。
+      </div>
+
+      <h3>建议补一个测试</h3>
+      <p><strong>打开文件：</strong><code>MusicAppControllerTest.kt</code></p>
+      <p><strong>为什么：</strong>测试能防止以后有人改页面时，不小心把播放页又改成显示 Mini Player。</p>
+      <span class="copy-title">测试文件需要这些 import</span>
+      <pre><code>import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue</code></pre>
+      <span class="copy-title">当前项目复制这段测试</span>
+      <pre><code>@Test
+fun navigationStateProvidesChromeMode(): Unit {
+    val controller = MusicAppController()
+    assertEquals(AppChromeMode.TopLevel, controller.uiState.navigationState.chromeMode)
+    assertTrue(controller.uiState.navigationState.chromeMode.showsBottomNavigation)
+    assertEquals(BottomChromePlacement.TopLevel, controller.uiState.navigationState.chromeMode.bottomChromePlacement)
+    controller.navigateToSecondary(screen = SecondaryScreen.AlbumDetail)
+    assertEquals(AppChromeMode.SecondaryWithMiniPlayer, controller.uiState.navigationState.chromeMode)
+    assertFalse(controller.uiState.navigationState.chromeMode.showsBottomNavigation)
+    assertEquals(BottomChromePlacement.MiniPlayerOnly, controller.uiState.navigationState.chromeMode.bottomChromePlacement)
+    controller.navigateToSecondary(screen = SecondaryScreen.Player)
+    assertEquals(AppChromeMode.SecondaryFullscreen, controller.uiState.navigationState.chromeMode)
+    assertFalse(controller.uiState.navigationState.chromeMode.showsBottomNavigation)
+    assertEquals(BottomChromePlacement.Hidden, controller.uiState.navigationState.chromeMode.bottomChromePlacement)
+}</code></pre>
+      <p><strong>如果你是全新项目，还没有 <code>MusicAppController</code>：</strong>先测试 <code>NavigationState</code> 本身。</p>
+      <span class="copy-title">全新项目最小测试</span>
+      <pre><code>@Test
+fun navigationStateProvidesChromeMode(): Unit {
+    val rootState = NavigationState()
+    assertEquals(AppChromeMode.TopLevel, rootState.chromeMode)
+    val albumState = NavigationState(
+        secondaryScreen = SecondaryScreen.AlbumDetail,
+    )
+    assertEquals(AppChromeMode.SecondaryWithMiniPlayer, albumState.chromeMode)
+    val playerState = NavigationState(
+        secondaryScreen = SecondaryScreen.Player,
+    )
+    assertEquals(AppChromeMode.SecondaryFullscreen, playerState.chromeMode)
+}</code></pre>
+    </section>
+
+    <section id="mistakes">
+      <h2>6. 常见错误：哪里最容易做错？</h2>
+      <div class="qa">
+        <strong>错误 1：Mini Player 和 Bottom Tab 还在分别 animate</strong>
+        <p>表现：两个控件像两块东西分别滑动。修复：只保留 <code>BottomChromeOffset</code> 一个整体动画。</p>
+      </div>
+      <div class="qa">
+        <strong>错误 2：只隐藏控件，没有改内容底部留白</strong>
+        <p>表现：播放页或设置页底部空出一大截。修复：内容 padding 必须读取 <code>chromeMode.contentBottomSpace</code>。</p>
+      </div>
+      <div class="qa">
+        <strong>错误 3：在页面里写 if 判断</strong>
+        <p>表现：每个页面都有自己的特殊逻辑。修复：把页面到 ChromeMode 的映射放回 <code>NavigationState</code>。</p>
+      </div>
+      <div class="qa">
+        <strong>错误 4：BottomNavigation 隐藏后还能点</strong>
+        <p>表现：普通二级页看不到 Tab，但点击底部区域可能误触。修复：给 BottomNavigation 传 <code>isEnabled = showsBottomNavigation</code>。</p>
+      </div>
+    </section>
+
+    <section id="acceptance">
+      <h2>7. 交互验收：照着点一遍</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>操作路径</th>
+            <th>正确效果</th>
+            <th>错了说明什么</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>首页 → 专辑详情</td>
+            <td>整个底部托盘下移，只露出 Mini Player，Tab 不见。</td>
+            <td>如果 Mini 和 Tab 分开动，说明父容器没有统一动画。</td>
+          </tr>
+          <tr>
+            <td>专辑详情 → 首页</td>
+            <td>整个底部托盘回来，Mini Player 正好在 Tab 上方，没有缝。</td>
+            <td>如果有缝，说明高度或 padding 不对。</td>
+          </tr>
+          <tr>
+            <td>首页 → 播放页</td>
+            <td>Mini Player 和 Tab 作为整体离开屏幕。</td>
+            <td>如果 Mini 直接消失，说明用了局部 if，而不是整体位移。</td>
+          </tr>
+          <tr>
+            <td>播放页 → 首页</td>
+            <td>整个底部托盘回来，不闪、不跳、不重叠。</td>
+            <td>如果闪动，检查是否还有多个 animate。</td>
+          </tr>
+          <tr>
+            <td>首页 → 设置页</td>
+            <td>不显示 Mini Player，页面内容底部也没有奇怪空白。</td>
+            <td>如果底部空白大，检查 ContentBottomSpace。</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section id="glossary">
+      <h2>8. 术语表：忘了就回来看</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>术语</th>
+            <th>小白解释</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>MiniPlayer</code></td>
+            <td>底部显示当前歌曲的小播放条。</td>
+          </tr>
+          <tr>
+            <td><code>BottomNavigation</code></td>
+            <td>首页、收藏、我的这三个主导航。</td>
+          </tr>
+          <tr>
+            <td><code>BottomChrome</code></td>
+            <td>装着 Mini Player 和 Bottom Tab 的父容器，也就是“底部托盘”。</td>
+          </tr>
+          <tr>
+            <td><code>ChromeMode</code></td>
+            <td>当前页面的底部规则：显示什么、移动到哪里、内容留多少空间。</td>
+          </tr>
+          <tr>
+            <td><code>TopLevel</code></td>
+            <td>一级页状态，Mini Player 和 Bottom Tab 都显示。</td>
+          </tr>
+          <tr>
+            <td><code>MiniPlayerOnly</code></td>
+            <td>普通二级页状态，只露出 Mini Player。</td>
+          </tr>
+          <tr>
+            <td><code>Hidden</code></td>
+            <td>沉浸页面状态，整个底部托盘都藏起来。</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="goal">
+        最终记住这句话就够了：页面只负责说“我是谁”，NavigationState 负责算出 ChromeMode，BottomChrome 负责整体运动。
+      </div>
+    </section>
+
+    <p class="footer">
+      这份教程基于 KMP Music 当前实现沉淀，可用于同类音乐 App、视频 App、带全局底部控制条的移动端项目。
+    </p>
+  </main>
+</body>
+</html>

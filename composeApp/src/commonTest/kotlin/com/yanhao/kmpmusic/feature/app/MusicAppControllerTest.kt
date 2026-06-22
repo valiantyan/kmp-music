@@ -88,4 +88,27 @@ class MusicAppControllerTest {
         assertNull(controller.uiState.navigationState.secondaryScreen)
         assertEquals(RootTab.Me, controller.uiState.navigationState.rootTab)
     }
+
+    /**
+     * 页面 chrome 策略应区分一级页、普通二级页和全屏二级页。
+     */
+    @Test
+    fun navigationStateProvidesChromeMode(): Unit {
+        val controller = MusicAppController()
+        assertEquals(AppChromeMode.TopLevel, controller.uiState.navigationState.chromeMode)
+        assertTrue(controller.uiState.navigationState.chromeMode.showsBottomNavigation)
+        assertEquals(BottomChromePlacement.TopLevel, controller.uiState.navigationState.chromeMode.bottomChromePlacement)
+        controller.navigateToSecondary(screen = SecondaryScreen.AlbumDetail)
+        assertEquals(AppChromeMode.SecondaryWithMiniPlayer, controller.uiState.navigationState.chromeMode)
+        assertFalse(controller.uiState.navigationState.chromeMode.showsBottomNavigation)
+        assertEquals(BottomChromePlacement.MiniPlayerOnly, controller.uiState.navigationState.chromeMode.bottomChromePlacement)
+        controller.navigateToSecondary(screen = SecondaryScreen.Player)
+        assertEquals(AppChromeMode.SecondaryFullscreen, controller.uiState.navigationState.chromeMode)
+        assertFalse(controller.uiState.navigationState.chromeMode.showsBottomNavigation)
+        assertEquals(BottomChromePlacement.Hidden, controller.uiState.navigationState.chromeMode.bottomChromePlacement)
+        controller.navigateBack()
+        controller.navigateToSecondary(screen = SecondaryScreen.Settings)
+        assertEquals(AppChromeMode.SecondaryFullscreen, controller.uiState.navigationState.chromeMode)
+        assertEquals(BottomChromePlacement.Hidden, controller.uiState.navigationState.chromeMode.bottomChromePlacement)
+    }
 }
