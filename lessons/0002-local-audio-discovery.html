@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>跨平台本地音频发现：iOS 和 Desktop 怎么做</title>
+  <link rel="stylesheet" href="../assets/course.css">
+</head>
+<body>
+<main>
+  <header>
+    <p class="eyebrow">Lesson 0002</p>
+    <h1>跨平台本地音频发现：iOS 和 Desktop 怎么做</h1>
+    <p class="lead">这一课只解决一个问题：当 Android 可以通过权限 + MediaStore 扫描本地音频时，iOS 和 Desktop 在当前 KMP Music 里应该采用什么等价思路。</p>
+  </header>
+
+  <section class="callout">
+    <strong>一句话答案：</strong>iOS 不做“全手机音频扫描”，而做“用户显式选择/导入音频”或“可选系统音乐资料库读取”；Desktop 让用户选择音乐文件夹，然后递归扫描得到可播放文件。
+  </section>
+
+  <h2>先换一个问题问法</h2>
+  <p>不要把需求写成“各平台扫描本地音频”。更准确的写法是：“各平台以符合系统隐私模型的方式，发现用户授权给本 App 的可播放音频”。</p>
+  <p>这句话很重要。Android 的 `MediaStore.Audio` 是系统给媒体 App 的索引；iOS 的默认模型是 App 沙盒，Apple 官方文件系统指南明确说 iOS App 与文件系统交互主要被限制在自己的 sandbox 内。用户要给你外部文件，通常必须通过系统界面主动选择。</p>
+
+  <h2>iOS 的正确起点</h2>
+  <div class="grid">
+    <div class="card">
+      <h3>MVP：导入音频文件</h3>
+      <p>用 `UIDocumentPickerViewController` 过滤 `UTType.audio`，让用户从 Files / iCloud Drive / document provider 选择音频。Import 模式会复制到 App 沙盒，后续扫描自己的目录即可。</p>
+    </div>
+    <div class="card">
+      <h3>进阶：打开外部文件</h3>
+      <p>Open 模式可以访问沙盒外文件，但需要处理 security-scoped URL，访问前 start，结束后 stop；长期保存还要考虑 bookmark 和失效恢复。</p>
+    </div>
+    <div class="card">
+      <h3>可选：系统音乐资料库</h3>
+      <p>`MPMediaLibrary` / `MPMediaQuery` 可读取用户音乐资料库，需要 `NSAppleMusicUsageDescription` 和授权。它不是文件夹扫描，并且 Apple Music、云端或 DRM item 不一定能给本地可播放 URL。</p>
+    </div>
+    <div class="card">
+      <h3>不要做：全盘扫描</h3>
+      <p>不要假设 iOS 能像 Android 一样扫描“手机所有本地音频文件”。这会和 iOS 沙盒模型冲突，产品上也容易误导用户。</p>
+    </div>
+  </div>
+
+  <h2>Desktop 的正确起点</h2>
+  <p>当前项目是 Compose Desktop JVM。桌面端最自然的 MVP 是：弹出文件夹选择器，让用户选一个音乐目录；保存这个目录；用 `java.nio.file.Files.walk` 递归扫描；过滤音频；读取元数据；写入音乐库。</p>
+  <p>macOS 和 Windows 的普通桌面 App 都应该尊重“用户选择目录”这个边界。后续如果要进 Mac App Store 或开启 sandbox，macOS 还要补 security-scoped bookmark；Windows 也要处理目录被删除、移动、权限变化、外置盘断开等错误。</p>
+
+  <div class="flow" aria-label="local scan flow">
+    <div>选择来源</div>
+    <div>获得授权</div>
+    <div>枚举文件</div>
+    <div>读取元数据</div>
+    <div>同步曲库</div>
+  </div>
+
+  <h2>放进当前项目</h2>
+  <p>现在的 `ScanLocalMusicUseCase` 还是原型阶段的状态切换。下一步可以把它演进成“平台 scanner 的编排层”，但 `commonMain` 仍然不应该知道 Android `ContentResolver`、iOS `UIDocumentPickerViewController`、Desktop `JFileChooser` 或 `Files.walk`。</p>
+
+  <pre><code>commonMain:
+  LocalMusicScanner
+  ScanRequest
+  ScanResult
+  ScanError
+  PlayableMedia
+
+androidMain:
+  AndroidMediaStoreScanner
+
+iosMain:
+  IosDocumentMusicImporter
+  IosMediaLibraryScanner optional
+
+desktopMain:
+  DesktopFolderMusicScanner</code></pre>
+
+  <h2>举一反三</h2>
+  <div class="practice">
+    <div class="prompt">
+      <strong>1. iOS 能否默认扫描整个 iPhone 的音频文件？</strong>
+      <p>先回答，再查看答案。</p>
+      <button type="button" data-answer="a1">显示答案</button>
+      <p class="answer" id="a1">不能。iOS App 默认活在自己的 sandbox 里。外部文件要靠用户通过 Document Picker 等系统入口显式授权；系统音乐资料库则是另一套 MediaPlayer API。</p>
+    </div>
+    <div class="prompt">
+      <strong>2. iOS MVP 更适合“扫描音乐资料库”还是“导入音频文件”？</strong>
+      <p>结合本项目的本地音乐目标判断。</p>
+      <button type="button" data-answer="a2">显示答案</button>
+      <p class="answer" id="a2">更适合先做导入音频文件。它和 Files App、iCloud Drive、沙盒扫描自然匹配，权限模型清楚。系统音乐资料库可以作为 P1，因为授权、云端、DRM、asset URL 都有边界。</p>
+    </div>
+    <div class="prompt">
+      <strong>3. Desktop 为什么不要默认扫描全盘？</strong>
+      <p>从产品和工程两个角度回答。</p>
+      <button type="button" data-answer="a3">显示答案</button>
+      <p class="answer" id="a3">产品上不透明，工程上慢且容易碰到权限、系统目录、外置盘、隐藏文件和符号链接问题。用户选择文件夹后扫描，边界清楚，也方便后续做“管理音乐文件夹”。</p>
+    </div>
+  </div>
+
+  <h2>主读资料</h2>
+  <p>建议先读 Apple 的 <a href="https://developer.apple.com/library/archive/documentation/FileManagement/Conceptual/DocumentPickerProgrammingGuide/AccessingDocuments/AccessingDocuments.html">Document Picker Programming Guide: Accessing Documents</a>。它能把“导入文件”和“打开外部文件”的差别讲清楚，尤其是 security-scoped URL。</p>
+  <p>速查表在这里：<a href="../reference/local-audio-discovery.html">KMP Music 本地音频发现速查表</a>。如果下一节继续，我们可以把它改写成 `LocalMusicScanner` 的接口草图和 Milestone。</p>
+
+  <p class="footer-note">Sources include Android Developers shared media storage, Apple File System Programming Guide, Apple Document Picker Programming Guide, Apple MediaPlayer references, Apple Uniform Type Identifiers, and Oracle Java SE 17 file APIs. See <a href="../RESOURCES.md">RESOURCES.md</a>.</p>
+</main>
+<script>
+  document.querySelectorAll("button[data-answer]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const answer = document.getElementById(button.dataset.answer);
+      const isOpen = answer.dataset.open === "true";
+      answer.dataset.open = String(!isOpen);
+      button.textContent = isOpen ? "显示答案" : "收起答案";
+    });
+  });
+</script>
+</body>
+</html>

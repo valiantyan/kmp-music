@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>KMP Music 本地音频发现速查表</title>
+  <link rel="stylesheet" href="../assets/course.css">
+</head>
+<body>
+<main>
+  <header>
+    <p class="eyebrow">Reference</p>
+    <h1>KMP Music 本地音频发现速查表</h1>
+    <p class="lead">把“扫描本地音乐”拆成授权、发现、元数据、可播放 URI、缓存同步五步。Android、iOS、Desktop 的差异主要在前两步。</p>
+  </header>
+
+  <section class="callout">
+    <strong>总判断：</strong>可以实现跨平台本地音乐库，但 iOS 不能像 Android 一样全盘扫描手机音频。iOS 必须走用户显式授权的文件入口，或走系统音乐资料库 API；Desktop 则让用户选择文件夹后递归扫描。
+  </section>
+
+  <h2>平台路线</h2>
+  <div class="table-wrap">
+    <table>
+      <thead>
+      <tr>
+        <th>平台</th>
+        <th>P0 推荐</th>
+        <th>不推荐先做</th>
+        <th>输出给 common 的结果</th>
+      </tr>
+      </thead>
+      <tbody>
+      <tr>
+        <td>Android</td>
+        <td>`MediaStore.Audio` + 版本化读取权限。你熟悉的路线继续保留。</td>
+        <td>手写全盘文件遍历绕过 MediaStore。</td>
+        <td>`content://` URI、标题、歌手、专辑、时长、mime、size。</td>
+      </tr>
+      <tr>
+        <td>iOS</td>
+        <td>用户通过 Files / Document Picker 选择音频文件，App 导入到沙盒后扫描自己的目录。</td>
+        <td>假设能像 Android 一样扫描整个 iPhone 文件系统。</td>
+        <td>App 沙盒内 file URL、标题、歌手、专辑、时长、文件类型。</td>
+      </tr>
+      <tr>
+        <td>iOS 可选</td>
+        <td>`MPMediaLibrary` + `MPMediaQuery` 读取系统音乐资料库。</td>
+        <td>把 Apple Music / 云端 / DRM 内容都当成本地可播放文件。</td>
+        <td>媒体库 item id、元数据、可用时的 asset URL。</td>
+      </tr>
+      <tr>
+        <td>Desktop JVM</td>
+        <td>用户选择音乐文件夹，`Files.walk` 递归扫描，按扩展名、MIME 和解码能力过滤。</td>
+        <td>默认扫描用户全盘或系统目录。</td>
+        <td>本地 file path / URI、元数据、size、mtime、可读性。</td>
+      </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2>iOS 三种来源</h2>
+  <div class="grid">
+    <div class="card">
+      <h3>1. App 沙盒</h3>
+      <p>App 自己下载、录制或导入的音频可以放在 Documents 或 Application Support，再用 `FileManager` 枚举。这个模型最稳定，也最适合 MVP。</p>
+    </div>
+    <div class="card">
+      <h3>2. Files 选择</h3>
+      <p>用 `UIDocumentPickerViewController` 让用户从 Files、iCloud Drive 或第三方 document provider 选择文件。Import 是复制到沙盒；Open 是访问外部文件，通常要处理 security-scoped URL。</p>
+    </div>
+    <div class="card">
+      <h3>3. 系统音乐资料库</h3>
+      <p>用 MediaPlayer 的 `MPMediaLibrary` / `MPMediaQuery`。需要隐私说明和授权；并且不是每个 item 都能给你可直接播放的本地文件 URL。</p>
+    </div>
+    <div class="card">
+      <h3>4. 不存在的路线</h3>
+      <p>不要设计“扫描整个 iPhone 本地音频文件”的需求。iOS 的安全模型不提供这种通用文件系统访问。</p>
+    </div>
+  </div>
+
+  <h2>实现边界</h2>
+  <pre><code>commonMain
+  LocalMusicScanner / MusicLibraryRepository interface
+  ScanRequest, ScanProgress, ScanResult
+  PlayableMedia, MusicFileMetadata, ScanError
+
+androidMain
+  AndroidMediaStoreScanner
+
+iosMain
+  IosDocumentMusicImporter
+  IosMediaLibraryScanner optional
+
+desktopMain
+  DesktopFolderMusicScanner</code></pre>
+
+  <h2>扫描流水线</h2>
+  <div class="flow" aria-label="scan pipeline">
+    <div>Ask access</div>
+    <div>Enumerate</div>
+    <div>Filter audio</div>
+    <div>Read metadata</div>
+    <div>Upsert library</div>
+  </div>
+
+  <h2>字段建议</h2>
+  <div class="table-wrap">
+    <table>
+      <thead>
+      <tr>
+        <th>字段</th>
+        <th>说明</th>
+        <th>来源</th>
+      </tr>
+      </thead>
+      <tbody>
+      <tr>
+        <td>`stableId`</td>
+        <td>跨启动稳定，不能只用列表下标。</td>
+        <td>Android media id；iOS imported file bookmark/hash；Desktop path + size + mtime hash。</td>
+      </tr>
+      <tr>
+        <td>`localUri`</td>
+        <td>给平台播放 engine 使用，不由 UI 拼接。</td>
+        <td>平台 scanner 输出，进入 common 时只当 opaque string 或 value class。</td>
+      </tr>
+      <tr>
+        <td>`durationMs`</td>
+        <td>进度条、排序和系统展示都需要毫秒时长。</td>
+        <td>Android MediaStore；iOS AVAsset / MPMediaItem；Desktop metadata parser 或播放库探测。</td>
+      </tr>
+      <tr>
+        <td>`sourceKind`</td>
+        <td>后续排查权限和播放失败时需要知道来源。</td>
+        <td>`androidMediaStore`、`iosImportedFile`、`iosMediaLibrary`、`desktopFolder`。</td>
+      </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2>错误模型</h2>
+  <pre><code>permissionDenied
+userCancelled
+folderUnavailable
+fileMissing
+fileUnreadable
+unsupportedFormat
+metadataUnavailable
+securityScopeExpired
+unknown</code></pre>
+
+  <h2>推荐 MVP 顺序</h2>
+  <p><strong>第一步：</strong>在 common 层把当前 `ScanLocalMusicUseCase` 从“状态切换 demo”演进为扫描编排接口，但不要接平台 API。</p>
+  <p><strong>第二步：</strong>Android 接 `MediaStore.Audio`，iOS 接 Document Picker 导入音频，Desktop 接文件夹选择 + `Files.walk`。</p>
+  <p><strong>第三步：</strong>把扫描结果映射到 `Song` / `PlayableMedia`，再交给播放 PRD 里的 `AudioPlayerEngine`。</p>
+
+  <p class="footer-note">Primary references: <a href="https://developer.android.com/training/data-storage/shared/media">Android shared media storage</a>, <a href="https://developer.apple.com/library/archive/documentation/FileManagement/Conceptual/FileSystemProgrammingGuide/FileSystemOverview/FileSystemOverview.html">Apple File System Basics</a>, <a href="https://developer.apple.com/library/archive/documentation/FileManagement/Conceptual/DocumentPickerProgrammingGuide/AccessingDocuments/AccessingDocuments.html">Apple Document Picker access guide</a>, <a href="https://developer.apple.com/documentation/mediaplayer/mpmedialibrary">MPMediaLibrary</a>, <a href="https://developer.apple.com/documentation/mediaplayer/mpmediaquery">MPMediaQuery</a>, and <a href="https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/nio/file/Files.html">Java Files</a>.</p>
+</main>
+</body>
+</html>

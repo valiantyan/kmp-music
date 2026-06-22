@@ -6,8 +6,22 @@
   Official Android overview of Media3 components. Use for: Android `Player`, `ExoPlayer`, `MediaSession`, `MediaSessionService`, and background playback architecture.
 - [Android Developers: Media3 ExoPlayer](https://developer.android.com/media/media3/exoplayer?hl=zh-cn)
   Official Android ExoPlayer page. Use for: local and streaming playback, playlists, events, supported formats, and Android playback behavior.
+- [Android Developers: Access media files from shared storage](https://developer.android.com/training/data-storage/shared/media)
+  Official Android storage guide for media collections. Use for: `MediaStore.Audio`, `ContentResolver` queries, `READ_MEDIA_AUDIO`, and media-store rescan/cache strategy.
 - [Apple Developer: AVFoundation overview](https://developer.apple.com/av-foundation/)
   Official Apple overview of AVFoundation across iOS, iPadOS, macOS, tvOS, visionOS, and watchOS. Use for: Apple-native media playback capabilities.
+- [Apple Documentation Archive: File System Basics](https://developer.apple.com/library/archive/documentation/FileManagement/Conceptual/FileSystemProgrammingGuide/FileSystemOverview/FileSystemOverview.html)
+  Apple file-system guide explaining iOS sandbox boundaries. Use for: why iOS apps cannot scan arbitrary device storage like Android MediaStore.
+- [Apple Documentation Archive: Document Picker Programming Guide](https://developer.apple.com/library/archive/documentation/FileManagement/Conceptual/DocumentPickerProgrammingGuide/Introduction/Introduction.html)
+  Apple guide for accessing files outside an app sandbox through user choice. Use for: iOS file import/open flows, document providers, and security-scoped URLs.
+- [Apple Developer: MPMediaLibrary](https://developer.apple.com/documentation/mediaplayer/mpmedialibrary)
+  Official MediaPlayer API reference for the user's media library. Use for: deciding whether to support system Music library authorization and library-change observation.
+- [Apple Developer: MPMediaQuery](https://developer.apple.com/documentation/mediaplayer/mpmediaquery)
+  Official MediaPlayer API reference for querying media collections. Use for: optional iOS system music-library scanning and its limits.
+- [Apple Developer: NSAppleMusicUsageDescription](https://developer.apple.com/documentation/bundleresources/information_property_list/nsapplemusicusagedescription)
+  Official Info.plist privacy key reference. Use for: iOS media-library permission prompts when using MediaPlayer library APIs.
+- [Apple Developer: UTType.audio](https://developer.apple.com/documentation/uniformtypeidentifiers/uttype/audio)
+  Official Uniform Type Identifiers reference for audio content. Use for: filtering iOS document picker selections to audio files.
 - [Apple Documentation Archive: Building a Basic Playback App](https://developer.apple.com/library/archive/documentation/AudioVideo/Conceptual/MediaPlaybackGuide/Contents/Resources/en.lproj/GettingStarted/GettingStarted.html)
   Apple playback guide showing AVKit and AVFoundation setup for iOS, tvOS, and macOS. Use for: seeing `AVPlayer` as the basic Apple playback object.
 - [Apple Documentation Archive: Configuring Audio Settings for iOS and tvOS](https://developer.apple.com/library/archive/documentation/AudioVideo/Conceptual/MediaPlaybackGuide/Contents/Resources/en.lproj/ConfiguringAudioSettings/ConfiguringAudioSettings.html)
@@ -24,6 +38,10 @@
   Official Windows App SDK and WinUI media playback guidance. Use for: understanding `MediaPlayerElement`, transport controls, and system media controls in native Windows apps.
 - [Microsoft Learn: System Media Transport Controls](https://learn.microsoft.com/en-us/windows/apps/develop/media-playback/system-media-transport-controls)
   Official Windows system media controls documentation. Use for: understanding Windows desktop-style play/pause/next/previous metadata and background audio integration.
+- [Oracle Java SE 17: `Files`](https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/nio/file/Files.html)
+  Official Java API reference for walking file trees and probing content types. Use for: Compose Desktop folder scanning with `Files.walk`, readable-file checks, and MIME hints.
+- [Oracle Java SE 17: `JFileChooser`](https://docs.oracle.com/en/java/javase/17/docs/api/java.desktop/javax/swing/JFileChooser.html)
+  Official Swing file chooser reference. Use for: JVM Desktop folder selection before recursively scanning a user-selected music folder.
 - [Spotify Support: Keyboard shortcuts](https://support.spotify.com/us/article/keyboard-shortcuts/)
   Official Spotify desktop shortcut list. Use for: desktop product pattern references such as app-level play/pause, navigation shortcuts, queue access, and now-playing view toggles.
 - [GStreamer: What is GStreamer?](https://gstreamer.freedesktop.org/documentation/application-development/introduction/gstreamer.html)
