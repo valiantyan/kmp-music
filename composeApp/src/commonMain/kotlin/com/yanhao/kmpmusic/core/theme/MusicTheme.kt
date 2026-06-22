@@ -98,6 +98,12 @@ object MusicDimens {
     val LoginInputHeight: Dp = 54.dp
     val LoginInputRadius: Dp = 18.dp
     val LoginInputHorizontalPadding: Dp = 16.dp
+    val SearchFieldHeight: Dp = 54.dp
+    val SearchFieldRadius: Dp = 20.dp
+    val SearchFieldHorizontalPadding: Dp = 16.dp
+    val SearchFieldIconSize: Dp = 24.dp
+    val SearchFieldContentGap: Dp = 12.dp
+    val SearchChipGap: Dp = 10.dp
 }
 
 /**
