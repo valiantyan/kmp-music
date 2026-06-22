@@ -1,0 +1,7 @@
+interface:
+  display_name: "Figma 标注骨架"
+  short_description: "将 Figma 页面转为中文文本骨架标注"
+  default_prompt: "使用 $figma-annotation-skeleton 将这个 Figma 页面输出为中文文本骨架标注图。"
+
+policy:
+  allow_implicit_invocation: false
