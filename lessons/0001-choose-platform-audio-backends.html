@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>选择 KMP 音乐播放器的各平台音频后端</title>
+  <link rel="stylesheet" href="../assets/course.css">
+</head>
+<body>
+<main>
+  <header>
+    <p class="eyebrow">Lesson 0001</p>
+    <h1>选择 KMP 音乐播放器的各平台音频后端</h1>
+    <p class="lead">这一课只解决一个问题：在当前 KMP Music 里，Android 已经知道用 Media3，那么 iOS、macOS Desktop、Windows Desktop 应该怎么选，并且怎样不污染 shared 层。</p>
+  </header>
+
+  <section class="callout">
+    <strong>一句话答案：</strong>iOS 走 Apple 原生 AVFoundation；当前 Desktop 目标是 JVM Compose Desktop，所以 macOS DMG 和 Windows MSI 先按 JVM 桌面应用选后端，优先评估 vlcj/LibVLC 或 GStreamer，MVP 可用 JavaFX Media 做低风险试验。
+  </section>
+
+  <h2>先分清两个问题</h2>
+  <div class="grid">
+    <div class="card">
+      <h3>播放引擎</h3>
+      <p>负责打开文件、解码、播放、暂停、seek、进度、结束、错误。Android 的答案是 Media3 `ExoPlayer`；iOS 的同类答案是 AVFoundation `AVPlayer`。</p>
+    </div>
+    <div class="card">
+      <h3>系统整合</h3>
+      <p>负责后台播放、锁屏信息、耳机键、系统媒体键、音频焦点、打断恢复。它通常不是同一个 API，所以不要把它塞进 shared UI。</p>
+    </div>
+  </div>
+
+  <h2>平台选择</h2>
+  <div class="table-wrap">
+    <table>
+      <thead>
+      <tr>
+        <th>平台</th>
+        <th>推荐</th>
+        <th>为什么</th>
+      </tr>
+      </thead>
+      <tbody>
+      <tr>
+        <td>Android</td>
+        <td>Media3 `ExoPlayer` + `MediaSessionService`</td>
+        <td>Media3 的 `Player` 是统一控制接口，`ExoPlayer` 是默认实现；`MediaSessionService` 用于把播放器和会话放在独立服务中支持后台播放。见 <a href="https://developer.android.com/media/media3?hl=zh-cn">Media3 简介</a> 和 <a href="https://developer.android.com/media/media3/exoplayer?hl=zh-cn">Media3 ExoPlayer</a>。</td>
+      </tr>
+      <tr>
+        <td>iOS</td>
+        <td>AVFoundation `AVPlayer` + `AVAudioSession` + MediaPlayer</td>
+        <td>AVFoundation 是 Apple 时间媒体框架，覆盖 iOS 和 macOS；`AVAudioSession` 的 playback category 是媒体播放 App 的基础；`MPNowPlayingInfoCenter` 和 `MPRemoteCommandCenter` 负责锁屏信息与远程控制。见 <a href="https://developer.apple.com/av-foundation/">AVFoundation overview</a>、<a href="https://developer.apple.com/library/archive/documentation/AudioVideo/Conceptual/MediaPlaybackGuide/Contents/Resources/en.lproj/ConfiguringAudioSettings/ConfiguringAudioSettings.html">Configuring Audio Settings</a>。</td>
+      </tr>
+      <tr>
+        <td>macOS Desktop</td>
+        <td>当前项目先按 JVM Desktop 选：vlcj/LibVLC 或 GStreamer；若未来做原生 macOS 后端，再看 AVFoundation</td>
+        <td>你的 Gradle 是 `jvm("desktop")`，打 DMG 只是 JVM 桌面包，不是 Kotlin/Native macOS App。直接调用 AVFoundation 会需要 JVM 到 Objective-C 桥接，复杂度高于先接一个 JVM 桌面播放库。</td>
+      </tr>
+      <tr>
+        <td>Windows Desktop</td>
+        <td>当前项目先按 JVM Desktop 选：vlcj/LibVLC 或 GStreamer；Windows 原生路线是 Media Foundation / WinUI MediaPlayer</td>
+        <td>Microsoft 的 Media Foundation 是 Windows 原生媒体平台，WinUI `MediaPlayerElement` 有内建 transport controls 和系统媒体控制整合；但它们不是 Compose Desktop JVM 的自然依赖，需要桥接或单独 Windows UI。见 <a href="https://learn.microsoft.com/en-us/windows/win32/medfound/microsoft-media-foundation-sdk">Media Foundation</a> 和 <a href="https://learn.microsoft.com/en-us/windows/apps/develop/ui/controls/media-playback">Media players</a>。</td>
+      </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2>对当前项目的架构形状</h2>
+  <p>不要让页面知道 `ExoPlayer`、`AVPlayer` 或 LibVLC。页面只发“播放这首歌、暂停、seek 到这里”的意图；控制器或 use case 更新共享状态；平台 engine 执行真实播放，并把进度、结束、错误事件回流。</p>
+
+  <div class="flow" aria-label="playback architecture flow">
+    <div>Compose UI</div>
+    <div>Controller</div>
+    <div>UseCase</div>
+    <div>AudioPlayerEngine</div>
+    <div>Platform backend</div>
+  </div>
+
+  <pre><code>commonMain:
+  AudioPlayerEngine
+  PlaybackCommand
+  PlaybackSnapshot
+  PlaybackEngineEvent
+
+androidMain:
+  Media3AudioPlayerEngine
+
+iosMain:
+  AvFoundationAudioPlayerEngine
+
+desktopMain:
+  DesktopAudioPlayerEngine</code></pre>
+
+  <h2>Desktop 后端怎么取舍</h2>
+  <div class="grid">
+    <div class="card">
+      <h3>JavaFX Media</h3>
+      <p>最快验证，API 简单，适合 MVP spike。缺点是格式和系统整合能力有限，后续可能换引擎。</p>
+    </div>
+    <div class="card">
+      <h3>vlcj / LibVLC</h3>
+      <p>对本地音频格式更稳，跨 Windows、macOS、Linux。缺点是要处理原生 LibVLC 分发和 vlcj 授权。</p>
+    </div>
+    <div class="card">
+      <h3>GStreamer</h3>
+      <p>插件和 pipeline 能力强，适合高级音频处理。缺点是学习和打包复杂度较高。</p>
+    </div>
+    <div class="card">
+      <h3>原生桥接</h3>
+      <p>macOS 用 AVFoundation，Windows 用 Media Foundation。系统融合最好，但在当前 JVM Desktop 架构里工程量最大。</p>
+    </div>
+  </div>
+
+  <h2>练习：先回忆，再展开</h2>
+  <div class="practice">
+    <div class="prompt">
+      <strong>1. iOS 后台播放只靠 `AVPlayer` 够吗？</strong>
+      <p>先用自己的话回答，再点开参考答案。</p>
+      <button type="button" data-answer="a1">显示答案</button>
+      <p class="answer" id="a1">不够。`AVPlayer` 是播放引擎；后台播放还需要正确的 `AVAudioSession` category 和 Background Modes。锁屏信息与远程控制再交给 MediaPlayer 框架。</p>
+    </div>
+    <div class="prompt">
+      <strong>2. 当前项目的 macOS Desktop 是否天然应该用 AVFoundation？</strong>
+      <p>先根据 `composeApp/build.gradle.kts` 判断。</p>
+      <button type="button" data-answer="a2">显示答案</button>
+      <p class="answer" id="a2">不一定。当前 Desktop 是 `jvm("desktop")`，macOS DMG 仍是 JVM Compose Desktop 应用。AVFoundation 是 Apple 原生路线，直接接入需要桥接，所以先评估 JVM 桌面后端更贴近当前架构。</p>
+    </div>
+    <div class="prompt">
+      <strong>3. shared 层最应该抽象什么？</strong>
+      <p>只说最小集合。</p>
+      <button type="button" data-answer="a3">显示答案</button>
+      <p class="answer" id="a3">抽象命令、状态和事件：load/play/pause/seek/stop，当前进度、播放状态、结束、错误。不要抽象平台专属细节，比如 Android notification 或 iOS remote command handler。</p>
+    </div>
+  </div>
+
+  <h2>下一步阅读</h2>
+  <p>主读 Apple 的 <a href="https://developer.apple.com/library/archive/documentation/AudioVideo/Conceptual/MediaPlaybackGuide/Contents/Resources/en.lproj/ConfiguringAudioSettings/ConfiguringAudioSettings.html">Configuring Audio Settings for iOS and tvOS</a>。这篇能把 iOS “能播放”和“像音乐 App 一样播放”的差别讲清楚。</p>
+  <p>速查表在这里：<a href="../reference/platform-audio-backends.html">KMP Music 平台音频后端速查表</a>。如果某段不清楚，直接问我，我们可以下一节专门拆 `AVAudioSession` 或 Desktop 引擎 spike。</p>
+
+  <p class="footer-note">Sources include Android Developers Media3, Apple AVFoundation and Media Playback guides, Kotlin Native interop docs, Microsoft Learn Media Foundation and MediaPlayerElement docs, GStreamer docs, and the vlcj project page. See <a href="../RESOURCES.md">RESOURCES.md</a>.</p>
+</main>
+<script>
+  document.querySelectorAll("button[data-answer]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const answer = document.getElementById(button.dataset.answer);
+      const isOpen = answer.dataset.open === "true";
+      answer.dataset.open = String(!isOpen);
+      button.textContent = isOpen ? "显示答案" : "收起答案";
+    });
+  });
+</script>
+</body>
+</html>

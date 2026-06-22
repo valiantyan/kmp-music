@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>KMP Music 平台音频后端速查表</title>
+  <link rel="stylesheet" href="../assets/course.css">
+</head>
+<body>
+<main>
+  <header>
+    <p class="eyebrow">Reference</p>
+    <h1>KMP Music 平台音频后端速查表</h1>
+    <p class="lead">一眼判断：某个平台该用哪个播放引擎，哪些能力必须留在平台层，哪些能力可以抽象到 shared 层。</p>
+  </header>
+
+  <section class="callout">
+    <strong>当前项目结论：</strong>Android 用 Media3；iOS 用 AVFoundation + AVAudioSession + MediaPlayer；当前 Desktop 是 JVM `jvm("desktop")`，所以 macOS DMG 和 Windows MSI 更适合先共用一个 JVM 桌面后端，再按需要升级到原生桥接。
+  </section>
+
+  <h2>推荐矩阵</h2>
+  <div class="table-wrap">
+    <table>
+      <thead>
+      <tr>
+        <th>平台</th>
+        <th>优先后端</th>
+        <th>系统控制</th>
+        <th>注意点</th>
+      </tr>
+      </thead>
+      <tbody>
+      <tr>
+        <td>Android</td>
+        <td>Media3 `ExoPlayer`</td>
+        <td>`MediaSession` + `MediaSessionService`</td>
+        <td>处理音频焦点、通知、后台服务、耳机键和车机等 Android 生态能力。</td>
+      </tr>
+      <tr>
+        <td>iOS</td>
+        <td>AVFoundation `AVPlayer`</td>
+        <td>`MPNowPlayingInfoCenter` + `MPRemoteCommandCenter`</td>
+        <td>`AVAudioSession` 设置 playback category；启用 Audio background mode；处理中断和路由变化。</td>
+      </tr>
+      <tr>
+        <td>macOS Desktop, 当前 Compose Desktop</td>
+        <td>JVM 桌面后端：vlcj/LibVLC 或 GStreamer；MVP 可评估 JavaFX Media</td>
+        <td>需要额外接系统媒体键或托盘能力</td>
+        <td>当前 Gradle 是 `jvm("desktop")`，不是 Kotlin/Native macOS；直接用 AVFoundation 需要 JVM 到 Objective-C 桥接。</td>
+      </tr>
+      <tr>
+        <td>Windows Desktop, 当前 Compose Desktop</td>
+        <td>JVM 桌面后端：vlcj/LibVLC 或 GStreamer；MVP 可评估 JavaFX Media</td>
+        <td>原生系统媒体控制通常需要 Windows API 桥接</td>
+        <td>WinUI `MediaPlayerElement` 和 Media Foundation 是原生 Windows 路线，不会自然融入 Compose Desktop JVM。</td>
+      </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2>共同抽象</h2>
+  <pre><code>interface AudioPlayerEngine {
+    suspend fun load(item: PlayableMedia)
+    fun play()
+    fun pause()
+    fun seekTo(positionMs: Long)
+    fun stop()
+    val events: Flow&lt;PlaybackEngineEvent&gt;
+}</code></pre>
+
+  <div class="grid">
+    <div class="card">
+      <h3>放在 `commonMain`</h3>
+      <p>队列、当前歌曲、播放模式、收藏同步、UI 状态、可测试的命令流、平台无关错误模型。</p>
+    </div>
+    <div class="card">
+      <h3>放在平台 source set</h3>
+      <p>真实播放、音频焦点、后台服务、锁屏元数据、系统媒体键、文件权限、音频会话、中断和路由变化。</p>
+    </div>
+  </div>
+
+  <p class="footer-note">配套 lesson：<a href="../lessons/0001-choose-platform-audio-backends.html">选择 KMP 音乐播放器的各平台音频后端</a></p>
+</main>
+</body>
+</html>
