@@ -37,6 +37,7 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.LastBaseline
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -146,9 +147,10 @@ fun SectionTitle(
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Row(verticalAlignment = Alignment.Bottom) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
                 text = title,
+                modifier = Modifier.alignBy(LastBaseline),
                 style = MaterialTheme.typography.titleLarge.copy(
                     fontSize = scaledSp(21.sp),
                     lineHeight = scaledSp(25.sp),
@@ -158,9 +160,12 @@ fun SectionTitle(
             if (meta != null) {
                 Text(
                     text = meta,
-                    modifier = Modifier.padding(start = scaledDp(8.dp), bottom = scaledDp(2.dp)),
+                    modifier = Modifier
+                        .padding(start = scaledDp(8.dp))
+                        .alignBy(LastBaseline),
                     color = MusicColors.Muted,
-                    fontSize = scaledSp(13.sp),
+                    fontSize = scaledSp(15.sp),
+                    lineHeight = scaledSp(18.sp),
                     fontWeight = FontWeight.SemiBold,
                 )
             }
