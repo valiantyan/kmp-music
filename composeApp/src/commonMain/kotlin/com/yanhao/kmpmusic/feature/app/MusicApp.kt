@@ -621,7 +621,7 @@ private fun BottomNavigation(
 }
 
 /**
- * 全局弹层和提示。
+ * 全局弹层。
  */
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
@@ -688,16 +688,6 @@ private fun AppOverlays(
             title = { Text(text = "清理 428 MB 缓存？") },
             text = { Text(text = "只会删除封面缓存和临时文件，本地歌曲不会受到影响。") },
         )
-    }
-    state.toast?.let { toast ->
-        Surface(
-            modifier = Modifier.padding(24.dp),
-            shape = RoundedCornerShape(18.dp),
-            color = MusicColors.Ink,
-            onClick = controller::clearToast,
-        ) {
-            Text(text = toast, modifier = Modifier.padding(horizontal = 18.dp, vertical = 12.dp), color = MusicColors.Paper)
-        }
     }
 }
 

@@ -155,7 +155,7 @@ class MusicAppController(
     /** 播放歌曲但留在当前页面。 */
     fun playSong(song: Song) {
         val playbackState: PlaybackState = playSongUseCase(song = song)
-        syncPlaybackState(playbackState = playbackState, toast = "正在播放：${song.title}")
+        syncPlaybackState(playbackState = playbackState)
     }
 
     /** 打开播放页并播放歌曲。 */
@@ -187,7 +187,6 @@ class MusicAppController(
             songs = uiState.songs.map { song ->
                 song.copy(isLiked = likedSongIds.contains(song.id))
             },
-            toast = "收藏状态已更新",
         )
     }
 
@@ -261,7 +260,6 @@ class MusicAppController(
     /** 从队列移除歌曲，至少保留一首。 */
     fun removeFromQueue(songId: String) {
         if (uiState.queueSongIds.size <= 1) {
-            uiState = uiState.copy(toast = "队列至少保留一首歌曲")
             return
         }
         val nextQueueIds: List<String> = uiState.queueSongIds.filterNot { id -> id == songId }
@@ -281,7 +279,6 @@ class MusicAppController(
             queueSongIds = nextQueueIds,
             currentSongId = nextCurrentSongId,
             isPlaying = true,
-            toast = "已从队列移除",
         )
     }
 
@@ -300,7 +297,6 @@ class MusicAppController(
         val nextStatus: ScanStatus = scanLocalMusicUseCase(currentStatus = uiState.scanStatus)
         uiState = uiState.copy(
             scanStatus = nextStatus,
-            toast = if (nextStatus == ScanStatus.Idle) "音乐库已更新" else null,
         )
     }
 
@@ -326,10 +322,7 @@ class MusicAppController(
 
     /** 确认清理缓存。 */
     fun confirmClearCache() {
-        uiState = uiState.copy(
-            isClearCacheDialogOpen = false,
-            toast = "缓存已清理",
-        )
+        uiState = uiState.copy(isClearCacheDialogOpen = false)
     }
 
     /** 更新登录邮箱。 */
@@ -339,16 +332,10 @@ class MusicAppController(
 
     /** 模拟发送登录邮件。 */
     fun sendLoginMail() {
-        uiState = if (uiState.email.contains("@")) {
-            uiState.copy(isMailSent = true)
-        } else {
-            uiState.copy(toast = "请输入有效邮箱")
+        if (!uiState.email.contains("@")) {
+            return
         }
-    }
-
-    /** 清除 toast。 */
-    fun clearToast() {
-        uiState = uiState.copy(toast = null)
+        uiState = uiState.copy(isMailSent = true)
     }
 
     // 创建初始状态，保证仓库初始化顺序集中。
@@ -374,12 +361,11 @@ class MusicAppController(
     }
 
     // 同步播放仓库和 UI 状态，避免多个入口各自写状态。
-    private fun syncPlaybackState(playbackState: PlaybackState, toast: String? = null) {
+    private fun syncPlaybackState(playbackState: PlaybackState) {
         uiState = uiState.copy(
             currentSongId = playbackState.currentSongId,
             isPlaying = playbackState.isPlaying,
             queueSongIds = playbackRepository.getQueueState().songIds,
-            toast = toast,
         )
     }
 }

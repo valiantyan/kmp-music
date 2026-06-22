@@ -165,7 +165,6 @@ data class MusicAppUiState(
     val isClearCacheDialogOpen: Boolean = false,
     val email: String = "",
     val isMailSent: Boolean = false,
-    val toast: String? = null,
 ) {
     /**
      * 当前播放歌曲，缺失时回退到第一首。
