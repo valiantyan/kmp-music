@@ -1,8 +1,9 @@
 package com.yanhao.kmpmusic.feature.app
 
 import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateDp
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.updateTransition
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -86,6 +87,16 @@ import com.yanhao.kmpmusic.feature.screen.MeScreen
 import com.yanhao.kmpmusic.feature.screen.PlayerScreen
 import com.yanhao.kmpmusic.feature.screen.SearchScreen
 import com.yanhao.kmpmusic.feature.screen.SettingsScreen
+
+/**
+ * 普通底部 chrome 切换时长(300ms)，用于一级页和仅 mini player 页面之间的轻量移动。
+ */
+private const val BOTTOM_CHROME_PARTIAL_TRANSITION_MILLIS = 300
+
+/**
+ * 完全隐藏或恢复底部 chrome 的切换时长(500ms)，避免沉浸页面转场显得过快。
+ */
+private const val BOTTOM_CHROME_HIDDEN_TRANSITION_MILLIS = 500
 
 /**
  * KMP Music 共享 App 入口。
@@ -345,15 +356,30 @@ private fun BottomChrome(
         WindowInsets.navigationBars.getBottom(density = this).toDp()
     }
     val stackHeight: Dp = scaledDp(MusicDimens.MiniPlayerHeight + MusicDimens.BottomNavHeight)
-    val stackOffset: Dp by animateDpAsState(
-        targetValue = when (placement) {
+    val bottomChromeTransition = updateTransition(
+        targetState = placement,
+        label = "BottomChromePlacement",
+    )
+    val stackOffset: Dp by bottomChromeTransition.animateDp(
+        transitionSpec = {
+            val durationMillis: Int = if (
+                initialState == BottomChromePlacement.Hidden ||
+                    targetState == BottomChromePlacement.Hidden
+            ) {
+                BOTTOM_CHROME_HIDDEN_TRANSITION_MILLIS
+            } else {
+                BOTTOM_CHROME_PARTIAL_TRANSITION_MILLIS
+            }
+            tween(durationMillis = durationMillis, easing = FastOutSlowInEasing)
+        },
+        label = "BottomChromeOffset",
+    ) { targetPlacement: BottomChromePlacement ->
+        when (targetPlacement) {
             BottomChromePlacement.TopLevel -> 0.dp
             BottomChromePlacement.MiniPlayerOnly -> scaledDp(MusicDimens.BottomNavHeight)
             BottomChromePlacement.Hidden -> stackHeight + navigationBarHeight
-        },
-        animationSpec = tween(durationMillis = 780, easing = FastOutSlowInEasing),
-        label = "BottomChromeOffset",
-    )
+        }
+    }
     Box(
         modifier = modifier
             .fillMaxWidth()

@@ -97,12 +97,18 @@ data class NavigationState(
 
     /**
      * 当前页面对应的全局 chrome 策略。
+     *
+     * 这里是二级页面到底部 chrome 表现的唯一配置入口：新增页面时优先在这里归类，
+     * 不要在页面 Composable 或 [BottomChrome] 周围散写显示/隐藏判断。
      */
     val chromeMode: AppChromeMode = when (secondaryScreen) {
+        // 一级页面：同时显示 mini player 和底部 Tab。
         null -> AppChromeMode.TopLevel
+        // 沉浸式二级页面：mini player 和底部 Tab 都隐藏。
         SecondaryScreen.Player,
         SecondaryScreen.Settings,
         -> AppChromeMode.SecondaryFullscreen
+        // 普通二级页面：只显示 mini player，底部 Tab 隐藏。
         SecondaryScreen.Search,
         SecondaryScreen.AlbumDetail,
         SecondaryScreen.ArtistDetail,
