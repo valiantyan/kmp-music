@@ -221,7 +221,7 @@ private fun LibraryCard(
                 }
             }
             Image(
-                painter = coverArtPainter(CoverArt.HeroLocalFolder),
+                painter = coverArtPainter(CoverArt.HeroLocalMusic),
                 contentDescription = "本地音乐库文件夹插画",
                 modifier = Modifier
                     .size(scaledDp(MusicDimens.HeroFolderSize))

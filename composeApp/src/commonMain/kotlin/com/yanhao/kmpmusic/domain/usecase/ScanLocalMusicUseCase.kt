@@ -7,15 +7,6 @@ import com.yanhao.kmpmusic.domain.repository.LocalMusicScanner
 import com.yanhao.kmpmusic.domain.repository.MusicLibraryRepository
 
 /**
- * 本地扫描弹层旧状态，保留到首页 UI 切到 [LibrarySnapshot] 后移除。
- */
-enum class ScanStatus {
-    Idle,
-    Scanning,
-    Done,
-}
-
-/**
  * 本地音乐扫描接口，协调平台 scanner 和曲库快照合并。
  */
 interface ScanLocalMusicUseCase {
@@ -26,17 +17,6 @@ interface ScanLocalMusicUseCase {
         request: LocalMusicScanRequest,
         likedSongIds: Set<String>,
     ): LibrarySnapshot
-
-    /**
-     * 阶段兼容方法，避免 Task 4 提前改动首页扫描弹层交互。
-     */
-    operator fun invoke(currentStatus: ScanStatus): ScanStatus {
-        return when (currentStatus) {
-            ScanStatus.Idle -> ScanStatus.Scanning
-            ScanStatus.Scanning -> ScanStatus.Done
-            ScanStatus.Done -> ScanStatus.Idle
-        }
-    }
 }
 
 /**

@@ -80,7 +80,6 @@ import com.yanhao.kmpmusic.core.theme.scaledDp
 import com.yanhao.kmpmusic.core.theme.scaledSp
 import com.yanhao.kmpmusic.domain.model.LocalMusicScanRequest
 import com.yanhao.kmpmusic.domain.model.Song
-import com.yanhao.kmpmusic.domain.usecase.ScanStatus
 import com.yanhao.kmpmusic.feature.components.SongRow
 import com.yanhao.kmpmusic.feature.components.coverArtResource
 import com.yanhao.kmpmusic.feature.components.coverArtPainter
@@ -292,7 +291,7 @@ private fun AppContent(
                     themeMode = state.themeMode,
                     onThemeMode = controller::setThemeMode,
                     onBack = controller::navigateBack,
-                    onScan = controller::openScan,
+                    onScan = onScanLocalMusic,
                     onLocalMusicSources = {
                         controller.openLocalMusic(section = LocalMusicSection.Sources)
                     },
@@ -704,18 +703,6 @@ private fun AppOverlays(
                 }
             }
         }
-    }
-    if (state.scanStatus != ScanStatus.Idle) {
-        AlertDialog(
-            onDismissRequest = controller::closeScan,
-            confirmButton = {
-                Button(onClick = controller::advanceScan) {
-                    Text(text = if (state.scanStatus == ScanStatus.Done) "回到音乐库" else "完成扫描")
-                }
-            },
-            title = { Text(text = if (state.scanStatus == ScanStatus.Done) "扫描完成" else "正在扫描本地音乐") },
-            text = { Text(text = if (state.scanStatus == ScanStatus.Done) "新增 24 首歌曲，已更新 3 张专辑。" else "正在读取 /Music/KMP Library，已识别 1,248 首歌曲。") },
-        )
     }
     state.moreSongId?.let { songId ->
         val song: Song? = state.songs.firstOrNull { item -> item.id == songId }

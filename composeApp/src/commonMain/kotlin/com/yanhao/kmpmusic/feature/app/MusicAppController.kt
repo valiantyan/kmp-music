@@ -30,7 +30,6 @@ import com.yanhao.kmpmusic.domain.usecase.PlaySongUseCase
 import com.yanhao.kmpmusic.domain.usecase.PlaySongUseCaseImpl
 import com.yanhao.kmpmusic.domain.usecase.ScanLocalMusicUseCase
 import com.yanhao.kmpmusic.domain.usecase.ScanLocalMusicUseCaseImpl
-import com.yanhao.kmpmusic.domain.usecase.ScanStatus
 import com.yanhao.kmpmusic.domain.usecase.SearchMusicUseCase
 import com.yanhao.kmpmusic.domain.usecase.SearchMusicUseCaseImpl
 import com.yanhao.kmpmusic.domain.usecase.ToggleFavoriteUseCase
@@ -141,10 +140,6 @@ class MusicAppController(
             closeMore()
             return true
         }
-        if (uiState.scanStatus != ScanStatus.Idle) {
-            closeScan()
-            return true
-        }
         if (uiState.isQueueOpen) {
             closeQueue()
             return true
@@ -162,7 +157,6 @@ class MusicAppController(
             scanState = LocalMusicScanState.Scanning(
                 progress = LocalMusicScanProgress(currentSourceName = "本地音乐"),
             ),
-            scanStatus = ScanStatus.Idle,
             isQueueOpen = false,
             moreSongId = null,
         )
@@ -316,27 +310,6 @@ class MusicAppController(
     /** 关闭更多操作弹层。 */
     fun closeMore() {
         uiState = uiState.copy(moreSongId = null)
-    }
-
-    /** 推进扫描弹层状态。 */
-    fun advanceScan() {
-        val nextStatus: ScanStatus = scanLocalMusicUseCase(currentStatus = uiState.scanStatus)
-        uiState = uiState.copy(
-            scanStatus = nextStatus,
-        )
-    }
-
-    /** 打开扫描弹层。 */
-    fun openScan() {
-        uiState = uiState.copy(scanStatus = ScanStatus.Scanning)
-    }
-
-    /** 关闭扫描弹层。 */
-    fun closeScan() {
-        uiState = uiState.copy(
-            scanStatus = ScanStatus.Idle,
-            scanState = LocalMusicScanState.Idle,
-        )
     }
 
     /** 打开清理缓存确认。 */

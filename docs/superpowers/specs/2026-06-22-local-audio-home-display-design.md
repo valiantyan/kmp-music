@@ -555,3 +555,10 @@ MusicFileMetadata
 - 改动 `MusicAppController`、导航、曲库、搜索、收藏或播放队列时，必须补共享测试。
 - Android/iOS/Desktop 真实平台能力无法在同一轮全部验证时，最终说明必须标明未覆盖的平台风险。
 - 播放链路只消费已由 scanner 生成且当前仍可访问的 `localUri` / `PlayableMedia`；播放失败再回写曲库问题状态。
+
+## 实施状态
+
+- 第一阶段已覆盖：common 扫描模型、fake scanner、曲库快照合并、首页 `本地歌曲` 预览、二级 `本地音乐` 页、搜索/收藏/我的页共用快照、最近播放与扫描结果分离。
+- 第一阶段同时清理旧 seed/mock 泄漏：默认 App 不再依赖 seed 曲库，设置页重新扫描与首页扫描共用真实快照扫描路径，旧扫描弹层状态已移除。
+- 尚需独立计划推进：Android MediaStore scanner、iOS Files 导入、Desktop 文件夹 scanner、真实播放器读取 scanner 生成的 `localUri`。
+- 当前 fake scanner 使用 `sourceKind = fakeScanner`，用于验证 UI 与数据流，不代表任何真实平台来源。

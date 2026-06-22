@@ -23,7 +23,7 @@ fun coverArtResource(coverArt: CoverArt): DrawableResource {
         CoverArt.AlbumTimeForest -> Res.drawable.album_time_forest
         CoverArt.CoverSeaDream -> Res.drawable.cover_sea_dream
         CoverArt.CoverSummerWaltz -> Res.drawable.cover_summer_waltz
-        CoverArt.HeroLocalFolder -> Res.drawable.hero_local_folder
+        CoverArt.HeroLocalMusic -> Res.drawable.hero_local_folder
     }
 }
 

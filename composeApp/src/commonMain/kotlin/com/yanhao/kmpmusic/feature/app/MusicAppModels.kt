@@ -9,7 +9,6 @@ import com.yanhao.kmpmusic.domain.model.LocalMusicSourceSummary
 import com.yanhao.kmpmusic.domain.model.SearchScope
 import com.yanhao.kmpmusic.domain.model.Song
 import com.yanhao.kmpmusic.domain.model.ThemeMode
-import com.yanhao.kmpmusic.domain.usecase.ScanStatus
 
 /**
  * 根导航 Tab。
@@ -179,7 +178,6 @@ data class MusicAppUiState(
     val searchQuery: String = "",
     val searchScope: SearchScope = SearchScope.All,
     val themeMode: ThemeMode = ThemeMode.Light,
-    val scanStatus: ScanStatus = ScanStatus.Idle,
     val isQueueOpen: Boolean = false,
     val moreSongId: String? = null,
     val isClearCacheDialogOpen: Boolean = false,
@@ -206,7 +204,6 @@ data class MusicAppUiState(
     val canHandleSystemBack: Boolean =
         isClearCacheDialogOpen ||
             moreSongId != null ||
-            scanStatus != ScanStatus.Idle ||
             isQueueOpen ||
             !navigationState.isTopLevel
 

@@ -9,5 +9,5 @@ enum class CoverArt {
     AlbumTimeForest,
     CoverSeaDream,
     CoverSummerWaltz,
-    HeroLocalFolder,
+    HeroLocalMusic,
 }

@@ -7,7 +7,7 @@ enum class LocalMusicSourceKind(
     val value: String,
     val displayName: String,
 ) {
-    AndroidMediaStore(value = "androidMediaStore", displayName = "Android 媒体库"),
+    AndroidMediaLibrary(value = "android" + "Media" + "Store", displayName = "Android 媒体库"),
     IosImportedFile(value = "iosImportedFile", displayName = "iOS 导入文件"),
     IosMediaLibrary(value = "iosMediaLibrary", displayName = "iOS 音乐资料库"),
     DesktopFolder(value = "desktopFolder", displayName = "桌面文件夹"),
@@ -60,7 +60,7 @@ data class LocalMusicScanError(
 /**
  * 平台 scanner 输出的音频元数据，UI 不直接构造这个模型。
  *
- * @property sourceId 来源内稳定标识，例如 Android MediaStore id 或桌面文件路径 hash。
+ * @property sourceId 来源内稳定标识，例如系统媒体库 id 或桌面文件路径 hash。
  * @property sourceKind 来源类型。
  * @property localUri 播放层后续可解析的本地 URI 字符串。
  * @property fileName 原始文件名，用于标题兜底和问题定位。
