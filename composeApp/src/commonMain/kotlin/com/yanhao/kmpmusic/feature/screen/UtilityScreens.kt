@@ -4,7 +4,11 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Folder
 import androidx.compose.material.icons.rounded.Mail
@@ -12,6 +16,7 @@ import androidx.compose.material.icons.rounded.Security
 import androidx.compose.material.icons.rounded.Timer
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -19,9 +24,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.yanhao.kmpmusic.core.theme.MusicColors
+import com.yanhao.kmpmusic.core.theme.MusicDimens
+import com.yanhao.kmpmusic.core.theme.scaledDp
+import com.yanhao.kmpmusic.core.theme.scaledSp
 import com.yanhao.kmpmusic.domain.model.Song
 import com.yanhao.kmpmusic.domain.model.ThemeMode
 import com.yanhao.kmpmusic.feature.components.AppHeader
@@ -113,8 +122,14 @@ fun LocalFolderScreen(
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(18.dp)) {
         AppHeader(title = "本地文件夹", subtitle = "Music / KMP Library", onBack = onBack)
-        listOf("似水流年", "Dream Stories", "华语人声", "森林歌单").forEachIndexed { index, folder ->
-            SettingsRow(folder, "${24 - index * 3} 首歌曲 · 已加入音乐库", {})
+        Column(verticalArrangement = Arrangement.spacedBy(scaledDp(MusicDimens.FolderRowGap))) {
+            listOf("似水流年", "Dream Stories", "华语人声", "森林歌单").forEachIndexed { index, folder ->
+                FolderSummaryRow(
+                    title = folder,
+                    detail = "${24 - index * 3} 首歌曲 · 已加入音乐库",
+                    onClick = {},
+                )
+            }
         }
         SectionTitle(title = "最近导入")
         songs.take(4).forEach { song ->
@@ -124,7 +139,73 @@ fun LocalFolderScreen(
 }
 
 /**
- * 设置行和文件夹行的统一组件。
+ * 本地文件夹摘要行，为目录列表提供比设置项更舒展的阅读节奏。
+ */
+@Composable
+private fun FolderSummaryRow(
+    title: String,
+    detail: String,
+    onClick: () -> Unit,
+) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(scaledDp(MusicDimens.FolderRowRadius)),
+        color = MusicColors.Soft,
+        onClick = onClick,
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = scaledDp(MusicDimens.FolderRowMinHeight))
+                .padding(
+                    horizontal = scaledDp(MusicDimens.FolderRowHorizontalPadding),
+                    vertical = scaledDp(MusicDimens.FolderRowVerticalPadding),
+                ),
+            horizontalArrangement = Arrangement.spacedBy(scaledDp(MusicDimens.FolderRowContentGap)),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                imageVector = Icons.Rounded.Folder,
+                contentDescription = null,
+                modifier = Modifier.size(scaledDp(MusicDimens.FolderRowIconSize)),
+                tint = MusicColors.Accent,
+            )
+            Column(
+                modifier = Modifier.weight(weight = 1f),
+                verticalArrangement = Arrangement.spacedBy(scaledDp(MusicDimens.FolderRowTextGap)),
+            ) {
+                Text(
+                    text = title,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    fontSize = scaledSp(22.sp),
+                    lineHeight = scaledSp(26.sp),
+                    fontWeight = FontWeight.ExtraBold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    text = detail,
+                    color = MusicColors.Muted,
+                    fontSize = scaledSp(16.sp),
+                    lineHeight = scaledSp(20.sp),
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+            Text(
+                text = "›",
+                color = MusicColors.Muted,
+                fontSize = scaledSp(28.sp),
+                lineHeight = scaledSp(30.sp),
+                fontWeight = FontWeight.SemiBold,
+            )
+        }
+    }
+}
+
+/**
+ * 设置页条目，保持较紧凑的信息密度。
  */
 @Composable
 private fun SettingsRow(

@@ -71,6 +71,14 @@ object MusicDimens {
     val AlbumRadius: Dp = 14.dp
     val AlbumTextTopGap: Dp = 8.dp
     val AlbumTextLineGap: Dp = 3.dp
+    val FolderRowMinHeight: Dp = 76.dp
+    val FolderRowRadius: Dp = 20.dp
+    val FolderRowHorizontalPadding: Dp = 18.dp
+    val FolderRowVerticalPadding: Dp = 15.dp
+    val FolderRowIconSize: Dp = 30.dp
+    val FolderRowGap: Dp = 14.dp
+    val FolderRowContentGap: Dp = 17.dp
+    val FolderRowTextGap: Dp = 7.dp
 }
 
 /**
