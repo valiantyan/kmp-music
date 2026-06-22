@@ -6,14 +6,13 @@ import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.core.view.WindowCompat
-import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 
 /**
  * Android 入口 Activity。
  */
 class MainActivity : ComponentActivity() {
-    /** 初始化共享 Compose App。 */
+    /** 初始化共享 Compose App，保留 Android 推荐的 edge-to-edge，并把避让交给 Compose inset。 */
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge(
             statusBarStyle = SystemBarStyle.light(
@@ -28,8 +27,6 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         WindowCompat.setDecorFitsSystemWindows(window, false)
         WindowInsetsControllerCompat(window, window.decorView).apply {
-            hide(WindowInsetsCompat.Type.systemBars())
-            systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
             isAppearanceLightStatusBars = true
             isAppearanceLightNavigationBars = true
         }

@@ -1,0 +1,459 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Android Edge-to-Edge + BottomChrome 实战规则</title>
+  <style>
+    :root {
+      --bg: #f4f8f9;
+      --paper: #ffffff;
+      --ink: #071014;
+      --muted: #5f6d78;
+      --line: #dce7ea;
+      --soft: #eef6f5;
+      --accent: #17b59e;
+      --danger: #e84848;
+      --code: #10191d;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background:
+        radial-gradient(circle at 16% 0%, rgba(23, 181, 158, 0.16), transparent 32rem),
+        linear-gradient(180deg, #fbfdfd 0%, var(--bg) 100%);
+      color: var(--ink);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      line-height: 1.72;
+    }
+    main {
+      width: min(1040px, calc(100% - 36px));
+      margin: 0 auto;
+      padding: 44px 0 72px;
+    }
+    h1, h2, h3 { line-height: 1.2; letter-spacing: 0; }
+    h1 { margin: 0; font-size: clamp(34px, 5vw, 56px); }
+    h2 { margin: 0 0 14px; font-size: 30px; }
+    h3 { margin: 22px 0 8px; font-size: 20px; }
+    p { margin: 10px 0; }
+    a { color: #0b8474; font-weight: 800; text-decoration: none; }
+    code, pre { font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace; }
+    code {
+      padding: 2px 6px;
+      border-radius: 7px;
+      background: #eaf3f2;
+      color: #0d6b5f;
+      font-size: 0.92em;
+    }
+    pre {
+      margin: 14px 0 0;
+      padding: 18px;
+      border-radius: 16px;
+      background: var(--code);
+      color: #edf7f5;
+      overflow-x: auto;
+      line-height: 1.58;
+      font-size: 14px;
+    }
+    pre code { padding: 0; background: transparent; color: inherit; }
+    .hero {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 320px;
+      gap: 32px;
+      align-items: center;
+      margin-bottom: 26px;
+    }
+    .eyebrow {
+      margin: 0 0 8px;
+      color: #0b8474;
+      font-weight: 900;
+      font-size: 14px;
+    }
+    .lead {
+      max-width: 760px;
+      color: var(--muted);
+      font-size: 18px;
+    }
+    .card, .rule, .warning, .check {
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.86);
+      box-shadow: 0 18px 48px rgba(19, 34, 40, 0.08);
+    }
+    .card { padding: 22px; }
+    .rule, .warning, .check {
+      margin: 16px 0;
+      padding: 18px 20px;
+    }
+    .rule { border-left: 6px solid var(--accent); }
+    .warning { border-left: 6px solid var(--danger); background: #fff8f8; }
+    .check { border-left: 6px solid #7d8b96; background: #f9fbfb; }
+    .toc {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 22px 0 34px;
+    }
+    .toc a {
+      padding: 9px 12px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: var(--paper);
+    }
+    section {
+      margin-top: 28px;
+      padding: 28px;
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      background: rgba(255, 255, 255, 0.72);
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      overflow: hidden;
+      border-radius: 16px;
+      background: var(--paper);
+    }
+    th, td {
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+      vertical-align: top;
+    }
+    th { background: #edf6f5; }
+    tr:last-child td { border-bottom: 0; }
+    .diagram {
+      display: grid;
+      gap: 8px;
+      padding: 16px;
+      border-radius: 18px;
+      background: #f8fbfb;
+      border: 1px solid var(--line);
+      font-weight: 800;
+    }
+    .diagram div {
+      padding: 12px 14px;
+      border-radius: 12px;
+      background: var(--paper);
+      border: 1px solid var(--line);
+    }
+    .footer { color: var(--muted); margin-top: 28px; }
+    @media (max-width: 760px) {
+      main { width: min(100% - 24px, 1040px); padding-top: 28px; }
+      .hero { grid-template-columns: 1fr; }
+      section { padding: 20px; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header class="hero">
+      <div>
+        <p class="eyebrow">KMP Music 经验沉淀</p>
+        <h1>Android Edge-to-Edge + BottomChrome 实战规则</h1>
+        <p class="lead">
+          这份文档专门记录一次真实修复过程里的关键经验：保留 Android 推荐的
+          <code>enableEdgeToEdge()</code>，同时让 Mini Player、Bottom Tab 和系统导航栏不再互相重叠。
+        </p>
+      </div>
+      <div class="card">
+        <strong>一句话原则</strong>
+        <p>
+          底部固定控件不能简单贴屏幕底部；必须把
+          <code>App 内容栈</code>、<code>系统导航栏安全区</code>、<code>动画裁剪视口</code>
+          分开建模。
+        </p>
+      </div>
+    </header>
+
+    <nav class="toc" aria-label="目录">
+      <a href="#why">为什么会出问题</a>
+      <a href="#timeline">多轮修复复盘</a>
+      <a href="#model">正确模型</a>
+      <a href="#rules">落地规则</a>
+      <a href="#code">参考代码</a>
+      <a href="#checklist">验收清单</a>
+      <a href="#mistakes">反模式</a>
+    </nav>
+
+    <section id="why">
+      <h2>1. 为什么会出问题</h2>
+      <p>
+        Android 现在推荐 edge-to-edge，尤其 target SDK 35+ 后更应该按 edge-to-edge 思路处理系统栏。
+        但 edge-to-edge 的含义是：系统栏可以覆盖在 App 内容之上，App 要自己决定哪些内容可以画到系统栏后面，哪些内容必须避开。
+      </p>
+      <div class="warning">
+        错误根因不是 <code>enableEdgeToEdge()</code>，而是：底部固定控件没有正确消费
+        <code>WindowInsets.navigationBars</code>，并且用 <code>offset</code> 隐藏 Tab 时没有裁剪掉已经移出 App 底部区域的内容。
+      </div>
+      <p>这类问题会在三种页面里表现不同：</p>
+      <table>
+        <thead>
+          <tr>
+            <th>页面类型</th>
+            <th>正确效果</th>
+            <th>常见错误</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>一级页</td>
+            <td>Mini Player + Bottom Tab 都显示，Tab 在系统导航栏上方。</td>
+            <td>Bottom Tab 和 Android 三键导航重叠。</td>
+          </tr>
+          <tr>
+            <td>二级页，有 Mini Player</td>
+            <td>只露出 Mini Player，Tab 被隐藏并裁剪。</td>
+            <td>Tab 被推下去后仍画到系统导航栏区域。</td>
+          </tr>
+          <tr>
+            <td>二级页，无 Mini Player</td>
+            <td>整个 BottomChrome 隐藏，底部只剩系统导航栏。</td>
+            <td>Mini Player 或 Tab 残留在底部。</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section id="timeline">
+      <h2>2. 本次多轮修复复盘：真正值得带走的经验</h2>
+      <p>
+        这次问题不是一次修改解决的。真正有价值的是每一轮都暴露了一个更深层的边界条件，
+        最后才形成“安全区 + 内容栈 + 裁剪视口”的完整模型。
+      </p>
+      <table>
+        <thead>
+          <tr>
+            <th>轮次</th>
+            <th>当时看到的问题</th>
+            <th>容易做出的错误结论</th>
+            <th>最终学到的规则</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>第一轮</td>
+            <td>App 没有适配顶部状态栏和底部系统导航栏。</td>
+            <td>把系统栏隐藏掉，或者让窗口重新 fit system windows。</td>
+            <td>系统栏应该保持可见；音乐 App 不是全屏游戏。</td>
+          </tr>
+          <tr>
+            <td>第二轮</td>
+            <td>用 <code>decorFitsSystemWindows(true)</code> 可以止血。</td>
+            <td>这就是最优解。</td>
+            <td>长期方案仍应保留 <code>enableEdgeToEdge()</code>，因为 Android 15+ 推荐 edge-to-edge。</td>
+          </tr>
+          <tr>
+            <td>第三轮</td>
+            <td>无 Mini Player 的二级页仍可能有底部残留。</td>
+            <td>再多加一点底部 padding。</td>
+            <td>隐藏态位移必须包含 App 内容栈和系统导航栏高度。</td>
+          </tr>
+          <tr>
+            <td>第四轮</td>
+            <td>有 Mini Player 的二级页，Bottom Tab 被推下去后仍画到系统导航区。</td>
+            <td>继续调高度或调 offset。</td>
+            <td>用 <code>offset</code> 移出视口的内容必须被父容器 <code>clipToBounds()</code> 裁剪。</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="rule">
+        <strong>举一反三：</strong>
+        只要一个 UI 使用 <code>offset</code>、<code>translation</code>、滑入滑出动画来隐藏控件，
+        都要同时检查三个问题：动画距离是否覆盖安全区、父容器是否裁剪、隐藏后的控件是否还能响应点击。
+      </div>
+    </section>
+
+    <section id="model">
+      <h2>3. 正确模型</h2>
+      <p>把底部区域拆成三层，问题会清楚很多：</p>
+      <div class="diagram" aria-label="底部区域模型">
+        <div>页面内容：列表、标题、按钮，需要避开底部 Chrome 和系统导航栏。</div>
+        <div>BottomChrome 内容栈：Mini Player + Bottom Tab，只允许在自己的视口里移动。</div>
+        <div>系统导航栏安全区：读取 WindowInsets.navigationBars，只铺底色，不放可点击控件。</div>
+      </div>
+      <div class="rule">
+        <strong>关键判断：</strong>
+        如果一个控件通过 <code>offset</code> 被推出可视区域，它的父容器通常要加
+        <code>clipToBounds()</code>。否则控件虽然“位置下去了”，但仍然会被绘制出来。
+      </div>
+    </section>
+
+    <section id="rules">
+      <h2>4. 落地规则</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>规则</th>
+            <th>原因</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>保留 <code>enableEdgeToEdge()</code></td>
+            <td>符合 Android 当前方向，不用回退到旧的全局 fitSystemWindows 思路。</td>
+          </tr>
+          <tr>
+            <td>不要隐藏系统栏</td>
+            <td>音乐 App 不是全屏游戏，隐藏系统栏会让用户失去系统导航反馈。</td>
+          </tr>
+          <tr>
+            <td>页面内容加 <code>statusBarsPadding()</code> 与 <code>navigationBarsPadding()</code></td>
+            <td>滚动内容不要被状态栏、导航栏压住。</td>
+          </tr>
+          <tr>
+            <td>BottomChrome 显式读取 <code>WindowInsets.navigationBars</code></td>
+            <td>底部固定控件需要知道真实系统导航栏高度。</td>
+          </tr>
+          <tr>
+            <td>Mini Player + Bottom Tab 仍然只用一个整体动画</td>
+            <td>避免两个控件分别运动，产生不协调的 UI。</td>
+          </tr>
+          <tr>
+            <td>给可动画内容栈外层加 <code>clipToBounds()</code></td>
+            <td>普通二级页隐藏 Tab 时，Tab 不能继续画到系统导航栏区域。</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section id="code">
+      <h2>5. 参考代码</h2>
+      <h3>Activity：保留 edge-to-edge，不隐藏系统栏</h3>
+      <pre><code>override fun onCreate(savedInstanceState: Bundle?) {
+    enableEdgeToEdge(
+        statusBarStyle = SystemBarStyle.light(
+            scrim = android.graphics.Color.TRANSPARENT,
+            darkScrim = android.graphics.Color.TRANSPARENT,
+        ),
+        navigationBarStyle = SystemBarStyle.light(
+            scrim = android.graphics.Color.TRANSPARENT,
+            darkScrim = android.graphics.Color.TRANSPARENT,
+        ),
+    )
+    super.onCreate(savedInstanceState)
+    WindowCompat.setDecorFitsSystemWindows(window, false)
+    WindowInsetsControllerCompat(window, window.decorView).apply {
+        isAppearanceLightStatusBars = true
+        isAppearanceLightNavigationBars = true
+    }
+    setContent {
+        App()
+    }
+}</code></pre>
+
+      <h3>BottomChrome：安全区、动画栈、裁剪视口分离</h3>
+      <pre><code>@Composable
+private fun BottomChrome(
+    placement: BottomChromePlacement,
+    modifier: Modifier = Modifier,
+) {
+    val navigationBarHeight: Dp = with(LocalDensity.current) {
+        WindowInsets.navigationBars.getBottom(density = this).toDp()
+    }
+    val stackHeight: Dp = scaledDp(
+        MusicDimens.MiniPlayerHeight + MusicDimens.BottomNavHeight,
+    )
+    val stackOffset: Dp by animateDpAsState(
+        targetValue = when (placement) {
+            BottomChromePlacement.TopLevel -> 0.dp
+            BottomChromePlacement.MiniPlayerOnly -> scaledDp(MusicDimens.BottomNavHeight)
+            BottomChromePlacement.Hidden -> stackHeight + navigationBarHeight
+        },
+        animationSpec = tween(durationMillis = 780, easing = FastOutSlowInEasing),
+        label = "BottomChromeOffset",
+    )
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(stackHeight + navigationBarHeight),
+    ) {
+        Box(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth()
+                .height(navigationBarHeight)
+                .background(MusicColors.Paper),
+        )
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(stackHeight)
+                .clipToBounds()
+                .align(Alignment.TopCenter),
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(stackHeight)
+                    .offset(y = stackOffset),
+            ) {
+                MiniPlayer(modifier = Modifier.align(Alignment.TopCenter))
+                BottomNavigation(modifier = Modifier.align(Alignment.BottomCenter))
+            }
+        }
+    }
+}</code></pre>
+    </section>
+
+    <section id="checklist">
+      <h2>6. 验收清单</h2>
+      <div class="check">
+        每次改 BottomChrome，都必须同时验收一级页、二级页有 Mini Player、二级页无 Mini Player 三种状态。
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>检查项</th>
+            <th>通过标准</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>一级页</td>
+            <td>Bottom Tab 完整显示在系统导航栏上方，不重叠。</td>
+          </tr>
+          <tr>
+            <td>专辑页/歌手页</td>
+            <td>只显示 Mini Player；Bottom Tab 不露到系统导航栏区域。</td>
+          </tr>
+          <tr>
+            <td>设置页/播放页</td>
+            <td>Mini Player 和 Bottom Tab 都不显示，底部没有残影。</td>
+          </tr>
+          <tr>
+            <td>动画过程</td>
+            <td>Mini Player 和 Bottom Tab 作为整体移动，不分裂、不跳动。</td>
+          </tr>
+          <tr>
+            <td>内容滚动</td>
+            <td>列表最后一项不会被 Mini Player、Tab 或系统导航栏挡住。</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section id="mistakes">
+      <h2>7. 反模式</h2>
+      <div class="warning">
+        <strong>反模式 1：</strong>为了不重叠直接改成
+        <code>WindowCompat.setDecorFitsSystemWindows(window, true)</code>。
+        这能短期止血，但不是 Android 15+ 推荐方向。
+      </div>
+      <div class="warning">
+        <strong>反模式 2：</strong>只给根 Box 加 <code>navigationBarsPadding()</code>。
+        如果内部内容用 <code>offset</code> 滑出，仍可能画到系统导航栏区域。
+      </div>
+      <div class="warning">
+        <strong>反模式 3：</strong>Mini Player 和 Bottom Tab 分别做动画。
+        这样很容易出现两个控件不同步、间隙变化、隐藏状态误触。
+      </div>
+    </section>
+
+    <p class="footer">
+      配套教程：<a href="mobile-bottom-chrome-guide.html">mobile-bottom-chrome-guide.html</a>。
+      这份规则文档适合作为以后修复 Android 底部系统栏问题前的检查清单。
+    </p>
+  </main>
+</body>
+</html>

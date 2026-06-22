@@ -533,6 +533,7 @@
       <a href="#standalone">先跑通独立版</a>
       <a href="#before">0. 开始前先懂目标</a>
       <a href="#mental-model">1. 用人话理解</a>
+      <a href="#android-edge">Android 系统栏规则</a>
       <a href="#files">2. 你要改哪些文件</a>
       <a href="#preflight">3. 复刻前置条件</a>
       <a href="#steps">4. 照着做：10 个步骤</a>
@@ -567,13 +568,16 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
 
 // 这一组 import 是 Material UI 基础组件：按钮、卡片容器、文字、主题。
@@ -591,7 +595,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -777,6 +783,8 @@ private fun DemoPageContent(
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .statusBarsPadding()
+            .navigationBarsPadding()
             .padding(horizontal = 22.dp, vertical = 42.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
@@ -825,6 +833,14 @@ private fun BottomChrome(
     onRootTab: (RootTab) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    // Android edge-to-edge 下，系统底部导航栏会覆盖在 App 上。
+    // 这里读出真实导航栏高度，用它给 BottomChrome 留出一块安全区。
+    val navigationBarHeight: Dp = with(LocalDensity.current) {
+        WindowInsets.navigationBars.getBottom(density = this).toDp()
+    }
+    // stackHeight 只表示 App 自己的底部内容：MiniPlayer + BottomNavigation。
+    val stackHeight: Dp = BottomChromeDimens.MiniPlayerHeight + BottomChromeDimens.BottomNavHeight
+
     // stackOffset 是整个底部托盘的 Y 方向偏移。
     // 重点：只动画这个父容器，不要让 MiniPlayer 和 BottomNavigation 各自动。
     val stackOffset: Dp by animateDpAsState(
@@ -833,8 +849,8 @@ private fun BottomChrome(
             BottomChromePlacement.TopLevel -> 0.dp
             // 普通二级页：托盘下移一个 Tab 高度，所以 Tab 掉到屏幕外，只剩 MiniPlayer。
             BottomChromePlacement.MiniPlayerOnly -> BottomChromeDimens.BottomNavHeight
-            // 沉浸页：托盘下移 MiniPlayer + Tab 的总高度，所以两者都离开屏幕。
-            BottomChromePlacement.Hidden -> BottomChromeDimens.BottomNavHeight + BottomChromeDimens.MiniPlayerHeight
+            // 沉浸页：托盘下移 App 内容栈 + 系统导航栏高度，确保不残留到底部系统区。
+            BottomChromePlacement.Hidden -> stackHeight + navigationBarHeight
         },
         animationSpec = tween(durationMillis = 780, easing = FastOutSlowInEasing),
         label = "BottomChromeOffset",
@@ -842,34 +858,50 @@ private fun BottomChrome(
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .navigationBarsPadding(),
+            .height(stackHeight + navigationBarHeight),
     ) {
-        // 这个内部 Box 就是托盘本体，高度等于 MiniPlayer + BottomNavigation。
-        // offset(y = stackOffset) 让整个托盘一起移动。
+        // 这块只负责给 Android 系统导航栏铺 App 背景色，不放任何可点击控件。
         Box(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
-                .height(BottomChromeDimens.MiniPlayerHeight + BottomChromeDimens.BottomNavHeight)
-                .offset(y = stackOffset),
+                .height(navigationBarHeight)
+                .background(Color.White),
+        )
+
+        // 这个外层 Box 是“裁剪视口”：Tab 被推出去时，会在这里被裁掉。
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(stackHeight)
+                .clipToBounds()
+                .align(Alignment.TopCenter),
         ) {
-            // MiniPlayer 固定贴在托盘顶部。
-            MiniPlayer(
-                song = song,
-                isPlaying = isPlaying,
-                onOpen = onOpen,
-                onToggle = onToggle,
-                onPrev = onPrev,
-                onQueue = onQueue,
-                modifier = Modifier.align(Alignment.TopCenter),
-            )
-            // BottomNavigation 固定贴在托盘底部。
-            BottomNavigation(
-                rootTab = rootTab,
-                isEnabled = showsBottomNavigation,
-                onRootTab = onRootTab,
-                modifier = Modifier.align(Alignment.BottomCenter),
-            )
+            // 这个内部 Box 才是真正会移动的“底部托盘”。
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(stackHeight)
+                    .offset(y = stackOffset),
+            ) {
+                // MiniPlayer 固定贴在托盘顶部。
+                MiniPlayer(
+                    song = song,
+                    isPlaying = isPlaying,
+                    onOpen = onOpen,
+                    onToggle = onToggle,
+                    onPrev = onPrev,
+                    onQueue = onQueue,
+                    modifier = Modifier.align(Alignment.TopCenter),
+                )
+                // BottomNavigation 固定贴在托盘底部。
+                BottomNavigation(
+                    rootTab = rootTab,
+                    isEnabled = showsBottomNavigation,
+                    onRootTab = onRootTab,
+                    modifier = Modifier.align(Alignment.BottomCenter),
+                )
+            }
         }
     }
 }
@@ -1018,6 +1050,52 @@ fun App() {
       </div>
     </section>
 
+    <section id="android-edge">
+      <h2>Android 系统栏规则：edge-to-edge 不是问题，没处理 inset 才是问题</h2>
+      <div class="warning">
+        Android 推荐使用 <code>enableEdgeToEdge()</code>。不要为了修复底部重叠就长期改回
+        <code>WindowCompat.setDecorFitsSystemWindows(window, true)</code>。那只是止血，不是最佳实践。
+      </div>
+      <p>
+        正确做法是把底部区域拆开：页面内容负责避让系统栏；BottomChrome 负责整体动画；系统导航栏安全区只铺背景色，不放可点击控件。
+      </p>
+      <table>
+        <thead>
+          <tr>
+            <th>区域</th>
+            <th>应该怎么做</th>
+            <th>为什么</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>页面内容</td>
+            <td>加 <code>statusBarsPadding()</code> 和 <code>navigationBarsPadding()</code></td>
+            <td>列表内容不能被顶部状态栏和底部系统导航栏挡住。</td>
+          </tr>
+          <tr>
+            <td>BottomChrome 内容栈</td>
+            <td>Mini Player + Bottom Tab 放进一个可动画 Box</td>
+            <td>保证两者作为整体运动，不各自动。</td>
+          </tr>
+          <tr>
+            <td>系统导航栏安全区</td>
+            <td>读取 <code>WindowInsets.navigationBars</code> 高度并铺底色</td>
+            <td>这块区域属于系统手势/三键导航，不应该放按钮。</td>
+          </tr>
+          <tr>
+            <td>动画裁剪视口</td>
+            <td>在内容栈外层加 <code>clipToBounds()</code></td>
+            <td>二级页隐藏 Tab 时，Tab 不能继续画到系统导航栏区域。</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="check">
+        配套速查文档：<a href="android-edge-to-edge-bottomchrome-rules.html">Android Edge-to-Edge + BottomChrome 实战规则</a>。
+        如果你想知道为什么文档最终采用“安全区 + 内容栈 + 裁剪视口”三层模型，先读那份文档里的“本次多轮修复复盘”。
+      </div>
+    </section>
+
     <section id="files">
       <h2>2. 你要改哪些文件</h2>
       <p>在当前 KMP Music 项目里，只需要关注这 4 个文件：</p>
@@ -1158,22 +1236,27 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Alignment
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp</code></pre>
@@ -1484,6 +1567,14 @@ private fun BottomChrome(
     onRootTab: (RootTab) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    // Android edge-to-edge 下，系统导航栏会覆盖在 App 上。
+    // 这里读取真实系统导航栏高度，给 BottomChrome 单独留安全区。
+    val navigationBarHeight: Dp = with(LocalDensity.current) {
+        WindowInsets.navigationBars.getBottom(density = this).toDp()
+    }
+    // stackHeight 是 App 自己的底部内容高度：MiniPlayer + BottomNavigation。
+    val stackHeight: Dp = scaledDp(MusicDimens.MiniPlayerHeight + MusicDimens.BottomNavHeight)
+
     // 唯一的位移动画。不要再给 MiniPlayer 或 BottomNavigation 单独写位移动画。
     val stackOffset: Dp by animateDpAsState(
         targetValue = when (placement) {
@@ -1491,8 +1582,8 @@ private fun BottomChrome(
             BottomChromePlacement.TopLevel -> 0.dp
             // 普通二级页下移一个 Tab 高度。
             BottomChromePlacement.MiniPlayerOnly -> scaledDp(MusicDimens.BottomNavHeight)
-            // 沉浸页下移 MiniPlayer + Tab 总高度。
-            BottomChromePlacement.Hidden -> scaledDp(MusicDimens.BottomNavHeight + MusicDimens.MiniPlayerHeight)
+            // 沉浸页下移 App 内容栈 + 系统导航栏高度，避免底部残留。
+            BottomChromePlacement.Hidden -> stackHeight + navigationBarHeight
         },
         animationSpec = tween(durationMillis = 780, easing = FastOutSlowInEasing),
         label = "BottomChromeOffset",
@@ -1500,33 +1591,49 @@ private fun BottomChrome(
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .navigationBarsPadding(),
+            .height(stackHeight + navigationBarHeight),
     ) {
-        // 这个 Box 是真正会移动的“底部托盘”。
+        // 这块只给 Android 系统导航栏铺底色，不放任何按钮。
         Box(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
-                .height(scaledDp(MusicDimens.MiniPlayerHeight + MusicDimens.BottomNavHeight))
-                .offset(y = stackOffset),
+                .height(navigationBarHeight)
+                .background(MusicColors.Paper),
+        )
+        // 这是裁剪视口：普通二级页把 Tab 推下去时，Tab 会在这里被裁掉。
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(stackHeight)
+                .clipToBounds()
+                .align(Alignment.TopCenter),
         ) {
-            // MiniPlayer 固定在托盘顶部。
-            MiniPlayer(
-                song = song,
-                isPlaying = isPlaying,
-                onOpen = onOpen,
-                onToggle = onToggle,
-                onPrev = onPrev,
-                onQueue = onQueue,
-                modifier = Modifier.align(Alignment.TopCenter),
-            )
-            // BottomNavigation 固定在托盘底部。
-            BottomNavigation(
-                rootTab = rootTab,
-                isEnabled = showsBottomNavigation,
-                onRootTab = onRootTab,
-                modifier = Modifier.align(Alignment.BottomCenter),
-            )
+            // 这个 Box 是真正会移动的“底部托盘”。
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(stackHeight)
+                    .offset(y = stackOffset),
+            ) {
+                // MiniPlayer 固定在托盘顶部。
+                MiniPlayer(
+                    song = song,
+                    isPlaying = isPlaying,
+                    onOpen = onOpen,
+                    onToggle = onToggle,
+                    onPrev = onPrev,
+                    onQueue = onQueue,
+                    modifier = Modifier.align(Alignment.TopCenter),
+                )
+                // BottomNavigation 固定在托盘底部。
+                BottomNavigation(
+                    rootTab = rootTab,
+                    isEnabled = showsBottomNavigation,
+                    onRootTab = onRootTab,
+                    modifier = Modifier.align(Alignment.BottomCenter),
+                )
+            }
         }
     }
 }</code></pre>
@@ -1713,6 +1820,14 @@ fun navigationStateProvidesChromeMode(): Unit {
         <strong>错误 4：BottomNavigation 隐藏后还能点</strong>
         <p>表现：普通二级页看不到 Tab，但点击底部区域可能误触。修复：给 BottomNavigation 传 <code>isEnabled = showsBottomNavigation</code>。</p>
       </div>
+      <div class="qa">
+        <strong>错误 5：关闭 edge-to-edge 来止血</strong>
+        <p>表现：重叠暂时消失，但和 Android 15+ 的方向相反。修复：保留 <code>enableEdgeToEdge()</code>，不要隐藏系统栏，把系统栏避让放回 Compose inset。</p>
+      </div>
+      <div class="qa">
+        <strong>错误 6：Tab 被 offset 推下去后还画在系统导航栏里</strong>
+        <p>表现：二级页只应该显示 Mini Player，但 Bottom Tab 图标残留在 Android 三键导航区域。修复：BottomChrome 要分出 <code>navigationBarHeight</code> 安全区，并给可动画内容栈外层加 <code>clipToBounds()</code>。</p>
+      </div>
     </section>
 
     <section id="acceptance">
@@ -1729,7 +1844,7 @@ fun navigationStateProvidesChromeMode(): Unit {
           <tr>
             <td>首页 → 专辑详情</td>
             <td>整个底部托盘下移，只露出 Mini Player，Tab 不见。</td>
-            <td>如果 Mini 和 Tab 分开动，说明父容器没有统一动画。</td>
+            <td>如果 Tab 露到系统导航栏，说明缺少裁剪视口或系统栏安全区。</td>
           </tr>
           <tr>
             <td>专辑详情 → 首页</td>
@@ -1750,6 +1865,11 @@ fun navigationStateProvidesChromeMode(): Unit {
             <td>首页 → 设置页</td>
             <td>不显示 Mini Player，页面内容底部也没有奇怪空白。</td>
             <td>如果底部空白大，检查 ContentBottomSpace。</td>
+          </tr>
+          <tr>
+            <td>Android 三键导航设备</td>
+            <td>Tab、Mini Player 和系统返回/主页/多任务键互不重叠。</td>
+            <td>如果重叠，检查 <code>WindowInsets.navigationBars</code>、<code>navigationBarHeight</code> 和 <code>clipToBounds()</code>。</td>
           </tr>
         </tbody>
       </table>

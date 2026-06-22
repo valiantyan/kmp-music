@@ -9,16 +9,19 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -50,6 +53,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.geometry.Offset
@@ -170,6 +174,8 @@ private fun AppContent(
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .statusBarsPadding()
+            .navigationBarsPadding()
             .verticalScroll(rememberScrollState())
             .padding(
                 start = scaledDp(MusicDimens.PagePaddingHorizontal),
@@ -327,11 +333,15 @@ private fun BottomChrome(
     onRootTab: (RootTab) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val navigationBarHeight: Dp = with(LocalDensity.current) {
+        WindowInsets.navigationBars.getBottom(density = this).toDp()
+    }
+    val stackHeight: Dp = scaledDp(MusicDimens.MiniPlayerHeight + MusicDimens.BottomNavHeight)
     val stackOffset: Dp by animateDpAsState(
         targetValue = when (placement) {
             BottomChromePlacement.TopLevel -> 0.dp
             BottomChromePlacement.MiniPlayerOnly -> scaledDp(MusicDimens.BottomNavHeight)
-            BottomChromePlacement.Hidden -> scaledDp(MusicDimens.BottomNavHeight + MusicDimens.MiniPlayerHeight)
+            BottomChromePlacement.Hidden -> stackHeight + navigationBarHeight
         },
         animationSpec = tween(durationMillis = 780, easing = FastOutSlowInEasing),
         label = "BottomChromeOffset",
@@ -339,30 +349,44 @@ private fun BottomChrome(
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .navigationBarsPadding(),
+            .height(stackHeight + navigationBarHeight),
     ) {
         Box(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
-                .height(scaledDp(MusicDimens.MiniPlayerHeight + MusicDimens.BottomNavHeight))
-                .offset(y = stackOffset),
+                .height(navigationBarHeight)
+                .background(MusicColors.Paper),
+        )
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(stackHeight)
+                .clipToBounds()
+                .align(Alignment.TopCenter),
         ) {
-            MiniPlayer(
-                song = song,
-                isPlaying = isPlaying,
-                onOpen = onOpen,
-                onToggle = onToggle,
-                onPrev = onPrev,
-                onQueue = onQueue,
-                modifier = Modifier.align(Alignment.TopCenter),
-            )
-            BottomNavigation(
-                rootTab = rootTab,
-                isEnabled = showsBottomNavigation,
-                onRootTab = onRootTab,
-                modifier = Modifier.align(Alignment.BottomCenter),
-            )
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(stackHeight)
+                    .offset(y = stackOffset),
+            ) {
+                MiniPlayer(
+                    song = song,
+                    isPlaying = isPlaying,
+                    onOpen = onOpen,
+                    onToggle = onToggle,
+                    onPrev = onPrev,
+                    onQueue = onQueue,
+                    modifier = Modifier.align(Alignment.TopCenter),
+                )
+                BottomNavigation(
+                    rootTab = rootTab,
+                    isEnabled = showsBottomNavigation,
+                    onRootTab = onRootTab,
+                    modifier = Modifier.align(Alignment.BottomCenter),
+                )
+            }
         }
     }
 }
