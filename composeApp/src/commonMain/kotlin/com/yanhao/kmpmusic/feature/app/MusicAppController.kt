@@ -96,6 +96,7 @@ class MusicAppController(
             navigationState = uiState.navigationState.copy(
                 secondaryScreen = screen,
                 previousRootTab = uiState.navigationState.rootTab,
+                secondaryEntryId = uiState.navigationState.secondaryEntryId + 1,
             ),
             isQueueOpen = false,
             moreSongId = null,

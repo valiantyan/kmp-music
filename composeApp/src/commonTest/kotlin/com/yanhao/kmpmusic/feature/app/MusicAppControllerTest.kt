@@ -90,6 +90,32 @@ class MusicAppControllerTest {
     }
 
     /**
+     * 一级页面滚动 key 应按 Tab 保持稳定，保证从二级页返回后能恢复原滚动位置。
+     */
+    @Test
+    fun rootScrollStateKeyStaysStableAfterSecondaryReturn(): Unit {
+        val controller = MusicAppController()
+        val rootKey: String = controller.uiState.navigationState.scrollStateKey
+        controller.navigateToSecondary(screen = SecondaryScreen.AlbumDetail)
+        assertNotEquals(rootKey, controller.uiState.navigationState.scrollStateKey)
+        controller.navigateBack()
+        assertEquals(rootKey, controller.uiState.navigationState.scrollStateKey)
+    }
+
+    /**
+     * 二级页面每次进入都应使用新滚动 key，避免继承上一次或一级页滚动位置。
+     */
+    @Test
+    fun secondaryScrollStateKeyChangesForEachEntry(): Unit {
+        val controller = MusicAppController()
+        controller.navigateToSecondary(screen = SecondaryScreen.AlbumDetail)
+        val firstSecondaryKey: String = controller.uiState.navigationState.scrollStateKey
+        controller.navigateBack()
+        controller.navigateToSecondary(screen = SecondaryScreen.AlbumDetail)
+        assertNotEquals(firstSecondaryKey, controller.uiState.navigationState.scrollStateKey)
+    }
+
+    /**
      * 系统返回键在二级页应回到一级页，而不是交给系统直接退出 App。
      */
     @Test

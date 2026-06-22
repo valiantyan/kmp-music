@@ -7,6 +7,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsControllerCompat
+import androidx.lifecycle.ViewModelProvider
 
 /**
  * Android 入口 Activity。
@@ -30,8 +31,9 @@ class MainActivity : ComponentActivity() {
             isAppearanceLightStatusBars = true
             isAppearanceLightNavigationBars = true
         }
+        val musicAppViewModel: MusicAppViewModel = ViewModelProvider(this)[MusicAppViewModel::class.java]
         setContent {
-            App()
+            App(controller = musicAppViewModel.controller)
         }
     }
 }

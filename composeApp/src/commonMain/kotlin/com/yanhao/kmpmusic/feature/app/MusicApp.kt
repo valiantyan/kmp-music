@@ -50,6 +50,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -175,89 +176,92 @@ private fun AppContent(
     chromeMode: AppChromeMode,
 ) {
     val bottomPadding: Dp = getContentBottomPadding(contentBottomSpace = chromeMode.contentBottomSpace)
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .statusBarsPadding()
-            .navigationBarsPadding()
-            .verticalScroll(rememberScrollState())
-            .padding(
-                start = scaledDp(MusicDimens.PagePaddingHorizontal),
-                top = scaledDp(MusicDimens.PagePaddingTop),
-                end = scaledDp(MusicDimens.PagePaddingHorizontal),
-                bottom = bottomPadding,
-            ),
-    ) {
-        when (val secondaryScreen = state.navigationState.secondaryScreen) {
-            null -> RootScreen(state = state, controller = controller)
-            SecondaryScreen.Search -> SearchScreen(
-                query = state.searchQuery,
-                scope = state.searchScope,
-                result = controller.search(),
-                currentSongId = state.currentSongId,
-                onBack = controller::navigateBack,
-                onQuery = controller::setSearchQuery,
-                onScope = controller::setSearchScope,
-                onSongOpen = controller::openSong,
-                onSongPlay = controller::playSong,
-                onMore = controller::openMore,
-                onAlbumOpen = controller::openAlbum,
-                onArtistOpen = controller::openArtist,
-            )
-            SecondaryScreen.Player -> PlayerScreen(
-                song = state.currentSong,
-                isPlaying = state.isPlaying,
-                onBack = controller::navigateBack,
-                onToggle = controller::togglePlayback,
-                onPrev = { controller.moveTrack(direction = -1) },
-                onNext = { controller.moveTrack(direction = 1) },
-                onLike = controller::toggleFavorite,
-                onQueue = controller::openQueue,
-            )
-            SecondaryScreen.AlbumDetail -> AlbumDetailScreen(
-                album = state.selectedAlbum,
-                songs = state.songs,
-                currentSongId = state.currentSongId,
-                onBack = controller::navigateBack,
-                onSongOpen = controller::openSong,
-                onSongPlay = controller::playSong,
-                onMore = controller::openMore,
-                onLike = controller::toggleFavorite,
-            )
-            SecondaryScreen.ArtistDetail -> ArtistDetailScreen(
-                artist = state.selectedArtist,
-                songs = state.songs,
-                albums = state.albums,
-                currentSongId = state.currentSongId,
-                onBack = controller::navigateBack,
-                onSongOpen = controller::openSong,
-                onSongPlay = controller::playSong,
-                onMore = controller::openMore,
-                onLike = controller::toggleFavorite,
-                onAlbumOpen = controller::openAlbum,
-            )
-            SecondaryScreen.Settings -> SettingsScreen(
-                themeMode = state.themeMode,
-                onThemeMode = controller::setThemeMode,
-                onBack = controller::navigateBack,
-                onScan = controller::openScan,
-                onClearCache = controller::openClearCacheDialog,
-            )
-            SecondaryScreen.Login -> LoginScreen(
-                email = state.email,
-                isMailSent = state.isMailSent,
-                onEmail = controller::setEmail,
-                onSend = controller::sendLoginMail,
-                onBack = controller::navigateBack,
-            )
-            SecondaryScreen.LocalFolder -> LocalFolderScreen(
-                songs = state.songs,
-                currentSongId = state.currentSongId,
-                onBack = controller::navigateBack,
-                onSongOpen = controller::openSong,
-                onSongPlay = controller::playSong,
-                onMore = controller::openMore,
-            )
+    val saveableStateHolder = rememberSaveableStateHolder()
+    saveableStateHolder.SaveableStateProvider(key = state.navigationState.scrollStateKey) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .statusBarsPadding()
+                .navigationBarsPadding()
+                .verticalScroll(rememberScrollState())
+                .padding(
+                    start = scaledDp(MusicDimens.PagePaddingHorizontal),
+                    top = scaledDp(MusicDimens.PagePaddingTop),
+                    end = scaledDp(MusicDimens.PagePaddingHorizontal),
+                    bottom = bottomPadding,
+                ),
+        ) {
+            when (val secondaryScreen = state.navigationState.secondaryScreen) {
+                null -> RootScreen(state = state, controller = controller)
+                SecondaryScreen.Search -> SearchScreen(
+                    query = state.searchQuery,
+                    scope = state.searchScope,
+                    result = controller.search(),
+                    currentSongId = state.currentSongId,
+                    onBack = controller::navigateBack,
+                    onQuery = controller::setSearchQuery,
+                    onScope = controller::setSearchScope,
+                    onSongOpen = controller::openSong,
+                    onSongPlay = controller::playSong,
+                    onMore = controller::openMore,
+                    onAlbumOpen = controller::openAlbum,
+                    onArtistOpen = controller::openArtist,
+                )
+                SecondaryScreen.Player -> PlayerScreen(
+                    song = state.currentSong,
+                    isPlaying = state.isPlaying,
+                    onBack = controller::navigateBack,
+                    onToggle = controller::togglePlayback,
+                    onPrev = { controller.moveTrack(direction = -1) },
+                    onNext = { controller.moveTrack(direction = 1) },
+                    onLike = controller::toggleFavorite,
+                    onQueue = controller::openQueue,
+                )
+                SecondaryScreen.AlbumDetail -> AlbumDetailScreen(
+                    album = state.selectedAlbum,
+                    songs = state.songs,
+                    currentSongId = state.currentSongId,
+                    onBack = controller::navigateBack,
+                    onSongOpen = controller::openSong,
+                    onSongPlay = controller::playSong,
+                    onMore = controller::openMore,
+                    onLike = controller::toggleFavorite,
+                )
+                SecondaryScreen.ArtistDetail -> ArtistDetailScreen(
+                    artist = state.selectedArtist,
+                    songs = state.songs,
+                    albums = state.albums,
+                    currentSongId = state.currentSongId,
+                    onBack = controller::navigateBack,
+                    onSongOpen = controller::openSong,
+                    onSongPlay = controller::playSong,
+                    onMore = controller::openMore,
+                    onLike = controller::toggleFavorite,
+                    onAlbumOpen = controller::openAlbum,
+                )
+                SecondaryScreen.Settings -> SettingsScreen(
+                    themeMode = state.themeMode,
+                    onThemeMode = controller::setThemeMode,
+                    onBack = controller::navigateBack,
+                    onScan = controller::openScan,
+                    onClearCache = controller::openClearCacheDialog,
+                )
+                SecondaryScreen.Login -> LoginScreen(
+                    email = state.email,
+                    isMailSent = state.isMailSent,
+                    onEmail = controller::setEmail,
+                    onSend = controller::sendLoginMail,
+                    onBack = controller::navigateBack,
+                )
+                SecondaryScreen.LocalFolder -> LocalFolderScreen(
+                    songs = state.songs,
+                    currentSongId = state.currentSongId,
+                    onBack = controller::navigateBack,
+                    onSongOpen = controller::openSong,
+                    onSongPlay = controller::playSong,
+                    onMore = controller::openMore,
+                )
+            }
         }
     }
 }

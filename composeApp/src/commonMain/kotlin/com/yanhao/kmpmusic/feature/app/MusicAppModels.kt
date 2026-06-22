@@ -88,6 +88,7 @@ data class NavigationState(
     val rootTab: RootTab = RootTab.Home,
     val secondaryScreen: SecondaryScreen? = null,
     val previousRootTab: RootTab = RootTab.Home,
+    val secondaryEntryId: Int = 0,
 ) {
     /**
      * 是否处于一级页面。
@@ -108,6 +109,29 @@ data class NavigationState(
         SecondaryScreen.Login,
         SecondaryScreen.LocalFolder,
         -> AppChromeMode.SecondaryWithMiniPlayer
+    }
+
+    /**
+     * 当前页面滚动状态隔离 key，一级页按 Tab 保留，二级页每次进入都从顶部重新开始。
+     */
+    val scrollStateKey: String = when (secondaryScreen) {
+        null -> "root:${rootTab.name}"
+        else -> "secondary:${secondaryScreen.routeName()}:$secondaryEntryId"
+    }
+}
+
+/**
+ * 二级页面稳定路由名，用于保存页面级 UI 状态，避免依赖平台反射能力。
+ */
+private fun SecondaryScreen.routeName(): String {
+    return when (this) {
+        SecondaryScreen.Search -> "Search"
+        SecondaryScreen.Player -> "Player"
+        SecondaryScreen.AlbumDetail -> "AlbumDetail"
+        SecondaryScreen.ArtistDetail -> "ArtistDetail"
+        SecondaryScreen.Settings -> "Settings"
+        SecondaryScreen.Login -> "Login"
+        SecondaryScreen.LocalFolder -> "LocalFolder"
     }
 }
 
