@@ -1,12 +1,16 @@
 package com.yanhao.kmpmusic.feature.screen
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.background
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -22,6 +26,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -49,24 +54,34 @@ fun SettingsScreen(
     onScan: () -> Unit,
     onClearCache: () -> Unit,
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(scaledDp(18.dp))) {
         AppHeader(title = "设置", subtitle = "播放、扫描与外观", onBack = onBack)
         SectionTitle(title = "外观")
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(scaledDp(8.dp))) {
             ThemeMode.entries.forEach { item ->
                 FilterChip(selected = themeMode == item, onClick = { onThemeMode(item) }, label = { Text(text = item.label()) })
             }
         }
         SectionTitle(title = "音乐库")
-        SettingsRow("重新扫描本地音乐", "上次扫描：今天 08:36", onScan)
-        SettingsRow("本地文件夹", "/Music/KMP Library", {})
-        SettingsRow("清理缓存", "可释放 428 MB", onClearCache)
+        SettingsGroup {
+            SettingsListRow("重新扫描本地音乐", "上次扫描：今天 08:36", onScan)
+            SettingsDivider()
+            SettingsListRow("本地文件夹", "/Music/KMP Library", {})
+            SettingsDivider()
+            SettingsListRow("清理缓存", "可释放 428 MB", onClearCache)
+        }
         SectionTitle(title = "播放")
-        SettingsRow("无损优先", "可用时优先播放 FLAC / ALAC", {})
-        SettingsRow("睡眠定时", "30 分钟后停止播放", {})
-        SettingsRow("设备同步", "手机、桌面端同步播放记录", {})
+        SettingsGroup {
+            SettingsListRow("无损优先", "可用时优先播放 FLAC / ALAC", {})
+            SettingsDivider()
+            SettingsListRow("睡眠定时", "30 分钟后停止播放", {})
+            SettingsDivider()
+            SettingsListRow("设备同步", "手机、桌面端同步播放记录", {})
+        }
         SectionTitle(title = "账号与安全")
-        SettingsRow("隐私保护", "本地音乐不会上传到云端", {})
+        SettingsGroup {
+            SettingsListRow("隐私保护", "本地音乐不会上传到云端", {})
+        }
     }
 }
 
@@ -205,23 +220,104 @@ private fun FolderSummaryRow(
 }
 
 /**
- * 设置页条目，保持较紧凑的信息密度。
+ * 设置页分组容器，让同类设置形成一个稳定的信息块。
  */
 @Composable
-private fun SettingsRow(
+private fun SettingsGroup(
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(scaledDp(MusicDimens.SettingsGroupRadius)),
+        color = MusicColors.Soft,
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = scaledDp(MusicDimens.SettingsGroupPaddingVertical)),
+            content = content,
+        )
+    }
+}
+
+/**
+ * 设置页列表行，使用更舒展的行高和文字层级承载二级说明。
+ */
+@Composable
+private fun SettingsListRow(
     title: String,
     detail: String,
     onClick: () -> Unit,
 ) {
-    Surface(shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp), color = MusicColors.Soft, onClick = onClick) {
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
-            Icon(if (title.contains("定时")) Icons.Rounded.Timer else Icons.Rounded.Folder, contentDescription = null, tint = MusicColors.Accent)
-            Column(modifier = Modifier.weight(weight = 1f)) {
-                Text(text = title, fontWeight = FontWeight.Bold)
-                Text(text = detail, color = MusicColors.Muted, fontSize = 13.sp)
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        color = Color.Transparent,
+        onClick = onClick,
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = scaledDp(MusicDimens.SettingsRowMinHeight))
+                .padding(
+                    horizontal = scaledDp(MusicDimens.SettingsRowHorizontalPadding),
+                    vertical = scaledDp(MusicDimens.SettingsRowVerticalPadding),
+                ),
+            horizontalArrangement = Arrangement.spacedBy(scaledDp(MusicDimens.SettingsRowContentGap)),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                imageVector = if (title.contains("定时")) Icons.Rounded.Timer else Icons.Rounded.Folder,
+                contentDescription = null,
+                modifier = Modifier.size(scaledDp(MusicDimens.SettingsRowIconSize)),
+                tint = MusicColors.Accent,
+            )
+            Column(
+                modifier = Modifier.weight(weight = 1f),
+                verticalArrangement = Arrangement.spacedBy(scaledDp(MusicDimens.SettingsRowTextGap)),
+            ) {
+                Text(
+                    text = title,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    fontSize = scaledSp(20.sp),
+                    lineHeight = scaledSp(24.sp),
+                    fontWeight = FontWeight.ExtraBold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    text = detail,
+                    color = MusicColors.Muted,
+                    fontSize = scaledSp(15.sp),
+                    lineHeight = scaledSp(19.sp),
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
             }
-            Text(text = "›", color = MusicColors.Muted, fontSize = 22.sp)
+            Text(
+                text = "›",
+                color = MusicColors.Muted,
+                fontSize = scaledSp(27.sp),
+                lineHeight = scaledSp(30.sp),
+                fontWeight = FontWeight.SemiBold,
+            )
         }
+    }
+}
+
+/**
+ * 设置页组内分隔线，只从文字区域开始，避免图标列被切开。
+ */
+@Composable
+private fun SettingsDivider() {
+    Row(modifier = Modifier.fillMaxWidth()) {
+        Box(modifier = Modifier.width(scaledDp(MusicDimens.SettingsRowDividerStart)))
+        Box(
+            modifier = Modifier
+                .weight(weight = 1f)
+                .heightIn(min = scaledDp(1.dp))
+                .background(MusicColors.Line.copy(alpha = 0.55f)),
+        )
     }
 }
 

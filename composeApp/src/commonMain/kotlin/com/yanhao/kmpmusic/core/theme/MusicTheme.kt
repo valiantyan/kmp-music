@@ -79,6 +79,15 @@ object MusicDimens {
     val FolderRowGap: Dp = 14.dp
     val FolderRowContentGap: Dp = 17.dp
     val FolderRowTextGap: Dp = 7.dp
+    val SettingsGroupRadius: Dp = 22.dp
+    val SettingsGroupPaddingVertical: Dp = 5.dp
+    val SettingsRowMinHeight: Dp = 72.dp
+    val SettingsRowHorizontalPadding: Dp = 18.dp
+    val SettingsRowVerticalPadding: Dp = 12.dp
+    val SettingsRowIconSize: Dp = 30.dp
+    val SettingsRowContentGap: Dp = 17.dp
+    val SettingsRowTextGap: Dp = 6.dp
+    val SettingsRowDividerStart: Dp = 65.dp
 }
 
 /**
