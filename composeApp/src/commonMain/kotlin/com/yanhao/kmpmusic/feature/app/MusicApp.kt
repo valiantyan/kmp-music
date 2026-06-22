@@ -52,6 +52,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -77,6 +78,7 @@ import com.yanhao.kmpmusic.core.theme.MusicDimens
 import com.yanhao.kmpmusic.core.theme.extractMiniPlayerPalette
 import com.yanhao.kmpmusic.core.theme.scaledDp
 import com.yanhao.kmpmusic.core.theme.scaledSp
+import com.yanhao.kmpmusic.domain.model.LocalMusicScanRequest
 import com.yanhao.kmpmusic.domain.model.Song
 import com.yanhao.kmpmusic.domain.usecase.ScanStatus
 import com.yanhao.kmpmusic.feature.components.SongRow
@@ -92,6 +94,7 @@ import com.yanhao.kmpmusic.feature.screen.MissingLibraryItemScreen
 import com.yanhao.kmpmusic.feature.screen.PlayerScreen
 import com.yanhao.kmpmusic.feature.screen.SearchScreen
 import com.yanhao.kmpmusic.feature.screen.SettingsScreen
+import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.imageResource
 
 /**
@@ -112,6 +115,12 @@ fun MusicApp(
     controller: MusicAppController = remember { MusicAppController() },
 ) {
     val state: MusicAppUiState = controller.uiState
+    val coroutineScope = rememberCoroutineScope()
+    val scanLocalMusic: () -> Unit = {
+        coroutineScope.launch {
+            controller.scanLocalMusic(request = LocalMusicScanRequest.Refresh)
+        }
+    }
     KmpMusicTheme(themeMode = state.themeMode) {
         PlatformBackHandler(
             enabled = state.canHandleSystemBack,
@@ -162,6 +171,7 @@ fun MusicApp(
                         state = state,
                         controller = controller,
                         chromeMode = chromeMode,
+                        onScanLocalMusic = scanLocalMusic,
                     )
                     BottomChrome(
                         song = state.currentSong,
@@ -191,6 +201,7 @@ private fun AppContent(
     state: MusicAppUiState,
     controller: MusicAppController,
     chromeMode: AppChromeMode,
+    onScanLocalMusic: () -> Unit,
 ) {
     val bottomPadding: Dp = getContentBottomPadding(contentBottomSpace = chromeMode.contentBottomSpace)
     val saveableStateHolder = rememberSaveableStateHolder()
@@ -209,7 +220,11 @@ private fun AppContent(
                 ),
         ) {
             when (val secondaryScreen = state.navigationState.secondaryScreen) {
-                null -> RootScreen(state = state, controller = controller)
+                null -> RootScreen(
+                    state = state,
+                    controller = controller,
+                    onScanLocalMusic = onScanLocalMusic,
+                )
                 SecondaryScreen.Search -> SearchScreen(
                     query = state.searchQuery,
                     scope = state.searchScope,
@@ -315,15 +330,20 @@ private fun getContentBottomPadding(contentBottomSpace: ContentBottomSpace): Dp 
 private fun RootScreen(
     state: MusicAppUiState,
     controller: MusicAppController,
+    onScanLocalMusic: () -> Unit,
 ) {
     when (state.navigationState.rootTab) {
         RootTab.Home -> HomeScreen(
             songs = state.songs,
             albums = state.albums,
+            libraryStats = state.libraryStats,
+            scanState = state.scanState,
+            recentSongs = state.recentSongs,
+            localSongPreview = state.localSongPreview,
             currentSongId = state.currentSongId,
             onSearch = { controller.navigateToSecondary(SecondaryScreen.Search) },
-            onScan = controller::openScan,
-            onLocalFolder = { controller.openLocalMusic(section = LocalMusicSection.Songs) },
+            onScan = onScanLocalMusic,
+            onLocalMusic = { controller.openLocalMusic(section = LocalMusicSection.Songs) },
             onSongOpen = controller::openSong,
             onSongPlay = controller::playSong,
             onMore = controller::openMore,

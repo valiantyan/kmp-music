@@ -37,6 +37,8 @@ import com.yanhao.kmpmusic.core.theme.scaledDp
 import com.yanhao.kmpmusic.core.theme.scaledSp
 import com.yanhao.kmpmusic.domain.model.Album
 import com.yanhao.kmpmusic.domain.model.CoverArt
+import com.yanhao.kmpmusic.domain.model.LibraryStats
+import com.yanhao.kmpmusic.domain.model.LocalMusicScanState
 import com.yanhao.kmpmusic.domain.model.Song
 import com.yanhao.kmpmusic.feature.components.AlbumCard
 import com.yanhao.kmpmusic.feature.components.AppHeader
@@ -46,22 +48,25 @@ import com.yanhao.kmpmusic.feature.components.SongRow
 import com.yanhao.kmpmusic.feature.components.coverArtPainter
 
 /**
- * 首页，复刻原型的本地曲库卡、最近播放和本地专辑。
+ * 首页，复刻原型的本地曲库卡、真实最近播放、本地歌曲预览和本地专辑。
  */
 @Composable
 fun HomeScreen(
     songs: List<Song>,
     albums: List<Album>,
+    libraryStats: LibraryStats,
+    scanState: LocalMusicScanState,
+    recentSongs: List<Song>,
+    localSongPreview: List<Song>,
     currentSongId: String?,
     onSearch: () -> Unit,
     onScan: () -> Unit,
-    onLocalFolder: () -> Unit,
+    onLocalMusic: () -> Unit,
     onSongOpen: (Song) -> Unit,
     onSongPlay: (Song) -> Unit,
     onMore: (Song) -> Unit,
     onAlbumOpen: (Album) -> Unit,
 ) {
-    val recentSongs: List<Song> = buildHomeRecentSongs(songs = songs)
     Column(verticalArrangement = Arrangement.spacedBy(0.dp)) {
         AppHeader(
             title = "首页",
@@ -70,8 +75,10 @@ fun HomeScreen(
         )
         Spacer(modifier = Modifier.height(scaledDp(10.dp)))
         LibraryCard(
+            stats = libraryStats,
+            scanState = scanState,
             onScan = onScan,
-            onLocalFolder = onLocalFolder,
+            onLocalMusic = onLocalMusic,
         )
         Spacer(modifier = Modifier.height(scaledDp(24.dp)))
         SectionTitle(
@@ -80,18 +87,47 @@ fun HomeScreen(
             onAction = onSearch,
         )
         Spacer(modifier = Modifier.height(scaledDp(14.dp)))
-        Column(verticalArrangement = Arrangement.spacedBy(scaledDp(14.dp))) {
-            recentSongs.forEach { song ->
-                SongRow(
-                    song = song,
-                    isCurrentSong = song.id == currentSongId,
-                    onOpen = onSongOpen,
-                    onPlay = onSongPlay,
-                    onMore = onMore,
-                )
+        if (recentSongs.isEmpty()) {
+            Text(
+                text = "播放过的歌曲会出现在这里",
+                color = MusicColors.Muted,
+                fontSize = scaledSp(15.sp),
+                fontWeight = FontWeight.SemiBold,
+            )
+        } else {
+            Column(verticalArrangement = Arrangement.spacedBy(scaledDp(14.dp))) {
+                recentSongs.forEach { song ->
+                    SongRow(
+                        song = song,
+                        isCurrentSong = song.id == currentSongId,
+                        onOpen = onSongOpen,
+                        onPlay = onSongPlay,
+                        onMore = onMore,
+                    )
+                }
             }
         }
         Spacer(modifier = Modifier.height(scaledDp(18.dp)))
+        if (localSongPreview.isNotEmpty()) {
+            SectionTitle(
+                title = "本地歌曲",
+                actionLabel = "查看全部",
+                onAction = onLocalMusic,
+            )
+            Spacer(modifier = Modifier.height(scaledDp(14.dp)))
+            Column(verticalArrangement = Arrangement.spacedBy(scaledDp(14.dp))) {
+                localSongPreview.forEach { song ->
+                    SongRow(
+                        song = song,
+                        isCurrentSong = song.id == currentSongId,
+                        onOpen = onSongOpen,
+                        onPlay = onSongPlay,
+                        onMore = onMore,
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.height(scaledDp(18.dp)))
+        }
         SectionTitle(
             title = "本地专辑",
             actionLabel = "更多",
@@ -111,26 +147,14 @@ fun HomeScreen(
 }
 
 /**
- * 首页最近播放遵循高保真稿的展示顺序，不复用完整曲库目录顺序。
- */
-private fun buildHomeRecentSongs(songs: List<Song>): List<Song> {
-    val preferredIds: List<String> = listOf("sea-dream", "summer-waltz")
-    val preferredSongs: List<Song> = preferredIds.mapNotNull { songId ->
-        songs.firstOrNull { song -> song.id == songId }
-    }
-    if (preferredSongs.size == preferredIds.size) {
-        return preferredSongs
-    }
-    return songs.take(n = 2)
-}
-
-/**
  * 本地音乐库概览卡，保留原型的薄荷色文件夹视觉。
  */
 @Composable
 private fun LibraryCard(
+    stats: LibraryStats,
+    scanState: LocalMusicScanState,
     onScan: () -> Unit,
-    onLocalFolder: () -> Unit,
+    onLocalMusic: () -> Unit,
 ) {
     Surface(
         modifier = Modifier
@@ -169,7 +193,7 @@ private fun LibraryCard(
                     verticalAlignment = Alignment.Bottom,
                 ) {
                     Text(
-                        text = "1,248",
+                        text = stats.songCount.toString(),
                         style = MaterialTheme.typography.headlineLarge.copy(
                             fontSize = scaledSp(34.sp),
                             lineHeight = scaledSp(38.sp),
@@ -178,10 +202,10 @@ private fun LibraryCard(
                     Text(text = " 首歌曲", modifier = Modifier.padding(bottom = scaledDp(4.dp)), fontSize = scaledSp(17.sp), fontWeight = FontWeight.Bold)
                 }
                 Spacer(modifier = Modifier.height(scaledDp(5.dp)))
-                Text(text = "86 张专辑 · 128 位歌手", color = Color(0xFF7C8490), fontSize = scaledSp(17.sp))
+                Text(text = "${stats.albumCount} 张专辑 · ${stats.artistCount} 位歌手", color = Color(0xFF7C8490), fontSize = scaledSp(17.sp))
                 Spacer(modifier = Modifier.height(scaledDp(18.dp)))
                 Row(horizontalArrangement = Arrangement.spacedBy(scaledDp(12.dp)), verticalAlignment = Alignment.CenterVertically) {
-                    PrimaryPill(text = "扫描本地音乐", onClick = onScan)
+                    PrimaryPill(text = scanActionLabel(scanState = scanState), onClick = onScan)
                     Surface(
                         modifier = Modifier.size(scaledDp(46.dp)),
                         shape = RoundedCornerShape(scaledDp(20.dp)),
@@ -189,7 +213,7 @@ private fun LibraryCard(
                     ) {
                         IconButton(
                             modifier = Modifier.size(scaledDp(46.dp)),
-                            onClick = onLocalFolder,
+                            onClick = onLocalMusic,
                         ) {
                             Icon(Icons.Rounded.FolderOpen, contentDescription = "打开本地文件夹")
                         }
@@ -205,5 +229,17 @@ private fun LibraryCard(
                 contentScale = ContentScale.Crop,
             )
         }
+    }
+}
+
+// 首页阶段使用平台无关状态决定主按钮文案，真实平台入口在平台 scanner 计划中细分。
+private fun scanActionLabel(scanState: LocalMusicScanState): String {
+    return when (scanState) {
+        LocalMusicScanState.Idle -> "扫描本地音乐"
+        LocalMusicScanState.WaitingForPermission -> "继续授权"
+        is LocalMusicScanState.Importing -> "导入中"
+        is LocalMusicScanState.Scanning -> "扫描中"
+        is LocalMusicScanState.Done -> "重新扫描"
+        is LocalMusicScanState.Error -> "重试扫描"
     }
 }
