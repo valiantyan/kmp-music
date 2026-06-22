@@ -6,6 +6,7 @@
 *.iml
 
 # Local agent/tooling state
+.superpowers/
 
 
 # Gradle / Kotlin local build state
