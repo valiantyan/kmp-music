@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -96,29 +97,175 @@ fun LoginScreen(
     onSend: () -> Unit,
     onBack: () -> Unit,
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(18.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(scaledDp(22.dp))) {
         AppHeader(title = "登录", subtitle = "使用邮箱接收魔法链接", onBack = onBack)
-        Surface(shape = androidx.compose.foundation.shape.RoundedCornerShape(20.dp), color = MusicColors.Paper, tonalElevation = 1.dp) {
-            Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                Icon(Icons.Rounded.Security, contentDescription = null, tint = MusicColors.Accent)
-                Text(text = "同步收藏和播放记录", fontSize = 20.sp, fontWeight = FontWeight.ExtraBold)
-                Text(text = "登录后可在 Android、iOS 和桌面端继续使用同一套资料。", color = MusicColors.Muted)
-                Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Rounded.Mail, contentDescription = null, tint = MusicColors.Muted)
-                    BasicTextField(
-                        value = email,
-                        onValueChange = onEmail,
-                        modifier = Modifier.weight(weight = 1f),
-                        cursorBrush = SolidColor(MusicColors.Accent),
-                        decorationBox = { innerTextField ->
-                            if (email.isEmpty()) Text(text = "name@example.com", color = MusicColors.Muted)
-                            innerTextField()
-                        },
-                    )
-                }
-                PrimaryPill(text = "发送登录邮件", onClick = onSend, modifier = Modifier.fillMaxWidth())
-                if (isMailSent) Text(text = "登录邮件已发送，请在邮箱中确认。", color = MusicColors.Accent)
-            }
+        LoginCard(
+            email = email,
+            isMailSent = isMailSent,
+            onEmail = onEmail,
+            onSend = onSend,
+        )
+    }
+}
+
+/**
+ * 登录卡片，将信任说明、输入和操作拆成稳定的视觉层级。
+ */
+@Composable
+private fun LoginCard(
+    email: String,
+    isMailSent: Boolean,
+    onEmail: (String) -> Unit,
+    onSend: () -> Unit,
+) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(scaledDp(MusicDimens.LoginCardRadius)),
+        color = MusicColors.Soft.copy(alpha = 0.58f),
+        tonalElevation = scaledDp(1.dp),
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(
+                    horizontal = scaledDp(MusicDimens.LoginCardPaddingHorizontal),
+                    vertical = scaledDp(MusicDimens.LoginCardPaddingVertical),
+                ),
+            verticalArrangement = Arrangement.spacedBy(scaledDp(MusicDimens.LoginCardHeaderGap)),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Icon(
+                imageVector = Icons.Rounded.Security,
+                contentDescription = null,
+                modifier = Modifier.size(scaledDp(MusicDimens.LoginIconSize)),
+                tint = MusicColors.Accent,
+            )
+            LoginIntroCopy()
+            LoginForm(
+                email = email,
+                isMailSent = isMailSent,
+                onEmail = onEmail,
+                onSend = onSend,
+            )
+        }
+    }
+}
+
+/**
+ * 登录卡片说明文案，控制行高和段落间距避免首屏挤压。
+ */
+@Composable
+private fun LoginIntroCopy() {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(scaledDp(MusicDimens.LoginCardTextGap)),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Text(
+            text = "同步收藏和播放记录",
+            color = MaterialTheme.colorScheme.onSurface,
+            fontSize = scaledSp(22.sp),
+            lineHeight = scaledSp(27.sp),
+            fontWeight = FontWeight.ExtraBold,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+        Text(
+            text = "登录后可在 Android、iOS 和桌面端继续使用同一套资料。",
+            modifier = Modifier.fillMaxWidth(),
+            color = MusicColors.Muted,
+            fontSize = scaledSp(16.sp),
+            lineHeight = scaledSp(24.sp),
+            fontWeight = FontWeight.Medium,
+        )
+    }
+}
+
+/**
+ * 登录表单区域，让邮箱输入和提交按钮具有稳定高度与触控面积。
+ */
+@Composable
+private fun LoginForm(
+    email: String,
+    isMailSent: Boolean,
+    onEmail: (String) -> Unit,
+    onSend: () -> Unit,
+) {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(scaledDp(MusicDimens.LoginCardFormGap)),
+    ) {
+        LoginEmailField(
+            email = email,
+            onEmail = onEmail,
+        )
+        PrimaryPill(
+            text = "发送登录邮件",
+            onClick = onSend,
+            modifier = Modifier.fillMaxWidth(),
+        )
+        if (isMailSent) {
+            Text(
+                text = "登录邮件已发送，请在邮箱中确认。",
+                color = MusicColors.Accent,
+                fontSize = scaledSp(14.sp),
+                lineHeight = scaledSp(18.sp),
+                fontWeight = FontWeight.SemiBold,
+            )
+        }
+    }
+}
+
+/**
+ * 邮箱输入框容器，避免裸输入行造成低密度和不可点击区域不明确。
+ */
+@Composable
+private fun LoginEmailField(
+    email: String,
+    onEmail: (String) -> Unit,
+) {
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(scaledDp(MusicDimens.LoginInputHeight)),
+        shape = RoundedCornerShape(scaledDp(MusicDimens.LoginInputRadius)),
+        color = MusicColors.Paper.copy(alpha = 0.78f),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = scaledDp(MusicDimens.LoginInputHorizontalPadding)),
+            horizontalArrangement = Arrangement.spacedBy(scaledDp(12.dp)),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                imageVector = Icons.Rounded.Mail,
+                contentDescription = null,
+                tint = MusicColors.Muted,
+            )
+            BasicTextField(
+                value = email,
+                onValueChange = onEmail,
+                modifier = Modifier.weight(weight = 1f),
+                cursorBrush = SolidColor(MusicColors.Accent),
+                textStyle = androidx.compose.ui.text.TextStyle(
+                    color = MaterialTheme.colorScheme.onSurface,
+                    fontSize = scaledSp(16.sp),
+                    lineHeight = scaledSp(20.sp),
+                    fontWeight = FontWeight.Medium,
+                ),
+                decorationBox = { innerTextField ->
+                    if (email.isEmpty()) {
+                        Text(
+                            text = "name@example.com",
+                            color = MusicColors.Muted,
+                            fontSize = scaledSp(16.sp),
+                            lineHeight = scaledSp(20.sp),
+                        )
+                    }
+                    innerTextField()
+                },
+            )
         }
     }
 }

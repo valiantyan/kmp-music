@@ -88,6 +88,16 @@ object MusicDimens {
     val SettingsRowContentGap: Dp = 17.dp
     val SettingsRowTextGap: Dp = 6.dp
     val SettingsRowDividerStart: Dp = 65.dp
+    val LoginCardRadius: Dp = 24.dp
+    val LoginCardPaddingHorizontal: Dp = 22.dp
+    val LoginCardPaddingVertical: Dp = 26.dp
+    val LoginCardHeaderGap: Dp = 16.dp
+    val LoginCardTextGap: Dp = 10.dp
+    val LoginCardFormGap: Dp = 14.dp
+    val LoginIconSize: Dp = 34.dp
+    val LoginInputHeight: Dp = 54.dp
+    val LoginInputRadius: Dp = 18.dp
+    val LoginInputHorizontalPadding: Dp = 16.dp
 }
 
 /**
