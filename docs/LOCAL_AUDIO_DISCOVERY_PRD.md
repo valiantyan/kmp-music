@@ -535,8 +535,64 @@ LLM Agent 修改本地音频发现能力时必须遵守：
 | 扫描成功但播放失败怎么办？ | 播放链路反馈文件缺失、权限失效或格式不支持，并回写曲库状态。 | 10、14 |
 | 当前 `ScanLocalMusicUseCase` 是否已经是真实扫描？ | 不是，它只是阶段一模拟状态切换。 | 7.5 |
 | 能不能先只做 Android，iOS/Desktop 继续 mock？ | 可以分阶段，但 UI 必须明确平台能力状态，不能用 mock 冒充真实扫描。 | 11、12 |
+| iOS P0 能否直接播放用户从 Files 选择但未导入的文件？ | 不作为 P0。P0 先导入到 App 沙盒，再扫描和播放。 | 4.2、9.2 |
+| iOS 能否让用户选择一个文件夹后递归扫描？ | 不作为 P0。iOS P0 是选择/导入音频文件；目录级访问若要做，必须单独评估安全授权和平台限制。 | 4.2、14 |
+| iOS 系统音乐资料库中的 Apple Music 歌曲能否都进入本地曲库？ | 不能。必须过滤云端、DRM、无 asset URL 或不可本地播放条目。 | 4.3、9.3、14 |
+| Desktop 是否需要监听文件夹变化实时刷新？ | 不需要。P0 只要求选择文件夹、递归扫描和重新扫描。 | 4.4、12 |
+| Desktop 扫描遇到符号链接或隐藏目录怎么办？ | P0 应跳过隐藏目录、系统目录、不可读文件和异常文件，避免扫描失控。 | 9.4、14 |
+| Android 权限拒绝后能否继续展示 seed/mock 歌曲？ | 不能用 mock 冒充真实扫描；应展示权限缺失或空状态。 | 6.1、11 |
+| `Song.duration` 已有字符串时是否还需要 `durationMs`？ | 需要。真实播放、排序、进度和系统展示需要毫秒级字段。 | 8.1、10 |
+| 扫描结果是否必须立刻覆盖收藏和播放队列？ | 不应破坏现有收藏、搜索、播放队列状态；需要按稳定 id 做合并或迁移。 | 8.1、13 |
+| 播放链路是否负责重新申请文件权限？ | 不负责。权限、导入和扫描属于本 PRD；播放链路只消费仍可访问的 `localUri` / `PlayableMedia`。 | 10 |
+| 实现时可以先把平台 API 塞进 `MusicAppController` 吗？ | 不可以。Controller 可以协调 UseCase，但平台扫描实现必须留在平台 source set 或适配层。 | 7、11 |
 
-## 16. 参考资料
+## 16. 三轮交叉 Review 结果
+
+### 16.1 第一轮：产品范围 Review
+
+结论：
+
+- Android P0 范围清晰：授权后通过 `MediaStore.Audio` 扫描系统音频媒体索引。
+- iOS P0 范围清晰：用户通过 Files / Document Picker 选择音频，导入 App 沙盒后扫描；不承诺整机音频扫描。
+- Desktop P0 范围清晰：用户选择音乐文件夹，App 递归扫描可读音频文件；不默认扫描全盘。
+- iOS `MPMediaLibrary` / `MPMediaQuery` 被放在 P1，避免把系统音乐资料库误认为文件系统扫描。
+
+补强项：
+
+- 扩展了第 15 节举一反三问题，覆盖 iOS 未导入外部文件、iOS 文件夹递归扫描、Apple Music 条目、Desktop 文件夹监听、mock 冒充真实扫描等相邻需求。
+- 明确 `userCancelled` 不是错误弹窗，避免 iOS 和 Desktop 文件选择取消时出现误报。
+- 明确 Desktop 文件夹监听和 iOS 系统音乐资料库都不阻塞 P0。
+
+### 16.2 第二轮：架构边界 Review
+
+结论：
+
+- 文档已明确 `commonMain` 只能定义扫描请求、状态、结果、元数据、来源类型和平台无关错误。
+- Android `ContentResolver` / `MediaStore`、iOS Document Picker / MediaPlayer、Desktop 文件选择和 `Files.walk` 都被限制在平台 source set 或平台适配层。
+- `ScanLocalMusicUseCase` 的演进关系已明确：它负责协调 UI 意图和曲库更新，不是真实平台 scanner。
+- `localUri` 的来源已明确：由平台 scanner 或测试 fake scanner 产生，UI 不拼接。
+
+补强项：
+
+- 举一反三问题中新增了 “不能把平台 API 塞进 `MusicAppController`” 的边界检查。
+- 新增了扫描结果与收藏、搜索、播放队列合并的提醒，避免真实扫描破坏现有用户状态。
+- 强调 `sourceKind` 和稳定 id 是跨平台曲库合并、错误回写、播放调试的必要基础。
+
+### 16.3 第三轮：实现与验证 Review
+
+结论：
+
+- 里程碑顺序合理：先共享扫描边界，再 Android MediaStore，再 iOS 文件导入，再 Desktop 文件夹扫描，最后评估 iOS 系统音乐资料库。
+- 测试要求覆盖共享状态、Android 权限与扫描、iOS 文件导入、Desktop 文件夹扫描，以及扫描结果进入播放链路。
+- 平台验证不能只靠单元测试；Android 权限、iOS Document Picker、Desktop 文件选择都需要真机、模拟器或桌面环境验证。
+
+补强项：
+
+- 增加了 Desktop 隐藏目录、系统目录、不可读文件和异常文件的处理提示。
+- 增加了 Android 权限拒绝后不能继续用 seed/mock 冒充真实扫描的判断题。
+- 增加了 `durationMs` 与展示字符串 `duration` 的区分，避免真实播放阶段缺少毫秒级时长。
+
+## 17. 参考资料
 
 - [Android Developers: Access media files from shared storage](https://developer.android.com/training/data-storage/shared/media)
 - [Apple: File System Basics](https://developer.apple.com/library/archive/documentation/FileManagement/Conceptual/FileSystemProgrammingGuide/FileSystemOverview/FileSystemOverview.html)
