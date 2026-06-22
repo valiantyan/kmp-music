@@ -90,6 +90,37 @@ class MusicAppControllerTest {
     }
 
     /**
+     * 系统返回键在二级页应回到一级页，而不是交给系统直接退出 App。
+     */
+    @Test
+    fun systemBackReturnsFromSecondaryScreen(): Unit {
+        val controller = MusicAppController()
+        controller.navigateToRoot(tab = RootTab.Favorites)
+        controller.navigateToSecondary(screen = SecondaryScreen.AlbumDetail)
+        assertTrue(controller.uiState.canHandleSystemBack)
+        assertTrue(controller.handleSystemBack())
+        assertTrue(controller.uiState.navigationState.isTopLevel)
+        assertEquals(RootTab.Favorites, controller.uiState.navigationState.rootTab)
+        assertFalse(controller.uiState.canHandleSystemBack)
+        assertFalse(controller.handleSystemBack())
+    }
+
+    /**
+     * 系统返回键应优先关闭临时浮层，再处理二级页面返回。
+     */
+    @Test
+    fun systemBackClosesOverlayBeforeSecondaryScreen(): Unit {
+        val controller = MusicAppController()
+        controller.navigateToSecondary(screen = SecondaryScreen.AlbumDetail)
+        controller.openQueue()
+        assertTrue(controller.handleSystemBack())
+        assertFalse(controller.uiState.isQueueOpen)
+        assertFalse(controller.uiState.navigationState.isTopLevel)
+        assertTrue(controller.handleSystemBack())
+        assertTrue(controller.uiState.navigationState.isTopLevel)
+    }
+
+    /**
      * 页面 chrome 策略应区分一级页、普通二级页和全屏二级页。
      */
     @Test

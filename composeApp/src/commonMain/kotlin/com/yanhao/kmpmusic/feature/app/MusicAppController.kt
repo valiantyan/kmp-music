@@ -124,6 +124,33 @@ class MusicAppController(
         )
     }
 
+    /**
+     * 处理 Android 系统返回键，优先关闭临时浮层，最后才退出二级页面。
+     */
+    fun handleSystemBack(): Boolean {
+        if (uiState.isClearCacheDialogOpen) {
+            closeClearCacheDialog()
+            return true
+        }
+        if (uiState.moreSongId != null) {
+            closeMore()
+            return true
+        }
+        if (uiState.scanStatus != ScanStatus.Idle) {
+            closeScan()
+            return true
+        }
+        if (uiState.isQueueOpen) {
+            closeQueue()
+            return true
+        }
+        if (!uiState.navigationState.isTopLevel) {
+            navigateBack()
+            return true
+        }
+        return false
+    }
+
     /** 播放歌曲但留在当前页面。 */
     fun playSong(song: Song) {
         val playbackState: PlaybackState = playSongUseCase(song = song)

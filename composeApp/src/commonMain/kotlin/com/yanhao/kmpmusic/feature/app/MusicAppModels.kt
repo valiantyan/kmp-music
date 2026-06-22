@@ -150,6 +150,16 @@ data class MusicAppUiState(
     }
 
     /**
+     * 系统返回键是否应由 App 内部消费。
+     */
+    val canHandleSystemBack: Boolean =
+        isClearCacheDialogOpen ||
+            moreSongId != null ||
+            scanStatus != ScanStatus.Idle ||
+            isQueueOpen ||
+            !navigationState.isTopLevel
+
+    /**
      * 当前专辑详情对象。
      */
     val selectedAlbum: Album = albums.firstOrNull { album -> album.id == selectedAlbumId } ?: albums.first()

@@ -95,6 +95,10 @@ fun MusicApp(
 ) {
     val state: MusicAppUiState = controller.uiState
     KmpMusicTheme(themeMode = state.themeMode) {
+        PlatformBackHandler(
+            enabled = state.canHandleSystemBack,
+            onBack = { controller.handleSystemBack() },
+        )
         BoxWithConstraints(
             modifier = Modifier
                 .fillMaxSize()
