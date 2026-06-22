@@ -88,6 +88,7 @@ import com.yanhao.kmpmusic.feature.screen.AlbumDetailScreen
 import com.yanhao.kmpmusic.feature.screen.ArtistDetailScreen
 import com.yanhao.kmpmusic.feature.screen.FavoritesScreen
 import com.yanhao.kmpmusic.feature.screen.HomeScreen
+import com.yanhao.kmpmusic.feature.screen.LocalMusicScreen
 import com.yanhao.kmpmusic.feature.screen.LoginScreen
 import com.yanhao.kmpmusic.feature.screen.MeScreen
 import com.yanhao.kmpmusic.feature.screen.MissingLibraryItemScreen
@@ -292,6 +293,9 @@ private fun AppContent(
                     onThemeMode = controller::setThemeMode,
                     onBack = controller::navigateBack,
                     onScan = controller::openScan,
+                    onLocalMusicSources = {
+                        controller.openLocalMusic(section = LocalMusicSection.Sources)
+                    },
                     onClearCache = controller::openClearCacheDialog,
                 )
                 SecondaryScreen.Login -> LoginScreen(
@@ -301,10 +305,20 @@ private fun AppContent(
                     onSend = controller::sendLoginMail,
                     onBack = controller::navigateBack,
                 )
-                is SecondaryScreen.LocalMusic -> MissingLibraryItemScreen(
-                    title = "本地音乐",
-                    subtitle = secondaryScreen.initialSection.label(),
+                is SecondaryScreen.LocalMusic -> LocalMusicScreen(
+                    songs = state.songs,
+                    albums = state.albums,
+                    artists = state.artists,
+                    sources = state.localMusicSources,
+                    problems = state.localMusicProblems,
+                    initialSection = secondaryScreen.initialSection,
+                    currentSongId = state.currentSongId,
                     onBack = controller::navigateBack,
+                    onSongOpen = controller::openSong,
+                    onSongPlay = controller::playSong,
+                    onMore = controller::openMore,
+                    onAlbumOpen = controller::openAlbum,
+                    onArtistOpen = controller::openArtist,
                 )
             }
         }
@@ -760,17 +774,5 @@ private fun RootTab.label(): String {
         RootTab.Home -> "首页"
         RootTab.Favorites -> "收藏"
         RootTab.Me -> "我的"
-    }
-}
-
-/**
- * 本地音乐分段中文名，用于 Task 8 页面完成前的路由兜底。
- */
-private fun LocalMusicSection.label(): String {
-    return when (this) {
-        LocalMusicSection.Songs -> "歌曲"
-        LocalMusicSection.Albums -> "专辑"
-        LocalMusicSection.Artists -> "歌手"
-        LocalMusicSection.Sources -> "来源"
     }
 }

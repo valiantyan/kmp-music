@@ -49,6 +49,19 @@ class MusicAppControllerTest {
     }
 
     /**
+     * 设置页的本地来源入口应能直接打开来源分段。
+     */
+    @Test
+    fun openLocalMusicCanStartAtSourcesSection(): Unit {
+        val controller = MusicAppController()
+        controller.openLocalMusic(section = LocalMusicSection.Sources)
+        assertEquals(
+            expected = SecondaryScreen.LocalMusic(initialSection = LocalMusicSection.Sources),
+            actual = controller.uiState.navigationState.secondaryScreen,
+        )
+    }
+
+    /**
      * 扫描完成只应填充本地歌曲预览，不应把扫描结果冒充最近播放。
      */
     @Test

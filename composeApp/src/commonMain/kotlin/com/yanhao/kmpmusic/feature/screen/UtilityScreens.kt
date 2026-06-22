@@ -37,12 +37,10 @@ import com.yanhao.kmpmusic.core.theme.MusicColors
 import com.yanhao.kmpmusic.core.theme.MusicDimens
 import com.yanhao.kmpmusic.core.theme.scaledDp
 import com.yanhao.kmpmusic.core.theme.scaledSp
-import com.yanhao.kmpmusic.domain.model.Song
 import com.yanhao.kmpmusic.domain.model.ThemeMode
 import com.yanhao.kmpmusic.feature.components.AppHeader
 import com.yanhao.kmpmusic.feature.components.PrimaryPill
 import com.yanhao.kmpmusic.feature.components.SectionTitle
-import com.yanhao.kmpmusic.feature.components.SongRow
 
 /**
  * 设置页。
@@ -53,6 +51,7 @@ fun SettingsScreen(
     onThemeMode: (ThemeMode) -> Unit,
     onBack: () -> Unit,
     onScan: () -> Unit,
+    onLocalMusicSources: () -> Unit,
     onClearCache: () -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(scaledDp(18.dp))) {
@@ -67,7 +66,7 @@ fun SettingsScreen(
         SettingsGroup {
             SettingsListRow("重新扫描本地音乐", "上次扫描：今天 08:36", onScan)
             SettingsDivider()
-            SettingsListRow("本地文件夹", "/Music/KMP Library", {})
+            SettingsListRow("本地来源", "查看扫描来源和问题", onLocalMusicSources)
             SettingsDivider()
             SettingsListRow("清理缓存", "可释放 428 MB", onClearCache)
         }
@@ -265,102 +264,6 @@ private fun LoginEmailField(
                     }
                     innerTextField()
                 },
-            )
-        }
-    }
-}
-
-/**
- * 本地文件夹页。
- */
-@Composable
-fun LocalFolderScreen(
-    songs: List<Song>,
-    currentSongId: String?,
-    onBack: () -> Unit,
-    onSongOpen: (Song) -> Unit,
-    onSongPlay: (Song) -> Unit,
-    onMore: (Song) -> Unit,
-) {
-    Column(verticalArrangement = Arrangement.spacedBy(18.dp)) {
-        AppHeader(title = "本地文件夹", subtitle = "Music / KMP Library", onBack = onBack)
-        Column(verticalArrangement = Arrangement.spacedBy(scaledDp(MusicDimens.FolderRowGap))) {
-            listOf("似水流年", "Dream Stories", "华语人声", "森林歌单").forEachIndexed { index, folder ->
-                FolderSummaryRow(
-                    title = folder,
-                    detail = "${24 - index * 3} 首歌曲 · 已加入音乐库",
-                    onClick = {},
-                )
-            }
-        }
-        SectionTitle(title = "最近导入")
-        songs.take(4).forEach { song ->
-            SongRow(song, song.id == currentSongId, onSongOpen, onSongPlay, onMore, dense = true)
-        }
-    }
-}
-
-/**
- * 本地文件夹摘要行，为目录列表提供比设置项更舒展的阅读节奏。
- */
-@Composable
-private fun FolderSummaryRow(
-    title: String,
-    detail: String,
-    onClick: () -> Unit,
-) {
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(scaledDp(MusicDimens.FolderRowRadius)),
-        color = MusicColors.Soft,
-        onClick = onClick,
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .heightIn(min = scaledDp(MusicDimens.FolderRowMinHeight))
-                .padding(
-                    horizontal = scaledDp(MusicDimens.FolderRowHorizontalPadding),
-                    vertical = scaledDp(MusicDimens.FolderRowVerticalPadding),
-                ),
-            horizontalArrangement = Arrangement.spacedBy(scaledDp(MusicDimens.FolderRowContentGap)),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Icon(
-                imageVector = Icons.Rounded.Folder,
-                contentDescription = null,
-                modifier = Modifier.size(scaledDp(MusicDimens.FolderRowIconSize)),
-                tint = MusicColors.Accent,
-            )
-            Column(
-                modifier = Modifier.weight(weight = 1f),
-                verticalArrangement = Arrangement.spacedBy(scaledDp(MusicDimens.FolderRowTextGap)),
-            ) {
-                Text(
-                    text = title,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    fontSize = scaledSp(22.sp),
-                    lineHeight = scaledSp(26.sp),
-                    fontWeight = FontWeight.ExtraBold,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                Text(
-                    text = detail,
-                    color = MusicColors.Muted,
-                    fontSize = scaledSp(16.sp),
-                    lineHeight = scaledSp(20.sp),
-                    fontWeight = FontWeight.SemiBold,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
-            Text(
-                text = "›",
-                color = MusicColors.Muted,
-                fontSize = scaledSp(28.sp),
-                lineHeight = scaledSp(30.sp),
-                fontWeight = FontWeight.SemiBold,
             )
         }
     }
