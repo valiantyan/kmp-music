@@ -1,5 +1,6 @@
 package com.yanhao.kmpmusic.feature.app
 
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateDp
 import androidx.compose.animation.core.tween
@@ -58,6 +59,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
@@ -67,15 +69,18 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.yanhao.kmpmusic.core.theme.MiniPlayerPalette
 import com.yanhao.kmpmusic.core.theme.KmpMusicTheme
 import com.yanhao.kmpmusic.core.theme.LocalMusicScale
 import com.yanhao.kmpmusic.core.theme.MusicColors
 import com.yanhao.kmpmusic.core.theme.MusicDimens
+import com.yanhao.kmpmusic.core.theme.extractMiniPlayerPalette
 import com.yanhao.kmpmusic.core.theme.scaledDp
 import com.yanhao.kmpmusic.core.theme.scaledSp
 import com.yanhao.kmpmusic.domain.model.Song
 import com.yanhao.kmpmusic.domain.usecase.ScanStatus
 import com.yanhao.kmpmusic.feature.components.SongRow
+import com.yanhao.kmpmusic.feature.components.coverArtResource
 import com.yanhao.kmpmusic.feature.components.coverArtPainter
 import com.yanhao.kmpmusic.feature.screen.AlbumDetailScreen
 import com.yanhao.kmpmusic.feature.screen.ArtistDetailScreen
@@ -87,6 +92,7 @@ import com.yanhao.kmpmusic.feature.screen.MeScreen
 import com.yanhao.kmpmusic.feature.screen.PlayerScreen
 import com.yanhao.kmpmusic.feature.screen.SearchScreen
 import com.yanhao.kmpmusic.feature.screen.SettingsScreen
+import org.jetbrains.compose.resources.imageResource
 
 /**
  * 普通底部 chrome 切换时长(300ms)，用于一级页和仅 mini player 页面之间的轻量移动。
@@ -438,6 +444,15 @@ private fun MiniPlayer(
     onQueue: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val coverImage: ImageBitmap = imageResource(resource = coverArtResource(coverArt = song.coverArt))
+    val miniPlayerPalette: MiniPlayerPalette = remember(song.coverArt, coverImage) {
+        extractMiniPlayerPalette(imageBitmap = coverImage)
+    }
+    val containerColor: Color by animateColorAsState(
+        targetValue = miniPlayerPalette.containerColor,
+        animationSpec = tween(durationMillis = 260),
+        label = "MiniPlayerContainerColor",
+    )
     Surface(
         modifier = modifier
             .fillMaxWidth()
@@ -447,8 +462,7 @@ private fun MiniPlayer(
             )
             .height(scaledDp(MusicDimens.MiniPlayerHeight)),
         shape = RoundedCornerShape(18.dp),
-        color = MusicColors.Paper.copy(alpha = 0.92f),
-        shadowElevation = 14.dp,
+        color = containerColor,
         onClick = onOpen,
     ) {
         Box(modifier = Modifier.height(scaledDp(MusicDimens.MiniPlayerHeight))) {
@@ -466,7 +480,7 @@ private fun MiniPlayer(
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     androidx.compose.foundation.Image(
-                        painter = coverArtPainter(song.coverArt),
+                        bitmap = coverImage,
                         contentDescription = "${song.title} 封面",
                         modifier = Modifier.size(scaledDp(45.dp)).clip(RoundedCornerShape(scaledDp(8.dp))),
                         contentScale = ContentScale.Crop,
