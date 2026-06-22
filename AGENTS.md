@@ -72,7 +72,7 @@
 - 测试优先覆盖用户可感知规则：一级/二级导航、当前播放与队列同步、收藏同步、搜索过滤、Tab 切换清空二级页面。
 - UI 大改后至少运行 Android 编译；涉及共享状态时同时运行 `:composeApp:desktopTest`。
 - 提交前看 `git status --short --branch`，避免提交 `.scratch/`、构建产物、IDE 状态、日志、Node 依赖、原型 dist、APK/DMG 或本地缓存。
-- 提交信息用简洁英文祈使句，例如 `Improve mobile prototype fidelity`。
+- 提交信息必须使用中文总结改动内容，保持简洁明确。
 
 ## 禁止事项
 
