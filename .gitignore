@@ -6,7 +6,7 @@
 *.iml
 
 # Local agent/tooling state
-.scratch/
+
 
 # Gradle / Kotlin local build state
 .gradle/

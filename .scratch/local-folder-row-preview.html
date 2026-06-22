@@ -1,0 +1,238 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>本地文件夹行预览</title>
+  <style>
+    :root {
+      --paper: #fbfcfd;
+      --soft: #f1f4f5;
+      --ink: #050607;
+      --muted: #858b96;
+      --accent: #17b59e;
+      --line: #e5eaed;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      background: #dfe6e8;
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Segoe UI", sans-serif;
+      color: var(--ink);
+    }
+
+    .phone {
+      width: 472px;
+      min-height: 860px;
+      padding: 54px 24px 110px;
+      background: var(--paper);
+      border: 1px solid #d9dee2;
+      box-shadow: 0 24px 80px rgba(20, 32, 40, 0.18);
+    }
+
+    .back {
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      background: var(--soft);
+      font-size: 34px;
+      line-height: 1;
+      margin-bottom: 26px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 34px;
+      line-height: 40px;
+      letter-spacing: 0;
+    }
+
+    .subtitle {
+      margin: 14px 0 30px;
+      color: var(--muted);
+      font-size: 16px;
+      font-weight: 700;
+    }
+
+    .panel {
+      display: grid;
+      gap: 14px;
+    }
+
+    .folder-row {
+      min-height: 76px;
+      display: grid;
+      grid-template-columns: 32px 1fr 24px;
+      align-items: center;
+      column-gap: 17px;
+      padding: 15px 16px 15px 18px;
+      border-radius: 20px;
+      background: var(--soft);
+    }
+
+    .folder-icon {
+      width: 28px;
+      height: 22px;
+      position: relative;
+      border-radius: 5px;
+      background: var(--accent);
+    }
+
+    .folder-icon::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: -6px;
+      width: 15px;
+      height: 8px;
+      border-radius: 5px 5px 0 0;
+      background: var(--accent);
+    }
+
+    .copy {
+      min-width: 0;
+      display: grid;
+      gap: 7px;
+    }
+
+    .title {
+      font-size: 22px;
+      line-height: 26px;
+      font-weight: 800;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .detail {
+      font-size: 16px;
+      line-height: 20px;
+      color: var(--muted);
+      font-weight: 600;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .chevron {
+      color: var(--muted);
+      font-size: 28px;
+      text-align: right;
+    }
+
+    .section-title {
+      margin: 28px 0 14px;
+      font-size: 21px;
+      line-height: 26px;
+      font-weight: 900;
+    }
+
+    .song-row {
+      display: grid;
+      grid-template-columns: 56px 1fr 48px 24px;
+      align-items: center;
+      column-gap: 14px;
+      min-height: 66px;
+    }
+
+    .cover {
+      width: 56px;
+      height: 56px;
+      border-radius: 8px;
+      background: linear-gradient(145deg, #7cc4e6, #2b657f);
+      box-shadow: 0 10px 18px rgba(30, 66, 80, 0.22);
+    }
+
+    .song-title {
+      font-size: 17px;
+      line-height: 21px;
+      font-weight: 800;
+    }
+
+    .song-meta {
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 18px;
+    }
+
+    .play {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      background: var(--soft);
+      font-size: 20px;
+    }
+
+    .more {
+      color: var(--muted);
+      font-size: 24px;
+      line-height: 1;
+    }
+  </style>
+</head>
+<body>
+  <main class="phone">
+    <div class="back">‹</div>
+    <h1>本地文件夹</h1>
+    <div class="subtitle">Music / KMP Library</div>
+
+    <section class="panel" aria-label="本地文件夹预览">
+      <article class="folder-row">
+        <div class="folder-icon" aria-hidden="true"></div>
+        <div class="copy">
+          <div class="title">似水流年</div>
+          <div class="detail">24 首歌曲 · 已加入音乐库</div>
+        </div>
+        <div class="chevron">›</div>
+      </article>
+      <article class="folder-row">
+        <div class="folder-icon" aria-hidden="true"></div>
+        <div class="copy">
+          <div class="title">Dream Stories</div>
+          <div class="detail">21 首歌曲 · 已加入音乐库</div>
+        </div>
+        <div class="chevron">›</div>
+      </article>
+      <article class="folder-row">
+        <div class="folder-icon" aria-hidden="true"></div>
+        <div class="copy">
+          <div class="title">华语人声</div>
+          <div class="detail">18 首歌曲 · 已加入音乐库</div>
+        </div>
+        <div class="chevron">›</div>
+      </article>
+      <article class="folder-row">
+        <div class="folder-icon" aria-hidden="true"></div>
+        <div class="copy">
+          <div class="title">森林歌单</div>
+          <div class="detail">15 首歌曲 · 已加入音乐库</div>
+        </div>
+        <div class="chevron">›</div>
+      </article>
+    </section>
+
+    <div class="section-title">最近导入</div>
+    <article class="song-row">
+      <div class="cover"></div>
+      <div>
+        <div class="song-title">海边的梦</div>
+        <div class="song-meta">旅行团乐队 · 似水流年</div>
+      </div>
+      <div class="play">▶</div>
+      <div class="more">⋮</div>
+    </article>
+  </main>
+</body>
+</html>

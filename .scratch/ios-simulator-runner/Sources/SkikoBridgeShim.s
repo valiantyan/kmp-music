@@ -1,0 +1,18 @@
+.text
+.align 2
+
+.globl _org_jetbrains_skia_TextBlobBuilderRunHandler__1nGetFinalizer
+_org_jetbrains_skia_TextBlobBuilderRunHandler__1nGetFinalizer:
+    b _org_jetbrains_skia_shaper_TextBlobBuilderRunHandler__1nGetFinalizer
+
+.globl _org_jetbrains_skia_TextBlobBuilderRunHandler__1nMake
+_org_jetbrains_skia_TextBlobBuilderRunHandler__1nMake:
+    b _org_jetbrains_skia_shaper_TextBlobBuilderRunHandler__1nMake
+
+.globl _org_jetbrains_skia_TextBlobBuilderRunHandler__1nMakeBlob
+_org_jetbrains_skia_TextBlobBuilderRunHandler__1nMakeBlob:
+    b _org_jetbrains_skia_shaper_TextBlobBuilderRunHandler__1nMakeBlob
+
+.globl _org_jetbrains_skia_svg_SVGCanvasKt__1nMake
+_org_jetbrains_skia_svg_SVGCanvasKt__1nMake:
+    b _org_jetbrains_skia_svg_SVGCanvas__1nMake
