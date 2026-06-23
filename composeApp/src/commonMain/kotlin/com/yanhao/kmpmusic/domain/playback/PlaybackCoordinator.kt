@@ -16,6 +16,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 
@@ -29,6 +30,8 @@ class PlaybackCoordinator(
     private val audioPlayerEngine: AudioPlayerEngine,
     // 快照存储，当前任务仅提供内存实现。
     private val playbackSnapshotStore: PlaybackSnapshotStore = InMemoryPlaybackSnapshotStore(),
+    // 快照写入作用域，独立于引擎事件订阅，避免未调用 [start] 时丢失持久化。
+    private val snapshotWriteScope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default),
     // 当前时间提供者，方便后续节流测试。
     private val nowMillis: () -> Long = { 0L },
     // 播放中进度快照的节流窗口。
@@ -38,9 +41,6 @@ class PlaybackCoordinator(
 ) {
     // 引擎事件订阅任务。
     private var eventJob: Job? = null
-
-    // 快照写入协程作用域。
-    private var coordinatorScope: CoroutineScope? = null
 
     // 状态变化回调，供上层刷新 UI。
     private var onStateChanged: () -> Unit = {}
@@ -62,7 +62,6 @@ class PlaybackCoordinator(
      */
     fun start(scope: CoroutineScope, onStateChanged: () -> Unit = {}) {
         eventJob?.cancel()
-        coordinatorScope = scope
         this.onStateChanged = onStateChanged
         eventJob = scope.launch(
             context = Dispatchers.Unconfined,
@@ -80,18 +79,21 @@ class PlaybackCoordinator(
      * 按当前列表生成完整队列，并把目标歌曲置为 loading。
      */
     suspend fun playSong(song: Song, queueSongs: List<Song>) {
-        val safeQueue: List<Song> = queueSongs.ifEmpty { listOf(song) }
-        val startIndex: Int = safeQueue.indexOfFirst { candidate -> candidate.id == song.id }.takeIf { index ->
+        val matchingQueueSongs: List<Song> = queueSongs.takeIf { songs ->
+            songs.any { candidate -> candidate.id == song.id }
+        } ?: listOf(song)
+        val startIndex: Int = matchingQueueSongs.indexOfFirst { candidate -> candidate.id == song.id }.takeIf { index ->
             index >= 0
         } ?: 0
+        val currentPlaybackMode: PlaybackMode = playbackRepository.getQueueState().playbackMode
         playbackRepository.saveQueueState(
             state = QueueState(
-                songIds = safeQueue.map { queueSong -> queueSong.id },
+                songIds = matchingQueueSongs.map { queueSong -> queueSong.id },
                 currentIndex = startIndex,
-                playbackMode = playbackRepository.getQueueState().playbackMode,
+                playbackMode = currentPlaybackMode,
                 shuffleRemaining = buildInitialShuffleRemaining(
-                    playbackMode = playbackRepository.getQueueState().playbackMode,
-                    queueSize = safeQueue.size,
+                    playbackMode = currentPlaybackMode,
+                    queueSize = matchingQueueSongs.size,
                     currentIndex = startIndex,
                 ),
             ),
@@ -108,7 +110,7 @@ class PlaybackCoordinator(
         saveSnapshotNow()
         onStateChanged()
         audioPlayerEngine.setQueue(
-            items = safeQueue.map { queueSong -> queueSong.toPlayableMedia() },
+            items = matchingQueueSongs.map { queueSong -> queueSong.toPlayableMedia() },
             startIndex = startIndex,
             startPositionMs = 0L,
         )
@@ -356,8 +358,7 @@ class PlaybackCoordinator(
 
     /** 把当前运行时播放状态写成最新快照。 */
     private fun saveSnapshotNow() {
-        val scope: CoroutineScope = coordinatorScope ?: return
-        scope.launch {
+        snapshotWriteScope.launch(start = CoroutineStart.UNDISPATCHED) {
             playbackSnapshotStore.saveSnapshot(
                 snapshot = PlaybackSnapshot(
                     playbackState = playbackRepository.getPlaybackState(),
@@ -400,10 +401,13 @@ class PlaybackCoordinator(
         isMovingBackward: Boolean,
     ): QueueState {
         if (isMovingBackward && queueState.shuffleHistory.isNotEmpty()) {
+            val rebuiltRemaining: List<Int> = (queueState.shuffleRemaining + queueState.currentIndex)
+                .distinct()
+                .filterNot { index -> index == targetIndex }
             return queueState.copy(
                 currentIndex = targetIndex,
                 shuffleHistory = queueState.shuffleHistory.dropLast(1),
-                shuffleRemaining = (queueState.shuffleRemaining + queueState.currentIndex).distinct(),
+                shuffleRemaining = rebuiltRemaining,
             )
         }
         val history: List<Int> = queueState.currentIndex.takeIf { index -> index >= 0 }?.let { index ->

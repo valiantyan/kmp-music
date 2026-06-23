@@ -9,6 +9,7 @@ import com.yanhao.kmpmusic.domain.model.PlaybackErrorType
 import com.yanhao.kmpmusic.domain.model.PlaybackMode
 import com.yanhao.kmpmusic.domain.model.PlaybackStatus
 import com.yanhao.kmpmusic.domain.model.Song
+import com.yanhao.kmpmusic.domain.persistence.InMemoryPlaybackSnapshotStore
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
@@ -31,6 +32,7 @@ class PlaybackCoordinatorTest {
         val coordinator = PlaybackCoordinator(
             playbackRepository = repository,
             audioPlayerEngine = engine,
+            snapshotWriteScope = backgroundScope,
         )
         val songs = buildSongs(count = 5)
 
@@ -40,6 +42,26 @@ class PlaybackCoordinatorTest {
         assertEquals(expected = songs.map { song -> song.id }, actual = queue.songIds)
         assertEquals(expected = 2, actual = queue.currentIndex)
         assertEquals(expected = songs[2].id, actual = repository.getPlaybackState().currentSongId)
+    }
+
+    /**
+     * 当点击歌曲不在当前列表里时，应退化为只播放这首歌，而不是误播旧列表首项。
+     */
+    @Test
+    fun playSongFallsBackToSingleSongWhenQueueDoesNotContainTarget(): Unit = runTest {
+        val repository = InMemoryPlaybackRepository()
+        val coordinator = PlaybackCoordinator(
+            playbackRepository = repository,
+            audioPlayerEngine = FakeAudioPlayerEngine(),
+            snapshotWriteScope = backgroundScope,
+        )
+        val songs = buildSongs(count = 4)
+
+        coordinator.playSong(song = songs[3], queueSongs = songs.take(n = 2))
+
+        assertEquals(expected = listOf(songs[3].id), actual = repository.getQueueState().songIds)
+        assertEquals(expected = 0, actual = repository.getQueueState().currentIndex)
+        assertEquals(expected = songs[3].id, actual = repository.getPlaybackState().currentSongId)
     }
 
     /**
@@ -71,6 +93,7 @@ class PlaybackCoordinatorTest {
         val coordinator = PlaybackCoordinator(
             playbackRepository = repository,
             audioPlayerEngine = FakeAudioPlayerEngine(),
+            snapshotWriteScope = backgroundScope,
         )
         val songs = buildSongs(count = 3)
 
@@ -90,6 +113,7 @@ class PlaybackCoordinatorTest {
         val coordinator = PlaybackCoordinator(
             playbackRepository = repository,
             audioPlayerEngine = FakeAudioPlayerEngine(),
+            snapshotWriteScope = backgroundScope,
         )
         val songs = buildSongs(count = 3)
 
@@ -110,6 +134,7 @@ class PlaybackCoordinatorTest {
         val coordinator = PlaybackCoordinator(
             playbackRepository = repository,
             audioPlayerEngine = FakeAudioPlayerEngine(),
+            snapshotWriteScope = backgroundScope,
             randomIndex = { candidates: List<Int> -> candidates.first() },
         )
         val songs = buildSongs(count = 4)
@@ -126,6 +151,34 @@ class PlaybackCoordinatorTest {
     }
 
     /**
+     * 随机模式回退后再次前进时，待播集合不应把当前歌曲重新抽中。
+     */
+    @Test
+    fun shuffleNextAfterPreviousDoesNotReplayCurrentSong(): Unit = runTest {
+        val repository = InMemoryPlaybackRepository()
+        val coordinator = PlaybackCoordinator(
+            playbackRepository = repository,
+            audioPlayerEngine = FakeAudioPlayerEngine(),
+            snapshotWriteScope = backgroundScope,
+            randomIndex = { candidates: List<Int> ->
+                candidates.find { candidate -> candidate == 1 } ?: candidates.first()
+            },
+        )
+        val songs = buildSongs(count = 3)
+
+        coordinator.playSong(song = songs[0], queueSongs = songs)
+        coordinator.cyclePlaybackMode()
+        coordinator.cyclePlaybackMode()
+        coordinator.moveNext()
+        coordinator.moveNext()
+        coordinator.movePrevious()
+        coordinator.moveNext()
+
+        assertEquals(expected = 0, actual = repository.getQueueState().currentIndex)
+        assertEquals(expected = songs[0].id, actual = repository.getPlaybackState().currentSongId)
+    }
+
+    /**
      * 协调器启动后应把引擎事件持续折返到运行时仓库。
      */
     @Test
@@ -135,6 +188,7 @@ class PlaybackCoordinatorTest {
         val coordinator = PlaybackCoordinator(
             playbackRepository = repository,
             audioPlayerEngine = engine,
+            snapshotWriteScope = backgroundScope,
         )
         val songs = buildSongs(count = 2)
         var updateCount = 0
@@ -153,6 +207,30 @@ class PlaybackCoordinatorTest {
     }
 
     /**
+     * 快照写入不应依赖 [PlaybackCoordinator.start] 先建立事件采集作用域。
+     */
+    @Test
+    fun playSongPersistsSnapshotBeforeStart(): Unit = runTest {
+        val repository = InMemoryPlaybackRepository()
+        val snapshotStore = InMemoryPlaybackSnapshotStore()
+        val coordinator = PlaybackCoordinator(
+            playbackRepository = repository,
+            audioPlayerEngine = FakeAudioPlayerEngine(),
+            playbackSnapshotStore = snapshotStore,
+            snapshotWriteScope = backgroundScope,
+        )
+        val songs = buildSongs(count = 2)
+
+        coordinator.playSong(song = songs[1], queueSongs = songs)
+        advanceUntilIdle()
+
+        val snapshot = snapshotStore.readSnapshot()
+
+        assertEquals(expected = songs[1].id, actual = snapshot?.playbackState?.currentSongId)
+        assertEquals(expected = 1, actual = snapshot?.queueState?.currentIndex)
+    }
+
+    /**
      * 单曲循环同一首连续失败三次后应停止自动重试。
      */
     @Test
@@ -161,6 +239,7 @@ class PlaybackCoordinatorTest {
         val coordinator = PlaybackCoordinator(
             playbackRepository = repository,
             audioPlayerEngine = FakeAudioPlayerEngine(),
+            snapshotWriteScope = backgroundScope,
         )
         val songs = buildSongs(count = 1)
 
@@ -190,6 +269,7 @@ class PlaybackCoordinatorTest {
         val coordinator = PlaybackCoordinator(
             playbackRepository = repository,
             audioPlayerEngine = FakeAudioPlayerEngine(),
+            snapshotWriteScope = backgroundScope,
         )
         val songs = buildSongs(count = 4)
 
