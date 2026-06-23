@@ -25,6 +25,9 @@ class FakeAudioPlayerEngine : AudioPlayerEngine {
     // 当前引擎指向的队列下标。
     private var currentIndex: Int = -1
 
+    // 当前媒体已经推进到的进度，供状态事件保持一致。
+    private var currentPositionMs: Long = 0L
+
     /** 对外暴露确定性事件流。 */
     override val events: SharedFlow<PlaybackEngineEvent> = mutableEvents.asSharedFlow()
 
@@ -36,6 +39,7 @@ class FakeAudioPlayerEngine : AudioPlayerEngine {
     ) {
         queue = items
         currentIndex = startIndex.coerceIn(minimumValue = 0, maximumValue = items.lastIndex)
+        currentPositionMs = startPositionMs
         val media: PlayableMedia? = queue.getOrNull(index = currentIndex)
         if (media == null) {
             emitMissingQueueFailure()
@@ -51,7 +55,7 @@ class FakeAudioPlayerEngine : AudioPlayerEngine {
         mutableEvents.tryEmit(
             PlaybackEngineEvent.StatusChanged(
                 status = PlaybackStatus.Loading,
-                positionMs = startPositionMs,
+                positionMs = currentPositionMs,
                 durationMs = media.durationMs,
             ),
         )
@@ -63,7 +67,7 @@ class FakeAudioPlayerEngine : AudioPlayerEngine {
         mutableEvents.tryEmit(
             PlaybackEngineEvent.StatusChanged(
                 status = PlaybackStatus.Playing,
-                positionMs = 0L,
+                positionMs = currentPositionMs,
                 durationMs = media.durationMs,
             ),
         )
@@ -75,7 +79,7 @@ class FakeAudioPlayerEngine : AudioPlayerEngine {
         mutableEvents.tryEmit(
             PlaybackEngineEvent.StatusChanged(
                 status = PlaybackStatus.Paused,
-                positionMs = 0L,
+                positionMs = currentPositionMs,
                 durationMs = media.durationMs,
             ),
         )
@@ -84,9 +88,10 @@ class FakeAudioPlayerEngine : AudioPlayerEngine {
     /** 对当前媒体发出进度跳转事件。 */
     override fun seekTo(positionMs: Long) {
         val media: PlayableMedia = queue.getOrNull(index = currentIndex) ?: return
+        currentPositionMs = positionMs
         mutableEvents.tryEmit(
             PlaybackEngineEvent.ProgressChanged(
-                positionMs = positionMs,
+                positionMs = currentPositionMs,
                 durationMs = media.durationMs,
             ),
         )
@@ -95,6 +100,7 @@ class FakeAudioPlayerEngine : AudioPlayerEngine {
     /** 对当前媒体发出切歌事件。 */
     override fun skipToIndex(index: Int) {
         currentIndex = index.coerceIn(minimumValue = 0, maximumValue = queue.lastIndex)
+        currentPositionMs = 0L
         val media: PlayableMedia = queue.getOrNull(index = currentIndex) ?: return
         mutableEvents.tryEmit(
             PlaybackEngineEvent.CurrentMediaChanged(
@@ -107,10 +113,11 @@ class FakeAudioPlayerEngine : AudioPlayerEngine {
 
     /** 发出停止后的 idle 事件。 */
     override fun stop() {
+        currentPositionMs = 0L
         mutableEvents.tryEmit(
             PlaybackEngineEvent.StatusChanged(
                 status = PlaybackStatus.Idle,
-                positionMs = 0L,
+                positionMs = currentPositionMs,
                 durationMs = null,
             ),
         )

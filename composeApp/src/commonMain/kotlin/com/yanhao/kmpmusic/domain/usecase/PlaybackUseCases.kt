@@ -79,7 +79,7 @@ class PlaySongUseCaseImpl(
 class TogglePlaybackUseCaseImpl(
     private val playbackRepository: PlaybackRepository,
 ) : TogglePlaybackUseCase {
-    /** 仅切换播放布尔状态，不改变当前歌曲。 */
+    /** 仅在显式可切换的播放态之间转换，避免为其他状态伪造播放开始。 */
     override operator fun invoke(): PlaybackState {
         val currentState: PlaybackState = playbackRepository.getPlaybackState()
         val nextState: PlaybackState = currentState.copy(
@@ -125,9 +125,14 @@ class MoveQueueUseCaseImpl(
 
 // 在旧控制器仍使用 [isPlaying] 的阶段，用显式状态兼容切换语义。
 private fun PlaybackState.toggledStatus(): PlaybackStatus {
-    return if (isPlaying) {
-        PlaybackStatus.Paused
-    } else {
-        PlaybackStatus.Playing
+    return when (status) {
+        PlaybackStatus.Playing -> PlaybackStatus.Paused
+        PlaybackStatus.Paused -> PlaybackStatus.Playing
+        PlaybackStatus.Idle,
+        PlaybackStatus.Loading,
+        PlaybackStatus.Buffering,
+        PlaybackStatus.Ended,
+        PlaybackStatus.Error,
+        -> status
     }
 }

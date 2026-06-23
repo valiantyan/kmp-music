@@ -37,6 +37,14 @@ class PlaybackModelsTest {
     }
 
     @Test
+    fun queueStateDefaultsToLoopAll(): Unit {
+        assertEquals(
+            expected = PlaybackMode.LoopAll,
+            actual = QueueState().playbackMode,
+        )
+    }
+
+    @Test
     fun playableMediaRequiresScannerUri(): Unit {
         val media: PlayableMedia = PlayableMedia(
             songId = "androidMediaStore:42",
