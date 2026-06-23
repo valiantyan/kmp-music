@@ -1,0 +1,7 @@
+interface:
+  display_name: "Compose Scroll Diagnostics"
+  short_description: "手动诊断 Compose 列表卡顿掉帧和重组性能问题"
+  default_prompt: "Use $compose-scroll-performance-diagnostics to diagnose a Compose list jank or recomposition problem before changing code."
+
+policy:
+  allow_implicit_invocation: false

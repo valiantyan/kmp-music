@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
@@ -204,121 +205,132 @@ private fun AppContent(
     onScanLocalMusic: () -> Unit,
 ) {
     val bottomPadding: Dp = getContentBottomPadding(contentBottomSpace = chromeMode.contentBottomSpace)
+    val pagePadding: PaddingValues = PaddingValues(
+        start = scaledDp(MusicDimens.PagePaddingHorizontal),
+        top = scaledDp(MusicDimens.PagePaddingTop),
+        end = scaledDp(MusicDimens.PagePaddingHorizontal),
+        bottom = bottomPadding,
+    )
     val saveableStateHolder = rememberSaveableStateHolder()
     saveableStateHolder.SaveableStateProvider(key = state.navigationState.scrollStateKey) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .statusBarsPadding()
-                .navigationBarsPadding()
-                .verticalScroll(rememberScrollState())
-                .padding(
-                    start = scaledDp(MusicDimens.PagePaddingHorizontal),
-                    top = scaledDp(MusicDimens.PagePaddingTop),
-                    end = scaledDp(MusicDimens.PagePaddingHorizontal),
-                    bottom = bottomPadding,
-                ),
-        ) {
-            when (val secondaryScreen = state.navigationState.secondaryScreen) {
-                null -> RootScreen(
-                    state = state,
-                    controller = controller,
-                    onScanLocalMusic = onScanLocalMusic,
-                )
-                SecondaryScreen.Search -> SearchScreen(
-                    query = state.searchQuery,
-                    scope = state.searchScope,
-                    result = controller.search(),
-                    currentSongId = state.currentSongId,
-                    onBack = controller::navigateBack,
-                    onQuery = controller::setSearchQuery,
-                    onScope = controller::setSearchScope,
-                    onSongOpen = controller::openSong,
-                    onSongPlay = controller::playSong,
-                    onMore = controller::openMore,
-                    onAlbumOpen = controller::openAlbum,
-                    onArtistOpen = controller::openArtist,
-                )
-                SecondaryScreen.Player -> state.currentSong?.let { song ->
-                    PlayerScreen(
-                        song = song,
-                        isPlaying = state.isPlaying,
-                        onBack = controller::navigateBack,
-                        onToggle = controller::togglePlayback,
-                        onPrev = { controller.moveTrack(direction = -1) },
-                        onNext = { controller.moveTrack(direction = 1) },
-                        onLike = controller::toggleFavorite,
-                        onQueue = controller::openQueue,
-                    )
-                } ?: MissingLibraryItemScreen(
-                    title = "暂无播放",
-                    subtitle = "播放一首本地歌曲后会在这里显示。",
-                    onBack = controller::navigateBack,
-                )
-                SecondaryScreen.AlbumDetail -> state.selectedAlbum?.let { album ->
-                    AlbumDetailScreen(
-                        album = album,
-                        songs = state.songs,
-                        currentSongId = state.currentSongId,
-                        onBack = controller::navigateBack,
-                        onSongOpen = controller::openSong,
-                        onSongPlay = controller::playSong,
-                        onMore = controller::openMore,
-                        onLike = controller::toggleFavorite,
-                    )
-                } ?: MissingLibraryItemScreen(
-                    title = "专辑不可用",
-                    onBack = controller::navigateBack,
-                )
-                SecondaryScreen.ArtistDetail -> state.selectedArtist?.let { artist ->
-                    ArtistDetailScreen(
-                        artist = artist,
-                        songs = state.songs,
-                        albums = state.albums,
-                        currentSongId = state.currentSongId,
-                        onBack = controller::navigateBack,
-                        onSongOpen = controller::openSong,
-                        onSongPlay = controller::playSong,
-                        onMore = controller::openMore,
-                        onLike = controller::toggleFavorite,
-                        onAlbumOpen = controller::openAlbum,
-                    )
-                } ?: MissingLibraryItemScreen(
-                    title = "歌手不可用",
-                    onBack = controller::navigateBack,
-                )
-                SecondaryScreen.Settings -> SettingsScreen(
-                    themeMode = state.themeMode,
-                    onThemeMode = controller::setThemeMode,
-                    onBack = controller::navigateBack,
-                    onScan = onScanLocalMusic,
-                    onLocalMusicSources = {
-                        controller.openLocalMusic(section = LocalMusicSection.Sources)
-                    },
-                    onClearCache = controller::openClearCacheDialog,
-                )
-                SecondaryScreen.Login -> LoginScreen(
-                    email = state.email,
-                    isMailSent = state.isMailSent,
-                    onEmail = controller::setEmail,
-                    onSend = controller::sendLoginMail,
-                    onBack = controller::navigateBack,
-                )
-                is SecondaryScreen.LocalMusic -> LocalMusicScreen(
-                    songs = state.songs,
-                    albums = state.albums,
-                    artists = state.artists,
-                    sources = state.localMusicSources,
-                    problems = state.localMusicProblems,
-                    initialSection = secondaryScreen.initialSection,
-                    currentSongId = state.currentSongId,
-                    onBack = controller::navigateBack,
-                    onSongOpen = controller::openSong,
-                    onSongPlay = controller::playSong,
-                    onMore = controller::openMore,
-                    onAlbumOpen = controller::openAlbum,
-                    onArtistOpen = controller::openArtist,
-                )
+        when (val secondaryScreen = state.navigationState.secondaryScreen) {
+            is SecondaryScreen.LocalMusic -> LocalMusicScreen(
+                songs = state.songs,
+                albums = state.albums,
+                artists = state.artists,
+                sources = state.localMusicSources,
+                problems = state.localMusicProblems,
+                initialSection = secondaryScreen.initialSection,
+                currentSongId = state.currentSongId,
+                onBack = controller::navigateBack,
+                onSongOpen = controller::openSong,
+                onSongPlay = controller::playSong,
+                onMore = controller::openMore,
+                onAlbumOpen = controller::openAlbum,
+                onArtistOpen = controller::openArtist,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .statusBarsPadding()
+                    .navigationBarsPadding(),
+                contentPadding = pagePadding,
+            )
+            else -> {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .statusBarsPadding()
+                        .navigationBarsPadding()
+                        .verticalScroll(rememberScrollState())
+                        .padding(pagePadding),
+                ) {
+                    when (secondaryScreen) {
+                        null -> RootScreen(
+                            state = state,
+                            controller = controller,
+                            onScanLocalMusic = onScanLocalMusic,
+                        )
+                        SecondaryScreen.Search -> SearchScreen(
+                            query = state.searchQuery,
+                            scope = state.searchScope,
+                            result = controller.search(),
+                            currentSongId = state.currentSongId,
+                            onBack = controller::navigateBack,
+                            onQuery = controller::setSearchQuery,
+                            onScope = controller::setSearchScope,
+                            onSongOpen = controller::openSong,
+                            onSongPlay = controller::playSong,
+                            onMore = controller::openMore,
+                            onAlbumOpen = controller::openAlbum,
+                            onArtistOpen = controller::openArtist,
+                        )
+                        SecondaryScreen.Player -> state.currentSong?.let { song ->
+                            PlayerScreen(
+                                song = song,
+                                isPlaying = state.isPlaying,
+                                onBack = controller::navigateBack,
+                                onToggle = controller::togglePlayback,
+                                onPrev = { controller.moveTrack(direction = -1) },
+                                onNext = { controller.moveTrack(direction = 1) },
+                                onLike = controller::toggleFavorite,
+                                onQueue = controller::openQueue,
+                            )
+                        } ?: MissingLibraryItemScreen(
+                            title = "暂无播放",
+                            subtitle = "播放一首本地歌曲后会在这里显示。",
+                            onBack = controller::navigateBack,
+                        )
+                        SecondaryScreen.AlbumDetail -> state.selectedAlbum?.let { album ->
+                            AlbumDetailScreen(
+                                album = album,
+                                songs = state.songs,
+                                currentSongId = state.currentSongId,
+                                onBack = controller::navigateBack,
+                                onSongOpen = controller::openSong,
+                                onSongPlay = controller::playSong,
+                                onMore = controller::openMore,
+                                onLike = controller::toggleFavorite,
+                            )
+                        } ?: MissingLibraryItemScreen(
+                            title = "专辑不可用",
+                            onBack = controller::navigateBack,
+                        )
+                        SecondaryScreen.ArtistDetail -> state.selectedArtist?.let { artist ->
+                            ArtistDetailScreen(
+                                artist = artist,
+                                songs = state.songs,
+                                albums = state.albums,
+                                currentSongId = state.currentSongId,
+                                onBack = controller::navigateBack,
+                                onSongOpen = controller::openSong,
+                                onSongPlay = controller::playSong,
+                                onMore = controller::openMore,
+                                onLike = controller::toggleFavorite,
+                                onAlbumOpen = controller::openAlbum,
+                            )
+                        } ?: MissingLibraryItemScreen(
+                            title = "歌手不可用",
+                            onBack = controller::navigateBack,
+                        )
+                        SecondaryScreen.Settings -> SettingsScreen(
+                            themeMode = state.themeMode,
+                            onThemeMode = controller::setThemeMode,
+                            onBack = controller::navigateBack,
+                            onScan = onScanLocalMusic,
+                            onLocalMusicSources = {
+                                controller.openLocalMusic(section = LocalMusicSection.Sources)
+                            },
+                            onClearCache = controller::openClearCacheDialog,
+                        )
+                        SecondaryScreen.Login -> LoginScreen(
+                            email = state.email,
+                            isMailSent = state.isMailSent,
+                            onEmail = controller::setEmail,
+                            onSend = controller::sendLoginMail,
+                            onBack = controller::navigateBack,
+                        )
+                        is SecondaryScreen.LocalMusic -> Unit
+                    }
+                }
             }
         }
     }

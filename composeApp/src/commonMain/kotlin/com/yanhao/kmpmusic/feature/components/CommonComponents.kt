@@ -41,6 +41,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.LastBaseline
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.yanhao.kmpmusic.core.theme.MusicColors
@@ -214,7 +215,9 @@ fun SongRow(
 ) {
     val activeColor: Color = if (isCurrentSong) MusicColors.PlayingRed else MaterialTheme.colorScheme.onBackground
     val secondaryColor: Color = if (isCurrentSong) MusicColors.PlayingRed else MusicColors.Muted
-    val coverSize = scaledDp(if (dense) MusicDimens.DenseSongCoverSize else MusicDimens.SongCoverSize)
+    val coverSize: Dp = scaledDp(if (dense) MusicDimens.DenseSongCoverSize else MusicDimens.SongCoverSize)
+    val coverShape: RoundedCornerShape = RoundedCornerShape(scaledDp(8.dp))
+    val coverShadowElevation: Dp = if (dense) 0.dp else scaledDp(10.dp)
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(scaledDp(if (dense) 9.dp else 12.dp)),
@@ -230,8 +233,18 @@ fun SongRow(
                 contentDescription = "${song.title} 封面",
                 modifier = Modifier
                     .size(coverSize)
-                    .shadow(elevation = scaledDp(10.dp), shape = RoundedCornerShape(scaledDp(8.dp)), clip = false)
-                    .clip(RoundedCornerShape(scaledDp(8.dp))),
+                    .then(
+                        if (coverShadowElevation > 0.dp) {
+                            Modifier.shadow(
+                                elevation = coverShadowElevation,
+                                shape = coverShape,
+                                clip = false,
+                            )
+                        } else {
+                            Modifier
+                        },
+                    )
+                    .clip(coverShape),
                 contentScale = ContentScale.Crop,
             )
             Column(verticalArrangement = Arrangement.spacedBy(scaledDp(4.dp))) {
@@ -256,7 +269,11 @@ fun SongRow(
                     horizontalArrangement = Arrangement.spacedBy(scaledDp(7.dp)),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    PlayingGlyph(color = if (isCurrentSong) MusicColors.PlayingRed else MusicColors.Accent)
+                    Box(modifier = Modifier.width(scaledDp(14.dp)).height(scaledDp(13.dp))) {
+                        if (isCurrentSong) {
+                            PlayingGlyph(color = MusicColors.PlayingRed)
+                        }
+                    }
                     if (isCurrentSong) {
                         Text(text = "播放中", color = MusicColors.PlayingRed, fontSize = scaledSp(12.sp), lineHeight = scaledSp(14.sp), fontWeight = FontWeight.ExtraBold)
                     }

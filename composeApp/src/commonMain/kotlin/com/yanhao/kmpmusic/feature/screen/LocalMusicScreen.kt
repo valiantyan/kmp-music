@@ -1,10 +1,12 @@
 package com.yanhao.kmpmusic.feature.screen
 
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.FilterChip
@@ -50,29 +52,52 @@ fun LocalMusicScreen(
     onMore: (Song) -> Unit,
     onAlbumOpen: (Album) -> Unit,
     onArtistOpen: (Artist) -> Unit,
+    modifier: Modifier = Modifier,
+    contentPadding: PaddingValues = PaddingValues(0.dp),
 ) {
     var section: LocalMusicSection by remember(initialSection) {
         mutableStateOf(value = initialSection)
     }
-    Column(verticalArrangement = Arrangement.spacedBy(scaledDp(18.dp))) {
-        AppHeader(
-            title = "本地音乐",
-            subtitle = "${songs.size} 首可播放歌曲",
-            onBack = onBack,
-        )
-        LocalMusicSectionTabs(
-            selectedSection = section,
-            onSection = { nextSection: LocalMusicSection -> section = nextSection },
-        )
+    LazyColumn(
+        modifier = modifier.fillMaxSize(),
+        contentPadding = contentPadding,
+        verticalArrangement = Arrangement.spacedBy(scaledDp(18.dp)),
+    ) {
+        item(key = "header") {
+            AppHeader(
+                title = "本地音乐",
+                subtitle = "${songs.size} 首可播放歌曲",
+                onBack = onBack,
+            )
+        }
+        item(key = "tabs") {
+            LocalMusicSectionTabs(
+                selectedSection = section,
+                onSection = { nextSection: LocalMusicSection -> section = nextSection },
+            )
+        }
         when (section) {
-            LocalMusicSection.Songs -> SongSection(songs, currentSongId, onSongOpen, onSongPlay, onMore)
-            LocalMusicSection.Albums -> AlbumSection(albums = albums, onAlbumOpen = onAlbumOpen)
-            LocalMusicSection.Artists -> ArtistSection(artists = artists, onArtistOpen = onArtistOpen)
-            LocalMusicSection.Sources -> SourceSection(sources = sources, problems = problems)
+            LocalMusicSection.Songs -> songSectionItems(
+                songs = songs,
+                currentSongId = currentSongId,
+                onSongOpen = onSongOpen,
+                onSongPlay = onSongPlay,
+                onMore = onMore,
+            )
+            LocalMusicSection.Albums -> albumSectionItems(
+                albums = albums,
+                onAlbumOpen = onAlbumOpen,
+            )
+            LocalMusicSection.Artists -> artistSectionItems(
+                artists = artists,
+                onArtistOpen = onArtistOpen,
+            )
+            LocalMusicSection.Sources -> item(key = "sources") {
+                SourceSection(sources = sources, problems = problems)
+            }
         }
     }
 }
-
 // 分段入口使用横向列表，后续扩展平台来源分段时不会挤压页面宽度。
 @Composable
 private fun LocalMusicSectionTabs(
@@ -89,10 +114,8 @@ private fun LocalMusicSectionTabs(
         }
     }
 }
-
-// 渲染全量歌曲列表，复用全局播放中红色规则。
-@Composable
-private fun SongSection(
+// 渲染歌曲条目时只组合可见行，避免真实曲库进入页面时阻塞主线程。
+private fun LazyListScope.songSectionItems(
     songs: List<Song>,
     currentSongId: String?,
     onSongOpen: (Song) -> Unit,
@@ -100,74 +123,80 @@ private fun SongSection(
     onMore: (Song) -> Unit,
 ) {
     if (songs.isEmpty()) {
-        EmptyLocalMusicState(text = "扫描本地音乐后，歌曲会出现在这里。")
+        item(key = "empty-songs") {
+            EmptyLocalMusicState(text = "扫描本地音乐后，歌曲会出现在这里。")
+        }
         return
     }
-    Column(verticalArrangement = Arrangement.spacedBy(scaledDp(14.dp))) {
-        songs.forEach { song ->
-            SongRow(
-                song = song,
-                isCurrentSong = song.id == currentSongId,
-                onOpen = onSongOpen,
-                onPlay = onSongPlay,
-                onMore = onMore,
-                dense = true,
-            )
-        }
+    items(
+        items = songs,
+        key = { song: Song -> song.id },
+        contentType = { "local-song" },
+    ) { song: Song ->
+        SongRow(
+            song = song,
+            isCurrentSong = song.id == currentSongId,
+            onOpen = onSongOpen,
+            onPlay = onSongPlay,
+            onMore = onMore,
+            dense = true,
+        )
     }
 }
-
-// 渲染真实曲库聚合出的专辑。
-@Composable
-private fun AlbumSection(
+// 渲染专辑网格行，保持两列布局并让行级组合按需发生。
+private fun LazyListScope.albumSectionItems(
     albums: List<Album>,
     onAlbumOpen: (Album) -> Unit,
 ) {
     if (albums.isEmpty()) {
-        EmptyLocalMusicState(text = "扫描后会按专辑自动聚合。")
+        item(key = "empty-albums") {
+            EmptyLocalMusicState(text = "扫描后会按专辑自动聚合。")
+        }
         return
     }
-    Column(verticalArrangement = Arrangement.spacedBy(scaledDp(14.dp))) {
-        albums.chunked(size = 2).forEach { rowAlbums ->
-            Row(horizontalArrangement = Arrangement.spacedBy(scaledDp(14.dp))) {
-                rowAlbums.forEach { album ->
-                    AlbumCard(
-                        album = album,
-                        onOpen = onAlbumOpen,
-                        modifier = Modifier.weight(weight = 1f),
-                    )
-                }
-                if (rowAlbums.size == 1) {
-                    Spacer(modifier = Modifier.weight(weight = 1f))
-                }
+    items(
+        items = albums.chunked(size = 2),
+        key = { rowAlbums: List<Album> -> rowAlbums.joinToString(separator = "|") { album: Album -> album.id } },
+        contentType = { "local-album-row" },
+    ) { rowAlbums: List<Album> ->
+        Row(horizontalArrangement = Arrangement.spacedBy(scaledDp(14.dp))) {
+            rowAlbums.forEach { album: Album ->
+                AlbumCard(
+                    album = album,
+                    onOpen = onAlbumOpen,
+                    modifier = Modifier.weight(weight = 1f),
+                )
+            }
+            if (rowAlbums.size == 1) {
+                Spacer(modifier = Modifier.weight(weight = 1f))
             }
         }
     }
 }
-
-// 渲染真实曲库聚合出的歌手。
-@Composable
-private fun ArtistSection(
+// 渲染歌手条目时按 [Artist.id] 复用节点，降低分段切换后的重组成本。
+private fun LazyListScope.artistSectionItems(
     artists: List<Artist>,
     onArtistOpen: (Artist) -> Unit,
 ) {
     if (artists.isEmpty()) {
-        EmptyLocalMusicState(text = "扫描后会按歌手自动聚合。")
+        item(key = "empty-artists") {
+            EmptyLocalMusicState(text = "扫描后会按歌手自动聚合。")
+        }
         return
     }
-    Column(modifier = Modifier.padding(top = scaledDp(4.dp))) {
-        artists.forEach { artist ->
-            ArtistRow(artist = artist, onOpen = onArtistOpen)
-        }
+    items(
+        items = artists,
+        key = { artist: Artist -> artist.id },
+        contentType = { "local-artist" },
+    ) { artist: Artist ->
+        ArtistRow(artist = artist, onOpen = onArtistOpen)
     }
 }
-
 // 本地音乐空态保持轻量，避免在扫描前误导用户已有本地数据。
 @Composable
 private fun EmptyLocalMusicState(text: String) {
     Text(text = text, color = MusicColors.Muted, fontSize = scaledSp(15.sp), fontWeight = FontWeight.SemiBold)
 }
-
 // 本地音乐分段中文名。
 private fun LocalMusicSection.label(): String {
     return when (this) {
