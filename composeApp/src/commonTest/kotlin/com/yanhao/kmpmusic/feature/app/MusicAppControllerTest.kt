@@ -2,6 +2,7 @@ package com.yanhao.kmpmusic.feature.app
 
 import com.yanhao.kmpmusic.data.InMemoryPlaybackRepository
 import com.yanhao.kmpmusic.domain.model.CoverArt
+import com.yanhao.kmpmusic.domain.model.PlaybackMode
 import com.yanhao.kmpmusic.domain.model.LocalMusicScanError
 import com.yanhao.kmpmusic.domain.model.LocalMusicScanErrorType
 import com.yanhao.kmpmusic.domain.model.LocalMusicScanException
@@ -14,6 +15,7 @@ import com.yanhao.kmpmusic.domain.model.SearchScope
 import com.yanhao.kmpmusic.domain.model.Song
 import com.yanhao.kmpmusic.domain.repository.LocalMusicScanner
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -221,6 +223,36 @@ class MusicAppControllerTest {
     }
 
     /**
+     * 从列表点击歌曲时，应把当前列表完整写成播放队列，而不是偷偷回退为单曲队列。
+     */
+    @Test
+    fun playSongUsesProvidedQueueSongs(): Unit = runTest {
+        val controller = MusicAppController(controllerScope = backgroundScope)
+        controller.scanLocalMusic(request = LocalMusicScanRequest.Refresh)
+        val queueSongs = controller.uiState.songs
+        val targetSong = queueSongs[3]
+
+        controller.playSong(song = targetSong, queueSongs = queueSongs)
+
+        assertEquals(expected = queueSongs.map { song -> song.id }, actual = controller.uiState.queueSongIds)
+        assertEquals(expected = targetSong.id, actual = controller.uiState.currentSongId)
+    }
+
+    /**
+     * 播放模式按钮应驱动 UI 状态按顺序反映列表循环、单曲循环和随机播放。
+     */
+    @Test
+    fun cyclePlaybackModeUpdatesUiState(): Unit = runTest {
+        val controller = MusicAppController(controllerScope = backgroundScope)
+
+        assertEquals(expected = PlaybackMode.LoopAll, actual = controller.uiState.playbackMode)
+        controller.cyclePlaybackMode()
+        assertEquals(expected = PlaybackMode.LoopOne, actual = controller.uiState.playbackMode)
+        controller.cyclePlaybackMode()
+        assertEquals(expected = PlaybackMode.Shuffle, actual = controller.uiState.playbackMode)
+    }
+
+    /**
      * 用户播放歌曲后才会写入真实播放历史，重复播放同一首时保持最近一次在最前。
      */
     @Test
@@ -258,8 +290,8 @@ class MusicAppControllerTest {
     fun moveTrackChangesCurrentSong(): Unit = runBlocking {
         val controller = MusicAppController()
         controller.scanLocalMusic(request = LocalMusicScanRequest.Refresh)
-        controller.playSong(song = controller.uiState.songs[0])
-        controller.playSong(song = controller.uiState.songs[1])
+        val queueSongs: List<Song> = controller.uiState.songs.take(n = 2)
+        controller.playSong(song = queueSongs[0], queueSongs = queueSongs)
         val originalSongId: String? = controller.uiState.currentSongId
         controller.moveTrack(direction = 1)
         assertNotEquals(originalSongId, controller.uiState.currentSongId)

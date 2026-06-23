@@ -3,6 +3,7 @@ package com.yanhao.kmpmusic.feature.app
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import com.yanhao.kmpmusic.data.FakeAudioPlayerEngine
 import com.yanhao.kmpmusic.data.FakeLocalMusicScanner
 import com.yanhao.kmpmusic.data.InMemoryFavoritesRepository
 import com.yanhao.kmpmusic.data.InMemoryMusicLibraryRepository
@@ -16,29 +17,32 @@ import com.yanhao.kmpmusic.domain.model.LocalMusicScanException
 import com.yanhao.kmpmusic.domain.model.LocalMusicScanRequest
 import com.yanhao.kmpmusic.domain.model.LocalMusicScanState
 import com.yanhao.kmpmusic.domain.model.LocalMusicScanErrorType
-import com.yanhao.kmpmusic.domain.model.PlaybackStatus
 import com.yanhao.kmpmusic.domain.model.PlaybackState
+import com.yanhao.kmpmusic.domain.model.PlaybackStatus
 import com.yanhao.kmpmusic.domain.model.QueueState
 import com.yanhao.kmpmusic.domain.model.SearchScope
 import com.yanhao.kmpmusic.domain.model.Song
 import com.yanhao.kmpmusic.domain.model.ThemeMode
+import com.yanhao.kmpmusic.domain.persistence.InMemoryPlaybackSnapshotStore
+import com.yanhao.kmpmusic.domain.persistence.PlaybackSnapshotStore
+import com.yanhao.kmpmusic.domain.playback.AudioPlayerEngine
+import com.yanhao.kmpmusic.domain.playback.PlaybackCoordinator
 import com.yanhao.kmpmusic.domain.repository.FavoritesRepository
 import com.yanhao.kmpmusic.domain.repository.LocalMusicScanner
 import com.yanhao.kmpmusic.domain.repository.MusicLibraryRepository
 import com.yanhao.kmpmusic.domain.repository.PlaybackRepository
 import com.yanhao.kmpmusic.domain.repository.UserPreferencesRepository
-import com.yanhao.kmpmusic.domain.usecase.MoveQueueUseCase
-import com.yanhao.kmpmusic.domain.usecase.MoveQueueUseCaseImpl
-import com.yanhao.kmpmusic.domain.usecase.PlaySongUseCase
-import com.yanhao.kmpmusic.domain.usecase.PlaySongUseCaseImpl
 import com.yanhao.kmpmusic.domain.usecase.ScanLocalMusicUseCase
 import com.yanhao.kmpmusic.domain.usecase.ScanLocalMusicUseCaseImpl
 import com.yanhao.kmpmusic.domain.usecase.SearchMusicUseCase
 import com.yanhao.kmpmusic.domain.usecase.SearchMusicUseCaseImpl
 import com.yanhao.kmpmusic.domain.usecase.ToggleFavoriteUseCase
 import com.yanhao.kmpmusic.domain.usecase.ToggleFavoriteUseCaseImpl
-import com.yanhao.kmpmusic.domain.usecase.TogglePlaybackUseCase
-import com.yanhao.kmpmusic.domain.usecase.TogglePlaybackUseCaseImpl
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 
 /**
  * App 状态控制器，替代原型中的 React `useState` 集群。
@@ -47,8 +51,13 @@ class MusicAppController(
     private val musicLibraryRepository: MusicLibraryRepository = InMemoryMusicLibraryRepository(),
     private val localMusicScanner: LocalMusicScanner = FakeLocalMusicScanner(),
     private val playbackRepository: PlaybackRepository = InMemoryPlaybackRepository(),
+    private val audioPlayerEngine: AudioPlayerEngine = FakeAudioPlayerEngine(),
+    private val playbackSnapshotStore: PlaybackSnapshotStore = InMemoryPlaybackSnapshotStore(),
+    private val injectedFavoritesRepository: FavoritesRepository? = null,
     private val userPreferencesRepository: UserPreferencesRepository = InMemoryUserPreferencesRepository(),
     private val permissionSettingsOpener: PermissionSettingsOpener = PermissionSettingsOpener {},
+    private val controllerScope: CoroutineScope = createDefaultControllerScope(),
+    private val nowMillis: () -> Long = { 0L },
 ) {
     // 搜索用例。
     private val searchMusicUseCase: SearchMusicUseCase = SearchMusicUseCaseImpl(
@@ -61,26 +70,22 @@ class MusicAppController(
     // 切换收藏用例。
     private val toggleFavoriteUseCase: ToggleFavoriteUseCase
 
-    // 播放指定歌曲用例。
-    private val playSongUseCase: PlaySongUseCase = PlaySongUseCaseImpl(
-        playbackRepository = playbackRepository,
-    )
-
-    // 切换播放状态用例。
-    private val togglePlaybackUseCase: TogglePlaybackUseCase = TogglePlaybackUseCaseImpl(
-        playbackRepository = playbackRepository,
-    )
-
-    // 队列切歌用例。
-    private val moveQueueUseCase: MoveQueueUseCase = MoveQueueUseCaseImpl(
-        playbackRepository = playbackRepository,
-    )
-
     // 本地扫描用例。
     private val scanLocalMusicUseCase: ScanLocalMusicUseCase = ScanLocalMusicUseCaseImpl(
         localMusicScanner = localMusicScanner,
         musicLibraryRepository = musicLibraryRepository,
     )
+
+    // 播放协调器统一托管运行时播放、队列和快照写入。
+    private val playbackCoordinator: PlaybackCoordinator = PlaybackCoordinator(
+        playbackRepository = playbackRepository,
+        audioPlayerEngine = audioPlayerEngine,
+        playbackSnapshotStore = playbackSnapshotStore,
+        nowMillis = nowMillis,
+    )
+
+    // 播放 UI 刷新观察者，供平台通知或其他宿主订阅共享状态。
+    private var playbackUiObserver: (MusicAppUiState) -> Unit = {}
 
     /**
      * Compose 可观察 UI 状态。
@@ -89,12 +94,28 @@ class MusicAppController(
         private set
 
     init {
-        favoritesRepository = InMemoryFavoritesRepository(
+        playbackCoordinator.start(scope = controllerScope) {
+            syncPlaybackState(playbackState = playbackRepository.getPlaybackState())
+        }
+        favoritesRepository = injectedFavoritesRepository ?: InMemoryFavoritesRepository(
             initialLikedSongIds = uiState.likedSongIds,
         )
         toggleFavoriteUseCase = ToggleFavoriteUseCaseImpl(
             favoritesRepository = favoritesRepository,
         )
+    }
+
+    /**
+     * 注入播放 UI 观察者，让平台宿主能在共享状态变化时刷新通知或系统控件。
+     */
+    fun attachPlaybackUiObserver(observer: (MusicAppUiState) -> Unit) {
+        playbackUiObserver = observer
+        playbackUiObserver(uiState)
+    }
+
+    /** 统一向宿主发布最新播放 UI 状态，避免控制器外部重复读取内部细节。 */
+    private fun publishPlaybackUiState() {
+        playbackUiObserver(uiState)
     }
 
     /** 进入二级页面并隐藏主 Tab。 */
@@ -187,6 +208,17 @@ class MusicAppController(
         }
     }
 
+    /**
+     * 按可用曲库恢复持久化播放快照，并始终以暂停态回填共享 UI。
+     */
+    suspend fun restorePlaybackSnapshot() {
+        val availableIds: Set<String> = uiState.songs.map { song: Song -> song.id }.toSet()
+        val snapshot = playbackSnapshotStore.restoreSnapshot(availableSongIds = availableIds)
+        playbackRepository.savePlaybackState(state = snapshot.playbackState)
+        playbackRepository.saveQueueState(state = snapshot.queueState)
+        syncPlaybackState(playbackState = snapshot.playbackState)
+    }
+
     /** 打开权限设置确认框，由用户选择是否离开 App 进入系统设置。 */
     fun openPermissionSettingsDialog() {
         uiState = uiState.copy(
@@ -216,27 +248,53 @@ class MusicAppController(
     }
 
     /** 播放歌曲但留在当前页面。 */
-    fun playSong(song: Song) {
-        val playbackState: PlaybackState = playSongUseCase(song = song)
-        syncPlaybackState(playbackState = playbackState)
+    fun playSong(song: Song, queueSongs: List<Song> = listOf(song)) {
+        controllerScope.launch(start = CoroutineStart.UNDISPATCHED) {
+            playbackCoordinator.playSong(song = song, queueSongs = queueSongs)
+            syncPlaybackState(playbackState = playbackRepository.getPlaybackState())
+        }
     }
 
     /** 打开播放页并播放歌曲。 */
-    fun openSong(song: Song) {
-        playSong(song = song)
+    fun openSong(song: Song, queueSongs: List<Song> = listOf(song)) {
+        playSong(song = song, queueSongs = queueSongs)
         navigateToSecondary(screen = SecondaryScreen.Player)
     }
 
     /** 切换播放暂停。 */
     fun togglePlayback() {
-        val playbackState: PlaybackState = togglePlaybackUseCase()
-        syncPlaybackState(playbackState = playbackState)
+        playbackCoordinator.togglePlayback()
     }
 
     /** 切换上一首或下一首。 */
     fun moveTrack(direction: Int) {
-        val playbackState: PlaybackState = moveQueueUseCase(direction = direction)
-        syncPlaybackState(playbackState = playbackState)
+        if (direction < 0) {
+            playbackCoordinator.movePrevious()
+            return
+        }
+        playbackCoordinator.moveNext()
+    }
+
+    /** 拖动播放进度时同时更新运行态与持久化快照，避免冷启动回到旧进度。 */
+    fun seekTo(positionMs: Long) {
+        playbackCoordinator.seekTo(positionMs = positionMs)
+        controllerScope.launch {
+            playbackSnapshotStore.saveSnapshot(
+                snapshot = com.yanhao.kmpmusic.domain.model.PlaybackSnapshot(
+                    playbackState = playbackRepository.getPlaybackState().copy(
+                        positionMs = positionMs.coerceAtLeast(minimumValue = 0L),
+                    ),
+                    queueState = playbackRepository.getQueueState(),
+                    updatedAt = nowMillis(),
+                ),
+            )
+        }
+    }
+
+    /** 播放模式按钮只负责触发协调器切换，UI 统一从仓库回读。 */
+    fun cyclePlaybackMode() {
+        playbackCoordinator.cyclePlaybackMode()
+        syncPlaybackState(playbackState = playbackRepository.getPlaybackState())
     }
 
     /** 切换收藏并同步歌曲状态。 */
@@ -251,6 +309,7 @@ class MusicAppController(
             recentSongs = buildRecentSongs(songs = songsWithLikes),
             localSongPreview = songsWithLikes.take(n = 6),
         )
+        publishPlaybackUiState()
     }
 
     /** 打开专辑详情。 */
@@ -325,6 +384,7 @@ class MusicAppController(
         if (uiState.queueSongIds.size <= 1) {
             return
         }
+        val currentQueueState: QueueState = playbackRepository.getQueueState()
         val nextQueueIds: List<String> = uiState.queueSongIds.filterNot { id -> id == songId }
         val nextCurrentSongId: String? = if (songId == uiState.currentSongId) {
             nextQueueIds.first()
@@ -337,19 +397,17 @@ class MusicAppController(
                 currentIndex = nextCurrentSongId?.let { currentSongId ->
                     nextQueueIds.indexOf(element = currentSongId)
                 } ?: -1,
+                playbackMode = currentQueueState.playbackMode,
             ),
         )
         playbackRepository.savePlaybackState(
             state = PlaybackState(
                 currentSongId = nextCurrentSongId,
                 status = PlaybackStatus.Playing,
+                durationMs = uiState.playbackDurationMs,
             ),
         )
-        uiState = uiState.copy(
-            queueSongIds = nextQueueIds,
-            currentSongId = nextCurrentSongId,
-            isPlaying = true,
-        )
+        syncPlaybackState(playbackState = playbackRepository.getPlaybackState())
     }
 
     /** 打开更多操作弹层。 */
@@ -395,24 +453,32 @@ class MusicAppController(
         val snapshot: LibrarySnapshot = musicLibraryRepository.getSnapshot()
         val playbackState: PlaybackState = playbackRepository.getPlaybackState()
         val queueState: QueueState = playbackRepository.getQueueState()
-        val likedSongIds: Set<String> = snapshot.songs.filter { song ->
-            song.isLiked
-        }.map { song ->
-            song.id
-        }.toSet()
+        val initialLikedSongIds: Set<String> = injectedFavoritesRepository?.getLikedSongIds()
+            ?: snapshot.songs.filter { song ->
+                song.isLiked
+            }.map { song ->
+                song.id
+            }.toSet()
+        val songsWithLikes: List<Song> = snapshot.songs.map { song: Song ->
+            song.copy(isLiked = initialLikedSongIds.contains(element = song.id) || song.isLiked)
+        }
         return MusicAppUiState(
-            songs = snapshot.songs,
+            songs = songsWithLikes,
             albums = snapshot.albums,
             artists = snapshot.artists,
-            likedSongIds = likedSongIds,
+            likedSongIds = initialLikedSongIds,
             currentSongId = playbackState.currentSongId,
-            isPlaying = playbackState.isPlaying,
+            playbackStatus = playbackState.status,
+            playbackPositionMs = playbackState.positionMs,
+            playbackDurationMs = playbackState.durationMs,
+            playbackMode = queueState.playbackMode,
+            playbackError = playbackState.error,
             queueSongIds = queueState.songIds,
             libraryStats = snapshot.stats,
             localMusicSources = snapshot.sources,
             localMusicProblems = snapshot.problems,
-            recentSongs = buildRecentSongs(songs = snapshot.songs),
-            localSongPreview = snapshot.songs.take(n = 6),
+            recentSongs = buildRecentSongs(songs = songsWithLikes),
+            localSongPreview = songsWithLikes.take(n = 6),
             scanState = snapshot.scanState,
             themeMode = userPreferencesRepository.getThemeMode(),
         )
@@ -427,12 +493,18 @@ class MusicAppController(
 
     // 同步播放仓库和 UI 状态，避免多个入口各自写状态。
     private fun syncPlaybackState(playbackState: PlaybackState) {
+        val queueState: QueueState = playbackRepository.getQueueState()
         uiState = uiState.copy(
             currentSongId = playbackState.currentSongId,
-            isPlaying = playbackState.isPlaying,
-            queueSongIds = playbackRepository.getQueueState().songIds,
+            playbackStatus = playbackState.status,
+            playbackPositionMs = playbackState.positionMs,
+            playbackDurationMs = playbackState.durationMs,
+            playbackMode = queueState.playbackMode,
+            playbackError = playbackState.error,
+            queueSongIds = queueState.songIds,
             recentSongs = buildRecentSongs(songs = uiState.songs),
         )
+        publishPlaybackUiState()
     }
 
     // 曲库快照是首页、搜索、收藏和我的页的唯一列表来源。
@@ -461,4 +533,9 @@ class MusicAppController(
             .mapNotNull { songId -> songs.firstOrNull { song -> song.id == songId } }
             .take(n = 2)
     }
+}
+
+// 默认控制器作用域只承接共享层异步播放任务，避免强绑到任一平台生命周期对象。
+private fun createDefaultControllerScope(): CoroutineScope {
+    return CoroutineScope(SupervisorJob() + Dispatchers.Default)
 }

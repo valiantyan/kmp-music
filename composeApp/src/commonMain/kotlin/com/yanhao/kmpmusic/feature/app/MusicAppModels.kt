@@ -6,6 +6,9 @@ import com.yanhao.kmpmusic.domain.model.LibraryStats
 import com.yanhao.kmpmusic.domain.model.LocalMusicProblem
 import com.yanhao.kmpmusic.domain.model.LocalMusicScanState
 import com.yanhao.kmpmusic.domain.model.LocalMusicSourceSummary
+import com.yanhao.kmpmusic.domain.model.PlaybackError
+import com.yanhao.kmpmusic.domain.model.PlaybackMode
+import com.yanhao.kmpmusic.domain.model.PlaybackStatus
 import com.yanhao.kmpmusic.domain.model.SearchScope
 import com.yanhao.kmpmusic.domain.model.Song
 import com.yanhao.kmpmusic.domain.model.ThemeMode
@@ -163,7 +166,11 @@ data class MusicAppUiState(
     val artists: List<Artist>,
     val likedSongIds: Set<String>,
     val currentSongId: String?,
-    val isPlaying: Boolean,
+    val playbackStatus: PlaybackStatus,
+    val playbackPositionMs: Long = 0L,
+    val playbackDurationMs: Long? = null,
+    val playbackMode: PlaybackMode = PlaybackMode.LoopAll,
+    val playbackError: PlaybackError? = null,
     val queueSongIds: List<String>,
     val libraryStats: LibraryStats = LibraryStats(),
     val localMusicSources: List<LocalMusicSourceSummary> = emptyList(),
@@ -185,6 +192,12 @@ data class MusicAppUiState(
     val email: String = "",
     val isMailSent: Boolean = false,
 ) {
+    /**
+     * 兼容现有 UI 对播放开关的布尔读取，直到页面逐步迁移到显式播放状态。
+     */
+    val isPlaying: Boolean
+        get() = playbackStatus == PlaybackStatus.Playing
+
     /**
      * 当前播放歌曲，没有真实播放时不显示迷你播放器。
      */

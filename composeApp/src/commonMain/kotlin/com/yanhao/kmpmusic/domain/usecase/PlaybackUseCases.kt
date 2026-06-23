@@ -1,6 +1,7 @@
 package com.yanhao.kmpmusic.domain.usecase
 
 import com.yanhao.kmpmusic.domain.model.PlaybackHistory
+import com.yanhao.kmpmusic.domain.model.PlaybackMode
 import com.yanhao.kmpmusic.domain.model.PlaybackStatus
 import com.yanhao.kmpmusic.domain.model.PlaybackState
 import com.yanhao.kmpmusic.domain.model.QueueState
@@ -12,9 +13,9 @@ import com.yanhao.kmpmusic.domain.repository.PlaybackRepository
  */
 interface PlaySongUseCase {
     /**
-     * 将歌曲设为当前播放，并按需加入队列。
+     * 将歌曲设为当前播放，并把当前列表显式写成播放队列。
      */
-    operator fun invoke(song: Song): PlaybackState
+    operator fun invoke(song: Song, queueSongs: List<Song> = listOf(song)): PlaybackState
 }
 
 /**
@@ -43,22 +44,27 @@ interface MoveQueueUseCase {
 class PlaySongUseCaseImpl(
     private val playbackRepository: PlaybackRepository,
 ) : PlaySongUseCase {
-    /** 播放歌曲并把新歌曲插入队首，保持和原型一致。 */
-    override operator fun invoke(song: Song): PlaybackState {
+    /** 播放歌曲时优先使用当前列表生成显式队列，避免继续沿用过期队列。 */
+    override operator fun invoke(song: Song, queueSongs: List<Song>): PlaybackState {
         val queueState: QueueState = playbackRepository.getQueueState()
-        val nextQueueIds: List<String> = if (queueState.songIds.contains(song.id)) {
-            queueState.songIds
-        } else {
-            listOf(song.id) + queueState.songIds
-        }
+        val currentPlaybackMode: PlaybackMode = queueState.playbackMode
+        val matchingQueueSongs: List<Song> = queueSongs.takeIf { songs: List<Song> ->
+            songs.any { candidate: Song -> candidate.id == song.id }
+        } ?: listOf(song)
+        val nextQueueIds: List<String> = matchingQueueSongs.map { queueSong: Song -> queueSong.id }
+        val nextIndex: Int = nextQueueIds.indexOf(element = song.id).takeIf { index: Int ->
+            index >= 0
+        } ?: 0
         val nextState: PlaybackState = PlaybackState(
             currentSongId = song.id,
             status = PlaybackStatus.Playing,
+            durationMs = song.durationMs,
         )
         playbackRepository.saveQueueState(
             state = QueueState(
                 songIds = nextQueueIds,
-                currentIndex = nextQueueIds.indexOf(element = song.id),
+                currentIndex = nextIndex,
+                playbackMode = currentPlaybackMode,
             ),
         )
         playbackRepository.savePlaybackState(state = nextState)
