@@ -1,6 +1,10 @@
 package com.yanhao.kmpmusic.feature.app
 
 import com.yanhao.kmpmusic.data.InMemoryPlaybackRepository
+import com.yanhao.kmpmusic.domain.model.PlaybackSnapshot
+import com.yanhao.kmpmusic.domain.model.PlaybackState
+import com.yanhao.kmpmusic.domain.model.PlaybackStatus
+import com.yanhao.kmpmusic.domain.model.QueueState
 import com.yanhao.kmpmusic.domain.model.CoverArt
 import com.yanhao.kmpmusic.domain.model.PlaybackMode
 import com.yanhao.kmpmusic.domain.model.LocalMusicScanError
@@ -13,8 +17,14 @@ import com.yanhao.kmpmusic.domain.model.LocalMusicSourceKind
 import com.yanhao.kmpmusic.domain.model.MusicFileMetadata
 import com.yanhao.kmpmusic.domain.model.SearchScope
 import com.yanhao.kmpmusic.domain.model.Song
+import com.yanhao.kmpmusic.domain.persistence.InMemoryPlaybackSnapshotStore
 import com.yanhao.kmpmusic.domain.repository.LocalMusicScanner
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -26,13 +36,14 @@ import kotlin.test.assertTrue
 /**
  * [MusicAppController] 的核心交互测试，覆盖原型迁移后的关键状态规则。
  */
+@OptIn(ExperimentalCoroutinesApi::class)
 class MusicAppControllerTest {
     /**
      * App 启动后不能把 seed 曲库或扫描结果预填成真实播放状态。
      */
     @Test
     fun initialStateHasNoPlaybackBeforeUserAction(): Unit {
-        val controller = MusicAppController()
+        val controller = createController()
         assertNull(controller.uiState.currentSongId)
         assertNull(controller.uiState.currentSong)
         assertFalse(controller.uiState.isPlaying)
@@ -47,7 +58,7 @@ class MusicAppControllerTest {
      */
     @Test
     fun openLocalMusicUsesSecondaryChrome(): Unit {
-        val controller = MusicAppController()
+        val controller = createController()
         controller.openLocalMusic(section = LocalMusicSection.Songs)
         assertEquals(
             expected = SecondaryScreen.LocalMusic(initialSection = LocalMusicSection.Songs),
@@ -64,7 +75,7 @@ class MusicAppControllerTest {
      */
     @Test
     fun openLocalMusicCanStartAtSourcesSection(): Unit {
-        val controller = MusicAppController()
+        val controller = createController()
         controller.openLocalMusic(section = LocalMusicSection.Sources)
         assertEquals(
             expected = SecondaryScreen.LocalMusic(initialSection = LocalMusicSection.Sources),
@@ -77,7 +88,7 @@ class MusicAppControllerTest {
      */
     @Test
     fun scanDoesNotPopulateRecentPlayback(): Unit = runBlocking {
-        val controller = MusicAppController()
+        val controller = createController()
         controller.scanLocalMusic(request = LocalMusicScanRequest.Refresh)
         assertEquals(expected = 8, actual = controller.uiState.songs.size)
         assertEquals(expected = 6, actual = controller.uiState.localSongPreview.size)
@@ -91,7 +102,7 @@ class MusicAppControllerTest {
      */
     @Test
     fun scanPermissionDeniedKeepsLibraryEmpty(): Unit = runBlocking {
-        val controller = MusicAppController(
+        val controller = createController(
             localMusicScanner = PermissionDeniedScanner(),
         )
         controller.scanLocalMusic(request = LocalMusicScanRequest.Refresh)
@@ -110,7 +121,7 @@ class MusicAppControllerTest {
      */
     @Test
     fun scanPermissionPermanentlyDeniedKeepsLibraryEmpty(): Unit = runBlocking {
-        val controller = MusicAppController(
+        val controller = createController(
             localMusicScanner = PermissionPermanentlyDeniedScanner(),
         )
         controller.scanLocalMusic(request = LocalMusicScanRequest.Refresh)
@@ -131,7 +142,7 @@ class MusicAppControllerTest {
     fun scanPermissionPermanentlyDeniedRequiresUserConfirmationBeforeSettings(): Unit = runBlocking {
         val scanner = CountingPermissionPermanentlyDeniedScanner()
         val opener = RecordingPermissionSettingsOpener()
-        val controller = MusicAppController(
+        val controller = createController(
             localMusicScanner = scanner,
             permissionSettingsOpener = opener,
         )
@@ -155,7 +166,7 @@ class MusicAppControllerTest {
      */
     @Test
     fun systemBackClosesPermissionSettingsDialog(): Unit {
-        val controller = MusicAppController()
+        val controller = createController()
         controller.openPermissionSettingsDialog()
         assertTrue(controller.uiState.canHandleSystemBack)
         assertTrue(controller.handleSystemBack())
@@ -167,7 +178,7 @@ class MusicAppControllerTest {
      */
     @Test
     fun scanUsesInjectedScannerData(): Unit = runBlocking {
-        val controller = MusicAppController(
+        val controller = createController(
             localMusicScanner = SingleAndroidSongScanner(),
         )
         controller.scanLocalMusic(request = LocalMusicScanRequest.Refresh)
@@ -181,7 +192,7 @@ class MusicAppControllerTest {
      */
     @Test
     fun playSongAddsRecentPlayback(): Unit = runBlocking {
-        val controller = MusicAppController()
+        val controller = createController()
         controller.scanLocalMusic(request = LocalMusicScanRequest.Refresh)
         val targetSong: Song = controller.uiState.songs.first()
         controller.playSong(song = targetSong)
@@ -196,7 +207,7 @@ class MusicAppControllerTest {
      */
     @Test
     fun secondaryScreenKeepsPreviousRootTab(): Unit {
-        val controller = MusicAppController()
+        val controller = createController()
         controller.navigateToRoot(tab = RootTab.Favorites)
         controller.navigateToSecondary(screen = SecondaryScreen.Search)
         assertFalse(controller.uiState.navigationState.isTopLevel)
@@ -211,7 +222,7 @@ class MusicAppControllerTest {
      */
     @Test
     fun playSongUpdatesPlaybackAndQueue(): Unit = runBlocking {
-        val controller = MusicAppController()
+        val controller = createController()
         controller.scanLocalMusic(request = LocalMusicScanRequest.Refresh)
         val targetSong: Song = controller.uiState.songs.first { song ->
             song.title == "The Best of Me"
@@ -227,7 +238,7 @@ class MusicAppControllerTest {
      */
     @Test
     fun playSongUsesProvidedQueueSongs(): Unit = runTest {
-        val controller = MusicAppController(controllerScope = backgroundScope)
+        val controller = createController(controllerScope = backgroundScope)
         controller.scanLocalMusic(request = LocalMusicScanRequest.Refresh)
         val queueSongs = controller.uiState.songs
         val targetSong = queueSongs[3]
@@ -243,7 +254,7 @@ class MusicAppControllerTest {
      */
     @Test
     fun cyclePlaybackModeUpdatesUiState(): Unit = runTest {
-        val controller = MusicAppController(controllerScope = backgroundScope)
+        val controller = createController(controllerScope = backgroundScope)
 
         assertEquals(expected = PlaybackMode.LoopAll, actual = controller.uiState.playbackMode)
         controller.cyclePlaybackMode()
@@ -258,7 +269,7 @@ class MusicAppControllerTest {
     @Test
     fun playSongRecordsPlaybackHistory(): Unit = runBlocking {
         val playbackRepository = InMemoryPlaybackRepository()
-        val controller = MusicAppController(playbackRepository = playbackRepository)
+        val controller = createController(playbackRepository = playbackRepository)
         controller.scanLocalMusic(request = LocalMusicScanRequest.Refresh)
         val firstSong: Song = controller.uiState.songs.first { song -> song.title == "海边的梦" }
         val secondSong: Song = controller.uiState.songs.first { song -> song.title == "The Best of Me" }
@@ -276,7 +287,7 @@ class MusicAppControllerTest {
      */
     @Test
     fun moveTrackDoesNotUseSongsAsImplicitQueue(): Unit {
-        val controller = MusicAppController()
+        val controller = createController()
         controller.moveTrack(direction = 1)
         assertNull(controller.uiState.currentSongId)
         assertFalse(controller.uiState.isPlaying)
@@ -288,7 +299,7 @@ class MusicAppControllerTest {
      */
     @Test
     fun moveTrackChangesCurrentSong(): Unit = runBlocking {
-        val controller = MusicAppController()
+        val controller = createController()
         controller.scanLocalMusic(request = LocalMusicScanRequest.Refresh)
         val queueSongs: List<Song> = controller.uiState.songs.take(n = 2)
         controller.playSong(song = queueSongs[0], queueSongs = queueSongs)
@@ -299,11 +310,76 @@ class MusicAppControllerTest {
     }
 
     /**
+     * 删除当前歌曲后，下一次切歌应依据剩余队列推进，而不是命中引擎里残留的旧队列。
+     */
+    @Test
+    fun removeCurrentSongKeepsEngineQueueInSync(): Unit = runTest {
+        val controller = createController(controllerScope = backgroundScope)
+        controller.scanLocalMusic(request = LocalMusicScanRequest.Refresh)
+        val queueSongs: List<Song> = controller.uiState.songs.take(n = 3)
+
+        controller.playSong(song = queueSongs[1], queueSongs = queueSongs)
+        controller.removeFromQueue(songId = queueSongs[1].id)
+        assertEquals(expected = queueSongs[0].id, actual = controller.uiState.currentSongId)
+        assertEquals(
+            expected = listOf(queueSongs[0].id, queueSongs[2].id),
+            actual = controller.uiState.queueSongIds,
+        )
+
+        controller.moveTrack(direction = 1)
+
+        assertEquals(expected = queueSongs[2].id, actual = controller.uiState.currentSongId)
+    }
+
+    /**
+     * 恢复暂停快照后再次点击播放，应能直接从恢复的进度继续。
+     */
+    @Test
+    fun restorePlaybackSnapshotAllowsResume(): Unit = runTest {
+        val snapshotStore = InMemoryPlaybackSnapshotStore()
+        val controller = createController(
+            playbackSnapshotStore = snapshotStore,
+            controllerScope = backgroundScope,
+        )
+        controller.scanLocalMusic(request = LocalMusicScanRequest.Refresh)
+        val queueSongs: List<Song> = controller.uiState.songs.take(n = 3)
+        val restoredSong: Song = queueSongs[1]
+        snapshotStore.saveSnapshot(
+            snapshot = PlaybackSnapshot(
+                playbackState = PlaybackState(
+                    currentSongId = restoredSong.id,
+                    status = PlaybackStatus.Playing,
+                    positionMs = 42_000L,
+                    durationMs = restoredSong.durationMs,
+                ),
+                queueState = QueueState(
+                    songIds = queueSongs.map { song -> song.id },
+                    currentIndex = 1,
+                    playbackMode = PlaybackMode.LoopAll,
+                ),
+            ),
+        )
+
+        controller.restorePlaybackSnapshot()
+
+        assertEquals(expected = restoredSong.id, actual = controller.uiState.currentSongId)
+        assertEquals(expected = PlaybackStatus.Paused, actual = controller.uiState.playbackStatus)
+        assertEquals(expected = 42_000L, actual = controller.uiState.playbackPositionMs)
+
+        controller.togglePlayback()
+        advanceUntilIdle()
+
+        assertEquals(expected = PlaybackStatus.Playing, actual = controller.uiState.playbackStatus)
+        assertEquals(expected = restoredSong.id, actual = controller.uiState.currentSongId)
+        assertEquals(expected = 42_000L, actual = controller.uiState.playbackPositionMs)
+    }
+
+    /**
      * 收藏状态应同时同步到集合和歌曲列表。
      */
     @Test
     fun toggleFavoriteSyncsSongList(): Unit = runBlocking {
-        val controller = MusicAppController()
+        val controller = createController()
         controller.scanLocalMusic(request = LocalMusicScanRequest.Refresh)
         val targetSong: Song = controller.uiState.songs.first { song -> song.title == "Summer Waltz" }
         controller.toggleFavorite(songId = targetSong.id)
@@ -316,7 +392,7 @@ class MusicAppControllerTest {
      */
     @Test
     fun searchScopeLimitsResultTypes(): Unit = runBlocking {
-        val controller = MusicAppController()
+        val controller = createController()
         controller.scanLocalMusic(request = LocalMusicScanRequest.Refresh)
         controller.setSearchQuery(query = "旅行团")
         controller.setSearchScope(scope = SearchScope.Songs)
@@ -331,7 +407,7 @@ class MusicAppControllerTest {
      */
     @Test
     fun searchReadsScannedSnapshot(): Unit = runBlocking {
-        val controller = MusicAppController()
+        val controller = createController()
         controller.scanLocalMusic(request = LocalMusicScanRequest.Refresh)
         controller.setSearchQuery(query = "One Summer")
         controller.setSearchScope(scope = SearchScope.Songs)
@@ -346,7 +422,7 @@ class MusicAppControllerTest {
      */
     @Test
     fun libraryStatsComeFromScannedSnapshot(): Unit = runBlocking {
-        val controller = MusicAppController()
+        val controller = createController()
         controller.scanLocalMusic(request = LocalMusicScanRequest.Refresh)
         assertEquals(expected = 8, actual = controller.uiState.libraryStats.songCount)
         assertEquals(
@@ -364,7 +440,7 @@ class MusicAppControllerTest {
      */
     @Test
     fun rootNavigationClearsSecondaryScreen(): Unit {
-        val controller = MusicAppController()
+        val controller = createController()
         controller.navigateToSecondary(screen = SecondaryScreen.Player)
         controller.navigateToRoot(tab = RootTab.Me)
         assertNull(controller.uiState.navigationState.secondaryScreen)
@@ -376,7 +452,7 @@ class MusicAppControllerTest {
      */
     @Test
     fun rootScrollStateKeyStaysStableAfterSecondaryReturn(): Unit {
-        val controller = MusicAppController()
+        val controller = createController()
         val rootKey: String = controller.uiState.navigationState.scrollStateKey
         controller.navigateToSecondary(screen = SecondaryScreen.AlbumDetail)
         assertNotEquals(rootKey, controller.uiState.navigationState.scrollStateKey)
@@ -389,7 +465,7 @@ class MusicAppControllerTest {
      */
     @Test
     fun secondaryScrollStateKeyChangesForEachEntry(): Unit {
-        val controller = MusicAppController()
+        val controller = createController()
         controller.navigateToSecondary(screen = SecondaryScreen.AlbumDetail)
         val firstSecondaryKey: String = controller.uiState.navigationState.scrollStateKey
         controller.navigateBack()
@@ -402,7 +478,7 @@ class MusicAppControllerTest {
      */
     @Test
     fun systemBackReturnsFromSecondaryScreen(): Unit = runBlocking {
-        val controller = MusicAppController()
+        val controller = createController()
         controller.scanLocalMusic(request = LocalMusicScanRequest.Refresh)
         controller.navigateToRoot(tab = RootTab.Favorites)
         controller.navigateToSecondary(screen = SecondaryScreen.AlbumDetail)
@@ -419,7 +495,7 @@ class MusicAppControllerTest {
      */
     @Test
     fun systemBackClosesOverlayBeforeSecondaryScreen(): Unit {
-        val controller = MusicAppController()
+        val controller = createController()
         controller.navigateToSecondary(screen = SecondaryScreen.AlbumDetail)
         controller.openQueue()
         assertTrue(controller.handleSystemBack())
@@ -434,7 +510,7 @@ class MusicAppControllerTest {
      */
     @Test
     fun navigationStateProvidesChromeMode(): Unit {
-        val controller = MusicAppController()
+        val controller = createController()
         assertEquals(AppChromeMode.TopLevel, controller.uiState.navigationState.chromeMode)
         assertTrue(controller.uiState.navigationState.chromeMode.showsBottomNavigation)
         assertEquals(BottomChromePlacement.TopLevel, controller.uiState.navigationState.chromeMode.bottomChromePlacement)
@@ -453,6 +529,32 @@ class MusicAppControllerTest {
         controller.navigateToSecondary(screen = SecondaryScreen.Settings)
         assertEquals(AppChromeMode.SecondaryFullscreen, controller.uiState.navigationState.chromeMode)
         assertEquals(BottomChromePlacement.Hidden, controller.uiState.navigationState.chromeMode.bottomChromePlacement)
+    }
+}
+
+private fun createController(
+    localMusicScanner: LocalMusicScanner = FakeControllerLocalMusicScanner,
+    playbackRepository: InMemoryPlaybackRepository = InMemoryPlaybackRepository(),
+    playbackSnapshotStore: InMemoryPlaybackSnapshotStore = InMemoryPlaybackSnapshotStore(),
+    permissionSettingsOpener: PermissionSettingsOpener = PermissionSettingsOpener {},
+    controllerScope: CoroutineScope = testControllerScope(),
+): MusicAppController {
+    return MusicAppController(
+        localMusicScanner = localMusicScanner,
+        playbackRepository = playbackRepository,
+        playbackSnapshotStore = playbackSnapshotStore,
+        permissionSettingsOpener = permissionSettingsOpener,
+        controllerScope = controllerScope,
+    )
+}
+
+private fun testControllerScope(): CoroutineScope {
+    return CoroutineScope(SupervisorJob() + Dispatchers.Unconfined)
+}
+
+private object FakeControllerLocalMusicScanner : LocalMusicScanner {
+    override suspend fun scan(request: LocalMusicScanRequest): LocalMusicScanResult {
+        return com.yanhao.kmpmusic.data.FakeLocalMusicScanner().scan(request = request)
     }
 }
 

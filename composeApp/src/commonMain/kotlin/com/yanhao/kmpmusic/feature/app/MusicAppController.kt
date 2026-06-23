@@ -40,8 +40,6 @@ import com.yanhao.kmpmusic.domain.usecase.ToggleFavoriteUseCase
 import com.yanhao.kmpmusic.domain.usecase.ToggleFavoriteUseCaseImpl
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 
 /**
@@ -56,7 +54,7 @@ class MusicAppController(
     private val injectedFavoritesRepository: FavoritesRepository? = null,
     private val userPreferencesRepository: UserPreferencesRepository = InMemoryUserPreferencesRepository(),
     private val permissionSettingsOpener: PermissionSettingsOpener = PermissionSettingsOpener {},
-    private val controllerScope: CoroutineScope = createDefaultControllerScope(),
+    private val controllerScope: CoroutineScope,
     private val nowMillis: () -> Long = { 0L },
 ) {
     // 搜索用例。
@@ -212,11 +210,7 @@ class MusicAppController(
      * 按可用曲库恢复持久化播放快照，并始终以暂停态回填共享 UI。
      */
     suspend fun restorePlaybackSnapshot() {
-        val availableIds: Set<String> = uiState.songs.map { song: Song -> song.id }.toSet()
-        val snapshot = playbackSnapshotStore.restoreSnapshot(availableSongIds = availableIds)
-        playbackRepository.savePlaybackState(state = snapshot.playbackState)
-        playbackRepository.saveQueueState(state = snapshot.queueState)
-        syncPlaybackState(playbackState = snapshot.playbackState)
+        playbackCoordinator.restoreSnapshot(availableSongs = uiState.songs)
     }
 
     /** 打开权限设置确认框，由用户选择是否离开 App 进入系统设置。 */
@@ -251,7 +245,6 @@ class MusicAppController(
     fun playSong(song: Song, queueSongs: List<Song> = listOf(song)) {
         controllerScope.launch(start = CoroutineStart.UNDISPATCHED) {
             playbackCoordinator.playSong(song = song, queueSongs = queueSongs)
-            syncPlaybackState(playbackState = playbackRepository.getPlaybackState())
         }
     }
 
@@ -294,7 +287,6 @@ class MusicAppController(
     /** 播放模式按钮只负责触发协调器切换，UI 统一从仓库回读。 */
     fun cyclePlaybackMode() {
         playbackCoordinator.cyclePlaybackMode()
-        syncPlaybackState(playbackState = playbackRepository.getPlaybackState())
     }
 
     /** 切换收藏并同步歌曲状态。 */
@@ -381,33 +373,12 @@ class MusicAppController(
 
     /** 从队列移除歌曲，至少保留一首。 */
     fun removeFromQueue(songId: String) {
-        if (uiState.queueSongIds.size <= 1) {
-            return
+        controllerScope.launch(start = CoroutineStart.UNDISPATCHED) {
+            playbackCoordinator.removeFromQueue(
+                songId = songId,
+                availableSongs = uiState.songs,
+            )
         }
-        val currentQueueState: QueueState = playbackRepository.getQueueState()
-        val nextQueueIds: List<String> = uiState.queueSongIds.filterNot { id -> id == songId }
-        val nextCurrentSongId: String? = if (songId == uiState.currentSongId) {
-            nextQueueIds.first()
-        } else {
-            uiState.currentSongId
-        }
-        playbackRepository.saveQueueState(
-            state = QueueState(
-                songIds = nextQueueIds,
-                currentIndex = nextCurrentSongId?.let { currentSongId ->
-                    nextQueueIds.indexOf(element = currentSongId)
-                } ?: -1,
-                playbackMode = currentQueueState.playbackMode,
-            ),
-        )
-        playbackRepository.savePlaybackState(
-            state = PlaybackState(
-                currentSongId = nextCurrentSongId,
-                status = PlaybackStatus.Playing,
-                durationMs = uiState.playbackDurationMs,
-            ),
-        )
-        syncPlaybackState(playbackState = playbackRepository.getPlaybackState())
     }
 
     /** 打开更多操作弹层。 */
@@ -533,9 +504,4 @@ class MusicAppController(
             .mapNotNull { songId -> songs.firstOrNull { song -> song.id == songId } }
             .take(n = 2)
     }
-}
-
-// 默认控制器作用域只承接共享层异步播放任务，避免强绑到任一平台生命周期对象。
-private fun createDefaultControllerScope(): CoroutineScope {
-    return CoroutineScope(SupervisorJob() + Dispatchers.Default)
 }

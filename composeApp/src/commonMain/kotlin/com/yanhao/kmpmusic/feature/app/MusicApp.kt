@@ -113,7 +113,7 @@ private const val BOTTOM_CHROME_HIDDEN_TRANSITION_MILLIS = 500
  */
 @Composable
 fun MusicApp(
-    controller: MusicAppController = remember { MusicAppController() },
+    controller: MusicAppController,
 ) {
     val state: MusicAppUiState = controller.uiState
     val coroutineScope = rememberCoroutineScope()

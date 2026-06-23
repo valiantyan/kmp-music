@@ -7,7 +7,10 @@ import com.yanhao.kmpmusic.domain.model.LocalMusicSourceKind
 import com.yanhao.kmpmusic.domain.model.PlaybackError
 import com.yanhao.kmpmusic.domain.model.PlaybackErrorType
 import com.yanhao.kmpmusic.domain.model.PlaybackMode
+import com.yanhao.kmpmusic.domain.model.PlaybackSnapshot
+import com.yanhao.kmpmusic.domain.model.PlaybackState
 import com.yanhao.kmpmusic.domain.model.PlaybackStatus
+import com.yanhao.kmpmusic.domain.model.QueueState
 import com.yanhao.kmpmusic.domain.model.Song
 import com.yanhao.kmpmusic.domain.persistence.InMemoryPlaybackSnapshotStore
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -230,6 +233,54 @@ class PlaybackCoordinatorTest {
 
         assertEquals(expected = songs[1].id, actual = snapshot.playbackState.currentSongId)
         assertEquals(expected = 1, actual = snapshot.queueState.currentIndex)
+    }
+
+    /**
+     * 恢复后的暂停快照应先把引擎预热到同一队列，再允许 toggle 直接继续播放。
+     */
+    @Test
+    fun restoreSnapshotPrimesEngineForResume(): Unit = runTest {
+        val repository = InMemoryPlaybackRepository()
+        val snapshotStore = InMemoryPlaybackSnapshotStore()
+        val engine = FakeAudioPlayerEngine()
+        val coordinator = PlaybackCoordinator(
+            playbackRepository = repository,
+            audioPlayerEngine = engine,
+            playbackSnapshotStore = snapshotStore,
+            snapshotWriteScope = backgroundScope,
+        )
+        val songs = buildSongs(count = 3)
+        val restoredSong = songs[1]
+        snapshotStore.saveSnapshot(
+            snapshot = PlaybackSnapshot(
+                playbackState = PlaybackState(
+                    currentSongId = restoredSong.id,
+                    status = PlaybackStatus.Playing,
+                    positionMs = 18_000L,
+                    durationMs = restoredSong.durationMs,
+                ),
+                queueState = QueueState(
+                    songIds = songs.map { song -> song.id },
+                    currentIndex = 1,
+                    playbackMode = PlaybackMode.LoopAll,
+                ),
+            ),
+        )
+
+        coordinator.start(scope = backgroundScope)
+        coordinator.restoreSnapshot(availableSongs = songs)
+        advanceUntilIdle()
+
+        assertEquals(expected = PlaybackStatus.Paused, actual = repository.getPlaybackState().status)
+        assertEquals(expected = restoredSong.id, actual = repository.getPlaybackState().currentSongId)
+        assertEquals(expected = 18_000L, actual = repository.getPlaybackState().positionMs)
+
+        coordinator.togglePlayback()
+        advanceUntilIdle()
+
+        assertEquals(expected = PlaybackStatus.Playing, actual = repository.getPlaybackState().status)
+        assertEquals(expected = restoredSong.id, actual = repository.getPlaybackState().currentSongId)
+        assertEquals(expected = 18_000L, actual = repository.getPlaybackState().positionMs)
     }
 
     /**

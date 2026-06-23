@@ -118,6 +118,58 @@ class PlaybackCoordinator(
     }
 
     /**
+     * 冷启动恢复最近一次快照，并把引擎预热到相同队列与进度，最终停在暂停态。
+     */
+    suspend fun restoreSnapshot(availableSongs: List<Song>) {
+        val snapshot: PlaybackSnapshot = playbackSnapshotStore.restoreSnapshot(
+            availableSongIds = availableSongs.map { song -> song.id }.toSet(),
+        )
+        val songsById: Map<String, Song> = availableSongs.associateBy { song -> song.id }
+        val restoredQueueSongs: List<Song> = snapshot.queueState.songIds.mapNotNull { songId ->
+            songsById[songId]
+        }
+        if (restoredQueueSongs.isEmpty()) {
+            playbackRepository.saveQueueState(state = QueueState())
+            playbackRepository.savePlaybackState(state = PlaybackState())
+            saveSnapshotNow()
+            onStateChanged()
+            audioPlayerEngine.stop()
+            return
+        }
+        val restoredIndex: Int = snapshot.queueState.currentIndex.coerceIn(
+            minimumValue = 0,
+            maximumValue = restoredQueueSongs.lastIndex,
+        )
+        val restoredSong: Song = restoredQueueSongs[restoredIndex]
+        val restoredQueueState: QueueState = snapshot.queueState.copy(
+            songIds = restoredQueueSongs.map { song -> song.id },
+            currentIndex = restoredIndex,
+            shuffleHistory = emptyList(),
+            shuffleRemaining = buildInitialShuffleRemaining(
+                playbackMode = snapshot.queueState.playbackMode,
+                queueSize = restoredQueueSongs.size,
+                currentIndex = restoredIndex,
+            ),
+        )
+        val restoredPlaybackState: PlaybackState = snapshot.playbackState.copy(
+            currentSongId = restoredSong.id,
+            status = PlaybackStatus.Paused,
+            durationMs = restoredSong.durationMs,
+            error = null,
+        )
+        playbackRepository.saveQueueState(state = restoredQueueState)
+        playbackRepository.savePlaybackState(state = restoredPlaybackState)
+        saveSnapshotNow()
+        onStateChanged()
+        audioPlayerEngine.setQueue(
+            items = restoredQueueSongs.map { song -> song.toPlayableMedia() },
+            startIndex = restoredIndex,
+            startPositionMs = restoredPlaybackState.positionMs,
+        )
+        audioPlayerEngine.pause()
+    }
+
+    /**
      * 在播放与暂停间切换，其他状态交给引擎自行校正。
      */
     fun togglePlayback() {
@@ -194,6 +246,76 @@ class PlaybackCoordinator(
         )
         saveSnapshotNow()
         onStateChanged()
+    }
+
+    /**
+     * 从当前播放队列移除指定歌曲，并同步替换引擎里的真实队列。
+     */
+    suspend fun removeFromQueue(songId: String, availableSongs: List<Song>) {
+        val queueState: QueueState = playbackRepository.getQueueState()
+        if (queueState.songIds.size <= 1 || songId !in queueState.songIds) {
+            return
+        }
+        val playbackState: PlaybackState = playbackRepository.getPlaybackState()
+        val songsById: Map<String, Song> = availableSongs.associateBy { song -> song.id }
+        val nextQueueSongs: List<Song> = queueState.songIds
+            .filterNot { queuedSongId -> queuedSongId == songId }
+            .mapNotNull { queuedSongId -> songsById[queuedSongId] }
+        if (nextQueueSongs.isEmpty()) {
+            playbackRepository.saveQueueState(state = QueueState())
+            playbackRepository.savePlaybackState(state = PlaybackState())
+            saveSnapshotNow()
+            onStateChanged()
+            audioPlayerEngine.stop()
+            return
+        }
+        val currentSongWasRemoved: Boolean = playbackState.currentSongId == songId
+        val nextCurrentSongId: String = if (currentSongWasRemoved) {
+            nextQueueSongs.first().id
+        } else {
+            playbackState.currentSongId?.takeIf { currentSongId ->
+                nextQueueSongs.any { song -> song.id == currentSongId }
+            } ?: nextQueueSongs.first().id
+        }
+        val nextCurrentIndex: Int = nextQueueSongs.indexOfFirst { song ->
+            song.id == nextCurrentSongId
+        }.coerceAtLeast(minimumValue = 0)
+        val nextCurrentSong: Song = nextQueueSongs[nextCurrentIndex]
+        val shouldResumePlayback: Boolean = playbackState.status == PlaybackStatus.Playing ||
+            playbackState.status == PlaybackStatus.Loading
+        playbackRepository.saveQueueState(
+            state = queueState.copy(
+                songIds = nextQueueSongs.map { song -> song.id },
+                currentIndex = nextCurrentIndex,
+                shuffleHistory = emptyList(),
+                shuffleRemaining = buildInitialShuffleRemaining(
+                    playbackMode = queueState.playbackMode,
+                    queueSize = nextQueueSongs.size,
+                    currentIndex = nextCurrentIndex,
+                ),
+            ),
+        )
+        playbackRepository.savePlaybackState(
+            state = playbackState.copy(
+                currentSongId = nextCurrentSong.id,
+                status = if (shouldResumePlayback) PlaybackStatus.Loading else PlaybackStatus.Paused,
+                positionMs = if (currentSongWasRemoved) 0L else playbackState.positionMs,
+                durationMs = nextCurrentSong.durationMs,
+                error = null,
+            ),
+        )
+        saveSnapshotNow()
+        onStateChanged()
+        audioPlayerEngine.setQueue(
+            items = nextQueueSongs.map { song -> song.toPlayableMedia() },
+            startIndex = nextCurrentIndex,
+            startPositionMs = playbackRepository.getPlaybackState().positionMs,
+        )
+        if (shouldResumePlayback) {
+            audioPlayerEngine.play()
+            return
+        }
+        audioPlayerEngine.pause()
     }
 
     /**

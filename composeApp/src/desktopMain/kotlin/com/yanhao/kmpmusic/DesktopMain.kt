@@ -1,6 +1,7 @@
 package com.yanhao.kmpmusic
 
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.WindowState
 import androidx.compose.ui.window.application
@@ -17,8 +18,12 @@ fun main() = application {
         title = "KMP Music",
         state = WindowState(width = 430.dp, height = 930.dp),
     ) {
-        val controller: MusicAppController = remember {
-            MusicAppController(localMusicScanner = DesktopFolderMusicScanner())
+        val controllerScope = rememberCoroutineScope()
+        val controller: MusicAppController = remember(controllerScope) {
+            MusicAppController(
+                localMusicScanner = DesktopFolderMusicScanner(),
+                controllerScope = controllerScope,
+            )
         }
         App(controller = controller)
     }

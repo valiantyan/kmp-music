@@ -1,6 +1,7 @@
 package com.yanhao.kmpmusic
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import com.yanhao.kmpmusic.domain.model.LocalMusicScanError
 import com.yanhao.kmpmusic.domain.model.LocalMusicScanErrorType
 import com.yanhao.kmpmusic.domain.model.LocalMusicScanException
@@ -27,6 +28,7 @@ class MusicAppViewModel : ViewModel() {
     val controller: MusicAppController = MusicAppController(
         localMusicScanner = localMusicScanner,
         permissionSettingsOpener = permissionSettingsOpener,
+        controllerScope = viewModelScope,
     )
 
     /**

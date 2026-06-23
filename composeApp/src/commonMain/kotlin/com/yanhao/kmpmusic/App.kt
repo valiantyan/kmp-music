@@ -2,6 +2,7 @@ package com.yanhao.kmpmusic
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import com.yanhao.kmpmusic.feature.app.MusicApp
 import com.yanhao.kmpmusic.feature.app.MusicAppController
 
@@ -12,6 +13,9 @@ import com.yanhao.kmpmusic.feature.app.MusicAppController
 fun App(
     controller: MusicAppController? = null,
 ) {
-    val appController: MusicAppController = controller ?: remember { MusicAppController() }
+    val controllerScope = rememberCoroutineScope()
+    val appController: MusicAppController = controller ?: remember(controllerScope) {
+        MusicAppController(controllerScope = controllerScope)
+    }
     MusicApp(controller = appController)
 }
