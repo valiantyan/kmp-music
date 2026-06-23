@@ -4,6 +4,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -108,7 +109,7 @@ fun PlayerScreen(
             )
         }
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-            IconButton(onClick = {}) { Icon(Icons.Rounded.Shuffle, contentDescription = "随机播放") }
+            Spacer(modifier = Modifier.size(48.dp))
             IconButton(onClick = onPrev) { Icon(Icons.Rounded.SkipPrevious, contentDescription = "上一首") }
             Surface(shape = androidx.compose.foundation.shape.CircleShape, color = MaterialTheme.colorScheme.onBackground) {
                 IconButton(onClick = onToggle, modifier = Modifier.size(68.dp)) {

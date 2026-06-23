@@ -93,8 +93,8 @@ fun SearchScreen(
                     SongRow(
                         song = song,
                         isCurrentSong = song.id == currentSongId,
-                        onOpen = { selectedSong: Song -> onSongOpen(selectedSong, displayedSongs) },
-                        onPlay = { selectedSong: Song -> onSongPlay(selectedSong, displayedSongs) },
+                        onOpen = { selectedSong: Song -> onSongOpen(selectedSong, result.songs) },
+                        onPlay = { selectedSong: Song -> onSongPlay(selectedSong, result.songs) },
                         onMore = onMore,
                         dense = true,
                     )
