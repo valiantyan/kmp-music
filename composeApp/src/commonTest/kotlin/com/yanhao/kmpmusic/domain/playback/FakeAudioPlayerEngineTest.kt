@@ -3,6 +3,8 @@ package com.yanhao.kmpmusic.domain.playback
 import com.yanhao.kmpmusic.data.FakeAudioPlayerEngine
 import com.yanhao.kmpmusic.domain.model.CoverArt
 import com.yanhao.kmpmusic.domain.model.PlayableMedia
+import com.yanhao.kmpmusic.domain.model.PlaybackError
+import com.yanhao.kmpmusic.domain.model.PlaybackErrorType
 import com.yanhao.kmpmusic.domain.model.PlaybackStatus
 import kotlinx.coroutines.async
 import kotlinx.coroutines.runBlocking
@@ -92,6 +94,58 @@ class FakeAudioPlayerEngineTest {
                 durationMs = 180_000L,
             ),
             actual = events[3],
+        )
+    }
+
+    /**
+     * 空队列调用 [setQueue] 时，应该稳定回传失败事件而不是抛出异常。
+     */
+    @Test
+    fun emptySetQueueEmitsFailure(): Unit = runBlocking {
+        val engine = FakeAudioPlayerEngine()
+        val eventsDeferred = async {
+            engine.events.take(count = 1).toList()
+        }
+        yield()
+        engine.setQueue(
+            items = emptyList(),
+            startIndex = 0,
+            startPositionMs = 0L,
+        )
+        val events: List<PlaybackEngineEvent> = eventsDeferred.await()
+        assertEquals(
+            expected = PlaybackEngineEvent.Failed(
+                error = PlaybackError(
+                    type = PlaybackErrorType.MissingFile,
+                    songId = null,
+                    message = "播放队列为空",
+                ),
+            ),
+            actual = events.single(),
+        )
+    }
+
+    /**
+     * 空队列调用 [skipToIndex] 时，应该稳定回传失败事件而不是抛出异常。
+     */
+    @Test
+    fun emptySkipToIndexEmitsFailure(): Unit = runBlocking {
+        val engine = FakeAudioPlayerEngine()
+        val eventsDeferred = async {
+            engine.events.take(count = 1).toList()
+        }
+        yield()
+        engine.skipToIndex(index = 0)
+        val events: List<PlaybackEngineEvent> = eventsDeferred.await()
+        assertEquals(
+            expected = PlaybackEngineEvent.Failed(
+                error = PlaybackError(
+                    type = PlaybackErrorType.MissingFile,
+                    songId = null,
+                    message = "播放队列为空",
+                ),
+            ),
+            actual = events.single(),
         )
     }
 

@@ -31,17 +31,21 @@ class FakeAudioPlayerEngine : AudioPlayerEngine {
     /** 对外暴露确定性事件流。 */
     override val events: SharedFlow<PlaybackEngineEvent> = mutableEvents.asSharedFlow()
 
-    /** 注入完整队列并先发出媒体切换和 loading 事件。 */
+    /** 注入完整队列；空队列直接回传统一失败事件。 */
     override suspend fun setQueue(
         items: List<PlayableMedia>,
         startIndex: Int,
         startPositionMs: Long,
     ) {
         queue = items
-        currentIndex = startIndex.coerceIn(minimumValue = 0, maximumValue = items.lastIndex)
         currentPositionMs = startPositionMs
-        val media: PlayableMedia? = queue.getOrNull(index = currentIndex)
-        if (media == null) {
+        if (items.isEmpty()) {
+            currentIndex = -1
+            emitMissingQueueFailure()
+            return
+        }
+        currentIndex = startIndex.coerceIn(minimumValue = 0, maximumValue = items.lastIndex)
+        val media: PlayableMedia = queue.getOrNull(index = currentIndex) ?: run {
             emitMissingQueueFailure()
             return
         }
@@ -97,8 +101,14 @@ class FakeAudioPlayerEngine : AudioPlayerEngine {
         )
     }
 
-    /** 对当前媒体发出切歌事件。 */
+    /** 对当前媒体发出切歌事件；空队列直接回传统一失败事件。 */
     override fun skipToIndex(index: Int) {
+        if (queue.isEmpty()) {
+            currentIndex = -1
+            currentPositionMs = 0L
+            emitMissingQueueFailure()
+            return
+        }
         currentIndex = index.coerceIn(minimumValue = 0, maximumValue = queue.lastIndex)
         currentPositionMs = 0L
         val media: PlayableMedia = queue.getOrNull(index = currentIndex) ?: return
