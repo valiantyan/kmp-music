@@ -223,8 +223,12 @@ private fun AppContent(
                 initialSection = secondaryScreen.initialSection,
                 currentSongId = state.currentSongId,
                 onBack = controller::navigateBack,
-                onSongOpen = controller::openSong,
-                onSongPlay = controller::playSong,
+                onSongOpen = { song: Song, queueSongs: List<Song> ->
+                    controller.openSong(song = song, queueSongs = queueSongs)
+                },
+                onSongPlay = { song: Song, queueSongs: List<Song> ->
+                    controller.playSong(song = song, queueSongs = queueSongs)
+                },
                 onMore = controller::openMore,
                 onAlbumOpen = controller::openAlbum,
                 onArtistOpen = controller::openArtist,
@@ -257,8 +261,12 @@ private fun AppContent(
                             onBack = controller::navigateBack,
                             onQuery = controller::setSearchQuery,
                             onScope = controller::setSearchScope,
-                            onSongOpen = controller::openSong,
-                            onSongPlay = controller::playSong,
+                            onSongOpen = { song: Song, queueSongs: List<Song> ->
+                                controller.openSong(song = song, queueSongs = queueSongs)
+                            },
+                            onSongPlay = { song: Song, queueSongs: List<Song> ->
+                                controller.playSong(song = song, queueSongs = queueSongs)
+                            },
                             onMore = controller::openMore,
                             onAlbumOpen = controller::openAlbum,
                             onArtistOpen = controller::openArtist,
@@ -267,10 +275,16 @@ private fun AppContent(
                             PlayerScreen(
                                 song = song,
                                 isPlaying = state.isPlaying,
+                                playbackPositionMs = state.playbackPositionMs,
+                                playbackDurationMs = state.playbackDurationMs,
+                                playbackMode = state.playbackMode,
+                                playbackError = state.playbackError,
                                 onBack = controller::navigateBack,
                                 onToggle = controller::togglePlayback,
                                 onPrev = { controller.moveTrack(direction = -1) },
                                 onNext = { controller.moveTrack(direction = 1) },
+                                onSeek = controller::seekTo,
+                                onMode = controller::cyclePlaybackMode,
                                 onLike = controller::toggleFavorite,
                                 onQueue = controller::openQueue,
                             )
@@ -285,8 +299,12 @@ private fun AppContent(
                                 songs = state.songs,
                                 currentSongId = state.currentSongId,
                                 onBack = controller::navigateBack,
-                                onSongOpen = controller::openSong,
-                                onSongPlay = controller::playSong,
+                                onSongOpen = { song: Song, queueSongs: List<Song> ->
+                                    controller.openSong(song = song, queueSongs = queueSongs)
+                                },
+                                onSongPlay = { song: Song, queueSongs: List<Song> ->
+                                    controller.playSong(song = song, queueSongs = queueSongs)
+                                },
                                 onMore = controller::openMore,
                                 onLike = controller::toggleFavorite,
                             )
@@ -301,8 +319,12 @@ private fun AppContent(
                                 albums = state.albums,
                                 currentSongId = state.currentSongId,
                                 onBack = controller::navigateBack,
-                                onSongOpen = controller::openSong,
-                                onSongPlay = controller::playSong,
+                                onSongOpen = { song: Song, queueSongs: List<Song> ->
+                                    controller.openSong(song = song, queueSongs = queueSongs)
+                                },
+                                onSongPlay = { song: Song, queueSongs: List<Song> ->
+                                    controller.playSong(song = song, queueSongs = queueSongs)
+                                },
                                 onMore = controller::openMore,
                                 onLike = controller::toggleFavorite,
                                 onAlbumOpen = controller::openAlbum,
@@ -369,8 +391,12 @@ private fun RootScreen(
             onSearch = { controller.navigateToSecondary(SecondaryScreen.Search) },
             onScan = onScanLocalMusic,
             onLocalMusic = { controller.openLocalMusic(section = LocalMusicSection.Songs) },
-            onSongOpen = controller::openSong,
-            onSongPlay = controller::playSong,
+            onSongOpen = { song: Song, queueSongs: List<Song> ->
+                controller.openSong(song = song, queueSongs = queueSongs)
+            },
+            onSongPlay = { song: Song, queueSongs: List<Song> ->
+                controller.playSong(song = song, queueSongs = queueSongs)
+            },
             onMore = controller::openMore,
             onAlbumOpen = controller::openAlbum,
         )
@@ -381,8 +407,12 @@ private fun RootScreen(
             currentSongId = state.currentSongId,
             section = state.favoriteSection,
             onSection = controller::setFavoriteSection,
-            onSongOpen = controller::openSong,
-            onSongPlay = controller::playSong,
+            onSongOpen = { song: Song, queueSongs: List<Song> ->
+                controller.openSong(song = song, queueSongs = queueSongs)
+            },
+            onSongPlay = { song: Song, queueSongs: List<Song> ->
+                controller.playSong(song = song, queueSongs = queueSongs)
+            },
             onMore = controller::openMore,
             onLike = controller::toggleFavorite,
             onAlbumOpen = controller::openAlbum,

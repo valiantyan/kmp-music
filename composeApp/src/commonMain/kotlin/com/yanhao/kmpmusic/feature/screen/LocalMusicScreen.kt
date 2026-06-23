@@ -47,8 +47,8 @@ fun LocalMusicScreen(
     initialSection: LocalMusicSection,
     currentSongId: String?,
     onBack: () -> Unit,
-    onSongOpen: (Song) -> Unit,
-    onSongPlay: (Song) -> Unit,
+    onSongOpen: (Song, List<Song>) -> Unit,
+    onSongPlay: (Song, List<Song>) -> Unit,
     onMore: (Song) -> Unit,
     onAlbumOpen: (Album) -> Unit,
     onArtistOpen: (Artist) -> Unit,
@@ -118,8 +118,8 @@ private fun LocalMusicSectionTabs(
 private fun LazyListScope.songSectionItems(
     songs: List<Song>,
     currentSongId: String?,
-    onSongOpen: (Song) -> Unit,
-    onSongPlay: (Song) -> Unit,
+    onSongOpen: (Song, List<Song>) -> Unit,
+    onSongPlay: (Song, List<Song>) -> Unit,
     onMore: (Song) -> Unit,
 ) {
     if (songs.isEmpty()) {
@@ -136,8 +136,8 @@ private fun LazyListScope.songSectionItems(
         SongRow(
             song = song,
             isCurrentSong = song.id == currentSongId,
-            onOpen = onSongOpen,
-            onPlay = onSongPlay,
+            onOpen = { selectedSong: Song -> onSongOpen(selectedSong, songs) },
+            onPlay = { selectedSong: Song -> onSongPlay(selectedSong, songs) },
             onMore = onMore,
             dense = true,
         )

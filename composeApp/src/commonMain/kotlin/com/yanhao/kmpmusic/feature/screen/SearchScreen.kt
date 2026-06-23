@@ -56,13 +56,18 @@ fun SearchScreen(
     onBack: () -> Unit,
     onQuery: (String) -> Unit,
     onScope: (SearchScope) -> Unit,
-    onSongOpen: (Song) -> Unit,
-    onSongPlay: (Song) -> Unit,
+    onSongOpen: (Song, List<Song>) -> Unit,
+    onSongPlay: (Song, List<Song>) -> Unit,
     onMore: (Song) -> Unit,
     onAlbumOpen: (Album) -> Unit,
     onArtistOpen: (Artist) -> Unit,
 ) {
     val total: Int = result.songs.size + result.albums.size + result.artists.size
+    val displayedSongs: List<Song> = if (scope == SearchScope.All) {
+        result.songs.take(n = 8)
+    } else {
+        result.songs
+    }
     Column(verticalArrangement = Arrangement.spacedBy(scaledDp(18.dp))) {
         AppHeader(title = "搜索", subtitle = "在本地音乐库中查找", onBack = onBack)
         SearchField(query = query, onQuery = onQuery)
@@ -84,8 +89,15 @@ fun SearchScreen(
         if (scope == SearchScope.All || scope == SearchScope.Songs) {
             SectionTitle(title = "歌曲", meta = "${result.songs.size} 首")
             Column(verticalArrangement = Arrangement.spacedBy(scaledDp(14.dp))) {
-                result.songs.take(if (scope == SearchScope.All) 8 else result.songs.size).forEach { song ->
-                    SongRow(song, song.id == currentSongId, onSongOpen, onSongPlay, onMore, dense = true)
+                displayedSongs.forEach { song ->
+                    SongRow(
+                        song = song,
+                        isCurrentSong = song.id == currentSongId,
+                        onOpen = { selectedSong: Song -> onSongOpen(selectedSong, displayedSongs) },
+                        onPlay = { selectedSong: Song -> onSongPlay(selectedSong, displayedSongs) },
+                        onMore = onMore,
+                        dense = true,
+                    )
                 }
                 if (result.songs.isEmpty()) EmptyState("没有找到歌曲", "试试搜索歌手、专辑名，或换一个关键词。")
             }

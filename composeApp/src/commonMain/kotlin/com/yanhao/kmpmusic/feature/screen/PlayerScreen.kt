@@ -14,13 +14,14 @@ import androidx.compose.material.icons.rounded.FavoriteBorder
 import androidx.compose.material.icons.rounded.Pause
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.Repeat
+import androidx.compose.material.icons.rounded.RepeatOne
 import androidx.compose.material.icons.rounded.Shuffle
 import androidx.compose.material.icons.rounded.SkipNext
 import androidx.compose.material.icons.rounded.SkipPrevious
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -33,6 +34,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.yanhao.kmpmusic.core.theme.MusicColors
+import com.yanhao.kmpmusic.domain.model.PlaybackError
+import com.yanhao.kmpmusic.domain.model.PlaybackMode
 import com.yanhao.kmpmusic.domain.model.Song
 import com.yanhao.kmpmusic.feature.components.AppHeader
 import com.yanhao.kmpmusic.feature.components.coverArtPainter
@@ -44,13 +47,25 @@ import com.yanhao.kmpmusic.feature.components.coverArtPainter
 fun PlayerScreen(
     song: Song,
     isPlaying: Boolean,
+    playbackPositionMs: Long,
+    playbackDurationMs: Long?,
+    playbackMode: PlaybackMode,
+    playbackError: PlaybackError?,
     onBack: () -> Unit,
     onToggle: () -> Unit,
     onPrev: () -> Unit,
     onNext: () -> Unit,
+    onSeek: (Long) -> Unit,
+    onMode: () -> Unit,
     onLike: (String) -> Unit,
     onQueue: () -> Unit,
 ) {
+    val duration: Long = playbackDurationMs ?: song.durationMs ?: 0L
+    val safeProgress: Float = if (duration > 0L) {
+        playbackPositionMs.coerceIn(minimumValue = 0L, maximumValue = duration).toFloat()
+    } else {
+        0f
+    }
     Column(verticalArrangement = Arrangement.spacedBy(24.dp)) {
         AppHeader(title = "正在播放", onBack = onBack)
         Image(
@@ -73,11 +88,24 @@ fun PlayerScreen(
             }
         }
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            LinearProgressIndicator(progress = { 0.38f }, modifier = Modifier.fillMaxWidth(), color = MusicColors.Accent)
+            Slider(
+                value = safeProgress,
+                onValueChange = { value: Float -> onSeek(value.toLong()) },
+                valueRange = 0f..duration.coerceAtLeast(minimumValue = 1L).toFloat(),
+                modifier = Modifier.fillMaxWidth(),
+            )
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text(text = "1:26", color = MusicColors.Muted, fontSize = 12.sp)
-                Text(text = song.duration, color = MusicColors.Muted, fontSize = 12.sp)
+                Text(text = formatPlaybackTime(playbackPositionMs), color = MusicColors.Muted, fontSize = 12.sp)
+                Text(text = formatPlaybackTime(duration), color = MusicColors.Muted, fontSize = 12.sp)
             }
+        }
+        if (playbackError != null) {
+            Text(
+                text = playbackError.message,
+                color = MaterialTheme.colorScheme.error,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Bold,
+            )
         }
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
             IconButton(onClick = {}) { Icon(Icons.Rounded.Shuffle, contentDescription = "随机播放") }
@@ -88,7 +116,20 @@ fun PlayerScreen(
                 }
             }
             IconButton(onClick = onNext) { Icon(Icons.Rounded.SkipNext, contentDescription = "下一首") }
-            IconButton(onClick = {}) { Icon(Icons.Rounded.Repeat, contentDescription = "循环播放") }
+            IconButton(onClick = onMode) {
+                Icon(
+                    imageVector = when (playbackMode) {
+                        PlaybackMode.LoopAll -> Icons.Rounded.Repeat
+                        PlaybackMode.LoopOne -> Icons.Rounded.RepeatOne
+                        PlaybackMode.Shuffle -> Icons.Rounded.Shuffle
+                    },
+                    contentDescription = when (playbackMode) {
+                        PlaybackMode.LoopAll -> "列表循环"
+                        PlaybackMode.LoopOne -> "单曲循环"
+                        PlaybackMode.Shuffle -> "随机播放"
+                    },
+                )
+            }
         }
         Surface(shape = RoundedCornerShape(20.dp), color = MusicColors.Paper, tonalElevation = 1.dp) {
             Column(modifier = Modifier.fillMaxWidth().size(width = 1.dp, height = 96.dp), verticalArrangement = Arrangement.Center) {
@@ -104,4 +145,12 @@ fun PlayerScreen(
             }
         }
     }
+}
+
+// 播放时间统一按 mm:ss 输出，避免未知时长和拖动进度出现负值文本。
+private fun formatPlaybackTime(positionMs: Long): String {
+    val totalSeconds: Long = (positionMs / 1_000L).coerceAtLeast(minimumValue = 0L)
+    val minutes: Long = totalSeconds / 60L
+    val seconds: Long = totalSeconds % 60L
+    return "$minutes:${seconds.toString().padStart(length = 2, padChar = '0')}"
 }

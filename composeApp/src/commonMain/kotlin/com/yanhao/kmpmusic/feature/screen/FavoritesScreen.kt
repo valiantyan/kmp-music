@@ -29,8 +29,8 @@ fun FavoritesScreen(
     currentSongId: String?,
     section: FavoriteSection,
     onSection: (FavoriteSection) -> Unit,
-    onSongOpen: (Song) -> Unit,
-    onSongPlay: (Song) -> Unit,
+    onSongOpen: (Song, List<Song>) -> Unit,
+    onSongPlay: (Song, List<Song>) -> Unit,
     onMore: (Song) -> Unit,
     onLike: (String) -> Unit,
     onAlbumOpen: (Album) -> Unit,
@@ -57,7 +57,15 @@ fun FavoritesScreen(
         when (section) {
             FavoriteSection.Songs -> Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 likedSongs.forEach { song ->
-                    SongRow(song, song.id == currentSongId, onSongOpen, onSongPlay, onMore, onLike, dense = true)
+                    SongRow(
+                        song = song,
+                        isCurrentSong = song.id == currentSongId,
+                        onOpen = { selectedSong: Song -> onSongOpen(selectedSong, likedSongs) },
+                        onPlay = { selectedSong: Song -> onSongPlay(selectedSong, likedSongs) },
+                        onMore = onMore,
+                        onLike = onLike,
+                        dense = true,
+                    )
                 }
             }
             FavoriteSection.Albums -> Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {

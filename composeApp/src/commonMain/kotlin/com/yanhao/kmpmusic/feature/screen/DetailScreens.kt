@@ -36,8 +36,8 @@ fun AlbumDetailScreen(
     songs: List<Song>,
     currentSongId: String?,
     onBack: () -> Unit,
-    onSongOpen: (Song) -> Unit,
-    onSongPlay: (Song) -> Unit,
+    onSongOpen: (Song, List<Song>) -> Unit,
+    onSongPlay: (Song, List<Song>) -> Unit,
     onMore: (Song) -> Unit,
     onLike: (String) -> Unit,
 ) {
@@ -51,13 +51,28 @@ fun AlbumDetailScreen(
             cover = { Image(painter = coverArtPainter(album.coverArt), contentDescription = "${album.title} 专辑封面", modifier = Modifier.size(126.dp).clip(RoundedCornerShape(18.dp)), contentScale = ContentScale.Crop) },
         )
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            PrimaryPill(text = "播放全部", onClick = { albumSongs.firstOrNull()?.let(onSongPlay) })
+            PrimaryPill(
+                text = "播放全部",
+                onClick = {
+                    albumSongs.firstOrNull()?.let { song: Song ->
+                        onSongPlay(song, albumSongs)
+                    }
+                },
+            )
             Text(text = "离线", color = MusicColors.Muted, fontSize = 16.sp, fontWeight = FontWeight.Bold)
         }
         SectionTitle(title = "曲目", meta = "${albumSongs.size} 首")
         Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
             albumSongs.forEach { song ->
-                SongRow(song, song.id == currentSongId, onSongOpen, onSongPlay, onMore, onLike, dense = true)
+                SongRow(
+                    song = song,
+                    isCurrentSong = song.id == currentSongId,
+                    onOpen = { selectedSong: Song -> onSongOpen(selectedSong, albumSongs) },
+                    onPlay = { selectedSong: Song -> onSongPlay(selectedSong, albumSongs) },
+                    onMore = onMore,
+                    onLike = onLike,
+                    dense = true,
+                )
             }
         }
     }
@@ -73,13 +88,14 @@ fun ArtistDetailScreen(
     albums: List<Album>,
     currentSongId: String?,
     onBack: () -> Unit,
-    onSongOpen: (Song) -> Unit,
-    onSongPlay: (Song) -> Unit,
+    onSongOpen: (Song, List<Song>) -> Unit,
+    onSongPlay: (Song, List<Song>) -> Unit,
     onMore: (Song) -> Unit,
     onLike: (String) -> Unit,
     onAlbumOpen: (Album) -> Unit,
 ) {
     val artistSongs: List<Song> = songs.filter { song -> song.artist == artist.name }
+    val displayedArtistSongs: List<Song> = artistSongs.take(n = 5)
     Column(verticalArrangement = Arrangement.spacedBy(20.dp)) {
         AppHeader(title = "歌手", onBack = onBack)
         DetailHero(
@@ -90,8 +106,16 @@ fun ArtistDetailScreen(
         )
         SectionTitle(title = "热门歌曲")
         Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-            artistSongs.take(5).forEach { song ->
-                SongRow(song, song.id == currentSongId, onSongOpen, onSongPlay, onMore, onLike, dense = true)
+            displayedArtistSongs.forEach { song ->
+                SongRow(
+                    song = song,
+                    isCurrentSong = song.id == currentSongId,
+                    onOpen = { selectedSong: Song -> onSongOpen(selectedSong, displayedArtistSongs) },
+                    onPlay = { selectedSong: Song -> onSongPlay(selectedSong, displayedArtistSongs) },
+                    onMore = onMore,
+                    onLike = onLike,
+                    dense = true,
+                )
             }
         }
         SectionTitle(title = "相关专辑")

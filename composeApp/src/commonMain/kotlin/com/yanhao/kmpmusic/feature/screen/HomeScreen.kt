@@ -64,8 +64,8 @@ fun HomeScreen(
     onSearch: () -> Unit,
     onScan: () -> Unit,
     onLocalMusic: () -> Unit,
-    onSongOpen: (Song) -> Unit,
-    onSongPlay: (Song) -> Unit,
+    onSongOpen: (Song, List<Song>) -> Unit,
+    onSongPlay: (Song, List<Song>) -> Unit,
     onMore: (Song) -> Unit,
     onAlbumOpen: (Album) -> Unit,
 ) {
@@ -102,8 +102,8 @@ fun HomeScreen(
                     SongRow(
                         song = song,
                         isCurrentSong = song.id == currentSongId,
-                        onOpen = onSongOpen,
-                        onPlay = onSongPlay,
+                        onOpen = { selectedSong: Song -> onSongOpen(selectedSong, recentSongs) },
+                        onPlay = { selectedSong: Song -> onSongPlay(selectedSong, recentSongs) },
                         onMore = onMore,
                     )
                 }
@@ -122,8 +122,8 @@ fun HomeScreen(
                     SongRow(
                         song = song,
                         isCurrentSong = song.id == currentSongId,
-                        onOpen = onSongOpen,
-                        onPlay = onSongPlay,
+                        onOpen = { selectedSong: Song -> onSongOpen(selectedSong, localSongPreview) },
+                        onPlay = { selectedSong: Song -> onSongPlay(selectedSong, localSongPreview) },
                         onMore = onMore,
                     )
                 }
