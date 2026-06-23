@@ -14,7 +14,7 @@ class LocalMusicModelsTest {
     fun metadataBuildsStableSourceKey(): Unit {
         val metadata: MusicFileMetadata = MusicFileMetadata(
             sourceId = "42",
-            sourceKind = LocalMusicSourceKind.AndroidMediaLibrary,
+            sourceKind = LocalMusicSourceKind.AndroidMediaStore,
             localUri = "content://media/external/audio/media/42",
             fileName = "river.flac",
             title = "海边的梦",
@@ -52,7 +52,7 @@ class LocalMusicModelsTest {
             trackNumber = 1,
             durationMs = 225_000L,
             sourceId = "42",
-            sourceKind = LocalMusicSourceKind.AndroidMediaLibrary,
+            sourceKind = LocalMusicSourceKind.AndroidMediaStore,
             localUri = "content://media/external/audio/media/42",
             mimeType = "audio/flac",
             sizeBytes = 24_000_000L,

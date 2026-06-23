@@ -8,11 +8,16 @@ import androidx.activity.enableEdgeToEdge
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.ViewModelProvider
+import com.yanhao.kmpmusic.data.AndroidMediaStoreScanner
+import com.yanhao.kmpmusic.feature.app.PermissionSettingsOpener
 
 /**
  * Android 入口 Activity。
  */
 class MainActivity : ComponentActivity() {
+    // 当前 Activity 生命周期内可用的音频权限请求器。
+    private lateinit var audioPermissionRequester: AndroidAudioPermissionRequester
+
     /** 初始化共享 Compose App，保留 Android 推荐的 edge-to-edge，并把避让交给 Compose inset。 */
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge(
@@ -31,7 +36,17 @@ class MainActivity : ComponentActivity() {
             isAppearanceLightStatusBars = true
             isAppearanceLightNavigationBars = true
         }
+        audioPermissionRequester = AndroidAudioPermissionRequester(activity = this)
         val musicAppViewModel: MusicAppViewModel = ViewModelProvider(this)[MusicAppViewModel::class.java]
+        musicAppViewModel.attachLocalMusicScanner(
+            scanner = AndroidMediaStoreScanner(
+                contentResolver = applicationContext.contentResolver,
+                requestAudioPermission = audioPermissionRequester::requestAudioPermission,
+            ),
+        )
+        musicAppViewModel.attachPermissionSettingsOpener(
+            opener = PermissionSettingsOpener(audioPermissionRequester::openAudioPermissionSettings),
+        )
         setContent {
             App(controller = musicAppViewModel.controller)
         }

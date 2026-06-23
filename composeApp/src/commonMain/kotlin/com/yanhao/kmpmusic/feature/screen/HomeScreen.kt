@@ -29,6 +29,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.yanhao.kmpmusic.core.theme.MusicColors
@@ -38,6 +39,7 @@ import com.yanhao.kmpmusic.core.theme.scaledSp
 import com.yanhao.kmpmusic.domain.model.Album
 import com.yanhao.kmpmusic.domain.model.CoverArt
 import com.yanhao.kmpmusic.domain.model.LibraryStats
+import com.yanhao.kmpmusic.domain.model.LocalMusicScanErrorType
 import com.yanhao.kmpmusic.domain.model.LocalMusicScanState
 import com.yanhao.kmpmusic.domain.model.Song
 import com.yanhao.kmpmusic.feature.components.AlbumCard
@@ -202,10 +204,25 @@ private fun LibraryCard(
                     Text(text = " 首歌曲", modifier = Modifier.padding(bottom = scaledDp(4.dp)), fontSize = scaledSp(17.sp), fontWeight = FontWeight.Bold)
                 }
                 Spacer(modifier = Modifier.height(scaledDp(5.dp)))
-                Text(text = "${stats.albumCount} 张专辑 · ${stats.artistCount} 位歌手", color = Color(0xFF7C8490), fontSize = scaledSp(17.sp))
+                Text(
+                    text = libraryStatusText(stats = stats, scanState = scanState),
+                    color = Color(0xFF7C8490),
+                    fontSize = scaledSp(17.sp),
+                    lineHeight = scaledSp(20.sp),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
                 Spacer(modifier = Modifier.height(scaledDp(18.dp)))
-                Row(horizontalArrangement = Arrangement.spacedBy(scaledDp(12.dp)), verticalAlignment = Alignment.CenterVertically) {
-                    PrimaryPill(text = scanActionLabel(scanState = scanState), onClick = onScan)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(scaledDp(12.dp)),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    PrimaryPill(
+                        text = scanActionLabel(scanState = scanState),
+                        onClick = onScan,
+                        modifier = Modifier.weight(weight = 1f),
+                    )
                     Surface(
                         modifier = Modifier.size(scaledDp(46.dp)),
                         shape = RoundedCornerShape(scaledDp(20.dp)),
@@ -240,6 +257,36 @@ private fun scanActionLabel(scanState: LocalMusicScanState): String {
         is LocalMusicScanState.Importing -> "导入中"
         is LocalMusicScanState.Scanning -> "扫描中"
         is LocalMusicScanState.Done -> "重新扫描"
-        is LocalMusicScanState.Error -> "重试扫描"
+        is LocalMusicScanState.Error -> scanErrorActionLabel(scanState = scanState)
+    }
+}
+
+// 权限类错误需要区分普通重试和系统设置入口，避免重复触发无效弹窗。
+private fun scanErrorActionLabel(scanState: LocalMusicScanState.Error): String {
+    return when (scanState.error.type) {
+        LocalMusicScanErrorType.PermissionDenied -> "继续授权"
+        LocalMusicScanErrorType.PermissionPermanentlyDenied -> "打开权限设置"
+        else -> "重试扫描"
+    }
+}
+
+// 首页卡片副标题优先表达扫描状态，避免权限或错误状态只显示为 0 首歌。
+private fun libraryStatusText(
+    stats: LibraryStats,
+    scanState: LocalMusicScanState,
+): String {
+    return when (scanState) {
+        LocalMusicScanState.Idle -> "${stats.albumCount} 张专辑 · ${stats.artistCount} 位歌手"
+        LocalMusicScanState.WaitingForPermission -> "需要授权后才能扫描歌曲"
+        is LocalMusicScanState.Importing -> "正在导入本地音频"
+        is LocalMusicScanState.Scanning -> "正在扫描本地媒体库"
+        is LocalMusicScanState.Done -> {
+            if (stats.songCount == 0) {
+                "未找到支持的音频文件"
+            } else {
+                "${stats.albumCount} 张专辑 · ${stats.artistCount} 位歌手"
+            }
+        }
+        is LocalMusicScanState.Error -> scanState.error.message
     }
 }

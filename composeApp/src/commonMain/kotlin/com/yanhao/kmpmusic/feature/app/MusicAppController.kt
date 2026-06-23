@@ -12,8 +12,10 @@ import com.yanhao.kmpmusic.domain.model.Album
 import com.yanhao.kmpmusic.domain.model.Artist
 import com.yanhao.kmpmusic.domain.model.LibrarySnapshot
 import com.yanhao.kmpmusic.domain.model.LocalMusicScanProgress
+import com.yanhao.kmpmusic.domain.model.LocalMusicScanException
 import com.yanhao.kmpmusic.domain.model.LocalMusicScanRequest
 import com.yanhao.kmpmusic.domain.model.LocalMusicScanState
+import com.yanhao.kmpmusic.domain.model.LocalMusicScanErrorType
 import com.yanhao.kmpmusic.domain.model.PlaybackState
 import com.yanhao.kmpmusic.domain.model.QueueState
 import com.yanhao.kmpmusic.domain.model.SearchScope
@@ -45,6 +47,7 @@ class MusicAppController(
     private val localMusicScanner: LocalMusicScanner = FakeLocalMusicScanner(),
     private val playbackRepository: PlaybackRepository = InMemoryPlaybackRepository(),
     private val userPreferencesRepository: UserPreferencesRepository = InMemoryUserPreferencesRepository(),
+    private val permissionSettingsOpener: PermissionSettingsOpener = PermissionSettingsOpener {},
 ) {
     // 搜索用例。
     private val searchMusicUseCase: SearchMusicUseCase = SearchMusicUseCaseImpl(
@@ -132,6 +135,10 @@ class MusicAppController(
      * 处理 Android 系统返回键，优先关闭临时浮层，最后才退出二级页面。
      */
     fun handleSystemBack(): Boolean {
+        if (uiState.isPermissionSettingsDialogOpen) {
+            closePermissionSettingsDialog()
+            return true
+        }
         if (uiState.isClearCacheDialogOpen) {
             closeClearCacheDialog()
             return true
@@ -153,6 +160,10 @@ class MusicAppController(
 
     /** 扫描本地音乐并同步曲库快照。 */
     suspend fun scanLocalMusic(request: LocalMusicScanRequest = LocalMusicScanRequest.Refresh) {
+        if (shouldConfirmPermissionSettingsBeforeScan()) {
+            openPermissionSettingsDialog()
+            return
+        }
         uiState = uiState.copy(
             scanState = LocalMusicScanState.Scanning(
                 progress = LocalMusicScanProgress(currentSourceName = "本地音乐"),
@@ -160,11 +171,42 @@ class MusicAppController(
             isQueueOpen = false,
             moreSongId = null,
         )
-        val snapshot: LibrarySnapshot = scanLocalMusicUseCase(
-            request = request,
-            likedSongIds = uiState.likedSongIds,
+        try {
+            val snapshot: LibrarySnapshot = scanLocalMusicUseCase(
+                request = request,
+                likedSongIds = uiState.likedSongIds,
+            )
+            syncLibrarySnapshot(snapshot = snapshot)
+        } catch (scanException: LocalMusicScanException) {
+            uiState = uiState.copy(
+                scanState = LocalMusicScanState.Error(error = scanException.error),
+                isQueueOpen = false,
+                moreSongId = null,
+            )
+        }
+    }
+
+    /** 打开权限设置确认框，由用户选择是否离开 App 进入系统设置。 */
+    fun openPermissionSettingsDialog() {
+        uiState = uiState.copy(
+            isPermissionSettingsDialogOpen = true,
+            isQueueOpen = false,
+            moreSongId = null,
         )
-        syncLibrarySnapshot(snapshot = snapshot)
+    }
+
+    /** 关闭权限设置确认框，保留当前权限错误态供用户稍后重试。 */
+    fun closePermissionSettingsDialog() {
+        uiState = uiState.copy(isPermissionSettingsDialogOpen = false)
+    }
+
+    /** 用户确认后再打开系统权限设置页，避免永久拒绝后突然跳出 App。 */
+    fun confirmPermissionSettings() {
+        uiState = uiState.copy(
+            isPermissionSettingsDialogOpen = false,
+            scanState = LocalMusicScanState.WaitingForPermission,
+        )
+        permissionSettingsOpener.openPermissionSettings()
     }
 
     /** 打开本地音乐二级页并指定初始分段。 */
@@ -366,6 +408,13 @@ class MusicAppController(
             scanState = snapshot.scanState,
             themeMode = userPreferencesRepository.getThemeMode(),
         )
+    }
+
+    // 永久拒绝后首页按钮表示“打开权限设置”，再次点击时先弹确认框。
+    private fun shouldConfirmPermissionSettingsBeforeScan(): Boolean {
+        val scanState: LocalMusicScanState = uiState.scanState
+        return scanState is LocalMusicScanState.Error &&
+            scanState.error.type == LocalMusicScanErrorType.PermissionPermanentlyDenied
     }
 
     // 同步播放仓库和 UI 状态，避免多个入口各自写状态。

@@ -735,6 +735,24 @@ private fun AppOverlays(
             text = { Text(text = "只会删除封面缓存和临时文件，本地歌曲不会受到影响。") },
         )
     }
+    if (state.isPermissionSettingsDialogOpen) {
+        AlertDialog(
+            onDismissRequest = controller::closePermissionSettingsDialog,
+            confirmButton = {
+                Button(onClick = controller::confirmPermissionSettings) {
+                    Text(text = "去设置")
+                }
+            },
+            dismissButton = {
+                Button(onClick = controller::closePermissionSettingsDialog) {
+                    Text(text = "取消")
+                }
+            },
+            icon = { Icon(Icons.Rounded.LibraryMusic, contentDescription = null, tint = MusicColors.Accent) },
+            title = { Text(text = "开启音频权限") },
+            text = { Text(text = "需要在系统设置中开启音频权限，才能扫描本机歌曲。") },
+        )
+    }
 }
 
 /**

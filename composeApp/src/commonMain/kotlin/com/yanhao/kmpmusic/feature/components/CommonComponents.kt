@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -382,7 +383,9 @@ fun PrimaryPill(
     modifier: Modifier = Modifier,
 ) {
     Surface(
-        modifier = modifier.height(scaledDp(46.dp)),
+        modifier = modifier
+            .height(scaledDp(46.dp))
+            .defaultMinSize(minWidth = scaledDp(118.dp)),
         shape = RoundedCornerShape(scaledDp(20.dp)),
         color = Color.Transparent,
         shadowElevation = scaledDp(8.dp),
@@ -390,6 +393,7 @@ fun PrimaryPill(
     ) {
         Row(
             modifier = Modifier
+                .fillMaxWidth()
                 .height(scaledDp(46.dp))
                 .background(
                     brush = Brush.linearGradient(
@@ -398,11 +402,25 @@ fun PrimaryPill(
                     shape = RoundedCornerShape(scaledDp(20.dp)),
                 )
                 .padding(horizontal = scaledDp(20.dp)),
+            horizontalArrangement = Arrangement.Center,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Icon(Icons.Rounded.CheckCircle, contentDescription = null, tint = Color.White)
+            Icon(
+                Icons.Rounded.CheckCircle,
+                contentDescription = null,
+                modifier = Modifier.size(scaledDp(19.dp)),
+                tint = Color.White,
+            )
             Spacer(modifier = Modifier.width(scaledDp(8.dp)))
-            Text(text = text, color = Color.White, fontSize = scaledSp(16.sp), fontWeight = FontWeight.ExtraBold)
+            Text(
+                text = text,
+                color = Color.White,
+                fontSize = scaledSp(16.sp),
+                lineHeight = scaledSp(18.sp),
+                fontWeight = FontWeight.ExtraBold,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
         }
     }
 }

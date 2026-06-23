@@ -1,9 +1,18 @@
 package com.yanhao.kmpmusic.feature.app
 
 import com.yanhao.kmpmusic.data.InMemoryPlaybackRepository
+import com.yanhao.kmpmusic.domain.model.CoverArt
+import com.yanhao.kmpmusic.domain.model.LocalMusicScanError
+import com.yanhao.kmpmusic.domain.model.LocalMusicScanErrorType
+import com.yanhao.kmpmusic.domain.model.LocalMusicScanException
 import com.yanhao.kmpmusic.domain.model.LocalMusicScanRequest
+import com.yanhao.kmpmusic.domain.model.LocalMusicScanResult
+import com.yanhao.kmpmusic.domain.model.LocalMusicScanState
+import com.yanhao.kmpmusic.domain.model.LocalMusicSourceKind
+import com.yanhao.kmpmusic.domain.model.MusicFileMetadata
 import com.yanhao.kmpmusic.domain.model.SearchScope
 import com.yanhao.kmpmusic.domain.model.Song
+import com.yanhao.kmpmusic.domain.repository.LocalMusicScanner
 import kotlinx.coroutines.runBlocking
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -73,6 +82,96 @@ class MusicAppControllerTest {
         assertEquals(expected = 8, actual = controller.uiState.libraryStats.songCount)
         assertTrue(controller.uiState.localMusicSources.isNotEmpty())
         assertTrue(controller.uiState.recentSongs.isEmpty())
+    }
+
+    /**
+     * 平台 scanner 返回权限错误时，控制器应进入错误态且不能回填演示歌曲。
+     */
+    @Test
+    fun scanPermissionDeniedKeepsLibraryEmpty(): Unit = runBlocking {
+        val controller = MusicAppController(
+            localMusicScanner = PermissionDeniedScanner(),
+        )
+        controller.scanLocalMusic(request = LocalMusicScanRequest.Refresh)
+        val scanState = controller.uiState.scanState
+        assertTrue(actual = scanState is LocalMusicScanState.Error)
+        assertEquals(
+            expected = LocalMusicScanErrorType.PermissionDenied,
+            actual = (scanState as LocalMusicScanState.Error).error.type,
+        )
+        assertTrue(controller.uiState.songs.isEmpty())
+        assertTrue(controller.uiState.localSongPreview.isEmpty())
+    }
+
+    /**
+     * 权限永久拒绝时应保留明确错误类型，供 Android 入口转系统设置。
+     */
+    @Test
+    fun scanPermissionPermanentlyDeniedKeepsLibraryEmpty(): Unit = runBlocking {
+        val controller = MusicAppController(
+            localMusicScanner = PermissionPermanentlyDeniedScanner(),
+        )
+        controller.scanLocalMusic(request = LocalMusicScanRequest.Refresh)
+        val scanState = controller.uiState.scanState
+        assertTrue(actual = scanState is LocalMusicScanState.Error)
+        assertEquals(
+            expected = LocalMusicScanErrorType.PermissionPermanentlyDenied,
+            actual = (scanState as LocalMusicScanState.Error).error.type,
+        )
+        assertTrue(controller.uiState.songs.isEmpty())
+        assertTrue(controller.uiState.localSongPreview.isEmpty())
+    }
+
+    /**
+     * 权限永久拒绝后再次点击扫描，应先显示确认框，确认后才打开系统设置。
+     */
+    @Test
+    fun scanPermissionPermanentlyDeniedRequiresUserConfirmationBeforeSettings(): Unit = runBlocking {
+        val scanner = CountingPermissionPermanentlyDeniedScanner()
+        val opener = RecordingPermissionSettingsOpener()
+        val controller = MusicAppController(
+            localMusicScanner = scanner,
+            permissionSettingsOpener = opener,
+        )
+        controller.scanLocalMusic(request = LocalMusicScanRequest.Refresh)
+        assertEquals(expected = 1, actual = scanner.scanCount)
+        assertFalse(controller.uiState.isPermissionSettingsDialogOpen)
+        controller.scanLocalMusic(request = LocalMusicScanRequest.Refresh)
+        assertEquals(expected = 1, actual = scanner.scanCount)
+        assertTrue(controller.uiState.isPermissionSettingsDialogOpen)
+        assertEquals(expected = 0, actual = opener.openCount)
+        controller.confirmPermissionSettings()
+        assertFalse(controller.uiState.isPermissionSettingsDialogOpen)
+        assertEquals(expected = 1, actual = opener.openCount)
+        assertEquals(expected = LocalMusicScanState.WaitingForPermission, actual = controller.uiState.scanState)
+        controller.scanLocalMusic(request = LocalMusicScanRequest.Refresh)
+        assertEquals(expected = 2, actual = scanner.scanCount)
+    }
+
+    /**
+     * 权限设置确认框应由系统返回键关闭，避免误触后只能点击按钮退出。
+     */
+    @Test
+    fun systemBackClosesPermissionSettingsDialog(): Unit {
+        val controller = MusicAppController()
+        controller.openPermissionSettingsDialog()
+        assertTrue(controller.uiState.canHandleSystemBack)
+        assertTrue(controller.handleSystemBack())
+        assertFalse(controller.uiState.isPermissionSettingsDialogOpen)
+    }
+
+    /**
+     * 控制器必须消费注入的 scanner，避免 Android 入口无意落回 common fake 数据。
+     */
+    @Test
+    fun scanUsesInjectedScannerData(): Unit = runBlocking {
+        val controller = MusicAppController(
+            localMusicScanner = SingleAndroidSongScanner(),
+        )
+        controller.scanLocalMusic(request = LocalMusicScanRequest.Refresh)
+        assertEquals(expected = listOf("设备里的歌"), actual = controller.uiState.songs.map { song -> song.title })
+        assertTrue(controller.uiState.songs.all { song -> song.localUri.startsWith(prefix = "content://") })
+        assertTrue(controller.uiState.songs.none { song -> song.sourceKind == LocalMusicSourceKind.FakeScanner })
     }
 
     /**
@@ -322,5 +421,100 @@ class MusicAppControllerTest {
         controller.navigateToSecondary(screen = SecondaryScreen.Settings)
         assertEquals(AppChromeMode.SecondaryFullscreen, controller.uiState.navigationState.chromeMode)
         assertEquals(BottomChromePlacement.Hidden, controller.uiState.navigationState.chromeMode.bottomChromePlacement)
+    }
+}
+
+/**
+ * 固定权限拒绝场景，避免控制器把平台失败误当成空扫描或 fake 数据。
+ */
+private class PermissionDeniedScanner : LocalMusicScanner {
+    /** 抛出平台无关扫描异常，模拟 Android 用户拒绝音频权限。 */
+    override suspend fun scan(request: LocalMusicScanRequest): LocalMusicScanResult {
+        throw LocalMusicScanException(
+            error = LocalMusicScanError(
+                type = LocalMusicScanErrorType.PermissionDenied,
+                message = "需要音频权限后才能扫描本机歌曲",
+                sourceKind = LocalMusicSourceKind.AndroidMediaStore,
+            ),
+        )
+    }
+}
+
+/**
+ * 固定权限永久拒绝场景，保证 UI 可以进入系统设置引导分支。
+ */
+private class PermissionPermanentlyDeniedScanner : LocalMusicScanner {
+    /** 抛出永久拒绝错误，模拟 Android 系统不再展示权限弹窗。 */
+    override suspend fun scan(request: LocalMusicScanRequest): LocalMusicScanResult {
+        throw LocalMusicScanException(
+            error = LocalMusicScanError(
+                type = LocalMusicScanErrorType.PermissionPermanentlyDenied,
+                message = "请到系统设置开启音频权限",
+                sourceKind = LocalMusicSourceKind.AndroidMediaStore,
+            ),
+        )
+    }
+}
+
+/**
+ * 记录扫描次数的永久拒绝 scanner，用于证明确认弹窗不会重复触发系统权限请求。
+ */
+private class CountingPermissionPermanentlyDeniedScanner : LocalMusicScanner {
+    // 扫描调用次数，用户再次点击“打开权限设置”时不应增加。
+    var scanCount: Int = 0
+        private set
+
+    /** 抛出永久拒绝错误，并记录扫描次数。 */
+    override suspend fun scan(request: LocalMusicScanRequest): LocalMusicScanResult {
+        scanCount += 1
+        throw LocalMusicScanException(
+            error = LocalMusicScanError(
+                type = LocalMusicScanErrorType.PermissionPermanentlyDenied,
+                message = "请到系统设置开启音频权限",
+                sourceKind = LocalMusicSourceKind.AndroidMediaStore,
+            ),
+        )
+    }
+}
+
+/**
+ * 记录系统设置打开次数的假入口，避免测试依赖真实 Android Intent。
+ */
+private class RecordingPermissionSettingsOpener : PermissionSettingsOpener {
+    // 系统设置打开次数，只有用户确认后才应增加。
+    var openCount: Int = 0
+        private set
+
+    /** 记录一次设置打开动作。 */
+    override fun openPermissionSettings() {
+        openCount += 1
+    }
+}
+
+/**
+ * 只返回一首 Android MediaStore 歌曲，用来证明 controller 尊重注入数据源。
+ */
+private class SingleAndroidSongScanner : LocalMusicScanner {
+    /** 返回真实平台形态的 content URI 元数据。 */
+    override suspend fun scan(request: LocalMusicScanRequest): LocalMusicScanResult {
+        return LocalMusicScanResult(
+            discovered = listOf(
+                MusicFileMetadata(
+                    sourceId = "42",
+                    sourceKind = LocalMusicSourceKind.AndroidMediaStore,
+                    localUri = "content://media/external/audio/media/42",
+                    fileName = "device-song.mp3",
+                    title = "设备里的歌",
+                    artist = "本机歌手",
+                    album = "本机专辑",
+                    durationMs = 180_000L,
+                    mimeType = "audio/mpeg",
+                    sizeBytes = 7_200_000L,
+                    modifiedAt = 1_719_360_000_000L,
+                    coverArt = CoverArt.HeroLocalMusic,
+                ),
+            ),
+            completedAt = 1_719_360_001_000L,
+        )
     }
 }

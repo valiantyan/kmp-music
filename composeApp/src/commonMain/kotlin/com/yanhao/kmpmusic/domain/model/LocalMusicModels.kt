@@ -7,7 +7,7 @@ enum class LocalMusicSourceKind(
     val value: String,
     val displayName: String,
 ) {
-    AndroidMediaLibrary(value = "android" + "Media" + "Store", displayName = "Android 媒体库"),
+    AndroidMediaStore(value = "androidMediaStore", displayName = "Android 媒体库"),
     IosImportedFile(value = "iosImportedFile", displayName = "iOS 导入文件"),
     IosMediaLibrary(value = "iosMediaLibrary", displayName = "iOS 音乐资料库"),
     DesktopFolder(value = "desktopFolder", displayName = "桌面文件夹"),
@@ -37,6 +37,7 @@ data class LocalMusicScanProgress(
  */
 enum class LocalMusicScanErrorType {
     PermissionDenied,
+    PermissionPermanentlyDenied,
     UserCancelled,
     FolderUnavailable,
     FileMissing,
@@ -56,6 +57,16 @@ data class LocalMusicScanError(
     val sourceKind: LocalMusicSourceKind? = null,
     val sourceId: String? = null,
 )
+
+/**
+ * 平台 scanner 的可预期失败，控制器用它进入统一扫描错误态。
+ *
+ * @property error 平台无关扫描错误，供 UI 渲染和来源页展示。
+ */
+class LocalMusicScanException(
+    val error: LocalMusicScanError,
+    cause: Throwable? = null,
+) : RuntimeException(error.message, cause)
 
 /**
  * 平台 scanner 输出的音频元数据，UI 不直接构造这个模型。

@@ -180,6 +180,7 @@ data class MusicAppUiState(
     val themeMode: ThemeMode = ThemeMode.Light,
     val isQueueOpen: Boolean = false,
     val moreSongId: String? = null,
+    val isPermissionSettingsDialogOpen: Boolean = false,
     val isClearCacheDialogOpen: Boolean = false,
     val email: String = "",
     val isMailSent: Boolean = false,
@@ -202,7 +203,8 @@ data class MusicAppUiState(
      * 系统返回键是否应由 App 内部消费。
      */
     val canHandleSystemBack: Boolean =
-        isClearCacheDialogOpen ||
+        isPermissionSettingsDialogOpen ||
+            isClearCacheDialogOpen ||
             moreSongId != null ||
             isQueueOpen ||
             !navigationState.isTopLevel
