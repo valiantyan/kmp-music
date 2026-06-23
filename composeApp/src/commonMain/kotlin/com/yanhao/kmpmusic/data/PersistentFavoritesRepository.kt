@@ -11,7 +11,7 @@ import kotlinx.coroutines.runBlocking
 class PersistentFavoritesRepository(
     private val favoriteSongDao: FavoriteSongDao,
     initialLikedSongIds: Set<String>,
-    private val nowMillis: () -> Long = { 0L },
+    private val nowMillis: () -> Long = { currentTimeMillis() },
 ) : FavoritesRepository {
     // 当前内存中的收藏集合，供 UI 同步读取最新结果。
     private var likedSongIds: Set<String> = initialLikedSongIds
