@@ -13,4 +13,9 @@ interface FavoritesRepository {
      * 切换单首歌曲收藏状态。
      */
     fun toggleSong(songId: String): Set<String>
+
+    /**
+     * 用完整集合覆盖当前收藏状态，供外部恢复或同步收藏结果。
+     */
+    fun replaceLikedSongIds(songIds: Set<String>)
 }

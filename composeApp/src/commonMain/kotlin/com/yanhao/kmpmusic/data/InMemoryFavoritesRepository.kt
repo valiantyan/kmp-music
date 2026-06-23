@@ -23,4 +23,9 @@ class InMemoryFavoritesRepository(
         }
         return likedSongIds
     }
+
+    /** 用外部给定的完整集合覆盖当前收藏状态。 */
+    override fun replaceLikedSongIds(songIds: Set<String>) {
+        likedSongIds = songIds
+    }
 }
