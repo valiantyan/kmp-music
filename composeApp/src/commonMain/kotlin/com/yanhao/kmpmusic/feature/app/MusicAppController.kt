@@ -16,6 +16,7 @@ import com.yanhao.kmpmusic.domain.model.LocalMusicScanException
 import com.yanhao.kmpmusic.domain.model.LocalMusicScanRequest
 import com.yanhao.kmpmusic.domain.model.LocalMusicScanState
 import com.yanhao.kmpmusic.domain.model.LocalMusicScanErrorType
+import com.yanhao.kmpmusic.domain.model.PlaybackStatus
 import com.yanhao.kmpmusic.domain.model.PlaybackState
 import com.yanhao.kmpmusic.domain.model.QueueState
 import com.yanhao.kmpmusic.domain.model.SearchScope
@@ -325,16 +326,23 @@ class MusicAppController(
             return
         }
         val nextQueueIds: List<String> = uiState.queueSongIds.filterNot { id -> id == songId }
-        playbackRepository.saveQueueState(state = QueueState(songIds = nextQueueIds))
         val nextCurrentSongId: String? = if (songId == uiState.currentSongId) {
             nextQueueIds.first()
         } else {
             uiState.currentSongId
         }
+        playbackRepository.saveQueueState(
+            state = QueueState(
+                songIds = nextQueueIds,
+                currentIndex = nextCurrentSongId?.let { currentSongId ->
+                    nextQueueIds.indexOf(element = currentSongId)
+                } ?: -1,
+            ),
+        )
         playbackRepository.savePlaybackState(
             state = PlaybackState(
                 currentSongId = nextCurrentSongId,
-                isPlaying = true,
+                status = PlaybackStatus.Playing,
             ),
         )
         uiState = uiState.copy(

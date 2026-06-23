@@ -1,6 +1,7 @@
 package com.yanhao.kmpmusic.domain.usecase
 
 import com.yanhao.kmpmusic.domain.model.PlaybackHistory
+import com.yanhao.kmpmusic.domain.model.PlaybackStatus
 import com.yanhao.kmpmusic.domain.model.PlaybackState
 import com.yanhao.kmpmusic.domain.model.QueueState
 import com.yanhao.kmpmusic.domain.model.Song
@@ -52,9 +53,14 @@ class PlaySongUseCaseImpl(
         }
         val nextState: PlaybackState = PlaybackState(
             currentSongId = song.id,
-            isPlaying = true,
+            status = PlaybackStatus.Playing,
         )
-        playbackRepository.saveQueueState(state = QueueState(songIds = nextQueueIds))
+        playbackRepository.saveQueueState(
+            state = QueueState(
+                songIds = nextQueueIds,
+                currentIndex = nextQueueIds.indexOf(element = song.id),
+            ),
+        )
         playbackRepository.savePlaybackState(state = nextState)
         val currentHistory: List<String> = playbackRepository.getPlaybackHistory().songIds
         val nextHistory: List<String> = listOf(song.id) + currentHistory.filterNot { songId ->
@@ -76,7 +82,9 @@ class TogglePlaybackUseCaseImpl(
     /** 仅切换播放布尔状态，不改变当前歌曲。 */
     override operator fun invoke(): PlaybackState {
         val currentState: PlaybackState = playbackRepository.getPlaybackState()
-        val nextState: PlaybackState = currentState.copy(isPlaying = !currentState.isPlaying)
+        val nextState: PlaybackState = currentState.copy(
+            status = currentState.toggledStatus(),
+        )
         playbackRepository.savePlaybackState(state = nextState)
         return nextState
     }
@@ -103,9 +111,23 @@ class MoveQueueUseCaseImpl(
         val nextIndex: Int = (currentIndex + direction + queueIds.size) % queueIds.size
         val nextState: PlaybackState = PlaybackState(
             currentSongId = queueIds[nextIndex],
-            isPlaying = true,
+            status = PlaybackStatus.Playing,
+        )
+        playbackRepository.saveQueueState(
+            state = playbackRepository.getQueueState().copy(
+                currentIndex = nextIndex,
+            ),
         )
         playbackRepository.savePlaybackState(state = nextState)
         return nextState
+    }
+}
+
+// 在旧控制器仍使用 [isPlaying] 的阶段，用显式状态兼容切换语义。
+private fun PlaybackState.toggledStatus(): PlaybackStatus {
+    return if (isPlaying) {
+        PlaybackStatus.Paused
+    } else {
+        PlaybackStatus.Playing
     }
 }
