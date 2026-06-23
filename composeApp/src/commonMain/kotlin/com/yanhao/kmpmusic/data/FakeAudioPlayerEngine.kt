@@ -6,17 +6,17 @@ import com.yanhao.kmpmusic.domain.model.PlaybackErrorType
 import com.yanhao.kmpmusic.domain.model.PlaybackStatus
 import com.yanhao.kmpmusic.domain.playback.AudioPlayerEngine
 import com.yanhao.kmpmusic.domain.playback.PlaybackEngineEvent
-import kotlinx.coroutines.flow.MutableSharedFlow
-import kotlinx.coroutines.flow.SharedFlow
-import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.receiveAsFlow
 
 /**
  * 供 common 测试使用的确定性假播放引擎。
  */
 class FakeAudioPlayerEngine : AudioPlayerEngine {
-    // 对外事件流的内部可写实现。
-    private val mutableEvents: MutableSharedFlow<PlaybackEngineEvent> = MutableSharedFlow(
-        extraBufferCapacity = 64,
+    // 对外事件流的内部实现，使用队列语义保证共享测试中的时序稳定。
+    private val eventChannel: Channel<PlaybackEngineEvent> = Channel(
+        capacity = Channel.UNLIMITED,
     )
 
     // 当前引擎持有的媒体队列。
@@ -29,7 +29,7 @@ class FakeAudioPlayerEngine : AudioPlayerEngine {
     private var currentPositionMs: Long = 0L
 
     /** 对外暴露确定性事件流。 */
-    override val events: SharedFlow<PlaybackEngineEvent> = mutableEvents.asSharedFlow()
+    override val events: Flow<PlaybackEngineEvent> = eventChannel.receiveAsFlow()
 
     /** 注入完整队列；空队列直接回传统一失败事件。 */
     override suspend fun setQueue(
@@ -49,14 +49,14 @@ class FakeAudioPlayerEngine : AudioPlayerEngine {
             emitMissingQueueFailure()
             return
         }
-        mutableEvents.tryEmit(
+        eventChannel.trySend(
             PlaybackEngineEvent.CurrentMediaChanged(
                 songId = media.songId,
                 index = currentIndex,
                 durationMs = media.durationMs,
             ),
         )
-        mutableEvents.tryEmit(
+        eventChannel.trySend(
             PlaybackEngineEvent.StatusChanged(
                 status = PlaybackStatus.Loading,
                 positionMs = currentPositionMs,
@@ -68,7 +68,7 @@ class FakeAudioPlayerEngine : AudioPlayerEngine {
     /** 对当前媒体发出播放事件。 */
     override fun play() {
         val media: PlayableMedia = queue.getOrNull(index = currentIndex) ?: return
-        mutableEvents.tryEmit(
+        eventChannel.trySend(
             PlaybackEngineEvent.StatusChanged(
                 status = PlaybackStatus.Playing,
                 positionMs = currentPositionMs,
@@ -80,7 +80,7 @@ class FakeAudioPlayerEngine : AudioPlayerEngine {
     /** 对当前媒体发出暂停事件。 */
     override fun pause() {
         val media: PlayableMedia = queue.getOrNull(index = currentIndex) ?: return
-        mutableEvents.tryEmit(
+        eventChannel.trySend(
             PlaybackEngineEvent.StatusChanged(
                 status = PlaybackStatus.Paused,
                 positionMs = currentPositionMs,
@@ -93,7 +93,7 @@ class FakeAudioPlayerEngine : AudioPlayerEngine {
     override fun seekTo(positionMs: Long) {
         val media: PlayableMedia = queue.getOrNull(index = currentIndex) ?: return
         currentPositionMs = positionMs
-        mutableEvents.tryEmit(
+        eventChannel.trySend(
             PlaybackEngineEvent.ProgressChanged(
                 positionMs = currentPositionMs,
                 durationMs = media.durationMs,
@@ -112,7 +112,7 @@ class FakeAudioPlayerEngine : AudioPlayerEngine {
         currentIndex = index.coerceIn(minimumValue = 0, maximumValue = queue.lastIndex)
         currentPositionMs = 0L
         val media: PlayableMedia = queue.getOrNull(index = currentIndex) ?: return
-        mutableEvents.tryEmit(
+        eventChannel.trySend(
             PlaybackEngineEvent.CurrentMediaChanged(
                 songId = media.songId,
                 index = currentIndex,
@@ -124,7 +124,7 @@ class FakeAudioPlayerEngine : AudioPlayerEngine {
     /** 发出停止后的 idle 事件。 */
     override fun stop() {
         currentPositionMs = 0L
-        mutableEvents.tryEmit(
+        eventChannel.trySend(
             PlaybackEngineEvent.StatusChanged(
                 status = PlaybackStatus.Idle,
                 positionMs = currentPositionMs,
@@ -135,7 +135,7 @@ class FakeAudioPlayerEngine : AudioPlayerEngine {
 
     /** 供后续测试显式模拟播放结束。 */
     fun emitEnded() {
-        mutableEvents.tryEmit(PlaybackEngineEvent.Ended)
+        eventChannel.trySend(PlaybackEngineEvent.Ended)
     }
 
     /**
@@ -145,7 +145,7 @@ class FakeAudioPlayerEngine : AudioPlayerEngine {
      * @param message 失败信息。
      */
     fun emitFailure(songId: String, message: String = "播放失败") {
-        mutableEvents.tryEmit(
+        eventChannel.trySend(
             PlaybackEngineEvent.Failed(
                 error = PlaybackError(
                     type = PlaybackErrorType.Unknown,
@@ -158,7 +158,7 @@ class FakeAudioPlayerEngine : AudioPlayerEngine {
 
     // 用统一错误形状表达空队列。
     private fun emitMissingQueueFailure() {
-        mutableEvents.tryEmit(
+        eventChannel.trySend(
             PlaybackEngineEvent.Failed(
                 error = PlaybackError(
                     type = PlaybackErrorType.MissingFile,
