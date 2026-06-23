@@ -28,7 +28,7 @@ class PlaybackCoordinator(
     private val playbackRepository: PlaybackRepository,
     // 平台无关的音频引擎入口。
     private val audioPlayerEngine: AudioPlayerEngine,
-    // 快照存储，当前任务仅提供内存实现。
+    // 快照存储，负责承接持久化与冷启动恢复规则。
     private val playbackSnapshotStore: PlaybackSnapshotStore = InMemoryPlaybackSnapshotStore(),
     // 快照写入作用域，独立于引擎事件订阅，避免未调用 [start] 时丢失持久化。
     private val snapshotWriteScope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default),

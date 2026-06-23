@@ -224,10 +224,12 @@ class PlaybackCoordinatorTest {
         coordinator.playSong(song = songs[1], queueSongs = songs)
         advanceUntilIdle()
 
-        val snapshot = snapshotStore.readSnapshot()
+        val snapshot = snapshotStore.restoreSnapshot(
+            availableSongIds = songs.map { song -> song.id }.toSet(),
+        )
 
-        assertEquals(expected = songs[1].id, actual = snapshot?.playbackState?.currentSongId)
-        assertEquals(expected = 1, actual = snapshot?.queueState?.currentIndex)
+        assertEquals(expected = songs[1].id, actual = snapshot.playbackState.currentSongId)
+        assertEquals(expected = 1, actual = snapshot.queueState.currentIndex)
     }
 
     /**
