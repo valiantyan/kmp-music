@@ -1,5 +1,6 @@
 package com.yanhao.kmpmusic.domain.persistence
 
+import androidx.room3.withWriteTransaction
 import com.yanhao.kmpmusic.domain.model.PlaybackMode
 import com.yanhao.kmpmusic.domain.model.PlaybackSnapshot
 import com.yanhao.kmpmusic.domain.model.PlaybackState
@@ -68,25 +69,27 @@ class RoomPlaybackSnapshotStore(
      * @param snapshot 需要持久化的播放快照。
      */
     override suspend fun saveSnapshot(snapshot: PlaybackSnapshot) {
-        database.playbackQueueDao().clearQueue()
-        database.playbackQueueDao().insertAll(
-            items = snapshot.queueState.songIds.mapIndexed { index: Int, songId: String ->
-                PlaybackQueueItemEntity(
-                    position = index,
-                    songId = songId,
-                )
-            },
-        )
-        database.playbackSnapshotDao().saveSnapshot(
-            entity = PlaybackSnapshotEntity(
-                currentSongId = snapshot.playbackState.currentSongId,
-                currentIndex = snapshot.queueState.currentIndex,
-                playbackMode = snapshot.queueState.playbackMode.name,
-                positionMs = snapshot.playbackState.positionMs,
-                durationMs = snapshot.playbackState.durationMs,
-                updatedAt = snapshot.updatedAt.takeIf { value: Long -> value > 0L } ?: nowMillis(),
-            ),
-        )
+        database.withWriteTransaction {
+            database.playbackQueueDao().clearQueue()
+            database.playbackQueueDao().insertAll(
+                items = snapshot.queueState.songIds.mapIndexed { index: Int, songId: String ->
+                    PlaybackQueueItemEntity(
+                        position = index,
+                        songId = songId,
+                    )
+                },
+            )
+            database.playbackSnapshotDao().saveSnapshot(
+                entity = PlaybackSnapshotEntity(
+                    currentSongId = snapshot.playbackState.currentSongId,
+                    currentIndex = snapshot.queueState.currentIndex,
+                    playbackMode = snapshot.queueState.playbackMode.name,
+                    positionMs = snapshot.playbackState.positionMs,
+                    durationMs = snapshot.playbackState.durationMs,
+                    updatedAt = snapshot.updatedAt.takeIf { value: Long -> value > 0L } ?: nowMillis(),
+                ),
+            )
+        }
     }
 
     /**

@@ -3,7 +3,9 @@ agp = "8.13.2"
 composeMultiplatform = "1.7.3"
 kotlin = "2.0.21"
 kotlinxCoroutines = "1.9.0"
+kotlinxSerialization = "1.8.1"
 androidxCore = "1.17.0"
+androidxAppCompat = "1.7.1"
 ksp = "2.0.21-1.0.28"
 media3 = "1.8.0"
 room3 = "3.0.0-rc01"
@@ -14,6 +16,7 @@ kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotl
 kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlinxCoroutines" }
 kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "kotlinxCoroutines" }
 androidx-core = { module = "androidx.core:core", version.ref = "androidxCore" }
+androidx-appcompat = { module = "androidx.appcompat:appcompat", version.ref = "androidxAppCompat" }
 androidx-sqlite-bundled = { module = "androidx.sqlite:sqlite-bundled", version.ref = "sqlite" }
 androidx-room3-runtime = { module = "androidx.room3:room3-runtime", version.ref = "room3" }
 androidx-room3-compiler = { module = "androidx.room3:room3-compiler", version.ref = "room3" }

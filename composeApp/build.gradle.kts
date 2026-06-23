@@ -12,6 +12,11 @@ plugins {
 }
 
 kotlin {
+    @OptIn(ExperimentalKotlinGradlePluginApi::class)
+    compilerOptions {
+        freeCompilerArgs.add("-Xexpect-actual-classes")
+    }
+
     androidTarget {
         @OptIn(ExperimentalKotlinGradlePluginApi::class)
         compilerOptions {
@@ -54,6 +59,7 @@ kotlin {
             implementation(compose.preview)
             implementation("androidx.activity:activity-compose:1.12.2")
             implementation(libs.androidx.core)
+            implementation(libs.androidx.appcompat)
             implementation(libs.androidx.media3.exoplayer)
             implementation(libs.androidx.media3.session)
             implementation(libs.androidx.media3.ui)
@@ -65,10 +71,23 @@ kotlin {
 }
 
 dependencies {
+    add("kspAndroid", libs.androidx.room3.compiler)
     add("kspIosX64", libs.androidx.room3.compiler)
     add("kspIosArm64", libs.androidx.room3.compiler)
     add("kspIosSimulatorArm64", libs.androidx.room3.compiler)
     add("kspDesktop", libs.androidx.room3.compiler)
+}
+
+configurations.matching { configuration ->
+    configuration.name == "kspPluginClasspath" ||
+        configuration.name == "kspPluginClasspathNonEmbeddable"
+}.configureEach {
+    resolutionStrategy.eachDependency {
+        if (requested.group == "org.jetbrains.kotlinx" && requested.name.startsWith("kotlinx-serialization")) {
+            useVersion(libs.versions.kotlinxSerialization.get())
+            because("Room3 schema export requires the newer kotlinx.serialization ABI on the KSP runtime classpath.")
+        }
+    }
 }
 
 ksp {

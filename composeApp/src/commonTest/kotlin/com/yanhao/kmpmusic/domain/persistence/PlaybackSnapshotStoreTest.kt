@@ -75,4 +75,66 @@ class PlaybackSnapshotStoreTest {
         assertEquals(expected = 0, actual = restored.queueState.currentIndex)
         assertEquals(expected = "song-1", actual = restored.playbackState.currentSongId)
     }
+
+    /**
+     * 当恢复后没有任何可用歌曲时，应回退为空队列的空闲态。
+     */
+    @Test
+    fun restoreReturnsIdleWhenQueueBecomesEmptyAfterFiltering(): Unit = runTest {
+        val store: InMemoryPlaybackSnapshotStore = InMemoryPlaybackSnapshotStore()
+        store.saveSnapshot(
+            snapshot = PlaybackSnapshot(
+                playbackState = PlaybackState(
+                    currentSongId = "song-2",
+                    status = PlaybackStatus.Playing,
+                    positionMs = 18_000L,
+                ),
+                queueState = QueueState(
+                    songIds = listOf("song-1", "song-2"),
+                    currentIndex = 1,
+                ),
+            ),
+        )
+
+        val restored: PlaybackSnapshot = store.restoreSnapshot(
+            availableSongIds = emptySet(),
+        )
+
+        assertEquals(expected = emptyList(), actual = restored.queueState.songIds)
+        assertEquals(expected = PlaybackStatus.Idle, actual = restored.playbackState.status)
+        assertEquals(expected = null, actual = restored.playbackState.currentSongId)
+        assertEquals(expected = 0L, actual = restored.playbackState.positionMs)
+    }
+
+    /**
+     * 当当前歌曲已丢失时，应选择合法下标并把进度归零，避免恢复到错误位置。
+     */
+    @Test
+    fun restoreResetsPositionWhenCurrentSongIsMissing(): Unit = runTest {
+        val store: InMemoryPlaybackSnapshotStore = InMemoryPlaybackSnapshotStore()
+        store.saveSnapshot(
+            snapshot = PlaybackSnapshot(
+                playbackState = PlaybackState(
+                    currentSongId = "song-3",
+                    status = PlaybackStatus.Playing,
+                    positionMs = 99_000L,
+                ),
+                queueState = QueueState(
+                    songIds = listOf("song-1", "song-2", "song-3"),
+                    currentIndex = 2,
+                    playbackMode = PlaybackMode.LoopAll,
+                ),
+            ),
+        )
+
+        val restored: PlaybackSnapshot = store.restoreSnapshot(
+            availableSongIds = setOf("song-1", "song-2"),
+        )
+
+        assertEquals(expected = listOf("song-1", "song-2"), actual = restored.queueState.songIds)
+        assertEquals(expected = 1, actual = restored.queueState.currentIndex)
+        assertEquals(expected = "song-2", actual = restored.playbackState.currentSongId)
+        assertEquals(expected = 0L, actual = restored.playbackState.positionMs)
+        assertEquals(expected = PlaybackStatus.Paused, actual = restored.playbackState.status)
+    }
 }
