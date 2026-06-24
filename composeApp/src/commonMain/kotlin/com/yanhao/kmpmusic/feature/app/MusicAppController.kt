@@ -214,7 +214,11 @@ class MusicAppController(
      */
     suspend fun restorePlaybackSnapshot() {
         if (uiState.songs.isEmpty()) {
+            if (!playbackSnapshotStore.hasSavedSnapshot()) {
+                return
+            }
             isPlaybackRestorePending = true
+            requestInitialLibraryRefreshForRestoreIfNeeded()
             return
         }
         isPlaybackRestorePending = false
@@ -313,6 +317,16 @@ class MusicAppController(
     /** 播放模式按钮只负责触发协调器切换，UI 统一从仓库回读。 */
     fun cyclePlaybackMode() {
         playbackCoordinator.cyclePlaybackMode()
+    }
+
+    /**
+     * Android 播放 service 退出前，通过协调器补写最终暂停快照，避免恢复时丢掉最后位置。
+     */
+    fun persistPlaybackSnapshotForServiceTeardown(positionMs: Long, durationMs: Long?) {
+        playbackCoordinator.persistSnapshotForServiceTeardown(
+            positionMs = positionMs,
+            durationMs = durationMs,
+        )
     }
 
     /** 切换收藏并同步歌曲状态。 */
@@ -547,5 +561,13 @@ class MusicAppController(
         controllerScope.launch(start = CoroutineStart.UNDISPATCHED) {
             playbackCoordinator.restoreSnapshot(availableSongs = availableSongs)
         }
+    }
+
+    // 只有存在持久化快照且当前仍未建立曲库时，才主动触发首次扫描补全恢复链路。
+    private suspend fun requestInitialLibraryRefreshForRestoreIfNeeded() {
+        if (uiState.scanState != LocalMusicScanState.Idle) {
+            return
+        }
+        scanLocalMusic(request = LocalMusicScanRequest.InitialScan)
     }
 }

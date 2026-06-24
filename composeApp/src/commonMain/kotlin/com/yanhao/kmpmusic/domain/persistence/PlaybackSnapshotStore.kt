@@ -19,6 +19,11 @@ interface PlaybackSnapshotStore {
     suspend fun saveSnapshot(snapshot: PlaybackSnapshot)
 
     /**
+     * 判断是否存在可供冷启动恢复的已保存快照，避免无快照时触发无意义的自动扫描。
+     */
+    suspend fun hasSavedSnapshot(): Boolean
+
+    /**
      * 按当前可用歌曲集合恢复快照，确保冷启动不会引用失效歌曲。
      *
      * @param availableSongIds 当前仍然可用的歌曲标识集合。
@@ -41,6 +46,13 @@ class InMemoryPlaybackSnapshotStore : PlaybackSnapshotStore {
      */
     override suspend fun saveSnapshot(snapshot: PlaybackSnapshot) {
         this.snapshot = snapshot
+    }
+
+    /**
+     * 只有保存过队列或当前歌曲时，才认为存在可恢复快照。
+     */
+    override suspend fun hasSavedSnapshot(): Boolean {
+        return snapshot.playbackState.currentSongId != null || snapshot.queueState.songIds.isNotEmpty()
     }
 
     /**
@@ -90,6 +102,17 @@ class RoomPlaybackSnapshotStore(
                 ),
             )
         }
+    }
+
+    /**
+     * Room 中只要存在主记录且队列非空，就视为有意义的恢复快照。
+     */
+    override suspend fun hasSavedSnapshot(): Boolean {
+        val snapshotEntity: PlaybackSnapshotEntity = database.playbackSnapshotDao().getSnapshot() ?: return false
+        if (snapshotEntity.currentSongId == null && snapshotEntity.currentIndex < 0) {
+            return false
+        }
+        return database.playbackQueueDao().getQueueItems().isNotEmpty()
     }
 
     /**

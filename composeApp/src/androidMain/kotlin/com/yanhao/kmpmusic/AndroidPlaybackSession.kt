@@ -127,6 +127,7 @@ object AndroidPlaybackSession {
      */
     fun attachLocalMusicScanner(scanner: LocalMusicScanner) {
         localMusicScanner.replace(scanner = scanner)
+        ensurePlaybackSnapshotRestoreRequested()
     }
 
     /**

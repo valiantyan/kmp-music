@@ -375,10 +375,10 @@ class MusicAppControllerTest {
     }
 
     /**
-     * 启动时若先请求恢复但曲库尚未扫描，控制器应挂起恢复并在扫描完成后自动回填暂停态。
+     * 启动时若曲库为空但存在快照，控制器应主动补发首次扫描并自动回填暂停态。
      */
     @Test
-    fun restorePlaybackSnapshotWaitsForLibrarySnapshot(): Unit = runTest {
+    fun restorePlaybackSnapshotHydratesLibraryBeforeRestoring(): Unit = runTest {
         val snapshotStore = InMemoryPlaybackSnapshotStore()
         val controller = createController(
             playbackSnapshotStore = snapshotStore,
@@ -401,11 +401,6 @@ class MusicAppControllerTest {
         )
 
         controller.restorePlaybackSnapshot()
-
-        assertNull(controller.uiState.currentSongId)
-        assertEquals(expected = PlaybackStatus.Idle, actual = controller.uiState.playbackStatus)
-
-        controller.scanLocalMusic(request = LocalMusicScanRequest.Refresh)
         advanceUntilIdle()
 
         assertEquals(expected = "fakeScanner:004", actual = controller.uiState.currentSongId)
@@ -415,6 +410,46 @@ class MusicAppControllerTest {
             expected = listOf("fakeScanner:004", "fakeScanner:002"),
             actual = controller.uiState.queueSongIds.take(n = 2),
         )
+    }
+
+    /**
+     * 冷启动恢复遇到空曲库时，只要存在快照就应主动触发首次扫描，而不是等待用户手动刷新。
+     */
+    @Test
+    fun restorePlaybackSnapshotAutoScansLibraryWhenSnapshotExists(): Unit = runTest {
+        val snapshotStore = InMemoryPlaybackSnapshotStore()
+        val scanner = RecordingLocalMusicScanner()
+        val controller = createController(
+            localMusicScanner = scanner,
+            playbackSnapshotStore = snapshotStore,
+            controllerScope = backgroundScope,
+        )
+        snapshotStore.saveSnapshot(
+            snapshot = PlaybackSnapshot(
+                playbackState = PlaybackState(
+                    currentSongId = "fakeScanner:004",
+                    status = PlaybackStatus.Playing,
+                    positionMs = 24_000L,
+                    durationMs = 247_000L,
+                ),
+                queueState = QueueState(
+                    songIds = listOf("fakeScanner:004", "fakeScanner:002"),
+                    currentIndex = 0,
+                    playbackMode = PlaybackMode.LoopAll,
+                ),
+            ),
+        )
+
+        controller.restorePlaybackSnapshot()
+        advanceUntilIdle()
+
+        assertEquals(
+            expected = listOf<LocalMusicScanRequest>(LocalMusicScanRequest.InitialScan),
+            actual = scanner.requests,
+        )
+        assertEquals(expected = "fakeScanner:004", actual = controller.uiState.currentSongId)
+        assertEquals(expected = PlaybackStatus.Paused, actual = controller.uiState.playbackStatus)
+        assertEquals(expected = 24_000L, actual = controller.uiState.playbackPositionMs)
     }
 
     /**
@@ -611,6 +646,20 @@ private fun testControllerScope(): CoroutineScope {
 
 private object FakeControllerLocalMusicScanner : LocalMusicScanner {
     override suspend fun scan(request: LocalMusicScanRequest): LocalMusicScanResult {
+        return com.yanhao.kmpmusic.data.FakeLocalMusicScanner().scan(request = request)
+    }
+}
+
+/**
+ * 记录扫描请求，验证控制器是否在恢复链路主动补发首次扫描。
+ */
+private class RecordingLocalMusicScanner : LocalMusicScanner {
+    // 按调用顺序记录收到的扫描意图。
+    val requests: MutableList<LocalMusicScanRequest> = mutableListOf()
+
+    /** 记录请求后直接复用 fake scanner 结果，避免测试依赖 Android 平台实现。 */
+    override suspend fun scan(request: LocalMusicScanRequest): LocalMusicScanResult {
+        requests += request
         return com.yanhao.kmpmusic.data.FakeLocalMusicScanner().scan(request = request)
     }
 }

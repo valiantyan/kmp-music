@@ -65,6 +65,12 @@ class MusicPlaybackService : MediaSessionService() {
 
     /** 释放 service 资源并清空注册表，避免 Activity 重建后拿到旧实例。 */
     override fun onDestroy() {
+        player?.let { exoPlayer: ExoPlayer ->
+            AndroidPlaybackSession.controller.persistPlaybackSnapshotForServiceTeardown(
+                positionMs = exoPlayer.currentPosition.coerceAtLeast(minimumValue = 0L),
+                durationMs = exoPlayer.duration.takeIf { durationMs: Long -> durationMs > 0L },
+            )
+        }
         PlaybackServiceRegistry.detach()
         mediaSession?.release()
         mediaSession = null

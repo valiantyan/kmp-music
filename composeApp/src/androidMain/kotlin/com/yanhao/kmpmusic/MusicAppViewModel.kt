@@ -21,7 +21,6 @@ class MusicAppViewModel(
     init {
         AndroidPlaybackSession.bootstrap(context = application.applicationContext)
         controller = AndroidPlaybackSession.controller
-        AndroidPlaybackSession.ensurePlaybackSnapshotRestoreRequested()
     }
 
     /**

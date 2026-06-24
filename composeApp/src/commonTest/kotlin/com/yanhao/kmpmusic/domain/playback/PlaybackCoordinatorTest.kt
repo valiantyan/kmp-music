@@ -284,6 +284,39 @@ class PlaybackCoordinatorTest {
     }
 
     /**
+     * 首个进度事件也必须进入 5 秒节流窗口，不能因为初始时间戳溢出而永久跳过。
+     */
+    @Test
+    fun firstProgressEventPersistsSnapshot(): Unit = runTest {
+        val repository = InMemoryPlaybackRepository()
+        val snapshotStore = InMemoryPlaybackSnapshotStore()
+        val engine = FakeAudioPlayerEngine()
+        var currentTimeMs: Long = 1_000L
+        val coordinator = PlaybackCoordinator(
+            playbackRepository = repository,
+            audioPlayerEngine = engine,
+            playbackSnapshotStore = snapshotStore,
+            snapshotWriteScope = backgroundScope,
+            nowMillis = { currentTimeMs },
+        )
+        val songs = buildSongs(count = 1)
+
+        coordinator.start(scope = backgroundScope)
+        coordinator.playSong(song = songs[0], queueSongs = songs)
+        advanceUntilIdle()
+
+        currentTimeMs = 2_000L
+        engine.seekTo(positionMs = 12_345L)
+        advanceUntilIdle()
+
+        val snapshot = snapshotStore.restoreSnapshot(
+            availableSongIds = setOf(songs[0].id),
+        )
+
+        assertEquals(expected = 12_345L, actual = snapshot.playbackState.positionMs)
+    }
+
+    /**
      * 显式播放与暂停命令应直接走 shared 协调器，而不是依赖 toggle 推断当前状态。
      */
     @Test
@@ -372,6 +405,64 @@ class PlaybackCoordinatorTest {
     }
 
     /**
+     * 非阈值失败自动跳歌时，最近错误仍要保留到下一首真正恢复播放为止。
+     */
+    @Test
+    fun autoSkipKeepsRecentErrorVisibleUntilPlaybackRecovers(): Unit = runTest {
+        val repository = InMemoryPlaybackRepository()
+        val coordinator = PlaybackCoordinator(
+            playbackRepository = repository,
+            audioPlayerEngine = FakeAudioPlayerEngine(),
+            snapshotWriteScope = backgroundScope,
+        )
+        val songs = buildSongs(count = 3)
+        val expectedError = PlaybackError(
+            type = PlaybackErrorType.Unknown,
+            songId = songs[0].id,
+            message = "坏文件",
+        )
+
+        coordinator.playSong(song = songs[0], queueSongs = songs)
+        coordinator.handleEngineEventForTest(
+            PlaybackEngineEvent.Failed(
+                error = expectedError,
+            ),
+        )
+
+        assertEquals(expected = 1, actual = repository.getQueueState().currentIndex)
+        assertEquals(expected = songs[1].id, actual = repository.getPlaybackState().currentSongId)
+        assertEquals(expected = PlaybackStatus.Loading, actual = repository.getPlaybackState().status)
+        assertEquals(expected = expectedError, actual = repository.getPlaybackState().error)
+
+        coordinator.handleEngineEventForTest(
+            PlaybackEngineEvent.CurrentMediaChanged(
+                songId = songs[1].id,
+                index = 1,
+                durationMs = songs[1].durationMs,
+            ),
+        )
+        coordinator.handleEngineEventForTest(
+            PlaybackEngineEvent.StatusChanged(
+                status = PlaybackStatus.Buffering,
+                positionMs = 0L,
+                durationMs = songs[1].durationMs,
+            ),
+        )
+
+        assertEquals(expected = expectedError, actual = repository.getPlaybackState().error)
+
+        coordinator.handleEngineEventForTest(
+            PlaybackEngineEvent.StatusChanged(
+                status = PlaybackStatus.Playing,
+                positionMs = 0L,
+                durationMs = songs[1].durationMs,
+            ),
+        )
+
+        assertEquals(expected = null, actual = repository.getPlaybackState().error)
+    }
+
+    /**
      * 一旦恢复到成功播放，跨歌曲的失败计数应被清零。
      */
     @Test
@@ -415,6 +506,39 @@ class PlaybackCoordinatorTest {
 
         assertEquals(expected = PlaybackStatus.Loading, actual = repository.getPlaybackState().status)
         assertEquals(expected = songs[3].id, actual = repository.getPlaybackState().currentSongId)
+    }
+
+    /**
+     * Service 退出前必须把最后进度写成暂停快照，避免冷启动恢复回到更早的位置。
+     */
+    @Test
+    fun serviceTeardownPersistsFinalPausedSnapshot(): Unit = runTest {
+        val repository = InMemoryPlaybackRepository()
+        val snapshotStore = InMemoryPlaybackSnapshotStore()
+        val coordinator = PlaybackCoordinator(
+            playbackRepository = repository,
+            audioPlayerEngine = FakeAudioPlayerEngine(),
+            playbackSnapshotStore = snapshotStore,
+            snapshotWriteScope = backgroundScope,
+        )
+        val songs = buildSongs(count = 2)
+
+        coordinator.playSong(song = songs[0], queueSongs = songs)
+        coordinator.persistSnapshotForServiceTeardown(
+            positionMs = 54_321L,
+            durationMs = songs[0].durationMs,
+        )
+        advanceUntilIdle()
+
+        assertEquals(expected = PlaybackStatus.Paused, actual = repository.getPlaybackState().status)
+        assertEquals(expected = 54_321L, actual = repository.getPlaybackState().positionMs)
+
+        val snapshot = snapshotStore.restoreSnapshot(
+            availableSongIds = songs.map { song -> song.id }.toSet(),
+        )
+
+        assertEquals(expected = PlaybackStatus.Paused, actual = snapshot.playbackState.status)
+        assertEquals(expected = 54_321L, actual = snapshot.playbackState.positionMs)
     }
 
     /**
