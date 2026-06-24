@@ -12,6 +12,8 @@ import com.yanhao.kmpmusic.feature.app.MusicAppController
 import com.yanhao.kmpmusic.feature.app.PermissionSettingsOpener
 import com.yanhao.kmpmusic.playback.PlaybackCommandBridge
 import com.yanhao.kmpmusic.playback.PlaybackCommandBridgeRegistry
+import com.yanhao.kmpmusic.playback.PlaybackNotificationActions
+import com.yanhao.kmpmusic.playback.PlaybackNotificationDispatcher
 import com.yanhao.kmpmusic.playback.PlaybackServiceConnector
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -46,9 +48,11 @@ object AndroidPlaybackSession {
     )
 
     init {
-        PlaybackCommandBridgeRegistry.attach(
-            bridge = ControllerPlaybackCommandBridge(controller = controller),
+        val commandBridge: ControllerPlaybackCommandBridge = ControllerPlaybackCommandBridge(
+            controller = controller,
         )
+        PlaybackCommandBridgeRegistry.attach(bridge = commandBridge)
+        PlaybackNotificationDispatcher.attach(actions = commandBridge)
     }
 
     /**
@@ -94,7 +98,12 @@ object AndroidPlaybackSession {
 private class ControllerPlaybackCommandBridge(
     // 进程级稳定存在的共享控制器。
     private val controller: MusicAppController,
-) : PlaybackCommandBridge {
+) : PlaybackNotificationActions {
+    /** 通知播放/暂停按钮复用 UI 的切换语义，保持与播放器页一致。 */
+    override fun togglePlayback() {
+        controller.togglePlayback()
+    }
+
     /** 系统播放命令显式走 shared 控制器，避免依赖 toggle 猜状态。 */
     override fun play() {
         controller.play()
@@ -126,6 +135,17 @@ private class ControllerPlaybackCommandBridge(
             index = index,
             positionMs = positionMs,
         )
+    }
+
+    /** 通知收藏动作复用 shared 控制器，避免直接改收藏仓库。 */
+    override fun toggleFavorite() {
+        val currentSongId: String = controller.uiState.currentSongId ?: return
+        controller.toggleFavorite(songId = currentSongId)
+    }
+
+    /** 通知播放模式动作复用 shared 控制器，避免直接改队列状态。 */
+    override fun cycleMode() {
+        controller.cyclePlaybackMode()
     }
 }
 
