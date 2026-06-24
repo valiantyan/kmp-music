@@ -322,6 +322,12 @@ class MusicAppController(
         publishPlaybackUiState()
     }
 
+    /** 切换当前播放歌曲收藏，避免平台宿主直接探查 [uiState] 细节。 */
+    fun toggleCurrentSongFavorite() {
+        val currentSongId: String = uiState.currentSongId ?: return
+        toggleFavorite(songId = currentSongId)
+    }
+
     /** 打开专辑详情。 */
     fun openAlbum(album: Album) {
         uiState = uiState.copy(selectedAlbumId = album.id)

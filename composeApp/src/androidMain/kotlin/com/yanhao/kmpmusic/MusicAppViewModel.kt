@@ -1,7 +1,8 @@
 package com.yanhao.kmpmusic
 
+import android.app.Application
 import android.content.Context
-import androidx.lifecycle.ViewModel
+import androidx.lifecycle.AndroidViewModel
 import com.yanhao.kmpmusic.domain.repository.LocalMusicScanner
 import com.yanhao.kmpmusic.feature.app.MusicAppController
 import com.yanhao.kmpmusic.feature.app.PermissionSettingsOpener
@@ -9,11 +10,18 @@ import com.yanhao.kmpmusic.feature.app.PermissionSettingsOpener
 /**
  * Android UI 层 ViewModel，只负责把当前 Activity 依赖接到进程级播放会话。
  */
-class MusicAppViewModel : ViewModel() {
+class MusicAppViewModel(
+    application: Application,
+) : AndroidViewModel(application) {
     /**
      * 暴露进程级共享控制器，后台播放和系统命令都复用同一份状态。
      */
-    val controller: MusicAppController = AndroidPlaybackSession.controller
+    val controller: MusicAppController
+
+    init {
+        AndroidPlaybackSession.bootstrap(context = application.applicationContext)
+        controller = AndroidPlaybackSession.controller
+    }
 
     /**
      * 注入当前 Activity 可用的 Android scanner。

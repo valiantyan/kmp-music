@@ -1,12 +1,16 @@
 package com.yanhao.kmpmusic.playback
 
 import com.yanhao.kmpmusic.AndroidPlaybackSession
+import android.app.NotificationManager
 import androidx.media3.common.ForwardingPlayer
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.session.MediaSession
 import androidx.media3.session.MediaSessionService
+import com.yanhao.kmpmusic.domain.model.PlaybackMode
+import com.yanhao.kmpmusic.domain.model.PlaybackStatus
+import com.yanhao.kmpmusic.domain.model.Song
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancel
@@ -29,10 +33,14 @@ class MusicPlaybackService : MediaSessionService() {
     // 供 app 内 shared 协调器桥接的 Android 真播放引擎。
     private var engine: Media3AudioPlayerEngine? = null
 
+    // 负责构建并刷新自定义通知。
+    private lateinit var notificationController: AndroidPlaybackNotificationController
+
     /** 初始化 ExoPlayer、引擎和 MediaSession，并把实例登记到进程内注册表。 */
     override fun onCreate() {
         super.onCreate()
         AndroidPlaybackSession.bootstrap(context = applicationContext)
+        notificationController = AndroidPlaybackNotificationController(context = this)
         val exoPlayer: ExoPlayer = ExoPlayer.Builder(this).build()
         val mediaEngine: Media3AudioPlayerEngine = Media3AudioPlayerEngine(
             player = exoPlayer,
@@ -65,6 +73,48 @@ class MusicPlaybackService : MediaSessionService() {
         player = null
         serviceScope.cancel()
         super.onDestroy()
+    }
+
+    /**
+     * 依据共享播放状态刷新通知，并只在存在可播放歌曲时进入前台。
+     */
+    fun showOrRefreshNotification(
+        song: Song,
+        isPlaying: Boolean,
+        isFavorite: Boolean,
+        playbackMode: PlaybackMode,
+        playbackStatus: PlaybackStatus,
+    ) {
+        val notification = notificationController.createNotification(
+            song = song,
+            isPlaying = isPlaying,
+            isFavorite = isFavorite,
+            playbackMode = playbackMode,
+        )
+        when (playbackStatus) {
+            PlaybackStatus.Loading,
+            PlaybackStatus.Playing,
+            PlaybackStatus.Buffering,
+            -> startForeground(PLAYBACK_NOTIFICATION_ID, notification)
+            PlaybackStatus.Paused,
+            PlaybackStatus.Error,
+            PlaybackStatus.Ended,
+            -> {
+                getSystemService(NotificationManager::class.java)
+                    .notify(PLAYBACK_NOTIFICATION_ID, notification)
+                stopForeground(STOP_FOREGROUND_DETACH)
+            }
+            PlaybackStatus.Idle -> clearNotification()
+        }
+    }
+
+    /**
+     * 当前没有活动歌曲时移除通知，并允许 service 在空闲后自然结束。
+     */
+    fun clearNotification() {
+        stopForeground(STOP_FOREGROUND_REMOVE)
+        getSystemService(NotificationManager::class.java).cancel(PLAYBACK_NOTIFICATION_ID)
+        stopSelf()
     }
 }
 

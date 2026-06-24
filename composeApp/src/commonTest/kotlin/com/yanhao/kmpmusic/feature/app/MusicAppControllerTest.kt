@@ -388,6 +388,20 @@ class MusicAppControllerTest {
     }
 
     /**
+     * 平台宿主应能通过共享控制器直接切换当前播放歌曲收藏，而不必窥探 [MusicAppUiState.currentSongId]。
+     */
+    @Test
+    fun toggleCurrentSongFavoriteUsesSharedControllerEntry(): Unit = runBlocking {
+        val controller = createController()
+        controller.scanLocalMusic(request = LocalMusicScanRequest.Refresh)
+        val targetSong: Song = controller.uiState.songs.first { song -> song.title == "Summer Waltz" }
+        controller.playSong(song = targetSong)
+        controller.toggleCurrentSongFavorite()
+        assertTrue(controller.uiState.likedSongIds.contains(element = targetSong.id))
+        assertTrue(controller.uiState.currentSong?.isLiked == true)
+    }
+
+    /**
      * 搜索范围为歌曲时不应返回专辑和歌手。
      */
     @Test

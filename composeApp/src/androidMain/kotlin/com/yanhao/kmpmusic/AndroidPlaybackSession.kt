@@ -1,26 +1,27 @@
 package com.yanhao.kmpmusic
 
 import android.content.Context
+import com.yanhao.kmpmusic.data.PersistentFavoritesRepository
+import com.yanhao.kmpmusic.data.createAndroidPlaybackDatabase
 import com.yanhao.kmpmusic.domain.model.LocalMusicScanError
 import com.yanhao.kmpmusic.domain.model.LocalMusicScanErrorType
 import com.yanhao.kmpmusic.domain.model.LocalMusicScanException
 import com.yanhao.kmpmusic.domain.model.LocalMusicScanRequest
 import com.yanhao.kmpmusic.domain.model.LocalMusicScanResult
 import com.yanhao.kmpmusic.domain.model.LocalMusicSourceKind
+import com.yanhao.kmpmusic.domain.persistence.RoomPlaybackSnapshotStore
 import com.yanhao.kmpmusic.domain.repository.LocalMusicScanner
 import com.yanhao.kmpmusic.feature.app.MusicAppController
 import com.yanhao.kmpmusic.feature.app.PermissionSettingsOpener
-import com.yanhao.kmpmusic.playback.PlaybackCommandBridge
-import com.yanhao.kmpmusic.playback.PlaybackCommandBridgeRegistry
-import com.yanhao.kmpmusic.playback.PlaybackNotificationActions
-import com.yanhao.kmpmusic.playback.PlaybackNotificationDispatcher
+import com.yanhao.kmpmusic.playback.AndroidPlaybackRuntime
 import com.yanhao.kmpmusic.playback.PlaybackServiceConnector
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.runBlocking
 
 /**
- * Android 进程级播放会话，承载真实播放控制器、命令桥和 service connector。
+ * Android 进程级播放会话，统一拥有真实控制器、Room 持久化和播放运行时。
  */
 object AndroidPlaybackSession {
     // Activity 可替换的扫描代理，避免长生命周期 controller 持有失效 Activity。
@@ -37,36 +38,66 @@ object AndroidPlaybackSession {
         scope = playbackScope,
     )
 
-    /**
-     * 进程级共享控制器，后台播放期间也保持同一份队列与播放状态。
-     */
-    val controller: MusicAppController = MusicAppController(
-        localMusicScanner = localMusicScanner,
-        audioPlayerEngine = playbackServiceConnector,
-        permissionSettingsOpener = permissionSettingsOpener,
-        controllerScope = playbackScope,
+    // Android 进程级通知与命令桥运行时。
+    private val playbackRuntime: AndroidPlaybackRuntime = AndroidPlaybackRuntime(
+        serviceConnector = playbackServiceConnector,
     )
 
-    init {
-        val commandBridge: ControllerPlaybackCommandBridge = ControllerPlaybackCommandBridge(
-            controller = controller,
-        )
-        PlaybackCommandBridgeRegistry.attach(bridge = commandBridge)
-        PlaybackNotificationDispatcher.attach(actions = commandBridge)
-    }
+    // 当前进程级共享控制器；仅在拿到 applicationContext 后初始化。
+    private var controllerHolder: MusicAppController? = null
 
     /**
-     * 注入 applicationContext，让 connector 能惰性拉起 Android 播放服务。
+     * 当前进程级共享控制器，后台播放和系统命令都复用同一份状态。
      */
-    fun attachPlaybackContext(context: Context) {
-        playbackServiceConnector.attachContext(context = context)
-    }
+    val controller: MusicAppController
+        get() = controllerHolder ?: error("AndroidPlaybackSession 尚未 bootstrap")
 
     /**
-     * 确保进程级播放会话已初始化并拿到 applicationContext，供无 UI 场景下的 service 自举调用。
+     * 确保进程级播放会话已初始化并拿到 applicationContext，供 Activity 与 service 共用。
      */
     fun bootstrap(context: Context) {
-        attachPlaybackContext(context = context.applicationContext)
+        val applicationContext: Context = context.applicationContext
+        playbackRuntime.attachContext(context = applicationContext)
+        if (controllerHolder != null) {
+            return
+        }
+        synchronized(this) {
+            if (controllerHolder != null) {
+                return
+            }
+            val playbackDatabase = createAndroidPlaybackDatabase(context = applicationContext)
+            val favoriteSongDao = playbackDatabase.favoriteSongDao()
+            val favoritesRepository = runBlocking {
+                PersistentFavoritesRepository(
+                    favoriteSongDao = favoriteSongDao,
+                    initialLikedSongIds = PersistentFavoritesRepository.loadInitialLikedSongIds(
+                        favoriteSongDao = favoriteSongDao,
+                    ),
+                    nowMillis = { System.currentTimeMillis() },
+                )
+            }
+            controllerHolder = MusicAppController(
+                localMusicScanner = localMusicScanner,
+                audioPlayerEngine = playbackServiceConnector,
+                playbackSnapshotStore = RoomPlaybackSnapshotStore(
+                    database = playbackDatabase,
+                    nowMillis = { System.currentTimeMillis() },
+                ),
+                injectedFavoritesRepository = favoritesRepository,
+                permissionSettingsOpener = permissionSettingsOpener,
+                controllerScope = playbackScope,
+                nowMillis = { System.currentTimeMillis() },
+            ).also { controller: MusicAppController ->
+                playbackRuntime.attachController(controller = controller)
+            }
+        }
+    }
+
+    /**
+     * 兼容 Activity 重建时的显式接线入口，内部直接复用 [bootstrap]。
+     */
+    fun attachPlaybackContext(context: Context) {
+        bootstrap(context = context)
     }
 
     /**
@@ -89,63 +120,6 @@ object AndroidPlaybackSession {
     fun clearUiBindings() {
         localMusicScanner.clear()
         permissionSettingsOpener.clear()
-    }
-}
-
-/**
- * 把系统媒体命令回流到共享控制器，保证队列与播放状态仍由 common 协调器托管。
- */
-private class ControllerPlaybackCommandBridge(
-    // 进程级稳定存在的共享控制器。
-    private val controller: MusicAppController,
-) : PlaybackNotificationActions {
-    /** 通知播放/暂停按钮复用 UI 的切换语义，保持与播放器页一致。 */
-    override fun togglePlayback() {
-        controller.togglePlayback()
-    }
-
-    /** 系统播放命令显式走 shared 控制器，避免依赖 toggle 猜状态。 */
-    override fun play() {
-        controller.play()
-    }
-
-    /** 系统暂停命令显式走 shared 控制器，避免 buffering/loading 态被忽略。 */
-    override fun pause() {
-        controller.pause()
-    }
-
-    /** 上一首命令始终走共享控制器，避免系统直接改 ExoPlayer。 */
-    override fun previous() {
-        controller.moveTrack(direction = -1)
-    }
-
-    /** 下一首命令始终走共享控制器，避免系统直接改 ExoPlayer。 */
-    override fun next() {
-        controller.moveTrack(direction = 1)
-    }
-
-    /** Seek 命令统一先改 shared 状态，再由协调器驱动真引擎。 */
-    override fun seekTo(positionMs: Long) {
-        controller.seekTo(positionMs = positionMs)
-    }
-
-    /** 精确下标切歌必须经共享控制器更新完整队列状态。 */
-    override fun skipToQueueIndex(index: Int, positionMs: Long) {
-        controller.skipToQueueIndex(
-            index = index,
-            positionMs = positionMs,
-        )
-    }
-
-    /** 通知收藏动作复用 shared 控制器，避免直接改收藏仓库。 */
-    override fun toggleFavorite() {
-        val currentSongId: String = controller.uiState.currentSongId ?: return
-        controller.toggleFavorite(songId = currentSongId)
-    }
-
-    /** 通知播放模式动作复用 shared 控制器，避免直接改队列状态。 */
-    override fun cycleMode() {
-        controller.cyclePlaybackMode()
     }
 }
 

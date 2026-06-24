@@ -2,6 +2,9 @@ package com.yanhao.kmpmusic.playback
 
 import android.content.Context
 import android.content.Intent
+import com.yanhao.kmpmusic.domain.model.PlaybackMode
+import com.yanhao.kmpmusic.domain.model.PlaybackStatus
+import com.yanhao.kmpmusic.domain.model.Song
 import com.yanhao.kmpmusic.domain.model.PlayableMedia
 import com.yanhao.kmpmusic.domain.model.PlaybackError
 import com.yanhao.kmpmusic.domain.model.PlaybackErrorType
@@ -98,6 +101,33 @@ class PlaybackServiceConnector(
         val engine: AudioPlayerEngine = requireEngineOrEmitError() ?: return
         bridgeEvents(engine = engine)
         engine.stop()
+    }
+
+    /**
+     * 让 service 依据共享状态刷新通知与前台服务形态。
+     */
+    fun showOrRefreshNotification(
+        song: Song,
+        isPlaying: Boolean,
+        isFavorite: Boolean,
+        playbackMode: PlaybackMode,
+        playbackStatus: PlaybackStatus,
+    ) {
+        ensureServiceStarted()
+        PlaybackServiceRegistry.currentService()?.showOrRefreshNotification(
+            song = song,
+            isPlaying = isPlaying,
+            isFavorite = isFavorite,
+            playbackMode = playbackMode,
+            playbackStatus = playbackStatus,
+        )
+    }
+
+    /**
+     * 当前没有可播放歌曲时撤下通知，避免 service 长时间保留过期前台状态。
+     */
+    fun clearNotification() {
+        PlaybackServiceRegistry.currentService()?.clearNotification()
     }
 
     // 用普通 startService 惰性启动 service，避免 Activity 启动时主动拉前台服务。
