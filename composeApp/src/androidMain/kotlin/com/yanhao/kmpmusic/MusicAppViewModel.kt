@@ -3,9 +3,11 @@ package com.yanhao.kmpmusic
 import android.app.Application
 import android.content.Context
 import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.viewModelScope
 import com.yanhao.kmpmusic.domain.repository.LocalMusicScanner
 import com.yanhao.kmpmusic.feature.app.MusicAppController
 import com.yanhao.kmpmusic.feature.app.PermissionSettingsOpener
+import kotlinx.coroutines.launch
 
 /**
  * Android UI 层 ViewModel，只负责把当前 Activity 依赖接到进程级播放会话。
@@ -21,6 +23,9 @@ class MusicAppViewModel(
     init {
         AndroidPlaybackSession.bootstrap(context = application.applicationContext)
         controller = AndroidPlaybackSession.controller
+        viewModelScope.launch {
+            controller.restorePlaybackSnapshot()
+        }
     }
 
     /**

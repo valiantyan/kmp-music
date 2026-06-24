@@ -375,6 +375,49 @@ class MusicAppControllerTest {
     }
 
     /**
+     * 启动时若先请求恢复但曲库尚未扫描，控制器应挂起恢复并在扫描完成后自动回填暂停态。
+     */
+    @Test
+    fun restorePlaybackSnapshotWaitsForLibrarySnapshot(): Unit = runTest {
+        val snapshotStore = InMemoryPlaybackSnapshotStore()
+        val controller = createController(
+            playbackSnapshotStore = snapshotStore,
+            controllerScope = backgroundScope,
+        )
+        snapshotStore.saveSnapshot(
+            snapshot = PlaybackSnapshot(
+                playbackState = PlaybackState(
+                    currentSongId = "fakeScanner:004",
+                    status = PlaybackStatus.Playing,
+                    positionMs = 24_000L,
+                    durationMs = 247_000L,
+                ),
+                queueState = QueueState(
+                    songIds = listOf("fakeScanner:004", "fakeScanner:002"),
+                    currentIndex = 0,
+                    playbackMode = PlaybackMode.LoopAll,
+                ),
+            ),
+        )
+
+        controller.restorePlaybackSnapshot()
+
+        assertNull(controller.uiState.currentSongId)
+        assertEquals(expected = PlaybackStatus.Idle, actual = controller.uiState.playbackStatus)
+
+        controller.scanLocalMusic(request = LocalMusicScanRequest.Refresh)
+        advanceUntilIdle()
+
+        assertEquals(expected = "fakeScanner:004", actual = controller.uiState.currentSongId)
+        assertEquals(expected = PlaybackStatus.Paused, actual = controller.uiState.playbackStatus)
+        assertEquals(expected = 24_000L, actual = controller.uiState.playbackPositionMs)
+        assertEquals(
+            expected = listOf("fakeScanner:004", "fakeScanner:002"),
+            actual = controller.uiState.queueSongIds.take(n = 2),
+        )
+    }
+
+    /**
      * 收藏状态应同时同步到集合和歌曲列表。
      */
     @Test

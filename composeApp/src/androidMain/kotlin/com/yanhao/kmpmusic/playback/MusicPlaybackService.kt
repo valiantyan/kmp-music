@@ -128,10 +128,16 @@ object PlaybackServiceRegistry {
     // 当前 service 暴露出来的真播放引擎。
     private var engine: Media3AudioPlayerEngine? = null
 
+    // service attach 后的监听器，供惰性启动补发通知或做其他进程内接线。
+    private val onAttachListeners: MutableSet<(MusicPlaybackService) -> Unit> = LinkedHashSet()
+
     /** 在 service 初始化完成后登记当前实例。 */
     fun attach(service: MusicPlaybackService, engine: Media3AudioPlayerEngine) {
         this.service = service
         this.engine = engine
+        onAttachListeners.forEach { listener: (MusicPlaybackService) -> Unit ->
+            listener(service)
+        }
     }
 
     /** 在 service 销毁时清空引用，避免 connector 读取失效对象。 */
@@ -148,6 +154,12 @@ object PlaybackServiceRegistry {
     /** 返回当前 service 对应的真实播放引擎。 */
     fun currentEngine(): Media3AudioPlayerEngine? {
         return engine
+    }
+
+    /** 注册 service attach 监听；若 service 已存在则立即回放一次当前实例。 */
+    fun addOnAttachListener(listener: (MusicPlaybackService) -> Unit) {
+        onAttachListeners += listener
+        service?.let(listener)
     }
 }
 

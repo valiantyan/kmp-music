@@ -25,6 +25,9 @@ class PlaybackServiceConnector(
     // 事件转发与 service 启动等待使用的作用域。
     private val scope: CoroutineScope,
 ) : AudioPlayerEngine {
+    // 最近一次通知命令，供惰性启动的 service 完成 attach 后重放。
+    private var pendingNotificationCommand: PendingNotificationCommand? = null
+
     // Service 未就绪前暂存给 shared 层的失败或状态事件。
     private val mutableEvents: MutableSharedFlow<PlaybackEngineEvent> = MutableSharedFlow(
         extraBufferCapacity = 128,
@@ -38,6 +41,10 @@ class PlaybackServiceConnector(
 
     // 当前已经桥接过的真实引擎，避免重复 collect。
     private var bridgedEngine: AudioPlayerEngine? = null
+
+    init {
+        PlaybackServiceRegistry.addOnAttachListener(listener = ::deliverPendingNotificationCommand)
+    }
 
     /**
      * 对 common 层暴露的事件流。
@@ -113,21 +120,25 @@ class PlaybackServiceConnector(
         playbackMode: PlaybackMode,
         playbackStatus: PlaybackStatus,
     ) {
-        ensureServiceStarted()
-        PlaybackServiceRegistry.currentService()?.showOrRefreshNotification(
-            song = song,
-            isPlaying = isPlaying,
-            isFavorite = isFavorite,
-            playbackMode = playbackMode,
-            playbackStatus = playbackStatus,
+        pendingNotificationCommand = PendingNotificationCommand.Show(
+            state = NotificationState(
+                song = song,
+                isPlaying = isPlaying,
+                isFavorite = isFavorite,
+                playbackMode = playbackMode,
+                playbackStatus = playbackStatus,
+            ),
         )
+        ensureServiceStarted()
+        PlaybackServiceRegistry.currentService()?.let(::deliverPendingNotificationCommand)
     }
 
     /**
      * 当前没有可播放歌曲时撤下通知，避免 service 长时间保留过期前台状态。
      */
     fun clearNotification() {
-        PlaybackServiceRegistry.currentService()?.clearNotification()
+        pendingNotificationCommand = PendingNotificationCommand.Clear
+        PlaybackServiceRegistry.currentService()?.let(::deliverPendingNotificationCommand)
     }
 
     // 用普通 startService 惰性启动 service，避免 Activity 启动时主动拉前台服务。
@@ -187,6 +198,24 @@ class PlaybackServiceConnector(
         )
     }
 
+    // 惰性启动的 service attach 后补发最近一次通知命令，避免首帧状态在 registry 建立前丢失。
+    private fun deliverPendingNotificationCommand(service: MusicPlaybackService) {
+        when (val command: PendingNotificationCommand? = pendingNotificationCommand) {
+            is PendingNotificationCommand.Show -> {
+                val state: NotificationState = command.state
+                service.showOrRefreshNotification(
+                    song = state.song,
+                    isPlaying = state.isPlaying,
+                    isFavorite = state.isFavorite,
+                    playbackMode = state.playbackMode,
+                    playbackStatus = state.playbackStatus,
+                )
+            }
+            PendingNotificationCommand.Clear -> service.clearNotification()
+            null -> Unit
+        }
+    }
+
     private companion object {
         /** 首次拉起 service 后最多重试读取引擎 30 次。 */
         private const val SERVICE_START_ATTEMPTS: Int = 30
@@ -194,4 +223,32 @@ class PlaybackServiceConnector(
         /** 每次等待 service 初始化的间隔，单位毫秒。 */
         private const val SERVICE_START_RETRY_DELAY_MS: Long = 100L
     }
+}
+
+/**
+ * 惰性启动期间缓存的通知渲染状态，确保 service attach 后能重放最新共享状态。
+ */
+private data class NotificationState(
+    val song: Song,
+    val isPlaying: Boolean,
+    val isFavorite: Boolean,
+    val playbackMode: PlaybackMode,
+    val playbackStatus: PlaybackStatus,
+)
+
+/**
+ * 当前待重放到 service 的通知命令。
+ */
+private sealed interface PendingNotificationCommand {
+    /**
+     * 用最新共享状态刷新通知。
+     */
+    data class Show(
+        val state: NotificationState,
+    ) : PendingNotificationCommand
+
+    /**
+     * 移除当前通知。
+     */
+    data object Clear : PendingNotificationCommand
 }

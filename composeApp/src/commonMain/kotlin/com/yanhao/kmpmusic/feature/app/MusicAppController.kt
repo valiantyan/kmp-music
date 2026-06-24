@@ -85,6 +85,9 @@ class MusicAppController(
     // 播放 UI 刷新观察者，供平台通知或其他宿主订阅共享状态。
     private var playbackUiObserver: (MusicAppUiState) -> Unit = {}
 
+    // 冷启动恢复请求在曲库尚未准备好时先挂起，等扫描结果到位后再真正执行。
+    private var isPlaybackRestorePending: Boolean = false
+
     /**
      * Compose 可观察 UI 状态。
      */
@@ -210,6 +213,11 @@ class MusicAppController(
      * 按可用曲库恢复持久化播放快照，并始终以暂停态回填共享 UI。
      */
     suspend fun restorePlaybackSnapshot() {
+        if (uiState.songs.isEmpty()) {
+            isPlaybackRestorePending = true
+            return
+        }
+        isPlaybackRestorePending = false
         playbackCoordinator.restoreSnapshot(availableSongs = uiState.songs)
     }
 
@@ -520,6 +528,7 @@ class MusicAppController(
             recentSongs = buildRecentSongs(songs = songsWithLikes),
             localSongPreview = songsWithLikes.take(n = 6),
         )
+        restorePlaybackSnapshotIfPending(availableSongs = songsWithLikes)
     }
 
     // 最近播放只读取播放历史，不从扫描结果自动生成。
@@ -527,5 +536,16 @@ class MusicAppController(
         return playbackRepository.getPlaybackHistory().songIds
             .mapNotNull { songId -> songs.firstOrNull { song -> song.id == songId } }
             .take(n = 2)
+    }
+
+    // 只有启动期显式请求过恢复时，扫描成功后才续上真正的快照恢复，避免平时扫描打断当前播放。
+    private fun restorePlaybackSnapshotIfPending(availableSongs: List<Song>) {
+        if (!isPlaybackRestorePending || availableSongs.isEmpty()) {
+            return
+        }
+        isPlaybackRestorePending = false
+        controllerScope.launch(start = CoroutineStart.UNDISPATCHED) {
+            playbackCoordinator.restoreSnapshot(availableSongs = availableSongs)
+        }
     }
 }
