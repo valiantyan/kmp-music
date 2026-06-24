@@ -10,6 +10,7 @@ import android.os.Build
 import android.widget.RemoteViews
 import androidx.core.app.NotificationCompat
 import com.yanhao.kmpmusic.R
+import com.yanhao.kmpmusic.domain.model.CoverArt
 import com.yanhao.kmpmusic.domain.model.PlaybackMode
 import com.yanhao.kmpmusic.domain.model.Song
 
@@ -38,6 +39,8 @@ class AndroidPlaybackNotificationController(
         isPlaying: Boolean,
         isFavorite: Boolean,
         playbackMode: PlaybackMode,
+        playbackPositionMs: Long,
+        playbackDurationMs: Long?,
     ): Notification {
         ensureChannel()
         return NotificationCompat.Builder(context, CHANNEL_ID)
@@ -45,6 +48,10 @@ class AndroidPlaybackNotificationController(
             .setContentTitle(song.title)
             .setContentText(song.artist)
             .setOngoing(isPlaying)
+            .setOnlyAlertOnce(true)
+            .setCategory(NotificationCompat.CATEGORY_TRANSPORT)
+            .setPriority(NotificationCompat.PRIORITY_LOW)
+            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .setStyle(NotificationCompat.DecoratedCustomViewStyle())
             .setCustomContentView(collapsed(song = song, isPlaying = isPlaying))
             .setCustomBigContentView(
@@ -53,6 +60,8 @@ class AndroidPlaybackNotificationController(
                     isPlaying = isPlaying,
                     isFavorite = isFavorite,
                     playbackMode = playbackMode,
+                    playbackPositionMs = playbackPositionMs,
+                    playbackDurationMs = playbackDurationMs,
                 ),
             )
             .build()
@@ -61,14 +70,19 @@ class AndroidPlaybackNotificationController(
     /** 组装折叠态通知，严格只暴露上一首、播放/暂停、下一首三个控件。 */
     private fun collapsed(song: Song, isPlaying: Boolean): RemoteViews {
         return RemoteViews(context.packageName, R.layout.notification_playback_collapsed).apply {
+            setCoverImage(coverArt = song.coverArt)
             setTextViewText(R.id.notification_title, song.title)
             setTextViewText(R.id.notification_artist, song.artist)
-            setImageViewResource(R.id.action_previous, android.R.drawable.ic_media_previous)
+            setImageViewResource(R.id.action_previous, R.drawable.ic_notification_previous)
             setImageViewResource(
                 R.id.action_play_pause,
-                if (isPlaying) android.R.drawable.ic_media_pause else android.R.drawable.ic_media_play,
+                if (isPlaying) {
+                    R.drawable.ic_notification_pause
+                } else {
+                    R.drawable.ic_notification_play
+                },
             )
-            setImageViewResource(R.id.action_next, android.R.drawable.ic_media_next)
+            setImageViewResource(R.id.action_next, R.drawable.ic_notification_next)
             setOnClickPendingIntent(R.id.action_previous, pending(action = ACTION_PREVIOUS, requestCode = 1))
             setOnClickPendingIntent(
                 R.id.action_play_pause,
@@ -84,10 +98,30 @@ class AndroidPlaybackNotificationController(
         isPlaying: Boolean,
         isFavorite: Boolean,
         playbackMode: PlaybackMode,
+        playbackPositionMs: Long,
+        playbackDurationMs: Long?,
     ): RemoteViews {
         return RemoteViews(context.packageName, R.layout.notification_playback_expanded).apply {
+            setCoverImage(coverArt = song.coverArt)
             setTextViewText(R.id.notification_title, song.title)
             setTextViewText(R.id.notification_artist, song.artist)
+            setProgressBar(
+                R.id.notification_progress,
+                AndroidPlaybackNotificationAssets.PROGRESS_MAX,
+                AndroidPlaybackNotificationAssets.progressValue(
+                    positionMs = playbackPositionMs,
+                    durationMs = playbackDurationMs,
+                ),
+                false,
+            )
+            setTextViewText(
+                R.id.notification_elapsed,
+                AndroidPlaybackNotificationAssets.formatPlaybackTime(positionMs = playbackPositionMs),
+            )
+            setTextViewText(
+                R.id.notification_duration,
+                AndroidPlaybackNotificationAssets.formatPlaybackTime(positionMs = playbackDurationMs),
+            )
             setImageViewResource(
                 R.id.action_favorite,
                 if (isFavorite) {
@@ -96,12 +130,16 @@ class AndroidPlaybackNotificationController(
                     R.drawable.ic_notification_favorite_border
                 },
             )
-            setImageViewResource(R.id.action_previous, android.R.drawable.ic_media_previous)
+            setImageViewResource(R.id.action_previous, R.drawable.ic_notification_previous)
             setImageViewResource(
                 R.id.action_play_pause,
-                if (isPlaying) android.R.drawable.ic_media_pause else android.R.drawable.ic_media_play,
+                if (isPlaying) {
+                    R.drawable.ic_notification_pause
+                } else {
+                    R.drawable.ic_notification_play
+                },
             )
-            setImageViewResource(R.id.action_next, android.R.drawable.ic_media_next)
+            setImageViewResource(R.id.action_next, R.drawable.ic_notification_next)
             setImageViewResource(
                 R.id.action_mode,
                 when (playbackMode) {
@@ -121,6 +159,17 @@ class AndroidPlaybackNotificationController(
             )
             setOnClickPendingIntent(R.id.action_next, pending(action = ACTION_NEXT, requestCode = 7))
             setOnClickPendingIntent(R.id.action_mode, pending(action = ACTION_CYCLE_MODE, requestCode = 8))
+        }
+    }
+
+    /** 设置通知封面；真实封面读取失败时使用稳定占位图，避免布局空洞。 */
+    private fun RemoteViews.setCoverImage(coverArt: CoverArt) {
+        setImageViewResource(R.id.notification_cover, R.drawable.ic_notification_cover_placeholder)
+        AndroidPlaybackNotificationAssets.coverBitmap(
+            context = context,
+            coverArt = coverArt,
+        )?.let { bitmap ->
+            setImageViewBitmap(R.id.notification_cover, bitmap)
         }
     }
 

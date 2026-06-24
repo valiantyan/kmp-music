@@ -41,6 +41,9 @@ class Media3AudioPlayerEngine(
     // 当前引擎持有的共享队列镜像，用于把 Media3 下标翻译回 songId。
     private var queue: List<PlayableMedia> = emptyList()
 
+    // Media3 播放错误会让播放器进入 idle，下一次重试或跳歌前必须重新 prepare。
+    private var shouldPrepareAfterError: Boolean = false
+
     /**
      * 真实引擎事件流，供 [com.yanhao.kmpmusic.domain.playback.PlaybackCoordinator] 回写仓库。
      */
@@ -83,6 +86,8 @@ class Media3AudioPlayerEngine(
                 /** 把 Media3 错误统一映射为 shared 可消费的显式错误类型。 */
                 override fun onPlayerError(error: PlaybackException) {
                     val media: PlayableMedia? = queue.getOrNull(index = player.currentMediaItemIndex)
+                    shouldPrepareAfterError = true
+                    stopProgressUpdates()
                     mutableEvents.tryEmit(
                         PlaybackEngineEvent.Failed(
                             error = PlaybackError(
@@ -106,6 +111,7 @@ class Media3AudioPlayerEngine(
         startPositionMs: Long,
     ) {
         queue = items
+        shouldPrepareAfterError = false
         player.setMediaItems(
             items.map { item: PlayableMedia ->
                 MediaItem.Builder()
@@ -124,6 +130,7 @@ class Media3AudioPlayerEngine(
 
     /** 继续播放当前媒体。 */
     override fun play() {
+        prepareIfNeeded()
         player.play()
     }
 
@@ -139,12 +146,17 @@ class Media3AudioPlayerEngine(
 
     /** 直接切换到 shared 队列中的目标歌曲。 */
     override fun skipToIndex(index: Int) {
+        if (index !in 0 until player.mediaItemCount) {
+            return
+        }
         player.seekToDefaultPosition(index)
+        prepareIfNeeded()
     }
 
     /** 停止播放时同时结束进度轮询，避免 service 空转。 */
     override fun stop() {
         stopProgressUpdates()
+        shouldPrepareAfterError = false
         player.stop()
     }
 
@@ -181,6 +193,18 @@ class Media3AudioPlayerEngine(
     private fun stopProgressUpdates() {
         progressJob?.cancel()
         progressJob = null
+    }
+
+    // 错误恢复或 idle 状态切歌后需要重新 prepare，保证连续坏文件能继续推进队列。
+    private fun prepareIfNeeded() {
+        if (player.mediaItemCount <= 0) {
+            return
+        }
+        if (!shouldPrepareAfterError && player.playbackState != Player.STATE_IDLE) {
+            return
+        }
+        player.prepare()
+        shouldPrepareAfterError = false
     }
 
     // 把 Media3 运行时状态翻译成 shared 枚举，供 UI 与持久化统一消费。

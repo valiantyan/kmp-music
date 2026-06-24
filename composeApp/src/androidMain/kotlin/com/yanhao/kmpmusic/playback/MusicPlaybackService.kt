@@ -90,12 +90,16 @@ class MusicPlaybackService : MediaSessionService() {
         isFavorite: Boolean,
         playbackMode: PlaybackMode,
         playbackStatus: PlaybackStatus,
+        playbackPositionMs: Long,
+        playbackDurationMs: Long?,
     ) {
         val notification = notificationController.createNotification(
             song = song,
             isPlaying = isPlaying,
             isFavorite = isFavorite,
             playbackMode = playbackMode,
+            playbackPositionMs = playbackPositionMs,
+            playbackDurationMs = playbackDurationMs,
         )
         when (playbackStatus) {
             PlaybackStatus.Loading,

@@ -119,6 +119,8 @@ class PlaybackServiceConnector(
         isFavorite: Boolean,
         playbackMode: PlaybackMode,
         playbackStatus: PlaybackStatus,
+        playbackPositionMs: Long,
+        playbackDurationMs: Long?,
     ) {
         pendingNotificationCommand = PendingNotificationCommand.Show(
             state = NotificationState(
@@ -127,6 +129,8 @@ class PlaybackServiceConnector(
                 isFavorite = isFavorite,
                 playbackMode = playbackMode,
                 playbackStatus = playbackStatus,
+                playbackPositionMs = playbackPositionMs,
+                playbackDurationMs = playbackDurationMs,
             ),
         )
         ensureServiceStarted()
@@ -209,6 +213,8 @@ class PlaybackServiceConnector(
                     isFavorite = state.isFavorite,
                     playbackMode = state.playbackMode,
                     playbackStatus = state.playbackStatus,
+                    playbackPositionMs = state.playbackPositionMs,
+                    playbackDurationMs = state.playbackDurationMs,
                 )
             }
             PendingNotificationCommand.Clear -> service.clearNotification()
@@ -234,6 +240,8 @@ private data class NotificationState(
     val isFavorite: Boolean,
     val playbackMode: PlaybackMode,
     val playbackStatus: PlaybackStatus,
+    val playbackPositionMs: Long,
+    val playbackDurationMs: Long?,
 )
 
 /**

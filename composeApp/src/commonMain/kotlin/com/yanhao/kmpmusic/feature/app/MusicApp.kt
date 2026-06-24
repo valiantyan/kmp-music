@@ -177,6 +177,8 @@ fun MusicApp(
                     BottomChrome(
                         song = state.currentSong,
                         isPlaying = state.isPlaying,
+                        playbackPositionMs = state.playbackPositionMs,
+                        playbackDurationMs = state.playbackDurationMs,
                         placement = chromeMode.bottomChromePlacement,
                         showsBottomNavigation = chromeMode.showsBottomNavigation,
                         rootTab = state.navigationState.rootTab,
@@ -438,6 +440,8 @@ private fun RootScreen(
 private fun BottomChrome(
     song: Song?,
     isPlaying: Boolean,
+    playbackPositionMs: Long,
+    playbackDurationMs: Long?,
     placement: BottomChromePlacement,
     showsBottomNavigation: Boolean,
     rootTab: RootTab,
@@ -513,6 +517,8 @@ private fun BottomChrome(
                     MiniPlayer(
                         song = song,
                         isPlaying = isPlaying,
+                        playbackPositionMs = playbackPositionMs,
+                        playbackDurationMs = playbackDurationMs,
                         onOpen = onOpen,
                         onToggle = onToggle,
                         onPrev = onPrev,
@@ -538,6 +544,8 @@ private fun BottomChrome(
 private fun MiniPlayer(
     song: Song,
     isPlaying: Boolean,
+    playbackPositionMs: Long,
+    playbackDurationMs: Long?,
     onOpen: () -> Unit,
     onToggle: () -> Unit,
     onPrev: () -> Unit,
@@ -552,6 +560,10 @@ private fun MiniPlayer(
         targetValue = miniPlayerPalette.containerColor,
         animationSpec = tween(durationMillis = 260),
         label = "MiniPlayerContainerColor",
+    )
+    val progressFraction: Float = calculateMiniPlayerProgressFraction(
+        playbackPositionMs = playbackPositionMs,
+        playbackDurationMs = playbackDurationMs ?: song.durationMs,
     )
     Surface(
         modifier = modifier
@@ -623,12 +635,30 @@ private fun MiniPlayer(
             Box(
                 modifier = Modifier
                     .align(Alignment.BottomStart)
-                    .fillMaxWidth(fraction = 0.44f)
+                    .fillMaxWidth()
+                    .height(scaledDp(3.dp))
+                    .background(MusicColors.Line.copy(alpha = 0.65f)),
+            )
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomStart)
+                    .fillMaxWidth(fraction = progressFraction)
                     .height(scaledDp(3.dp))
                     .background(MusicColors.Accent),
             )
         }
     }
+}
+
+// 迷你播放器只展示只读进度，所有数值必须来自真实播放状态而不是视觉占位。
+private fun calculateMiniPlayerProgressFraction(
+    playbackPositionMs: Long,
+    playbackDurationMs: Long?,
+): Float {
+    val safeDurationMs: Long = playbackDurationMs?.takeIf { durationMs -> durationMs > 0L } ?: return 0f
+    return playbackPositionMs
+        .coerceIn(minimumValue = 0L, maximumValue = safeDurationMs)
+        .toFloat() / safeDurationMs.toFloat()
 }
 
 /**

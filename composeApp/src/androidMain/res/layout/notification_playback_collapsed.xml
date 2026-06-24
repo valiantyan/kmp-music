@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
-    android:layout_height="64dp"
+    android:layout_height="72dp"
     android:gravity="center_vertical"
     android:orientation="horizontal"
-    android:paddingStart="12dp"
-    android:paddingEnd="12dp">
+    android:paddingStart="10dp"
+    android:paddingEnd="8dp">
 
     <ImageView
         android:id="@+id/notification_cover"
@@ -27,6 +27,8 @@
             android:layout_height="wrap_content"
             android:ellipsize="end"
             android:maxLines="1"
+            android:textColor="#FF202124"
+            android:textSize="15sp"
             android:textStyle="bold" />
 
         <TextView
@@ -34,13 +36,15 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:ellipsize="end"
-            android:maxLines="1" />
+            android:maxLines="1"
+            android:textColor="#FF6F767D"
+            android:textSize="13sp" />
     </LinearLayout>
 
     <ImageButton
         android:id="@+id/action_previous"
-        android:layout_width="40dp"
-        android:layout_height="40dp"
+        android:layout_width="42dp"
+        android:layout_height="42dp"
         android:background="@android:color/transparent"
         android:contentDescription="上一首" />
 
@@ -53,8 +57,8 @@
 
     <ImageButton
         android:id="@+id/action_next"
-        android:layout_width="40dp"
-        android:layout_height="40dp"
+        android:layout_width="42dp"
+        android:layout_height="42dp"
         android:background="@android:color/transparent"
         android:contentDescription="下一首" />
 </LinearLayout>

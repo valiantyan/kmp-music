@@ -46,6 +46,8 @@ class AndroidPlaybackRuntime(
             isFavorite = uiState.likedSongIds.contains(element = song.id),
             playbackMode = uiState.playbackMode,
             playbackStatus = uiState.playbackStatus,
+            playbackPositionMs = uiState.playbackPositionMs,
+            playbackDurationMs = uiState.playbackDurationMs ?: song.durationMs,
         )
     }
 
