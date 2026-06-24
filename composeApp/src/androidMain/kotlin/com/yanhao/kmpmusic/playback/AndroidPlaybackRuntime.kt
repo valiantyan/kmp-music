@@ -10,7 +10,7 @@ import com.yanhao.kmpmusic.feature.app.MusicAppUiState
 class AndroidPlaybackRuntime(
     // 负责惰性拉起播放服务并把通知刷新转发给 service。
     private val serviceConnector: PlaybackServiceConnector,
-) : PlaybackNotificationActions {
+) : PlaybackMediaButtonActions {
     // 当前进程级共享控制器，供通知与系统命令复用。
     private var controller: MusicAppController? = null
 
@@ -26,7 +26,7 @@ class AndroidPlaybackRuntime(
      */
     fun attachController(controller: MusicAppController) {
         this.controller = controller
-        PlaybackNotificationDispatcher.attach(actions = this)
+        PlaybackMediaCommandDispatcher.attach(actions = this)
         PlaybackCommandBridgeRegistry.attach(bridge = this)
         controller.attachPlaybackUiObserver(observer = ::onPlaybackUiStateChanged)
     }
@@ -40,20 +40,12 @@ class AndroidPlaybackRuntime(
             serviceConnector.clearNotification()
             return
         }
-        serviceConnector.showOrRefreshNotification(
-            song = song,
+        serviceConnector.refreshMediaButtonPreferences(
             isPlaying = uiState.isPlaying,
             isFavorite = uiState.likedSongIds.contains(element = song.id),
             playbackMode = uiState.playbackMode,
             playbackStatus = uiState.playbackStatus,
-            playbackPositionMs = uiState.playbackPositionMs,
-            playbackDurationMs = uiState.playbackDurationMs ?: song.durationMs,
         )
-    }
-
-    /** 通知播放/暂停按钮复用 UI 的切换语义，保持与播放器页一致。 */
-    override fun togglePlayback() {
-        controller?.togglePlayback()
     }
 
     /** 系统播放命令显式走 shared 控制器，避免依赖 toggle 猜状态。 */

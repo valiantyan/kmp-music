@@ -2,12 +2,11 @@ package com.yanhao.kmpmusic.playback
 
 import android.content.Context
 import android.content.Intent
-import com.yanhao.kmpmusic.domain.model.PlaybackMode
-import com.yanhao.kmpmusic.domain.model.PlaybackStatus
-import com.yanhao.kmpmusic.domain.model.Song
 import com.yanhao.kmpmusic.domain.model.PlayableMedia
 import com.yanhao.kmpmusic.domain.model.PlaybackError
 import com.yanhao.kmpmusic.domain.model.PlaybackErrorType
+import com.yanhao.kmpmusic.domain.model.PlaybackMode
+import com.yanhao.kmpmusic.domain.model.PlaybackStatus
 import com.yanhao.kmpmusic.domain.playback.AudioPlayerEngine
 import com.yanhao.kmpmusic.domain.playback.PlaybackEngineEvent
 import kotlinx.coroutines.CoroutineScope
@@ -111,26 +110,20 @@ class PlaybackServiceConnector(
     }
 
     /**
-     * 让 service 依据共享状态刷新通知与前台服务形态。
+     * 让 service 依据共享状态刷新系统媒体通知按钮偏好。
      */
-    fun showOrRefreshNotification(
-        song: Song,
+    fun refreshMediaButtonPreferences(
         isPlaying: Boolean,
         isFavorite: Boolean,
         playbackMode: PlaybackMode,
         playbackStatus: PlaybackStatus,
-        playbackPositionMs: Long,
-        playbackDurationMs: Long?,
     ) {
         pendingNotificationCommand = PendingNotificationCommand.Show(
             state = NotificationState(
-                song = song,
                 isPlaying = isPlaying,
                 isFavorite = isFavorite,
                 playbackMode = playbackMode,
                 playbackStatus = playbackStatus,
-                playbackPositionMs = playbackPositionMs,
-                playbackDurationMs = playbackDurationMs,
             ),
         )
         ensureServiceStarted()
@@ -207,17 +200,14 @@ class PlaybackServiceConnector(
         when (val command: PendingNotificationCommand? = pendingNotificationCommand) {
             is PendingNotificationCommand.Show -> {
                 val state: NotificationState = command.state
-                service.showOrRefreshNotification(
-                    song = state.song,
+                service.refreshMediaButtonPreferences(
                     isPlaying = state.isPlaying,
                     isFavorite = state.isFavorite,
                     playbackMode = state.playbackMode,
                     playbackStatus = state.playbackStatus,
-                    playbackPositionMs = state.playbackPositionMs,
-                    playbackDurationMs = state.playbackDurationMs,
                 )
             }
-            PendingNotificationCommand.Clear -> service.clearNotification()
+            PendingNotificationCommand.Clear -> service.clearMediaNotification()
             null -> Unit
         }
     }
@@ -235,13 +225,10 @@ class PlaybackServiceConnector(
  * 惰性启动期间缓存的通知渲染状态，确保 service attach 后能重放最新共享状态。
  */
 private data class NotificationState(
-    val song: Song,
     val isPlaying: Boolean,
     val isFavorite: Boolean,
     val playbackMode: PlaybackMode,
     val playbackStatus: PlaybackStatus,
-    val playbackPositionMs: Long,
-    val playbackDurationMs: Long?,
 )
 
 /**

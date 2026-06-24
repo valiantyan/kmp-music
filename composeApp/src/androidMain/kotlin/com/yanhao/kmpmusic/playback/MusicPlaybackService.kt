@@ -1,16 +1,15 @@
 package com.yanhao.kmpmusic.playback
 
 import com.yanhao.kmpmusic.AndroidPlaybackSession
-import android.app.NotificationManager
 import androidx.media3.common.ForwardingPlayer
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.session.CommandButton
 import androidx.media3.session.MediaSession
 import androidx.media3.session.MediaSessionService
 import com.yanhao.kmpmusic.domain.model.PlaybackMode
 import com.yanhao.kmpmusic.domain.model.PlaybackStatus
-import com.yanhao.kmpmusic.domain.model.Song
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancel
@@ -33,25 +32,39 @@ class MusicPlaybackService : MediaSessionService() {
     // 供 app 内 shared 协调器桥接的 Android 真播放引擎。
     private var engine: Media3AudioPlayerEngine? = null
 
-    // 负责构建并刷新自定义通知。
-    private lateinit var notificationController: AndroidPlaybackNotificationController
+    // 最近一次给系统媒体通知控制器声明的按钮偏好。
+    private var latestMediaButtonPreferences: List<CommandButton> =
+        AndroidPlaybackMediaButtons.mediaButtonPreferences(
+            isPlaying = false,
+            isFavorite = false,
+            playbackMode = PlaybackMode.LoopAll,
+        )
 
     /** 初始化 ExoPlayer、引擎和 MediaSession，并把实例登记到进程内注册表。 */
     override fun onCreate() {
         super.onCreate()
         AndroidPlaybackSession.bootstrap(context = applicationContext)
-        notificationController = AndroidPlaybackNotificationController(context = this)
         val exoPlayer: ExoPlayer = ExoPlayer.Builder(this).build()
         val mediaEngine: Media3AudioPlayerEngine = Media3AudioPlayerEngine(
+            context = applicationContext,
             player = exoPlayer,
             scope = serviceScope,
         )
         player = exoPlayer
         engine = mediaEngine
-        mediaSession = MediaSession.Builder(
+        val session: MediaSession = MediaSession.Builder(
             /* context = */ this,
             /* player = */ CoordinatorForwardingPlayer(player = exoPlayer),
-        ).build()
+        )
+            .setCallback(
+                AndroidPlaybackMediaSessionCallback(
+                    mediaButtonPreferencesProvider = { latestMediaButtonPreferences },
+                ),
+            )
+            .setMediaButtonPreferences(latestMediaButtonPreferences)
+            .build()
+        mediaSession = session
+        addSession(session)
         PlaybackServiceRegistry.attach(
             service = this,
             engine = mediaEngine,
@@ -72,7 +85,12 @@ class MusicPlaybackService : MediaSessionService() {
             )
         }
         PlaybackServiceRegistry.detach()
-        mediaSession?.release()
+        mediaSession?.let { session: MediaSession ->
+            if (isSessionAdded(session)) {
+                removeSession(session)
+            }
+            session.release()
+        }
         mediaSession = null
         engine = null
         player?.release()
@@ -82,48 +100,30 @@ class MusicPlaybackService : MediaSessionService() {
     }
 
     /**
-     * 依据共享播放状态刷新通知，并只在存在可播放歌曲时进入前台。
+     * 依据共享播放状态刷新 Media3 媒体按钮偏好，通知 UI 由系统媒体卡片负责绘制。
      */
-    fun showOrRefreshNotification(
-        song: Song,
+    fun refreshMediaButtonPreferences(
         isPlaying: Boolean,
         isFavorite: Boolean,
         playbackMode: PlaybackMode,
         playbackStatus: PlaybackStatus,
-        playbackPositionMs: Long,
-        playbackDurationMs: Long?,
     ) {
-        val notification = notificationController.createNotification(
-            song = song,
+        latestMediaButtonPreferences = AndroidPlaybackMediaButtons.mediaButtonPreferences(
             isPlaying = isPlaying,
             isFavorite = isFavorite,
             playbackMode = playbackMode,
-            playbackPositionMs = playbackPositionMs,
-            playbackDurationMs = playbackDurationMs,
         )
-        when (playbackStatus) {
-            PlaybackStatus.Loading,
-            PlaybackStatus.Playing,
-            PlaybackStatus.Buffering,
-            -> startForeground(PLAYBACK_NOTIFICATION_ID, notification)
-            PlaybackStatus.Paused,
-            PlaybackStatus.Error,
-            PlaybackStatus.Ended,
-            -> {
-                getSystemService(NotificationManager::class.java)
-                    .notify(PLAYBACK_NOTIFICATION_ID, notification)
-                stopForeground(STOP_FOREGROUND_DETACH)
-            }
-            PlaybackStatus.Idle -> clearNotification()
+        mediaSession?.setMediaButtonPreferences(latestMediaButtonPreferences)
+        if (playbackStatus == PlaybackStatus.Idle) {
+            clearMediaNotification()
         }
     }
 
     /**
-     * 当前没有活动歌曲时移除通知，并允许 service 在空闲后自然结束。
+     * 当前没有活动歌曲时清空 Media3 播放列表，让默认系统媒体通知随 service 空闲自然撤下。
      */
-    fun clearNotification() {
-        stopForeground(STOP_FOREGROUND_REMOVE)
-        getSystemService(NotificationManager::class.java).cancel(PLAYBACK_NOTIFICATION_ID)
+    fun clearMediaNotification() {
+        player?.clearMediaItems()
         stopSelf()
     }
 }

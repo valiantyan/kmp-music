@@ -1,7 +1,9 @@
 package com.yanhao.kmpmusic.playback
 
+import android.content.Context
 import android.net.Uri
 import androidx.media3.common.MediaItem
+import androidx.media3.common.MediaMetadata
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
@@ -25,6 +27,8 @@ import kotlinx.coroutines.launch
  * 基于 Media3 [ExoPlayer] 的 Android 真播放引擎，实现 shared [AudioPlayerEngine] 契约。
  */
 class Media3AudioPlayerEngine(
+    // 读取 Compose resources assets 封面数据时使用的 application context。
+    private val context: Context,
     // Service 内长期持有的 Media3 播放器实例。
     private val player: ExoPlayer,
     // 进度轮询与事件桥接使用的协程作用域。
@@ -114,10 +118,7 @@ class Media3AudioPlayerEngine(
         shouldPrepareAfterError = false
         player.setMediaItems(
             items.map { item: PlayableMedia ->
-                MediaItem.Builder()
-                    .setUri(Uri.parse(item.localUri))
-                    .setMediaId(item.songId)
-                    .build()
+                item.toMediaItem()
             },
             startIndex.coerceIn(
                 minimumValue = 0,
@@ -232,5 +233,33 @@ class Media3AudioPlayerEngine(
             -> PlaybackErrorType.UnsupportedFormat
             else -> PlaybackErrorType.Unknown
         }
+    }
+
+    // 把平台无关媒体项映射为 Media3 媒体项，让系统媒体通知读取标题、歌手、时长和封面。
+    private fun PlayableMedia.toMediaItem(): MediaItem {
+        return MediaItem.Builder()
+            .setUri(Uri.parse(localUri))
+            .setMediaId(songId)
+            .setMediaMetadata(toMediaMetadata())
+            .build()
+    }
+
+    // 系统媒体通知只消费 Media3 metadata，不能再依赖应用自绘布局填充文案和封面。
+    private fun PlayableMedia.toMediaMetadata(): MediaMetadata {
+        val metadataBuilder: MediaMetadata.Builder = MediaMetadata.Builder()
+            .setTitle(title)
+            .setArtist(artist)
+            .setAlbumTitle(album)
+            .setDurationMs(durationMs?.takeIf { value: Long -> value >= 0L })
+        AndroidPlaybackMediaMetadataAssets.artworkData(
+            context = context,
+            coverArt = coverArt,
+        )?.let { artworkData: ByteArray ->
+            metadataBuilder.setArtworkData(
+                artworkData,
+                MediaMetadata.PICTURE_TYPE_FRONT_COVER,
+            )
+        }
+        return metadataBuilder.build()
     }
 }
