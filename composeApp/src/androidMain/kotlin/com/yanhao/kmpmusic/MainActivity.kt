@@ -38,6 +38,7 @@ class MainActivity : ComponentActivity() {
         }
         audioPermissionRequester = AndroidAudioPermissionRequester(activity = this)
         val musicAppViewModel: MusicAppViewModel = ViewModelProvider(this)[MusicAppViewModel::class.java]
+        musicAppViewModel.attachPlaybackContext(context = applicationContext)
         musicAppViewModel.attachLocalMusicScanner(
             scanner = AndroidMediaStoreScanner(
                 contentResolver = applicationContext.contentResolver,

@@ -146,29 +146,32 @@ object PlaybackCommandBridgeRegistry {
 private class CoordinatorForwardingPlayer(
     player: Player,
 ) : ForwardingPlayer(player) {
+    // 当前无命令桥时直接忽略系统命令，避免 service 在 shared 协调器之外修改 ExoPlayer。
+    private fun currentBridge(): PlaybackCommandBridge? {
+        return PlaybackCommandBridgeRegistry.current()
+    }
+
     /** 系统播放命令优先改 shared 状态；未接桥时回退到原生播放器。 */
     override fun play() {
+        val bridge: PlaybackCommandBridge = currentBridge() ?: return
         if (isPlaying) {
             return
         }
-        PlaybackCommandBridgeRegistry.current()?.togglePlayback() ?: super.play()
+        bridge.togglePlayback()
     }
 
     /** 系统暂停命令优先改 shared 状态；未接桥时回退到原生播放器。 */
     override fun pause() {
+        val bridge: PlaybackCommandBridge = currentBridge() ?: return
         if (!isPlaying) {
             return
         }
-        PlaybackCommandBridgeRegistry.current()?.togglePlayback() ?: super.pause()
+        bridge.togglePlayback()
     }
 
     /** 兼容系统通过 [setPlayWhenReady] 发出的播放/暂停命令。 */
     override fun setPlayWhenReady(playWhenReady: Boolean) {
-        val bridge: PlaybackCommandBridge? = PlaybackCommandBridgeRegistry.current()
-        if (bridge == null) {
-            super.setPlayWhenReady(playWhenReady)
-            return
-        }
+        val bridge: PlaybackCommandBridge = currentBridge() ?: return
         if (playWhenReady == isPlaying) {
             return
         }
@@ -177,52 +180,54 @@ private class CoordinatorForwardingPlayer(
 
     /** 系统上一首命令优先回流 shared 队列。 */
     override fun seekToPreviousMediaItem() {
-        PlaybackCommandBridgeRegistry.current()?.previous() ?: super.seekToPreviousMediaItem()
+        currentBridge()?.previous()
     }
 
     /** 兼容蓝牙或锁屏面板直接触发的“回到上一首”。 */
     override fun seekToPrevious() {
-        PlaybackCommandBridgeRegistry.current()?.previous() ?: super.seekToPrevious()
+        currentBridge()?.previous()
     }
 
     /** 系统下一首命令优先回流 shared 队列。 */
     override fun seekToNextMediaItem() {
-        PlaybackCommandBridgeRegistry.current()?.next() ?: super.seekToNextMediaItem()
+        currentBridge()?.next()
     }
 
     /** 兼容蓝牙或锁屏面板直接触发的“下一首”。 */
     override fun seekToNext() {
-        PlaybackCommandBridgeRegistry.current()?.next() ?: super.seekToNext()
+        currentBridge()?.next()
     }
 
     /** 系统 seek 命令优先通过 shared 协调器落库，再驱动真引擎。 */
     override fun seekTo(positionMs: Long) {
-        PlaybackCommandBridgeRegistry.current()?.seekTo(positionMs = positionMs) ?: super.seekTo(positionMs)
+        currentBridge()?.seekTo(positionMs = positionMs)
     }
 
     /** 兼容系统通过指定媒体下标和进度发起的 seek 命令。 */
     override fun seekTo(mediaItemIndex: Int, positionMs: Long) {
+        val bridge: PlaybackCommandBridge = currentBridge() ?: return
         if (mediaItemIndex != currentMediaItemIndex) {
             if (mediaItemIndex > currentMediaItemIndex) {
-                PlaybackCommandBridgeRegistry.current()?.next() ?: super.seekTo(mediaItemIndex, positionMs)
+                bridge.next()
             } else {
-                PlaybackCommandBridgeRegistry.current()?.previous() ?: super.seekTo(mediaItemIndex, positionMs)
+                bridge.previous()
             }
             return
         }
-        seekTo(positionMs = positionMs)
+        bridge.seekTo(positionMs = positionMs)
     }
 
     /** 兼容系统通过默认位置切换媒体项的命令。 */
     override fun seekToDefaultPosition(mediaItemIndex: Int) {
+        val bridge: PlaybackCommandBridge = currentBridge() ?: return
         if (mediaItemIndex > currentMediaItemIndex) {
-            PlaybackCommandBridgeRegistry.current()?.next() ?: super.seekToDefaultPosition(mediaItemIndex)
+            bridge.next()
             return
         }
         if (mediaItemIndex < currentMediaItemIndex) {
-            PlaybackCommandBridgeRegistry.current()?.previous() ?: super.seekToDefaultPosition(mediaItemIndex)
+            bridge.previous()
             return
         }
-        PlaybackCommandBridgeRegistry.current()?.seekTo(positionMs = 0L) ?: super.seekToDefaultPosition(mediaItemIndex)
+        bridge.seekTo(positionMs = 0L)
     }
 }
