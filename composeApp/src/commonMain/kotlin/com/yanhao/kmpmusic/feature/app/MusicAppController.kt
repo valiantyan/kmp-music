@@ -263,6 +263,11 @@ class MusicAppController(
     /** 打开播放页并播放歌曲。 */
     fun openSong(song: Song, queueSongs: List<Song> = listOf(song)) {
         playSong(song = song, queueSongs = queueSongs)
+        openPlayer()
+    }
+
+    /** 打开当前播放页，供迷你播放器和 Android 通知正文复用同一路由入口。 */
+    fun openPlayer() {
         navigateToSecondary(screen = SecondaryScreen.Player)
     }
 

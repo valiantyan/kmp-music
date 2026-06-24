@@ -182,7 +182,7 @@ fun MusicApp(
                         placement = chromeMode.bottomChromePlacement,
                         showsBottomNavigation = chromeMode.showsBottomNavigation,
                         rootTab = state.navigationState.rootTab,
-                        onOpen = { controller.navigateToSecondary(SecondaryScreen.Player) },
+                        onOpen = controller::openPlayer,
                         onToggle = controller::togglePlayback,
                         onPrev = { controller.moveTrack(direction = -1) },
                         onQueue = controller::openQueue,

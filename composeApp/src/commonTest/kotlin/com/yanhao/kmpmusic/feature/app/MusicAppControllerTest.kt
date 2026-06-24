@@ -540,6 +540,28 @@ class MusicAppControllerTest {
     }
 
     /**
+     * 当前播放页入口应复用共享导航，供迷你播放器和 Android 媒体通知正文点击保持一致。
+     */
+    @Test
+    fun openPlayerUsesFullscreenSecondaryScreen(): Unit {
+        val controller = createController()
+        controller.navigateToRoot(tab = RootTab.Favorites)
+        controller.openPlayer()
+        assertEquals(
+            expected = SecondaryScreen.Player,
+            actual = controller.uiState.navigationState.secondaryScreen,
+        )
+        assertEquals(
+            expected = RootTab.Favorites,
+            actual = controller.uiState.navigationState.previousRootTab,
+        )
+        assertEquals(
+            expected = AppChromeMode.SecondaryFullscreen,
+            actual = controller.uiState.navigationState.chromeMode,
+        )
+    }
+
+    /**
      * 一级页面滚动 key 应按 Tab 保持稳定，保证从二级页返回后能恢复原滚动位置。
      */
     @Test
