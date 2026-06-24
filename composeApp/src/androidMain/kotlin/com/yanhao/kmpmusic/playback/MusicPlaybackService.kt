@@ -44,6 +44,9 @@ class MusicPlaybackService : MediaSessionService() {
     override fun onCreate() {
         super.onCreate()
         AndroidPlaybackSession.bootstrap(context = applicationContext)
+        setMediaNotificationProvider(
+            AndroidPlaybackMediaNotificationProvider(context = applicationContext),
+        )
         val exoPlayer: ExoPlayer = ExoPlayer.Builder(this).build()
         val mediaEngine: Media3AudioPlayerEngine = Media3AudioPlayerEngine(
             context = applicationContext,

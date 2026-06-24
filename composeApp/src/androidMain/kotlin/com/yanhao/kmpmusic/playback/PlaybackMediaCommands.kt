@@ -87,11 +87,11 @@ internal object AndroidPlaybackMediaButtons {
         playbackMode: PlaybackMode,
     ): List<CommandButton> {
         return listOf(
-            favoriteButton(isFavorite = isFavorite),
-            previousButton(),
-            playPauseButton(isPlaying = isPlaying),
-            nextButton(),
-            playbackModeButton(playbackMode = playbackMode),
+            createFavoriteButton(isFavorite = isFavorite),
+            createPreviousButton(),
+            createPlayPauseButton(isPlaying = isPlaying),
+            createNextButton(),
+            createPlaybackModeButton(playbackMode = playbackMode),
         )
     }
 
@@ -112,23 +112,18 @@ internal object AndroidPlaybackMediaButtons {
         }
     }
 
-    // 收藏按钮使用系统心形图标，优先占据上一首外侧的次级后退 slot。
-    private fun favoriteButton(isFavorite: Boolean): CommandButton {
-        return CommandButton.Builder(
-            if (isFavorite) {
-                CommandButton.ICON_HEART_FILLED
-            } else {
-                CommandButton.ICON_HEART_UNFILLED
-            },
-        )
-            .setSessionCommand(toggleFavoriteCommand)
-            .setDisplayName(if (isFavorite) "取消收藏" else "收藏")
-            .setSlots(CommandButton.SLOT_BACK_SECONDARY, CommandButton.SLOT_OVERFLOW)
-            .build()
+    /** 判断按钮是否为收藏命令，供通知 provider 跨 Android 版本保持稳定顺序。 */
+    fun isToggleFavoriteButton(commandButton: CommandButton): Boolean {
+        return commandButton.sessionCommand?.customAction == CUSTOM_ACTION_TOGGLE_FAVORITE
     }
 
-    // 上一首使用标准 Player command，让系统命令继续进入 [CoordinatorForwardingPlayer]。
-    private fun previousButton(): CommandButton {
+    /** 判断按钮是否为播放模式命令，供通知 provider 跨 Android 版本保持稳定顺序。 */
+    fun isPlaybackModeButton(commandButton: CommandButton): Boolean {
+        return commandButton.sessionCommand?.customAction == CUSTOM_ACTION_CYCLE_MODE
+    }
+
+    /** 创建上一首按钮，让系统命令继续进入 [CoordinatorForwardingPlayer]。 */
+    fun createPreviousButton(): CommandButton {
         return CommandButton.Builder(CommandButton.ICON_PREVIOUS)
             .setPlayerCommand(Player.COMMAND_SEEK_TO_PREVIOUS_MEDIA_ITEM)
             .setDisplayName("上一首")
@@ -136,8 +131,8 @@ internal object AndroidPlaybackMediaButtons {
             .build()
     }
 
-    // 播放/暂停使用标准 Player command，图标随 shared 播放状态刷新。
-    private fun playPauseButton(isPlaying: Boolean): CommandButton {
+    /** 创建播放/暂停按钮，图标随 shared 播放状态刷新。 */
+    fun createPlayPauseButton(isPlaying: Boolean): CommandButton {
         return CommandButton.Builder(
             if (isPlaying) {
                 CommandButton.ICON_PAUSE
@@ -151,8 +146,8 @@ internal object AndroidPlaybackMediaButtons {
             .build()
     }
 
-    // 下一首使用标准 Player command，让系统命令继续进入 [CoordinatorForwardingPlayer]。
-    private fun nextButton(): CommandButton {
+    /** 创建下一首按钮，让系统命令继续进入 [CoordinatorForwardingPlayer]。 */
+    fun createNextButton(): CommandButton {
         return CommandButton.Builder(CommandButton.ICON_NEXT)
             .setPlayerCommand(Player.COMMAND_SEEK_TO_NEXT_MEDIA_ITEM)
             .setDisplayName("下一首")
@@ -160,17 +155,32 @@ internal object AndroidPlaybackMediaButtons {
             .build()
     }
 
+    // 收藏按钮使用系统心形图标，优先占据上一首外侧的次级后退 slot。
+    private fun createFavoriteButton(isFavorite: Boolean): CommandButton {
+        return CommandButton.Builder(
+            if (isFavorite) {
+                CommandButton.ICON_HEART_FILLED
+            } else {
+                CommandButton.ICON_HEART_UNFILLED
+            },
+        )
+            .setSessionCommand(toggleFavoriteCommand)
+            .setDisplayName(if (isFavorite) "取消收藏" else "收藏")
+            .setSlots(CommandButton.SLOT_BACK_SECONDARY, CommandButton.SLOT_OVERFLOW)
+            .build()
+    }
+
     // 播放模式按钮使用自定义 SessionCommand，并优先占据下一首外侧的次级前进 slot。
-    private fun playbackModeButton(playbackMode: PlaybackMode): CommandButton {
-        return CommandButton.Builder(playbackMode.icon())
+    private fun createPlaybackModeButton(playbackMode: PlaybackMode): CommandButton {
+        return CommandButton.Builder(playbackMode.resolveIcon())
             .setSessionCommand(cycleModeCommand)
-            .setDisplayName(playbackMode.displayName())
+            .setDisplayName(playbackMode.resolveDisplayName())
             .setSlots(CommandButton.SLOT_FORWARD_SECONDARY, CommandButton.SLOT_OVERFLOW)
             .build()
     }
 
     // 播放模式映射到 Media3 内置图标，避免维护应用自绘通知资源。
-    private fun PlaybackMode.icon(): Int {
+    private fun PlaybackMode.resolveIcon(): Int {
         return when (this) {
             PlaybackMode.LoopAll -> CommandButton.ICON_REPEAT_ALL
             PlaybackMode.LoopOne -> CommandButton.ICON_REPEAT_ONE
@@ -179,7 +189,7 @@ internal object AndroidPlaybackMediaButtons {
     }
 
     // 系统按钮 displayName 作为无障碍和兼容控制器文本，不承担 UI 排版。
-    private fun PlaybackMode.displayName(): String {
+    private fun PlaybackMode.resolveDisplayName(): String {
         return when (this) {
             PlaybackMode.LoopAll -> "列表循环"
             PlaybackMode.LoopOne -> "单曲循环"
