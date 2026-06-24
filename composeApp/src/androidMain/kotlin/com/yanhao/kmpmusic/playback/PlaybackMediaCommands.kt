@@ -21,9 +21,34 @@ private const val CUSTOM_ACTION_TOGGLE_FAVORITE: String = "com.yanhao.kmpmusic.p
 private const val CUSTOM_ACTION_CYCLE_MODE: String = "com.yanhao.kmpmusic.playback.CYCLE_MODE"
 
 /**
- * 系统媒体通知可触发的自定义播放动作集合，标准播放命令继续复用 [PlaybackCommandBridge]。
+ * 媒体按钮偏好刷新命令，供 App 内 [MediaController] 客户端同步 shared 状态到 session。
  */
-interface PlaybackMediaButtonActions : PlaybackCommandBridge {
+private const val CUSTOM_ACTION_UPDATE_BUTTONS: String = "com.yanhao.kmpmusic.playback.UPDATE_BUTTONS"
+
+/**
+ * 按钮刷新命令参数：当前是否正在播放。
+ */
+private const val ARG_IS_PLAYING: String = "is_playing"
+
+/**
+ * 按钮刷新命令参数：当前歌曲是否已收藏。
+ */
+private const val ARG_IS_FAVORITE: String = "is_favorite"
+
+/**
+ * 按钮刷新命令参数：当前播放模式名称。
+ */
+private const val ARG_PLAYBACK_MODE: String = "playback_mode"
+
+/**
+ * 按钮刷新命令参数：当前播放状态名称。
+ */
+private const val ARG_PLAYBACK_STATUS: String = "playback_status"
+
+/**
+ * 系统媒体通知可触发的自定义播放动作集合，标准播放命令由 [MediaSession] 委托给 [Player]。
+ */
+interface PlaybackMediaButtonActions {
     /** 切换当前播放歌曲的收藏状态。 */
     fun toggleFavorite()
 
@@ -41,11 +66,6 @@ object PlaybackMediaCommandDispatcher {
     /** 在 Android 播放会话就绪后挂入同一份命令实现。 */
     fun attach(actions: PlaybackMediaButtonActions) {
         this.actions = actions
-    }
-
-    /** 在宿主销毁或替换实现时清空旧引用。 */
-    fun detach() {
-        actions = null
     }
 
     /** 返回当前按钮动作实现；尚未接线时返回 null。 */
@@ -71,13 +91,60 @@ internal object AndroidPlaybackMediaButtons {
         Bundle.EMPTY,
     )
 
+    // Media3 自定义按钮刷新命令，供 App 内 controller 通过 session 更新系统媒体卡片。
+    private val updateButtonsSessionCommand: SessionCommand = SessionCommand(
+        CUSTOM_ACTION_UPDATE_BUTTONS,
+        Bundle.EMPTY,
+    )
+
     /** 为媒体通知控制器暴露默认 session 命令和本应用的两个自定义按钮命令。 */
     fun availableSessionCommands(): SessionCommands {
         return SessionCommands.Builder()
             .addSessionCommands(MediaSession.ConnectionResult.DEFAULT_SESSION_COMMANDS.commands)
             .add(toggleFavoriteCommand)
             .add(cycleModeCommand)
+            .add(updateButtonsSessionCommand)
             .build()
+    }
+
+    /** 返回按钮刷新命令，供 [MediaController] 客户端发送官方 custom command。 */
+    fun updateButtonsCommand(): SessionCommand {
+        return updateButtonsSessionCommand
+    }
+
+    /** 把 shared 按钮状态编码到 [Bundle]，避免平台层直接引用 UI state。 */
+    fun createUpdateButtonsArgs(state: MediaButtonState): Bundle {
+        return Bundle().apply {
+            putBoolean(ARG_IS_PLAYING, state.isPlaying)
+            putBoolean(ARG_IS_FAVORITE, state.isFavorite)
+            putString(ARG_PLAYBACK_MODE, state.playbackMode.name)
+            putString(ARG_PLAYBACK_STATUS, state.playbackStatus.name)
+        }
+    }
+
+    /** 从 custom command 参数中恢复按钮状态，解析失败时拒绝更新 session。 */
+    fun resolveUpdateButtonsState(args: Bundle): MediaButtonState? {
+        val playbackMode: PlaybackMode = args.getString(ARG_PLAYBACK_MODE)
+            ?.let { value: String -> runCatching { PlaybackMode.valueOf(value) }.getOrNull() }
+            ?: return null
+        val playbackStatus: com.yanhao.kmpmusic.domain.model.PlaybackStatus = args.getString(ARG_PLAYBACK_STATUS)
+            ?.let { value: String ->
+                runCatching {
+                    com.yanhao.kmpmusic.domain.model.PlaybackStatus.valueOf(value)
+                }.getOrNull()
+            }
+            ?: return null
+        return MediaButtonState(
+            isPlaying = args.getBoolean(ARG_IS_PLAYING),
+            isFavorite = args.getBoolean(ARG_IS_FAVORITE),
+            playbackMode = playbackMode,
+            playbackStatus = playbackStatus,
+        )
+    }
+
+    /** 判断是否为 App 内 controller 发来的按钮刷新命令。 */
+    fun isUpdateButtonsCommand(customAction: String): Boolean {
+        return customAction == CUSTOM_ACTION_UPDATE_BUTTONS
     }
 
     /** 按系统 slot 语义声明媒体通知按钮偏好，最终位置由 System UI 决定。 */
@@ -108,6 +175,7 @@ internal object AndroidPlaybackMediaButtons {
                 actions.cycleMode()
                 SessionResult.RESULT_SUCCESS
             }
+            CUSTOM_ACTION_UPDATE_BUTTONS -> SessionResult.RESULT_ERROR_BAD_VALUE
             else -> SessionResult.RESULT_ERROR_NOT_SUPPORTED
         }
     }
@@ -122,7 +190,7 @@ internal object AndroidPlaybackMediaButtons {
         return commandButton.sessionCommand?.customAction == CUSTOM_ACTION_CYCLE_MODE
     }
 
-    /** 创建上一首按钮，让系统命令继续进入 [CoordinatorForwardingPlayer]。 */
+    /** 创建上一首按钮，让系统命令按 Media3 官方路径进入 session player。 */
     fun createPreviousButton(): CommandButton {
         return CommandButton.Builder(CommandButton.ICON_PREVIOUS)
             .setPlayerCommand(Player.COMMAND_SEEK_TO_PREVIOUS_MEDIA_ITEM)
@@ -146,7 +214,7 @@ internal object AndroidPlaybackMediaButtons {
             .build()
     }
 
-    /** 创建下一首按钮，让系统命令继续进入 [CoordinatorForwardingPlayer]。 */
+    /** 创建下一首按钮，让系统命令按 Media3 官方路径进入 session player。 */
     fun createNextButton(): CommandButton {
         return CommandButton.Builder(CommandButton.ICON_NEXT)
             .setPlayerCommand(Player.COMMAND_SEEK_TO_NEXT_MEDIA_ITEM)

@@ -5,6 +5,7 @@ import com.yanhao.kmpmusic.domain.model.CoverArt
 import com.yanhao.kmpmusic.domain.model.PlayableMedia
 import com.yanhao.kmpmusic.domain.model.PlaybackError
 import com.yanhao.kmpmusic.domain.model.PlaybackErrorType
+import com.yanhao.kmpmusic.domain.model.PlaybackMode
 import com.yanhao.kmpmusic.domain.model.PlaybackStatus
 import kotlinx.coroutines.async
 import kotlinx.coroutines.runBlocking
@@ -147,6 +148,18 @@ class FakeAudioPlayerEngineTest {
             ),
             actual = events.single(),
         )
+    }
+
+    /**
+     * [setPlaybackMode] 需要可观测，供协调器测试验证平台模式同步。
+     */
+    @Test
+    fun setPlaybackModeRecordsLatestMode(): Unit {
+        val engine = FakeAudioPlayerEngine()
+
+        engine.setPlaybackMode(playbackMode = PlaybackMode.Shuffle)
+
+        assertEquals(expected = PlaybackMode.Shuffle, actual = engine.playbackMode)
     }
 
     /**

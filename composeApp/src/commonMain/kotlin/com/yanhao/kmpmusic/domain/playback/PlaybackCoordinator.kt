@@ -109,6 +109,7 @@ class PlaybackCoordinator(
         recordHistory(songId = song.id)
         saveSnapshotNow()
         onStateChanged()
+        audioPlayerEngine.setPlaybackMode(playbackMode = currentPlaybackMode)
         audioPlayerEngine.setQueue(
             items = matchingQueueSongs.map { queueSong -> queueSong.toPlayableMedia() },
             startIndex = startIndex,
@@ -161,6 +162,7 @@ class PlaybackCoordinator(
         playbackRepository.savePlaybackState(state = restoredPlaybackState)
         saveSnapshotNow()
         onStateChanged()
+        audioPlayerEngine.setPlaybackMode(playbackMode = restoredQueueState.playbackMode)
         audioPlayerEngine.setQueue(
             items = restoredQueueSongs.map { song -> song.toPlayableMedia() },
             startIndex = restoredIndex,
@@ -299,6 +301,7 @@ class PlaybackCoordinator(
         )
         saveSnapshotNow()
         onStateChanged()
+        audioPlayerEngine.setPlaybackMode(playbackMode = nextMode)
     }
 
     /**
@@ -359,6 +362,7 @@ class PlaybackCoordinator(
         )
         saveSnapshotNow()
         onStateChanged()
+        audioPlayerEngine.setPlaybackMode(playbackMode = queueState.playbackMode)
         audioPlayerEngine.setQueue(
             items = nextQueueSongs.map { song -> song.toPlayableMedia() },
             startIndex = nextCurrentIndex,
@@ -391,15 +395,35 @@ class PlaybackCoordinator(
         }
     }
 
-    /** 根据引擎当前媒体事件同步歌曲标识和时长。 */
+    /** 根据引擎当前媒体事件同步歌曲标识、队列下标和时长。 */
     private fun handleCurrentMediaChanged(event: PlaybackEngineEvent.CurrentMediaChanged) {
         val playbackState: PlaybackState = playbackRepository.getPlaybackState()
-        playbackRepository.saveQueueState(state = playbackRepository.getQueueState().copy(currentIndex = event.index))
+        val queueState: QueueState = playbackRepository.getQueueState()
+        val nextQueueState: QueueState = buildQueueStateForEngineTransition(
+            queueState = queueState,
+            targetIndex = event.index,
+        )
+        playbackRepository.saveQueueState(state = nextQueueState)
         playbackRepository.savePlaybackState(
             state = playbackState.copy(
                 currentSongId = event.songId,
                 durationMs = event.durationMs,
             ),
+        )
+    }
+
+    /** 外部 MediaController 切歌时，同步维护 common 层随机历史和剩余集合。 */
+    private fun buildQueueStateForEngineTransition(queueState: QueueState, targetIndex: Int): QueueState {
+        if (targetIndex !in queueState.songIds.indices) {
+            return queueState
+        }
+        if (queueState.playbackMode != PlaybackMode.Shuffle || targetIndex == queueState.currentIndex) {
+            return queueState.copy(currentIndex = targetIndex)
+        }
+        return buildShuffleQueueState(
+            queueState = queueState,
+            targetIndex = targetIndex,
+            isMovingBackward = false,
         )
     }
 

@@ -2,6 +2,7 @@ package com.yanhao.kmpmusic.domain.playback
 
 import com.yanhao.kmpmusic.domain.model.PlayableMedia
 import com.yanhao.kmpmusic.domain.model.PlaybackError
+import com.yanhao.kmpmusic.domain.model.PlaybackMode
 import com.yanhao.kmpmusic.domain.model.PlaybackStatus
 import kotlinx.coroutines.flow.Flow
 
@@ -44,6 +45,11 @@ interface AudioPlayerEngine {
      * @param index 目标队列下标。
      */
     fun skipToIndex(index: Int)
+
+    /**
+     * 同步当前播放模式，让平台播放器和系统媒体控制遵循同一套队列规则。
+     */
+    fun setPlaybackMode(playbackMode: PlaybackMode)
 
     /** 停止当前播放。 */
     fun stop()

@@ -3,6 +3,7 @@ package com.yanhao.kmpmusic.data
 import com.yanhao.kmpmusic.domain.model.PlayableMedia
 import com.yanhao.kmpmusic.domain.model.PlaybackError
 import com.yanhao.kmpmusic.domain.model.PlaybackErrorType
+import com.yanhao.kmpmusic.domain.model.PlaybackMode
 import com.yanhao.kmpmusic.domain.model.PlaybackStatus
 import com.yanhao.kmpmusic.domain.playback.AudioPlayerEngine
 import com.yanhao.kmpmusic.domain.playback.PlaybackEngineEvent
@@ -27,6 +28,10 @@ class FakeAudioPlayerEngine : AudioPlayerEngine {
 
     // 当前媒体已经推进到的进度，供状态事件保持一致。
     private var currentPositionMs: Long = 0L
+
+    /** 最近一次由协调器同步到平台引擎的播放模式。 */
+    var playbackMode: PlaybackMode = PlaybackMode.LoopAll
+        private set
 
     /** 对外暴露确定性事件流。 */
     override val events: Flow<PlaybackEngineEvent> = eventChannel.receiveAsFlow()
@@ -119,6 +124,11 @@ class FakeAudioPlayerEngine : AudioPlayerEngine {
                 durationMs = media.durationMs,
             ),
         )
+    }
+
+    /** 记录 common 层同步下来的模式，确保测试可以验证平台模式接线。 */
+    override fun setPlaybackMode(playbackMode: PlaybackMode) {
+        this.playbackMode = playbackMode
     }
 
     /** 发出停止后的 idle 事件。 */

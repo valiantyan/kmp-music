@@ -88,6 +88,23 @@ class PlaybackCoordinatorTest {
     }
 
     /**
+     * 播放模式切换后必须同步到平台引擎，保证系统媒体按钮和 App 内按钮行为一致。
+     */
+    @Test
+    fun cyclePlaybackModeSyncsPlatformEngineMode(): Unit {
+        val repository = InMemoryPlaybackRepository()
+        val engine = FakeAudioPlayerEngine()
+        val coordinator = PlaybackCoordinator(
+            playbackRepository = repository,
+            audioPlayerEngine = engine,
+        )
+
+        coordinator.cyclePlaybackMode()
+
+        assertEquals(expected = PlaybackMode.LoopOne, actual = engine.playbackMode)
+    }
+
+    /**
      * 列表循环在最后一首结束后应回到第一首。
      */
     @Test
@@ -151,6 +168,37 @@ class PlaybackCoordinatorTest {
 
         assertEquals(expected = 1, actual = shuffledIndex)
         assertEquals(expected = 0, actual = repository.getQueueState().currentIndex)
+    }
+
+    /**
+     * 系统媒体控制经 MediaController 切歌时，应把随机历史同步回 common 队列状态。
+     */
+    @Test
+    fun externalShuffleTransitionUpdatesHistoryAndRemaining(): Unit = runTest {
+        val repository = InMemoryPlaybackRepository()
+        val coordinator = PlaybackCoordinator(
+            playbackRepository = repository,
+            audioPlayerEngine = FakeAudioPlayerEngine(),
+            snapshotWriteScope = backgroundScope,
+        )
+        val songs = buildSongs(count = 4)
+
+        coordinator.playSong(song = songs[0], queueSongs = songs)
+        coordinator.cyclePlaybackMode()
+        coordinator.cyclePlaybackMode()
+        coordinator.handleEngineEventForTest(
+            PlaybackEngineEvent.CurrentMediaChanged(
+                songId = songs[2].id,
+                index = 2,
+                durationMs = songs[2].durationMs,
+            ),
+        )
+
+        val queueState: QueueState = repository.getQueueState()
+        assertEquals(expected = 2, actual = queueState.currentIndex)
+        assertEquals(expected = listOf(0), actual = queueState.shuffleHistory)
+        assertEquals(expected = listOf(1, 3), actual = queueState.shuffleRemaining)
+        assertEquals(expected = songs[2].id, actual = repository.getPlaybackState().currentSongId)
     }
 
     /**
