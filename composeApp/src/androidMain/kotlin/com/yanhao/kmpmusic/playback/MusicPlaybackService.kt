@@ -1,5 +1,6 @@
 package com.yanhao.kmpmusic.playback
 
+import com.yanhao.kmpmusic.AndroidPlaybackSession
 import androidx.media3.common.ForwardingPlayer
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
@@ -31,6 +32,7 @@ class MusicPlaybackService : MediaSessionService() {
     /** 初始化 ExoPlayer、引擎和 MediaSession，并把实例登记到进程内注册表。 */
     override fun onCreate() {
         super.onCreate()
+        AndroidPlaybackSession.bootstrap(context = applicationContext)
         val exoPlayer: ExoPlayer = ExoPlayer.Builder(this).build()
         val mediaEngine: Media3AudioPlayerEngine = Media3AudioPlayerEngine(
             player = exoPlayer,

@@ -59,6 +59,13 @@ object AndroidPlaybackSession {
     }
 
     /**
+     * 确保进程级播放会话已初始化并拿到 applicationContext，供无 UI 场景下的 service 自举调用。
+     */
+    fun bootstrap(context: Context) {
+        attachPlaybackContext(context = context.applicationContext)
+    }
+
+    /**
      * 注入当前 Activity 可用的 Android scanner。
      */
     fun attachLocalMusicScanner(scanner: LocalMusicScanner) {
