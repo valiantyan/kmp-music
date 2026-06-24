@@ -253,17 +253,33 @@ class MusicAppController(
         navigateToSecondary(screen = SecondaryScreen.LocalMusic(initialSection = section))
     }
 
-    /** 播放歌曲但留在当前页面。 */
-    fun playSong(song: Song, queueSongs: List<Song> = listOf(song)) {
+    /** 播放歌曲但留在当前页面，未显式传列表时优先复用当前队列上下文。 */
+    fun playSong(song: Song, queueSongs: List<Song> = emptyList()) {
+        val resolvedQueueSongs: List<Song> = resolvePlaybackQueueSongs(
+            song = song,
+            queueSongs = queueSongs,
+        )
         controllerScope.launch(start = CoroutineStart.UNDISPATCHED) {
-            playbackCoordinator.playSong(song = song, queueSongs = queueSongs)
+            playbackCoordinator.playSong(song = song, queueSongs = resolvedQueueSongs)
         }
     }
 
     /** 打开播放页并播放歌曲。 */
-    fun openSong(song: Song, queueSongs: List<Song> = listOf(song)) {
+    fun openSong(song: Song, queueSongs: List<Song> = emptyList()) {
         playSong(song = song, queueSongs = queueSongs)
         openPlayer()
+    }
+
+    // 队列弹层等入口只有歌曲本身时，复用当前显式队列，避免变成单曲队列。
+    private fun resolvePlaybackQueueSongs(song: Song, queueSongs: List<Song>): List<Song> {
+        if (queueSongs.any { candidate -> candidate.id == song.id }) {
+            return queueSongs
+        }
+        val currentQueueSongs: List<Song> = uiState.queueSongs
+        if (currentQueueSongs.any { candidate -> candidate.id == song.id }) {
+            return currentQueueSongs
+        }
+        return listOf(song)
     }
 
     /** 打开当前播放页，供迷你播放器和 Android 通知正文复用同一路由入口。 */

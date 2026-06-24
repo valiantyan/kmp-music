@@ -26,6 +26,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -761,14 +763,37 @@ private fun AppOverlays(
 ) {
     if (state.isQueueOpen) {
         ModalBottomSheet(onDismissRequest = controller::closeQueue) {
-            Column(modifier = Modifier.padding(21.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                Text(text = "播放队列", fontSize = 21.sp, fontWeight = FontWeight.ExtraBold)
-                state.queueSongs.forEach { song ->
+            val queueSongs: List<Song> = state.queueSongs
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .navigationBarsPadding(),
+                contentPadding = PaddingValues(all = 21.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp),
+            ) {
+                item(key = "queue-title") {
+                    Text(text = "播放队列", fontSize = 21.sp, fontWeight = FontWeight.ExtraBold)
+                }
+                items(
+                    items = queueSongs,
+                    key = { song: Song -> song.id },
+                    contentType = { "queue-song" },
+                ) { song: Song ->
                     SongRow(
                         song = song,
                         isCurrentSong = song.id == state.currentSongId,
-                        onOpen = controller::playSong,
-                        onPlay = controller::playSong,
+                        onOpen = { selectedSong: Song ->
+                            controller.playSong(
+                                song = selectedSong,
+                                queueSongs = queueSongs,
+                            )
+                        },
+                        onPlay = { selectedSong: Song ->
+                            controller.playSong(
+                                song = selectedSong,
+                                queueSongs = queueSongs,
+                            )
+                        },
                         onMore = controller::openMore,
                         dense = true,
                     )

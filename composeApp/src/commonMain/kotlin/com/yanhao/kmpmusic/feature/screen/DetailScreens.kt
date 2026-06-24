@@ -110,8 +110,8 @@ fun ArtistDetailScreen(
                 SongRow(
                     song = song,
                     isCurrentSong = song.id == currentSongId,
-                    onOpen = { selectedSong: Song -> onSongOpen(selectedSong, artistSongs) },
-                    onPlay = { selectedSong: Song -> onSongPlay(selectedSong, artistSongs) },
+                    onOpen = { selectedSong: Song -> onSongOpen(selectedSong, displayedArtistSongs) },
+                    onPlay = { selectedSong: Song -> onSongPlay(selectedSong, displayedArtistSongs) },
                     onMore = onMore,
                     onLike = onLike,
                     dense = true,

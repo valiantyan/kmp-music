@@ -250,6 +250,20 @@ class MusicAppControllerTest {
     }
 
     /**
+     * 队列弹层或系统入口只给歌曲时，应复用当前显式队列，避免退化成单曲队列。
+     */
+    @Test
+    fun playSongWithoutProvidedQueueKeepsCurrentQueueWhenSongExists(): Unit = runTest {
+        val controller: MusicAppController = createController(controllerScope = backgroundScope)
+        controller.scanLocalMusic(request = LocalMusicScanRequest.Refresh)
+        val queueSongs: List<Song> = controller.uiState.songs.take(n = 4)
+        controller.playSong(song = queueSongs[0], queueSongs = queueSongs)
+        controller.playSong(song = queueSongs[2])
+        assertEquals(expected = queueSongs.map { song -> song.id }, actual = controller.uiState.queueSongIds)
+        assertEquals(expected = queueSongs[2].id, actual = controller.uiState.currentSongId)
+    }
+
+    /**
      * 播放模式按钮应驱动 UI 状态按顺序反映列表循环、单曲循环和随机播放。
      */
     @Test
