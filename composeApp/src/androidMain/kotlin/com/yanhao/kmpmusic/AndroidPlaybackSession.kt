@@ -18,6 +18,7 @@ import com.yanhao.kmpmusic.playback.PlaybackServiceConnector
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 
 /**
@@ -45,6 +46,9 @@ object AndroidPlaybackSession {
 
     // 当前进程级共享控制器；仅在拿到 applicationContext 后初始化。
     private var controllerHolder: MusicAppController? = null
+
+    // 冷启动恢复只允许在进程级会话里请求一次，避免 UI 重建时打断后台播放。
+    private var hasRequestedPlaybackRestore: Boolean = false
 
     /**
      * 当前进程级共享控制器，后台播放和系统命令都复用同一份状态。
@@ -98,6 +102,24 @@ object AndroidPlaybackSession {
      */
     fun attachPlaybackContext(context: Context) {
         bootstrap(context = context)
+    }
+
+    /**
+     * 仅在当前进程会话的首次 UI 接入时请求冷启动恢复，避免 ViewModel 重建时暂停活动播放。
+     */
+    fun ensurePlaybackSnapshotRestoreRequested() {
+        if (hasRequestedPlaybackRestore) {
+            return
+        }
+        synchronized(this) {
+            if (hasRequestedPlaybackRestore) {
+                return
+            }
+            hasRequestedPlaybackRestore = true
+        }
+        playbackScope.launch {
+            controller.restorePlaybackSnapshot()
+        }
     }
 
     /**
