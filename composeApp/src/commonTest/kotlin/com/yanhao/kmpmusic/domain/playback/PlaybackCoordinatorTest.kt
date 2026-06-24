@@ -284,6 +284,64 @@ class PlaybackCoordinatorTest {
     }
 
     /**
+     * 显式播放与暂停命令应直接走 shared 协调器，而不是依赖 toggle 推断当前状态。
+     */
+    @Test
+    fun explicitPlayAndPauseCommandsUpdateRepositoryThroughEngineEvents(): Unit = runTest {
+        val repository = InMemoryPlaybackRepository()
+        val engine = FakeAudioPlayerEngine()
+        val coordinator = PlaybackCoordinator(
+            playbackRepository = repository,
+            audioPlayerEngine = engine,
+            snapshotWriteScope = backgroundScope,
+        )
+        val songs = buildSongs(count = 2)
+
+        coordinator.start(scope = backgroundScope)
+        coordinator.playSong(song = songs[0], queueSongs = songs)
+        advanceUntilIdle()
+        coordinator.pause()
+        advanceUntilIdle()
+        assertEquals(expected = PlaybackStatus.Paused, actual = repository.getPlaybackState().status)
+
+        coordinator.play()
+        advanceUntilIdle()
+        assertEquals(expected = PlaybackStatus.Playing, actual = repository.getPlaybackState().status)
+    }
+
+    /**
+     * 精确下标切歌应通过 shared 队列更新当前歌曲、下标和目标进度，而不是退化成单步 next/previous。
+     */
+    @Test
+    fun skipToQueueIndexUsesExactIndexAndRequestedPosition(): Unit = runTest {
+        val repository = InMemoryPlaybackRepository()
+        val engine = FakeAudioPlayerEngine()
+        val coordinator = PlaybackCoordinator(
+            playbackRepository = repository,
+            audioPlayerEngine = engine,
+            snapshotWriteScope = backgroundScope,
+        )
+        val songs = buildSongs(count = 4)
+
+        coordinator.start(scope = backgroundScope)
+        coordinator.playSong(song = songs[0], queueSongs = songs)
+        advanceUntilIdle()
+        coordinator.pause()
+        advanceUntilIdle()
+
+        coordinator.skipToQueueIndex(
+            index = 3,
+            positionMs = 12_345L,
+        )
+        advanceUntilIdle()
+
+        assertEquals(expected = 3, actual = repository.getQueueState().currentIndex)
+        assertEquals(expected = songs[3].id, actual = repository.getPlaybackState().currentSongId)
+        assertEquals(expected = 12_345L, actual = repository.getPlaybackState().positionMs)
+        assertEquals(expected = PlaybackStatus.Paused, actual = repository.getPlaybackState().status)
+    }
+
+    /**
      * 单曲循环同一首连续失败三次后应停止自动重试。
      */
     @Test

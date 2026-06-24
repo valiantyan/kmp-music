@@ -174,10 +174,24 @@ class PlaybackCoordinator(
      */
     fun togglePlayback() {
         if (playbackRepository.getPlaybackState().isPlaying) {
-            audioPlayerEngine.pause()
+            pause()
             return
         }
+        play()
+    }
+
+    /**
+     * 显式开始或继续播放当前媒体，供系统命令绕过 toggle 推断。
+     */
+    fun play() {
         audioPlayerEngine.play()
+    }
+
+    /**
+     * 显式暂停当前媒体，避免 buffering/loading 态下的 toggle 误判。
+     */
+    fun pause() {
+        audioPlayerEngine.pause()
     }
 
     /**
@@ -221,6 +235,21 @@ class PlaybackCoordinator(
         saveSnapshotNow()
         onStateChanged()
         audioPlayerEngine.seekTo(positionMs = safePositionMs)
+    }
+
+    /**
+     * 直接切到共享队列中的精确下标，并可带入系统命令给出的起始进度。
+     */
+    fun skipToQueueIndex(index: Int, positionMs: Long = 0L) {
+        val playbackState: PlaybackState = playbackRepository.getPlaybackState()
+        val shouldResumePlayback: Boolean = playbackState.status == PlaybackStatus.Playing ||
+            playbackState.status == PlaybackStatus.Loading ||
+            playbackState.status == PlaybackStatus.Buffering
+        moveToIndex(
+            targetIndex = index,
+            positionMs = positionMs,
+            shouldResumePlayback = shouldResumePlayback,
+        )
     }
 
     /**
@@ -435,11 +464,17 @@ class PlaybackCoordinator(
     }
 
     /** 切换到目标下标，并把引擎和仓库一起推进到 loading。 */
-    private fun moveToIndex(targetIndex: Int, isMovingBackward: Boolean = false) {
+    private fun moveToIndex(
+        targetIndex: Int,
+        isMovingBackward: Boolean = false,
+        positionMs: Long = 0L,
+        shouldResumePlayback: Boolean = true,
+    ) {
         val queueState: QueueState = playbackRepository.getQueueState()
         if (targetIndex !in queueState.songIds.indices) {
             return
         }
+        val safePositionMs: Long = positionMs.coerceAtLeast(minimumValue = 0L)
         val nextQueueState: QueueState = if (queueState.playbackMode == PlaybackMode.Shuffle) {
             buildShuffleQueueState(
                 queueState = queueState,
@@ -454,8 +489,8 @@ class PlaybackCoordinator(
         playbackRepository.savePlaybackState(
             state = playbackRepository.getPlaybackState().copy(
                 currentSongId = songId,
-                status = PlaybackStatus.Loading,
-                positionMs = 0L,
+                status = if (shouldResumePlayback) PlaybackStatus.Loading else PlaybackStatus.Paused,
+                positionMs = safePositionMs,
                 error = null,
             ),
         )
@@ -463,7 +498,14 @@ class PlaybackCoordinator(
         saveSnapshotNow()
         onStateChanged()
         audioPlayerEngine.skipToIndex(index = targetIndex)
-        audioPlayerEngine.play()
+        if (safePositionMs > 0L) {
+            audioPlayerEngine.seekTo(positionMs = safePositionMs)
+        }
+        if (shouldResumePlayback) {
+            audioPlayerEngine.play()
+            return
+        }
+        audioPlayerEngine.pause()
     }
 
     /** 只对播放进度做节流快照，其他关键事件立即补写。 */

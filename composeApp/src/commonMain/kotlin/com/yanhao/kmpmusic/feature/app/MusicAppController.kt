@@ -259,6 +259,16 @@ class MusicAppController(
         playbackCoordinator.togglePlayback()
     }
 
+    /** 显式恢复或开始播放，供 Android 系统媒体命令调用。 */
+    fun play() {
+        playbackCoordinator.play()
+    }
+
+    /** 显式暂停播放，供 Android 系统媒体命令调用。 */
+    fun pause() {
+        playbackCoordinator.pause()
+    }
+
     /** 切换上一首或下一首。 */
     fun moveTrack(direction: Int) {
         if (direction < 0) {
@@ -266,6 +276,14 @@ class MusicAppController(
             return
         }
         playbackCoordinator.moveNext()
+    }
+
+    /** 按精确队列下标切歌，并带入系统命令指定的起始进度。 */
+    fun skipToQueueIndex(index: Int, positionMs: Long = 0L) {
+        playbackCoordinator.skipToQueueIndex(
+            index = index,
+            positionMs = positionMs,
+        )
     }
 
     /** 拖动播放进度时同时更新运行态与持久化快照，避免冷启动回到旧进度。 */

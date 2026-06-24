@@ -103,17 +103,23 @@ object PlaybackServiceRegistry {
  * 供 Android session 命令回流 shared 协调器的桥接接口。
  */
 interface PlaybackCommandBridge {
+    /** 显式开始或继续播放。 */
+    fun play()
+
+    /** 显式暂停播放。 */
+    fun pause()
+
     /** 切到上一首。 */
     fun previous()
-
-    /** 切换播放与暂停。 */
-    fun togglePlayback()
 
     /** 切到下一首。 */
     fun next()
 
     /** 跳转当前媒体进度。 */
     fun seekTo(positionMs: Long)
+
+    /** 直接切到共享队列的精确下标，并带入系统命令指定的起始进度。 */
+    fun skipToQueueIndex(index: Int, positionMs: Long = 0L)
 }
 
 /**
@@ -151,31 +157,26 @@ private class CoordinatorForwardingPlayer(
         return PlaybackCommandBridgeRegistry.current()
     }
 
-    /** 系统播放命令优先改 shared 状态；未接桥时回退到原生播放器。 */
+    /** 系统播放命令优先改 shared 状态；未接桥时保持 no-op。 */
     override fun play() {
         val bridge: PlaybackCommandBridge = currentBridge() ?: return
-        if (isPlaying) {
-            return
-        }
-        bridge.togglePlayback()
+        bridge.play()
     }
 
-    /** 系统暂停命令优先改 shared 状态；未接桥时回退到原生播放器。 */
+    /** 系统暂停命令优先改 shared 状态；未接桥时保持 no-op。 */
     override fun pause() {
         val bridge: PlaybackCommandBridge = currentBridge() ?: return
-        if (!isPlaying) {
-            return
-        }
-        bridge.togglePlayback()
+        bridge.pause()
     }
 
     /** 兼容系统通过 [setPlayWhenReady] 发出的播放/暂停命令。 */
     override fun setPlayWhenReady(playWhenReady: Boolean) {
         val bridge: PlaybackCommandBridge = currentBridge() ?: return
-        if (playWhenReady == isPlaying) {
+        if (playWhenReady) {
+            bridge.play()
             return
         }
-        bridge.togglePlayback()
+        bridge.pause()
     }
 
     /** 系统上一首命令优先回流 shared 队列。 */
@@ -206,28 +207,18 @@ private class CoordinatorForwardingPlayer(
     /** 兼容系统通过指定媒体下标和进度发起的 seek 命令。 */
     override fun seekTo(mediaItemIndex: Int, positionMs: Long) {
         val bridge: PlaybackCommandBridge = currentBridge() ?: return
-        if (mediaItemIndex != currentMediaItemIndex) {
-            if (mediaItemIndex > currentMediaItemIndex) {
-                bridge.next()
-            } else {
-                bridge.previous()
-            }
-            return
-        }
-        bridge.seekTo(positionMs = positionMs)
+        bridge.skipToQueueIndex(
+            index = mediaItemIndex,
+            positionMs = positionMs,
+        )
     }
 
     /** 兼容系统通过默认位置切换媒体项的命令。 */
     override fun seekToDefaultPosition(mediaItemIndex: Int) {
         val bridge: PlaybackCommandBridge = currentBridge() ?: return
-        if (mediaItemIndex > currentMediaItemIndex) {
-            bridge.next()
-            return
-        }
-        if (mediaItemIndex < currentMediaItemIndex) {
-            bridge.previous()
-            return
-        }
-        bridge.seekTo(positionMs = 0L)
+        bridge.skipToQueueIndex(
+            index = mediaItemIndex,
+            positionMs = 0L,
+        )
     }
 }
