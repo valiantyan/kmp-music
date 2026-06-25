@@ -32,6 +32,7 @@ import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.withTimeout
 import kotlin.test.Test
+import kotlin.test.assertFailsWith
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
@@ -146,6 +147,40 @@ class DesktopPlaybackSessionTest {
             actual = order,
         )
         assertTrue(actual = sessionJob?.isCancelled == true)
+    }
+
+    @Test
+    fun closeStillPersistsSnapshotAndClosesDatabaseWhenAudioReleaseFails(): Unit = runTest {
+        val sessionScope = CoroutineScope(SupervisorJob() + StandardTestDispatcher(testScheduler))
+        val controller = MusicAppController(
+            controllerScope = sessionScope,
+        )
+        val order = mutableListOf<String>()
+        val runtime = DesktopPlaybackSessionRuntime(
+            controller = controller,
+            sessionScope = sessionScope,
+            releaseAudioEngineAndAwait = {
+                order += "release"
+                error("release failed")
+            },
+            closePlaybackDatabase = {
+                order += "close-db:${sessionScope.coroutineContext[Job]?.isCancelled == true}"
+            },
+            persistPlaybackSnapshotForProcessTeardown = { _, _ ->
+                order += "persist"
+            },
+        )
+
+        val failure = assertFailsWith<IllegalStateException> {
+            runtime.close()
+        }
+
+        assertEquals(expected = "release failed", actual = failure.message)
+        assertEquals(
+            expected = listOf("release", "persist", "close-db:true"),
+            actual = order,
+        )
+        assertTrue(actual = sessionScope.coroutineContext[Job]?.isCancelled == true)
     }
 
     private fun persistedSongEntity(): LocalSongEntity {

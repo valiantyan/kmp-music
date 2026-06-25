@@ -113,18 +113,34 @@ internal class DesktopPlaybackSessionRuntime(
             return
         }
         runBlocking {
+            var teardownFailure: Throwable? = null
             try {
                 releaseAudioEngineAndAwait()
+            } catch (throwable: Throwable) {
+                teardownFailure = throwable
             } finally {
-                sessionJob.cancelAndJoin()
+                try {
+                    sessionJob.cancelAndJoin()
+                } catch (throwable: Throwable) {
+                    teardownFailure = teardownFailure?.also { it.addSuppressed(throwable) } ?: throwable
+                }
             }
             try {
                 persistPlaybackSnapshotForProcessTeardown(
                     finalPositionMs,
                     finalDurationMs,
                 )
+            } catch (throwable: Throwable) {
+                teardownFailure = teardownFailure?.also { it.addSuppressed(throwable) } ?: throwable
             } finally {
-                closePlaybackDatabase()
+                try {
+                    closePlaybackDatabase()
+                } catch (throwable: Throwable) {
+                    teardownFailure = teardownFailure?.also { it.addSuppressed(throwable) } ?: throwable
+                }
+            }
+            teardownFailure?.let { throwable ->
+                throw throwable
             }
         }
     }
