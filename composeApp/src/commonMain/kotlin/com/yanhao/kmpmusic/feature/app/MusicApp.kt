@@ -802,7 +802,7 @@ private fun AppOverlays(
         }
     }
     state.moreSongId?.let { songId ->
-        val song: Song? = state.songs.firstOrNull { item -> item.id == songId }
+        val song: Song? = state.detailSongs.firstOrNull { item -> item.id == songId }
         if (song != null) {
             ModalBottomSheet(onDismissRequest = controller::closeMore) {
                 Column(modifier = Modifier.padding(21.dp), verticalArrangement = Arrangement.spacedBy(18.dp)) {

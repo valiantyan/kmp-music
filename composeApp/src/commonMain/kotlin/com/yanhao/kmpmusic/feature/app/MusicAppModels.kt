@@ -211,10 +211,10 @@ data class MusicAppUiState(
             .distinctBy { song -> song.id }
 
     val detailAlbums: List<Album>
-        get() = (localAlbums + favoriteAlbums).distinctBy { album -> album.id }
+        get() = (localAlbums + buildAlbumsFromSongs(songs = detailSongs)).distinctBy { album -> album.id }
 
     val detailArtists: List<Artist>
-        get() = (localArtists + favoriteArtists).distinctBy { artist -> artist.id }
+        get() = (localArtists + buildArtistsFromSongs(songs = detailSongs)).distinctBy { artist -> artist.id }
 
     /**
      * 兼容现有 UI 对播放开关的布尔读取，直到页面逐步迁移到显式播放状态。
@@ -299,4 +299,38 @@ data class MusicAppUiState(
      * 当前歌手详情对象，曲库为空或歌手缺失时为 null。
      */
     val selectedArtist: Artist? = detailArtists.firstOrNull { artist -> artist.id == selectedArtistId }
+
+    private fun buildAlbumsFromSongs(songs: List<Song>): List<Album> {
+        return songs.groupBy { song -> song.album.trim().lowercase() }
+            .values
+            .map { albumSongs ->
+                val firstSong: Song = albumSongs.first()
+                Album(
+                    id = "album:${firstSong.album.trim().lowercase()}",
+                    title = firstSong.album,
+                    artist = firstSong.artist,
+                    songCount = albumSongs.size,
+                    coverArt = firstSong.coverArt,
+                    mood = "本地音乐",
+                    year = "本地",
+                )
+            }
+            .sortedBy { album -> album.title.lowercase() }
+    }
+
+    private fun buildArtistsFromSongs(songs: List<Song>): List<Artist> {
+        return songs.groupBy { song -> song.artist.trim().lowercase() }
+            .values
+            .map { artistSongs ->
+                val firstSong: Song = artistSongs.first()
+                Artist(
+                    id = "artist:${firstSong.artist.trim().lowercase()}",
+                    name = firstSong.artist,
+                    songCount = artistSongs.size,
+                    coverArt = firstSong.coverArt,
+                    tag = "本地音乐",
+                )
+            }
+            .sortedBy { artist -> artist.name.lowercase() }
+    }
 }

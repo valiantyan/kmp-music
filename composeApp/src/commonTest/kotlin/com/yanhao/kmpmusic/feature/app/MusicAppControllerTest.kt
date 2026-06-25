@@ -587,6 +587,22 @@ class MusicAppControllerTest {
     }
 
     /**
+     * preview 或队列里已经知道的歌曲，应能在未加载全量曲库时打开专辑/歌手详情。
+     */
+    @Test
+    fun knownPreviewSongsCanOpenDetailsBeforeFullLibraryLoads(): Unit {
+        val repository = SeededMusicLibraryRepository(seedCount = 8)
+        val controller = createController(musicLibraryRepository = repository)
+        val previewSong: Song = controller.uiState.homeLocalSongPreview.first()
+
+        controller.openAlbumFromSong(song = previewSong)
+        assertEquals(expected = "album:album", actual = controller.uiState.selectedAlbum?.id)
+        controller.openArtistFromSong(song = previewSong)
+        assertEquals(expected = "artist:artist", actual = controller.uiState.selectedArtist?.id)
+        assertEquals(expected = 0, actual = repository.fullLibraryReads)
+    }
+
+    /**
      * 收藏状态应同时同步到集合和歌曲列表。
      */
     @Test
