@@ -1559,7 +1559,7 @@ git commit -m "接入 macOS vlcj 音频适配器"
 - Modify: `composeApp/src/desktopMain/kotlin/com/yanhao/kmpmusic/DesktopMain.kt`
 - Test: `composeApp/src/desktopTest/kotlin/com/yanhao/kmpmusic/data/DesktopPlaybackDatabaseTest.kt`
 
-- [ ] **Step 1: Write the Desktop database path test**
+- [x] **Step 1: Write the Desktop database path test**
 
 Create `composeApp/src/desktopTest/kotlin/com/yanhao/kmpmusic/data/DesktopPlaybackDatabaseTest.kt`:
 
@@ -1581,7 +1581,7 @@ class DesktopPlaybackDatabaseTest {
 }
 ```
 
-- [ ] **Step 2: Run the test to verify it fails**
+- [x] **Step 2: Run the test to verify it fails**
 
 Run:
 
@@ -1591,7 +1591,7 @@ Run:
 
 Expected: FAIL with unresolved reference `defaultDesktopPlaybackDatabasePath`.
 
-- [ ] **Step 3: Add the Desktop Room builder**
+- [x] **Step 3: Add the Desktop Room builder**
 
 Create `composeApp/src/desktopMain/kotlin/com/yanhao/kmpmusic/data/DesktopPlaybackDatabase.kt`:
 
@@ -1628,7 +1628,7 @@ fun defaultDesktopPlaybackDatabasePath(userHome: String): String {
 }
 ```
 
-- [ ] **Step 4: Add process-level Desktop session**
+- [x] **Step 4: Add process-level Desktop session**
 
 Create `composeApp/src/desktopMain/kotlin/com/yanhao/kmpmusic/DesktopPlaybackSession.kt`:
 
@@ -1707,7 +1707,7 @@ object DesktopPlaybackSession {
 }
 ```
 
-- [ ] **Step 5: Wire DesktopMain to the session**
+- [x] **Step 5: Wire DesktopMain to the session**
 
 Modify `composeApp/src/desktopMain/kotlin/com/yanhao/kmpmusic/DesktopMain.kt`:
 
@@ -1740,7 +1740,7 @@ fun main() = application {
 }
 ```
 
-- [ ] **Step 6: Run Desktop database and compile checks**
+- [x] **Step 6: Run Desktop database and compile checks**
 
 Run:
 
@@ -1751,7 +1751,7 @@ Run:
 
 Expected: both PASS.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add composeApp/src/desktopMain/kotlin/com/yanhao/kmpmusic/data/DesktopPlaybackDatabase.kt composeApp/src/desktopMain/kotlin/com/yanhao/kmpmusic/DesktopPlaybackSession.kt composeApp/src/desktopMain/kotlin/com/yanhao/kmpmusic/DesktopMain.kt composeApp/src/desktopTest/kotlin/com/yanhao/kmpmusic/data/DesktopPlaybackDatabaseTest.kt
