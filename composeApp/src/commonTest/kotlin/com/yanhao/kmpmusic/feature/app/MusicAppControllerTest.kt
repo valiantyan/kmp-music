@@ -1,5 +1,6 @@
 package com.yanhao.kmpmusic.feature.app
 
+import com.yanhao.kmpmusic.data.InMemoryFavoritesRepository
 import com.yanhao.kmpmusic.data.InMemoryMusicLibraryRepository
 import com.yanhao.kmpmusic.data.InMemoryPlaybackRepository
 import com.yanhao.kmpmusic.domain.model.Album
@@ -23,6 +24,7 @@ import com.yanhao.kmpmusic.domain.model.MusicFileMetadata
 import com.yanhao.kmpmusic.domain.model.SearchScope
 import com.yanhao.kmpmusic.domain.model.Song
 import com.yanhao.kmpmusic.domain.persistence.InMemoryPlaybackSnapshotStore
+import com.yanhao.kmpmusic.domain.repository.FavoritesRepository
 import com.yanhao.kmpmusic.domain.repository.LocalMusicScanner
 import com.yanhao.kmpmusic.domain.repository.MusicLibraryRepository
 import kotlinx.coroutines.CoroutineScope
@@ -429,7 +431,46 @@ class MusicAppControllerTest {
     }
 
     /**
-     * 启动时若曲库为空但存在快照，控制器应主动补发首次扫描并自动回填暂停态。
+     * 冷启动只加载首页 preview 时，也应能按快照队列 id 恢复 preview 外歌曲，且不把这次恢复扩大成全量曲库读取。
+     */
+    @Test
+    fun restorePlaybackSnapshotRestoresSavedSongOutsidePreviewWithoutFullLibraryLoad(): Unit = runTest {
+        val repository = SeededMusicLibraryRepository(seedCount = 8)
+        val snapshotStore = InMemoryPlaybackSnapshotStore()
+        snapshotStore.saveSnapshot(
+            snapshot = PlaybackSnapshot(
+                playbackState = PlaybackState(
+                    currentSongId = "seed:2",
+                    status = PlaybackStatus.Playing,
+                    positionMs = 24_000L,
+                    durationMs = 180_000L,
+                ),
+                queueState = QueueState(
+                    songIds = listOf("seed:2", "seed:1"),
+                    currentIndex = 0,
+                    playbackMode = PlaybackMode.LoopAll,
+                ),
+            ),
+        )
+        val controller = createController(
+            musicLibraryRepository = repository,
+            playbackSnapshotStore = snapshotStore,
+            controllerScope = backgroundScope,
+        )
+
+        controller.restorePlaybackSnapshot()
+
+        assertFalse(controller.uiState.homeLocalSongPreview.any { song -> song.id == "seed:2" })
+        assertEquals(expected = "seed:2", actual = controller.uiState.currentSongId)
+        assertEquals(expected = PlaybackStatus.Paused, actual = controller.uiState.playbackStatus)
+        assertEquals(expected = 24_000L, actual = controller.uiState.playbackPositionMs)
+        assertEquals(expected = listOf("seed:2", "seed:1"), actual = controller.uiState.queueSongIds)
+        assertEquals(expected = 0, actual = repository.fullLibraryReads)
+        assertEquals(expected = 1, actual = repository.songsByIdsReads)
+    }
+
+    /**
+     * 启动时若曲库暂不可用但存在快照，控制器应在后续曲库刷新后按快照恢复暂停态。
      */
     @Test
     fun restorePlaybackSnapshotRestoresAfterLibraryLoads(): Unit = runTest {
@@ -469,7 +510,7 @@ class MusicAppControllerTest {
     }
 
     /**
-     * 冷启动恢复遇到空曲库时，只要存在快照就应主动触发首次扫描，而不是等待用户手动刷新。
+     * 冷启动恢复遇到空曲库时，只记录待恢复状态，不主动触发首次扫描。
      */
     @Test
     fun restorePlaybackSnapshotDoesNotAutoScanLibraryWhenSnapshotExists(): Unit = runTest {
@@ -501,6 +542,26 @@ class MusicAppControllerTest {
 
         assertTrue(scanner.requests.isEmpty())
         assertNull(controller.uiState.currentSongId)
+    }
+
+    /**
+     * 收藏歌曲应独立于 localSongs 是否已加载，只要喜欢列表里有 id，就应能补齐 preview 外歌曲实体。
+     */
+    @Test
+    fun favoriteSongsRemainAvailableBeforeFullLibraryLoads(): Unit {
+        val repository = SeededMusicLibraryRepository(seedCount = 8)
+        val controller = createController(
+            musicLibraryRepository = repository,
+            favoritesRepository = InMemoryFavoritesRepository(
+                initialLikedSongIds = setOf("seed:2"),
+            ),
+        )
+
+        assertTrue(controller.uiState.localSongs.isEmpty())
+        assertFalse(controller.uiState.homeLocalSongPreview.any { song -> song.id == "seed:2" })
+        assertEquals(expected = listOf("seed:2"), actual = controller.uiState.favoriteSongs.map { song -> song.id })
+        assertTrue(controller.uiState.favoriteSongs.all { song -> song.isLiked })
+        assertEquals(expected = 1, actual = repository.songsByIdsReads)
     }
 
     /**
@@ -696,6 +757,7 @@ private fun createController(
     localMusicScanner: LocalMusicScanner = FakeControllerLocalMusicScanner,
     playbackRepository: InMemoryPlaybackRepository = InMemoryPlaybackRepository(),
     playbackSnapshotStore: InMemoryPlaybackSnapshotStore = InMemoryPlaybackSnapshotStore(),
+    favoritesRepository: FavoritesRepository? = null,
     permissionSettingsOpener: PermissionSettingsOpener = PermissionSettingsOpener {},
     controllerScope: CoroutineScope = testControllerScope(),
 ): MusicAppController {
@@ -704,6 +766,7 @@ private fun createController(
         localMusicScanner = localMusicScanner,
         playbackRepository = playbackRepository,
         playbackSnapshotStore = playbackSnapshotStore,
+        injectedFavoritesRepository = favoritesRepository,
         permissionSettingsOpener = permissionSettingsOpener,
         controllerScope = controllerScope,
     )
@@ -722,6 +785,7 @@ private object FakeControllerLocalMusicScanner : LocalMusicScanner {
 private class SeededMusicLibraryRepository(seedCount: Int) : com.yanhao.kmpmusic.domain.repository.MusicLibraryRepository {
     var homePreviewReads: Int = 0
     var fullLibraryReads: Int = 0
+    var songsByIdsReads: Int = 0
     private val seededSongs: List<Song> = (1..seedCount).map { index ->
         testSong(id = "seed:$index", title = "Seed $index", modifiedAt = index.toLong())
     }.sortedByDescending { song -> song.modifiedAt }
@@ -769,6 +833,15 @@ private class SeededMusicLibraryRepository(seedCount: Int) : com.yanhao.kmpmusic
         return seededSongs
     }
 
+    override fun getAvailableSongsByIds(songIds: List<String>): List<Song> {
+        songsByIdsReads += 1
+        if (songIds.isEmpty()) {
+            return emptyList()
+        }
+        val requestedIds: Set<String> = songIds.toSet()
+        return seededSongs.filter { song -> requestedIds.contains(song.id) }
+    }
+
     override fun getLibraryStats(): LibraryStats {
         return LibraryStats(songCount = seededSongs.size, albumCount = 1, artistCount = 1)
     }
@@ -806,7 +879,7 @@ private fun testSong(id: String, title: String, modifiedAt: Long): Song {
 }
 
 /**
- * 记录扫描请求，验证控制器是否在恢复链路主动补发首次扫描。
+ * 记录扫描请求，验证控制器不会在恢复链路主动补发首次扫描。
  */
 private class RecordingLocalMusicScanner : LocalMusicScanner {
     // 按调用顺序记录收到的扫描意图。

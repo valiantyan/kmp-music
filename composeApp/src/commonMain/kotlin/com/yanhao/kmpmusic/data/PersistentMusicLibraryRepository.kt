@@ -58,6 +58,17 @@ class PersistentMusicLibraryRepository(
         readAllSongs()
     }
 
+    /** 只读取指定 id 且当前仍可用的歌曲，避免为恢复播放和收藏投影拉全量曲库。 */
+    override fun getAvailableSongsByIds(songIds: List<String>): List<Song> = runBlocking {
+        if (songIds.isEmpty()) {
+            return@runBlocking emptyList()
+        }
+        mapEntities(
+            entities = localSongDao.getAvailableSongsByIds(songIds = songIds),
+            likedSongIds = favoriteSongDao.getFavoriteSongIds().toSet(),
+        )
+    }
+
     /** 返回当前可用曲库统计值。 */
     override fun getLibraryStats(): LibraryStats = runBlocking {
         readLibraryStats()

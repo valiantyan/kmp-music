@@ -28,6 +28,11 @@ interface MusicLibraryRepository {
     fun getAllAvailableSongs(): List<Song>
 
     /**
+     * 按歌曲 id 读取当前仍可用的歌曲，供冷启动恢复和收藏投影按需补齐实体。
+     */
+    fun getAvailableSongsByIds(songIds: List<String>): List<Song>
+
+    /**
      * 读取当前可用曲库统计。
      */
     fun getLibraryStats(): LibraryStats

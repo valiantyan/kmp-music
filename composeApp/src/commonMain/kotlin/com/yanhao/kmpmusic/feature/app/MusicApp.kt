@@ -405,9 +405,9 @@ private fun RootScreen(
             onAlbumOpen = controller::openAlbum,
         )
         RootTab.Favorites -> FavoritesScreen(
-            songs = state.songs,
-            albums = state.albums,
-            artists = state.artists,
+            songs = state.favoriteSongs,
+            albums = state.favoriteAlbums,
+            artists = state.favoriteArtists,
             currentSongId = state.currentSongId,
             section = state.favoriteSection,
             onSection = controller::setFavoriteSection,

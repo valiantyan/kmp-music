@@ -233,6 +233,44 @@ data class MusicAppUiState(
     }
 
     /**
+     * 收藏专辑列表，直接由收藏歌曲投影，避免依赖全量本地曲库是否已加载。
+     */
+    val favoriteAlbums: List<Album>
+        get() = favoriteSongs.groupBy { song -> song.album.trim().lowercase() }
+            .values
+            .map { albumSongs ->
+                val firstSong: Song = albumSongs.first()
+                Album(
+                    id = "album:${firstSong.album.trim().lowercase()}",
+                    title = firstSong.album,
+                    artist = firstSong.artist,
+                    songCount = albumSongs.size,
+                    coverArt = firstSong.coverArt,
+                    mood = "本地音乐",
+                    year = "本地",
+                )
+            }
+            .sortedBy { album -> album.title.lowercase() }
+
+    /**
+     * 收藏歌手列表，直接由收藏歌曲投影，避免依赖全量本地曲库是否已加载。
+     */
+    val favoriteArtists: List<Artist>
+        get() = favoriteSongs.groupBy { song -> song.artist.trim().lowercase() }
+            .values
+            .map { artistSongs ->
+                val firstSong: Song = artistSongs.first()
+                Artist(
+                    id = "artist:${firstSong.artist.trim().lowercase()}",
+                    name = firstSong.artist,
+                    songCount = artistSongs.size,
+                    coverArt = firstSong.coverArt,
+                    tag = "本地音乐",
+                )
+            }
+            .sortedBy { artist -> artist.name.lowercase() }
+
+    /**
      * 系统返回键是否应由 App 内部消费。
      */
     val canHandleSystemBack: Boolean =

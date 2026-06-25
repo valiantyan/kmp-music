@@ -214,13 +214,22 @@ class MusicAppController(
      * 按可用曲库恢复持久化播放快照，并始终以暂停态回填共享 UI。
      */
     suspend fun restorePlaybackSnapshot() {
-        if (uiState.queueSongsSnapshot.isEmpty() && uiState.localSongs.isEmpty() && uiState.homeLocalSongPreview.isEmpty()) {
-            isPlaybackRestorePending = playbackSnapshotStore.hasSavedSnapshot()
+        val savedQueueSongIds: List<String> = playbackSnapshotStore.getSavedQueueSongIds()
+        if (savedQueueSongIds.isEmpty()) {
+            isPlaybackRestorePending = false
+            return
+        }
+        val availableSongs: List<Song> = resolveAvailableSongsByIds(
+            songIds = savedQueueSongIds,
+            preferredSongs = preferredKnownSongs(),
+        )
+        if (availableSongs.isEmpty()) {
+            isPlaybackRestorePending = true
             return
         }
         isPlaybackRestorePending = false
         playbackCoordinator.restoreSnapshot(
-            availableSongs = uiState.localSongs.ifEmpty { uiState.homeLocalSongPreview },
+            availableSongs = availableSongs,
         )
     }
 
@@ -362,7 +371,10 @@ class MusicAppController(
             likedSongIds = likedSongIds,
             homeLocalSongPreview = homePreview,
             localSongs = localSongs,
-            favoriteSongs = localSongs.filter { song -> song.isLiked },
+            favoriteSongs = buildFavoriteSongs(
+                likedSongIds = likedSongIds,
+                preferredSongs = homePreview + localSongs + queueSnapshot + uiState.favoriteSongs,
+            ),
             queueSongsSnapshot = queueSnapshot,
             recentSongs = buildRecentSongs(songs = localSongs.ifEmpty { homePreview }),
         )
@@ -506,7 +518,10 @@ class MusicAppController(
             localSongs = emptyList(),
             localAlbums = emptyList(),
             localArtists = emptyList(),
-            favoriteSongs = previewWithLikes.filter { song -> song.isLiked },
+            favoriteSongs = buildFavoriteSongs(
+                likedSongIds = initialLikedSongIds,
+                preferredSongs = previewWithLikes,
+            ),
             queueSongsSnapshot = emptyList(),
             likedSongIds = initialLikedSongIds,
             currentSongId = playbackState.currentSongId,
@@ -571,9 +586,12 @@ class MusicAppController(
             scanState = snapshot.scanState,
             likedSongIds = likedSongIds + previewWithLikes.filter { song -> song.isLiked }.map { song -> song.id },
             recentSongs = buildRecentSongs(songs = fullSongsWithLikes.ifEmpty { previewWithLikes }),
-            favoriteSongs = fullSongsWithLikes.filter { song -> song.isLiked },
+            favoriteSongs = buildFavoriteSongs(
+                likedSongIds = likedSongIds,
+                preferredSongs = previewWithLikes + fullSongsWithLikes + uiState.queueSongsSnapshot + uiState.favoriteSongs,
+            ),
         )
-        restorePlaybackSnapshotIfPending(availableSongs = fullSongsWithLikes.ifEmpty { previewWithLikes })
+        restorePlaybackSnapshotIfPending()
     }
 
     // 最近播放只读取播放历史，不从扫描结果自动生成。
@@ -584,13 +602,12 @@ class MusicAppController(
     }
 
     // 只有启动期显式请求过恢复时，扫描成功后才续上真正的快照恢复，避免平时扫描打断当前播放。
-    private fun restorePlaybackSnapshotIfPending(availableSongs: List<Song>) {
-        if (!isPlaybackRestorePending || availableSongs.isEmpty()) {
+    private fun restorePlaybackSnapshotIfPending() {
+        if (!isPlaybackRestorePending) {
             return
         }
-        isPlaybackRestorePending = false
         controllerScope.launch(start = CoroutineStart.UNDISPATCHED) {
-            playbackCoordinator.restoreSnapshot(availableSongs = availableSongs)
+            restorePlaybackSnapshot()
         }
     }
 
@@ -604,9 +621,42 @@ class MusicAppController(
             localSongs = songsWithLikes,
             localAlbums = buildAlbums(songs = songsWithLikes),
             localArtists = buildArtists(songs = songsWithLikes),
-            favoriteSongs = songsWithLikes.filter { song -> song.isLiked },
+            favoriteSongs = buildFavoriteSongs(
+                likedSongIds = likedSongIds,
+                preferredSongs = uiState.homeLocalSongPreview + songsWithLikes + uiState.queueSongsSnapshot + uiState.favoriteSongs,
+            ),
             likedSongIds = likedSongIds + songsWithLikes.filter { song -> song.isLiked }.map { song -> song.id },
         )
+        restorePlaybackSnapshotIfPending()
+    }
+
+    // 收藏和冷启动恢复都需要按 id 补齐歌曲实体，优先复用当前已知对象，缺口再向仓库按需查询。
+    private fun resolveAvailableSongsByIds(songIds: List<String>, preferredSongs: List<Song>): List<Song> {
+        if (songIds.isEmpty()) {
+            return emptyList()
+        }
+        val preferredById: Map<String, Song> = preferredSongs.associateBy { song -> song.id }
+        val fetchedSongs: List<Song> = musicLibraryRepository.getAvailableSongsByIds(songIds = songIds)
+        val fetchedSongIds: Set<String> = fetchedSongs.map { song -> song.id }.toSet()
+        return (fetchedSongs.map { song -> preferredById[song.id] ?: song } +
+            preferredSongs.filter { song -> songIds.contains(song.id) && !fetchedSongIds.contains(song.id) })
+            .distinctBy { song -> song.id }
+    }
+
+    // 当前状态里已经拿到的歌曲优先参与收藏/恢复，避免重复构造不同实例。
+    private fun preferredKnownSongs(): List<Song> {
+        return (uiState.queueSongsSnapshot + uiState.localSongs + uiState.homeLocalSongPreview + uiState.favoriteSongs)
+            .distinctBy { song -> song.id }
+    }
+
+    // 收藏页的实体来源独立于 localSongs 是否已加载，保证首页 preview 拆分后语义仍然稳定。
+    private fun buildFavoriteSongs(likedSongIds: Set<String>, preferredSongs: List<Song>): List<Song> {
+        return resolveAvailableSongsByIds(
+            songIds = likedSongIds.toList(),
+            preferredSongs = preferredSongs,
+        ).map { song ->
+            song.copy(isLiked = true)
+        }
     }
 
     /** 复用持久化仓库的专辑分组规则，确保首页、二级页和统计口径一致。 */

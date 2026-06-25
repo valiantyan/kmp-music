@@ -24,6 +24,11 @@ interface PlaybackSnapshotStore {
     suspend fun hasSavedSnapshot(): Boolean
 
     /**
+     * 读取最近一次保存快照中的队列歌曲 id，供控制器按需补齐恢复所需实体。
+     */
+    suspend fun getSavedQueueSongIds(): List<String>
+
+    /**
      * 按当前可用歌曲集合恢复快照，确保冷启动不会引用失效歌曲。
      *
      * @param availableSongIds 当前仍然可用的歌曲标识集合。
@@ -53,6 +58,11 @@ class InMemoryPlaybackSnapshotStore : PlaybackSnapshotStore {
      */
     override suspend fun hasSavedSnapshot(): Boolean {
         return snapshot.playbackState.currentSongId != null || snapshot.queueState.songIds.isNotEmpty()
+    }
+
+    /** 返回最近一次保存的队列歌曲 id。 */
+    override suspend fun getSavedQueueSongIds(): List<String> {
+        return snapshot.queueState.songIds
     }
 
     /**
@@ -113,6 +123,13 @@ class RoomPlaybackSnapshotStore(
             return false
         }
         return database.playbackQueueDao().getQueueItems().isNotEmpty()
+    }
+
+    /** 从数据库读取最近一次保存的队列歌曲 id。 */
+    override suspend fun getSavedQueueSongIds(): List<String> {
+        return database.playbackQueueDao().getQueueItems().map { item: PlaybackQueueItemEntity ->
+            item.songId
+        }
     }
 
     /**

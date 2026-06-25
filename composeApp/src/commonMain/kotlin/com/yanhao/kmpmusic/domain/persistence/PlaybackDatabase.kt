@@ -194,6 +194,16 @@ interface LocalSongDao {
     )
     suspend fun getAllAvailableSongs(): List<LocalSongEntity>
 
+    /** 按指定歌曲 id 读取当前仍可用的歌曲。 */
+    @Query(
+        """
+        SELECT * FROM local_song
+        WHERE isAvailable = 1 AND id IN (:songIds)
+        ORDER BY COALESCE(modifiedAt, -1) DESC, LOWER(COALESCE(title, fileName)) ASC
+        """,
+    )
+    suspend fun getAvailableSongsByIds(songIds: List<String>): List<LocalSongEntity>
+
     /** 按来源读取可用歌曲 id，用于扫描后标记消失歌曲。 */
     @Query("SELECT id FROM local_song WHERE sourceKind = :sourceKind AND isAvailable = 1")
     suspend fun getAvailableSongIdsBySource(sourceKind: String): List<String>

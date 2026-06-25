@@ -351,6 +351,14 @@ private class FakeLocalSongDao : LocalSongDao {
         return sortedAvailable()
     }
 
+    /** 模拟按歌曲 id 读取可用歌曲，供收藏和恢复按需补齐实体。 */
+    override suspend fun getAvailableSongsByIds(songIds: List<String>): List<LocalSongEntity> {
+        val requestedIds: Set<String> = songIds.toSet()
+        return sortedAvailable().filter { entity: LocalSongEntity ->
+            requestedIds.contains(entity.id)
+        }
+    }
+
     /** 按来源读取可用歌曲 id，用于验证缺失歌曲下线逻辑。 */
     override suspend fun getAvailableSongIdsBySource(sourceKind: String): List<String> {
         return rows.values

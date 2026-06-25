@@ -32,6 +32,15 @@ class InMemoryMusicLibraryRepository(
         return snapshot.songs
     }
 
+    /** 按歌曲 id 返回当前仍可用的歌曲。 */
+    override fun getAvailableSongsByIds(songIds: List<String>): List<Song> {
+        if (songIds.isEmpty()) {
+            return emptyList()
+        }
+        val requestedIds: Set<String> = songIds.toSet()
+        return snapshot.songs.filter { song -> requestedIds.contains(song.id) }
+    }
+
     /** 返回当前曲库统计，避免调用方自行推导。 */
     override fun getLibraryStats(): LibraryStats {
         return snapshot.stats
