@@ -369,6 +369,16 @@ class MusicAppController(
         )
     }
 
+    /**
+     * Desktop 进程退出前同步固化最后进度，避免宿主关闭数据库或协程作用域时丢掉尾帧。
+     */
+    suspend fun persistPlaybackSnapshotForProcessTeardown(positionMs: Long, durationMs: Long?) {
+        playbackCoordinator.persistSnapshotForProcessTeardown(
+            positionMs = positionMs,
+            durationMs = durationMs,
+        )
+    }
+
     /** 切换收藏并同步歌曲状态。 */
     fun toggleFavorite(songId: String) {
         val likedSongIds: Set<String> = toggleFavoriteUseCase(songId = songId)

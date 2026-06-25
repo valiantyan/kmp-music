@@ -17,6 +17,7 @@ import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 
@@ -39,6 +40,12 @@ class PlaybackCoordinator(
     // 随机模式下的下标选择器，方便测试固定随机结果。
     private val randomIndex: (List<Int>) -> Int = { candidates -> candidates.random() },
 ) {
+    // 快照写入任务集合，供进程级 teardown 在关闭数据库前等待所有异步写入完成。
+    private val pendingSnapshotWritesLock: Any = Any()
+
+    // 当前仍在执行的快照写入任务，避免 Desktop 退出时和数据库 close 发生竞态。
+    private val pendingSnapshotWrites: MutableSet<Job> = linkedSetOf()
+
     // 引擎事件订阅任务。
     private var eventJob: Job? = null
 
@@ -217,6 +224,31 @@ class PlaybackCoordinator(
             ),
         )
         saveSnapshotNow()
+        onStateChanged()
+    }
+
+    /**
+     * 进程级宿主退出前等待旧写入收口，再同步写入最后一份暂停快照。
+     */
+    suspend fun persistSnapshotForProcessTeardown(positionMs: Long, durationMs: Long?) {
+        awaitPendingSnapshotWrites()
+        val currentPlaybackState: PlaybackState = playbackRepository.getPlaybackState()
+        val queueState: QueueState = playbackRepository.getQueueState()
+        if (currentPlaybackState.currentSongId == null || queueState.songIds.isEmpty()) {
+            playbackRepository.savePlaybackState(state = PlaybackState())
+            saveSnapshotNowAndAwait()
+            onStateChanged()
+            return
+        }
+        playbackRepository.savePlaybackState(
+            state = currentPlaybackState.copy(
+                currentSongId = currentPlaybackState.currentSongId ?: queueState.currentSongId,
+                status = PlaybackStatus.Paused,
+                positionMs = positionMs.coerceAtLeast(minimumValue = 0L),
+                durationMs = durationMs ?: currentPlaybackState.durationMs,
+            ),
+        )
+        saveSnapshotNowAndAwait()
         onStateChanged()
     }
 
@@ -583,7 +615,30 @@ class PlaybackCoordinator(
 
     /** 把当前运行时播放状态写成最新快照。 */
     private fun saveSnapshotNow() {
-        snapshotWriteScope.launch(start = CoroutineStart.UNDISPATCHED) {
+        launchSnapshotWrite()
+    }
+
+    /** 在退出前同步落盘最后一份快照，避免宿主提前销毁。 */
+    private suspend fun saveSnapshotNowAndAwait() {
+        launchSnapshotWrite().join()
+    }
+
+    /** 等待当前已发出的快照写入全部完成，供数据库关闭前收口。 */
+    suspend fun awaitPendingSnapshotWrites() {
+        while (true) {
+            val pendingJobs: List<Job> = synchronized(lock = pendingSnapshotWritesLock) {
+                pendingSnapshotWrites.toList()
+            }
+            if (pendingJobs.isEmpty()) {
+                return
+            }
+            pendingJobs.joinAll()
+        }
+    }
+
+    /** 启动单次快照写入并纳入 pending 集合，避免 teardown 和异步写入交错。 */
+    private fun launchSnapshotWrite(): Job {
+        val job: Job = snapshotWriteScope.launch(start = CoroutineStart.UNDISPATCHED) {
             playbackSnapshotStore.saveSnapshot(
                 snapshot = PlaybackSnapshot(
                     playbackState = playbackRepository.getPlaybackState(),
@@ -592,6 +647,15 @@ class PlaybackCoordinator(
                 ),
             )
         }
+        synchronized(lock = pendingSnapshotWritesLock) {
+            pendingSnapshotWrites += job
+        }
+        job.invokeOnCompletion {
+            synchronized(lock = pendingSnapshotWritesLock) {
+                pendingSnapshotWrites.remove(element = job)
+            }
+        }
+        return job
     }
 
     /** 成功进入播放态后清空失败计数，避免旧错误污染新一轮播放。 */

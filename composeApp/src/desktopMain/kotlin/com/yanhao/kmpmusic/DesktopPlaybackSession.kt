@@ -2,89 +2,174 @@ package com.yanhao.kmpmusic
 
 import com.yanhao.kmpmusic.data.DesktopFolderMusicScanner
 import com.yanhao.kmpmusic.data.PersistentFavoritesRepository
+import com.yanhao.kmpmusic.data.PersistentMusicLibraryRepository
 import com.yanhao.kmpmusic.data.createDesktopPlaybackDatabase
+import com.yanhao.kmpmusic.domain.persistence.PlaybackDatabase
 import com.yanhao.kmpmusic.domain.persistence.RoomPlaybackSnapshotStore
+import com.yanhao.kmpmusic.domain.playback.AudioPlayerEngine
+import com.yanhao.kmpmusic.domain.repository.LocalMusicScanner
 import com.yanhao.kmpmusic.feature.app.MusicAppController
 import com.yanhao.kmpmusic.playback.DesktopVlcjAudioPlayerEngine
 import com.yanhao.kmpmusic.playback.MacosLibVlcRuntime
 import com.yanhao.kmpmusic.playback.VlcjMediaPlayerAdapter
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 
 /**
- * Desktop 进程级播放会话，负责把 Room、真实播放器与共享控制器固定在同一进程生命周期内。
+ * 基于持久化数据库和真实桌面引擎构建共享控制器，确保 Desktop 冷启动恢复能解析本地歌曲实体。
  */
-object DesktopPlaybackSession {
-    // 脱离 Compose 重组生命周期的常驻作用域，统一承接真实播放器与快照恢复。
-    private val sessionScope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
-
-    // 进程级播放数据库，避免窗口重建导致收藏和快照状态丢失。
-    private val playbackDatabase = createDesktopPlaybackDatabase()
-
-    // Desktop 运行时解析出的 LibVLC 目录，允许打包版与开发回退共用一条创建链路。
-    private val runtimePath = MacosLibVlcRuntime.resolve()
-
-    // 真实桌面播放器引擎，统一复用到整条共享播放链路。
-    private val audioEngine = DesktopVlcjAudioPlayerEngine(
-        adapter = VlcjMediaPlayerAdapter(runtimePath = runtimePath),
-        scope = sessionScope,
-        libVlcPluginPath = runtimePath?.pluginDirectory,
-    )
-
-    // 冷启动恢复只允许请求一次，避免窗口重组时重复覆盖正在播放的运行态。
-    private var hasRequestedPlaybackRestore: Boolean = false
-
-    /**
-     * 进程级共享控制器，复用 Desktop 真实播放、Room 快照和收藏持久化。
-     */
-    val controller: MusicAppController by lazy {
-        val favoriteSongDao = playbackDatabase.favoriteSongDao()
-        val favoritesRepository = runBlocking {
-            PersistentFavoritesRepository(
+internal fun createDesktopPlaybackController(
+    playbackDatabase: PlaybackDatabase,
+    audioPlayerEngine: AudioPlayerEngine,
+    controllerScope: CoroutineScope,
+    localMusicScanner: LocalMusicScanner = DesktopFolderMusicScanner(),
+    nowMillis: () -> Long = { System.currentTimeMillis() },
+): MusicAppController {
+    val favoriteSongDao = playbackDatabase.favoriteSongDao()
+    val localSongDao = playbackDatabase.localSongDao()
+    val favoritesRepository = runBlocking {
+        PersistentFavoritesRepository(
+            favoriteSongDao = favoriteSongDao,
+            initialLikedSongIds = PersistentFavoritesRepository.loadInitialLikedSongIds(
                 favoriteSongDao = favoriteSongDao,
-                initialLikedSongIds = PersistentFavoritesRepository.loadInitialLikedSongIds(
-                    favoriteSongDao = favoriteSongDao,
-                ),
-                nowMillis = { System.currentTimeMillis() },
-            )
-        }
-        MusicAppController(
-            localMusicScanner = DesktopFolderMusicScanner(),
-            audioPlayerEngine = audioEngine,
-            playbackSnapshotStore = RoomPlaybackSnapshotStore(
-                database = playbackDatabase,
-                nowMillis = { System.currentTimeMillis() },
             ),
-            injectedFavoritesRepository = favoritesRepository,
-            controllerScope = sessionScope,
-            nowMillis = { System.currentTimeMillis() },
+            nowMillis = nowMillis,
         )
     }
+    return MusicAppController(
+        localMusicScanner = localMusicScanner,
+        audioPlayerEngine = audioPlayerEngine,
+        playbackSnapshotStore = RoomPlaybackSnapshotStore(
+            database = playbackDatabase,
+            nowMillis = nowMillis,
+        ),
+        musicLibraryRepository = PersistentMusicLibraryRepository(
+            localSongDao = localSongDao,
+            favoriteSongDao = favoriteSongDao,
+        ),
+        injectedFavoritesRepository = favoritesRepository,
+        controllerScope = controllerScope,
+        nowMillis = nowMillis,
+    )
+}
 
-    /**
-     * 只在 Desktop 进程生命周期内第一次窗口接入时请求快照恢复。
-     */
+/**
+ * Desktop 进程级播放会话运行时，统一管理恢复幂等、关闭时序和底层资源收口。
+ */
+internal class DesktopPlaybackSessionRuntime(
+    val controller: MusicAppController,
+    private val sessionScope: CoroutineScope,
+    private val releaseAudioEngineAndAwait: suspend () -> Unit,
+    private val closePlaybackDatabase: () -> Unit,
+    private val persistPlaybackSnapshotForProcessTeardown: suspend (Long, Long?) -> Unit = { positionMs, durationMs ->
+        controller.persistPlaybackSnapshotForProcessTeardown(
+            positionMs = positionMs,
+            durationMs = durationMs,
+        )
+    },
+) {
+    private val sessionJob: Job = sessionScope.coroutineContext[Job]
+        ?: error("DesktopPlaybackSessionRuntime 需要带 Job 的会话作用域")
+
+    // 冷启动恢复只允许请求一次，避免窗口重组或多次 attach 覆盖活跃播放态。
+    private var hasRequestedPlaybackRestore: Boolean = false
+
+    // close 只允许执行一次，避免重复释放数据库或原生播放器。
+    private var isClosed: Boolean = false
+
+    /** 只在 Desktop 进程生命周期内第一次窗口接入时请求快照恢复。 */
     fun ensurePlaybackSnapshotRestoreRequested() {
-        if (hasRequestedPlaybackRestore) {
-            return
+        synchronized(this) {
+            if (hasRequestedPlaybackRestore || isClosed) {
+                return
+            }
+            hasRequestedPlaybackRestore = true
         }
-        hasRequestedPlaybackRestore = true
         sessionScope.launch {
             controller.restorePlaybackSnapshot()
         }
     }
 
     /**
-     * 在应用退出前固化最后一次播放快照，并释放底层原生播放器资源。
+     * 进程关闭前按顺序释放桌面播放器、停止长生命周期协程并同步持久化最终快照。
      */
     fun close() {
-        controller.persistPlaybackSnapshotForServiceTeardown(
-            positionMs = controller.uiState.playbackPositionMs,
-            durationMs = controller.uiState.playbackDurationMs,
+        val finalPositionMs: Long = controller.uiState.playbackPositionMs
+        val finalDurationMs: Long? = controller.uiState.playbackDurationMs
+        val shouldClose: Boolean = synchronized(this) {
+            if (isClosed) {
+                false
+            } else {
+                isClosed = true
+                true
+            }
+        }
+        if (!shouldClose) {
+            return
+        }
+        runBlocking {
+            try {
+                releaseAudioEngineAndAwait()
+            } finally {
+                sessionJob.cancelAndJoin()
+            }
+            try {
+                persistPlaybackSnapshotForProcessTeardown(
+                    finalPositionMs,
+                    finalDurationMs,
+                )
+            } finally {
+                closePlaybackDatabase()
+            }
+        }
+    }
+}
+
+/**
+ * Desktop 进程级播放会话，负责把 Room、真实播放器与共享控制器固定在同一进程生命周期内。
+ */
+object DesktopPlaybackSession {
+    private val runtime: DesktopPlaybackSessionRuntime by lazy {
+        val sessionScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+        val playbackDatabase: PlaybackDatabase = createDesktopPlaybackDatabase()
+        val runtimePath = MacosLibVlcRuntime.resolve()
+        val audioEngine = DesktopVlcjAudioPlayerEngine(
+            adapter = VlcjMediaPlayerAdapter(runtimePath = runtimePath),
+            scope = sessionScope,
+            libVlcPluginPath = runtimePath?.pluginDirectory,
         )
-        audioEngine.release()
+        DesktopPlaybackSessionRuntime(
+            controller = createDesktopPlaybackController(
+                playbackDatabase = playbackDatabase,
+                audioPlayerEngine = audioEngine,
+                controllerScope = sessionScope,
+            ),
+            sessionScope = sessionScope,
+            releaseAudioEngineAndAwait = {
+                audioEngine.releaseAndAwait()
+            },
+            closePlaybackDatabase = {
+                playbackDatabase.close()
+            },
+        )
+    }
+
+    /** 进程级共享控制器，复用 Desktop 真实播放、Room 快照、歌曲与收藏持久化。 */
+    val controller: MusicAppController
+        get() = runtime.controller
+
+    /** 只在 Desktop 进程第一次接入窗口时触发冷启动恢复。 */
+    fun ensurePlaybackSnapshotRestoreRequested() {
+        runtime.ensurePlaybackSnapshotRestoreRequested()
+    }
+
+    /** 在应用退出前同步收口真实播放器、控制器协程和数据库。 */
+    fun close() {
+        runtime.close()
     }
 }

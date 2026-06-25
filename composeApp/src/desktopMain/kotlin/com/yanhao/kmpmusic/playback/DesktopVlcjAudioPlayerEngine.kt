@@ -204,6 +204,12 @@ class DesktopVlcjAudioPlayerEngine(
         commandChannel.trySend(element = EngineCommand.Release)
     }
 
+    /** 释放并等待命令循环完全收尾，供 Desktop 进程退出前安全关闭原生资源。 */
+    suspend fun releaseAndAwait() {
+        release()
+        commandLoopJob.join()
+    }
+
     /** 串行消费所有外部命令与适配器回调，避免并发改写引擎状态。 */
     private suspend fun handle(command: EngineCommand) {
         if (isReleased) {

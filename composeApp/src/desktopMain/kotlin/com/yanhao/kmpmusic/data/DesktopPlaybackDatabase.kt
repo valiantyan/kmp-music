@@ -13,7 +13,18 @@ import java.io.File
 fun createDesktopPlaybackDatabase(
     userHome: String = System.getProperty("user.home"),
 ): PlaybackDatabase {
-    val databasePath: String = defaultDesktopPlaybackDatabasePath(userHome = userHome)
+    return createDesktopPlaybackDatabaseAtPath(
+        databasePath = defaultDesktopPlaybackDatabasePath(userHome = userHome),
+    )
+}
+
+/**
+ * 为 Desktop 平台创建指定路径的播放数据库实例，供测试和进程会话复用。
+ *
+ * @param databasePath 数据库绝对路径。
+ * @return 已复用共享 Room 配置的播放数据库。
+ */
+internal fun createDesktopPlaybackDatabaseAtPath(databasePath: String): PlaybackDatabase {
     File(databasePath).parentFile.mkdirs()
     return createPlaybackDatabase(
         builder = Room.databaseBuilder<PlaybackDatabase>(
