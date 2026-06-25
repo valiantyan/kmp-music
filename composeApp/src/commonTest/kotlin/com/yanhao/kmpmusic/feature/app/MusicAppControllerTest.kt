@@ -465,8 +465,24 @@ class MusicAppControllerTest {
         assertEquals(expected = PlaybackStatus.Paused, actual = controller.uiState.playbackStatus)
         assertEquals(expected = 24_000L, actual = controller.uiState.playbackPositionMs)
         assertEquals(expected = listOf("seed:2", "seed:1"), actual = controller.uiState.queueSongIds)
+        assertEquals(expected = "seed:2", actual = controller.uiState.currentSong?.id)
+        assertEquals(expected = listOf("seed:2", "seed:1"), actual = controller.uiState.queueSongs.map { song -> song.id })
         assertEquals(expected = 0, actual = repository.fullLibraryReads)
         assertEquals(expected = 1, actual = repository.songsByIdsReads)
+    }
+
+    /**
+     * 冷启动已有持久歌曲时，首页应显示可重新扫描的完成态，但不能为了状态文案读取全量曲库。
+     */
+    @Test
+    fun coldStartWithPersistedSongsShowsDoneStateWithoutFullLibraryLoad(): Unit {
+        val repository = SeededMusicLibraryRepository(seedCount = 8)
+        val controller = createController(musicLibraryRepository = repository)
+
+        assertTrue(controller.uiState.scanState is LocalMusicScanState.Done)
+        assertEquals(expected = 0, actual = repository.fullLibraryReads)
+        assertEquals(expected = 6, actual = controller.uiState.homeLocalSongPreview.size)
+        assertTrue(controller.uiState.localSongs.isEmpty())
     }
 
     /**

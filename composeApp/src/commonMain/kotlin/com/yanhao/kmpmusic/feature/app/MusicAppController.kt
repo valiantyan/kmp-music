@@ -13,6 +13,7 @@ import com.yanhao.kmpmusic.domain.model.Album
 import com.yanhao.kmpmusic.domain.model.Artist
 import com.yanhao.kmpmusic.domain.model.LibrarySnapshot
 import com.yanhao.kmpmusic.domain.model.LibraryStats
+import com.yanhao.kmpmusic.domain.model.LocalMusicLastScanSummary
 import com.yanhao.kmpmusic.domain.model.LocalMusicScanProgress
 import com.yanhao.kmpmusic.domain.model.LocalMusicScanException
 import com.yanhao.kmpmusic.domain.model.LocalMusicScanRequest
@@ -227,6 +228,7 @@ class MusicAppController(
             isPlaybackRestorePending = true
             return
         }
+        uiState = uiState.copy(queueSongsSnapshot = availableSongs)
         isPlaybackRestorePending = false
         playbackCoordinator.restoreSnapshot(
             availableSongs = availableSongs,
@@ -513,6 +515,7 @@ class MusicAppController(
         val previewWithLikes = homePreview.map { song ->
             song.copy(isLiked = initialLikedSongIds.contains(song.id) || song.isLiked)
         }
+        val initialScanState: LocalMusicScanState = buildInitialScanState(stats = stats)
         return MusicAppUiState(
             homeLocalSongPreview = previewWithLikes,
             localSongs = emptyList(),
@@ -532,6 +535,7 @@ class MusicAppController(
             playbackError = playbackState.error,
             queueSongIds = queueState.songIds,
             libraryStats = stats,
+            scanState = initialScanState,
             recentSongs = buildRecentSongs(songs = previewWithLikes),
             themeMode = userPreferencesRepository.getThemeMode(),
         )
@@ -542,6 +546,22 @@ class MusicAppController(
         val scanState: LocalMusicScanState = uiState.scanState
         return scanState is LocalMusicScanState.Error &&
             scanState.error.type == LocalMusicScanErrorType.PermissionPermanentlyDenied
+    }
+
+    // 持久层已有歌曲时，冷启动首页应表达“已有曲库，可重新扫描”，但不为此读取全量歌曲。
+    private fun buildInitialScanState(stats: LibraryStats): LocalMusicScanState {
+        if (stats.songCount <= 0) {
+            return LocalMusicScanState.Idle
+        }
+        return LocalMusicScanState.Done(
+            summary = LocalMusicLastScanSummary(
+                addedCount = stats.songCount,
+                updatedCount = 0,
+                removedCount = 0,
+                problemCount = 0,
+                completedAt = 0L,
+            ),
+        )
     }
 
     // 同步播放仓库和 UI 状态，避免多个入口各自写状态。
