@@ -451,7 +451,7 @@ git commit -m "添加桌面播放适配器测试缝"
 - Create: `composeApp/src/desktopMain/kotlin/com/yanhao/kmpmusic/playback/DesktopVlcjAudioPlayerEngine.kt`
 - Test: `composeApp/src/desktopTest/kotlin/com/yanhao/kmpmusic/playback/DesktopVlcjAudioPlayerEngineTest.kt`
 
-- [ ] **Step 1: Write the engine race tests**
+- [x] **Step 1: Write the engine race tests**
 
 Create `composeApp/src/desktopTest/kotlin/com/yanhao/kmpmusic/playback/DesktopVlcjAudioPlayerEngineTest.kt`:
 
@@ -633,7 +633,7 @@ class DesktopVlcjAudioPlayerEngineTest {
 }
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run:
 
@@ -643,7 +643,7 @@ Run:
 
 Expected: FAIL with unresolved reference `DesktopVlcjAudioPlayerEngine`.
 
-- [ ] **Step 3: Implement the serial engine**
+- [x] **Step 3: Implement the serial engine**
 
 Create `composeApp/src/desktopMain/kotlin/com/yanhao/kmpmusic/playback/DesktopVlcjAudioPlayerEngine.kt`:
 
@@ -1012,7 +1012,7 @@ private sealed interface EngineCommand {
 }
 ```
 
-- [ ] **Step 4: Run the desktop engine tests**
+- [x] **Step 4: Run the desktop engine tests**
 
 Run:
 
@@ -1022,7 +1022,7 @@ Run:
 
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add composeApp/src/desktopMain/kotlin/com/yanhao/kmpmusic/playback/DesktopVlcjAudioPlayerEngine.kt composeApp/src/desktopTest/kotlin/com/yanhao/kmpmusic/playback/DesktopVlcjAudioPlayerEngineTest.kt
