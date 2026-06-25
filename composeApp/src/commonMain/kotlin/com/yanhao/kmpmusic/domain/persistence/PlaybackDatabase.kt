@@ -4,6 +4,7 @@ import androidx.room3.ConstructedBy
 import androidx.room3.Dao
 import androidx.room3.Database
 import androidx.room3.Entity
+import androidx.room3.Index
 import androidx.room3.Insert
 import androidx.room3.OnConflictStrategy
 import androidx.room3.PrimaryKey
@@ -55,6 +56,34 @@ data class PlaybackQueueItemEntity(
 data class FavoriteSongEntity(
     @PrimaryKey val songId: String,
     val updatedAt: Long,
+)
+
+/**
+ * 持久化本地歌曲扫描元数据，收藏状态由 favorite_song 独立保存。
+ */
+@Entity(
+    tableName = "local_song",
+    indices = [
+        Index(value = ["sourceKind", "isAvailable"]),
+        Index(value = ["isAvailable", "modifiedAt"]),
+    ],
+)
+data class LocalSongEntity(
+    @PrimaryKey val id: String,
+    val sourceId: String,
+    val sourceKind: String,
+    val localUri: String,
+    val fileName: String,
+    val title: String?,
+    val artist: String?,
+    val album: String?,
+    val durationMs: Long?,
+    val mimeType: String?,
+    val sizeBytes: Long?,
+    val modifiedAt: Long?,
+    val coverArt: String,
+    val lastScannedAt: Long,
+    val isAvailable: Boolean,
 )
 
 /**
@@ -140,15 +169,83 @@ interface FavoriteSongDao {
 }
 
 /**
- * 播放相关本地数据库，统一收纳播放快照与收藏数据。
+ * 本地歌曲读写接口。
+ */
+@Dao
+interface LocalSongDao {
+    /** 读取首页最多展示的可用歌曲。 */
+    @Query(
+        """
+        SELECT * FROM local_song
+        WHERE isAvailable = 1
+        ORDER BY COALESCE(modifiedAt, -1) DESC, LOWER(COALESCE(title, fileName)) ASC
+        LIMIT :limit
+        """,
+    )
+    suspend fun getHomePreview(limit: Int): List<LocalSongEntity>
+
+    /** 读取全部可用歌曲，供本地二级页、搜索和详情使用。 */
+    @Query(
+        """
+        SELECT * FROM local_song
+        WHERE isAvailable = 1
+        ORDER BY COALESCE(modifiedAt, -1) DESC, LOWER(COALESCE(title, fileName)) ASC
+        """,
+    )
+    suspend fun getAllAvailableSongs(): List<LocalSongEntity>
+
+    /** 按来源读取可用歌曲 id，用于扫描后标记消失歌曲。 */
+    @Query("SELECT id FROM local_song WHERE sourceKind = :sourceKind AND isAvailable = 1")
+    suspend fun getAvailableSongIdsBySource(sourceKind: String): List<String>
+
+    /** 覆盖写入扫描确认存在的歌曲元数据。 */
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertSongs(songs: List<LocalSongEntity>)
+
+    /** 标记指定来源下本次未扫描到的歌曲不可用。 */
+    @Query("UPDATE local_song SET isAvailable = 0 WHERE sourceKind = :sourceKind AND id IN (:songIds)")
+    suspend fun markUnavailable(sourceKind: String, songIds: List<String>)
+
+    /** 统计当前可用歌曲数。 */
+    @Query("SELECT COUNT(*) FROM local_song WHERE isAvailable = 1")
+    suspend fun countAvailableSongs(): Int
+
+    /** 统计当前可用专辑数。 */
+    @Query(
+        """
+        SELECT COUNT(*) FROM (
+            SELECT DISTINCT LOWER(TRIM(COALESCE(album, '未知专辑'))) AS albumKey
+            FROM local_song
+            WHERE isAvailable = 1
+        )
+        """,
+    )
+    suspend fun countAvailableAlbums(): Int
+
+    /** 统计当前可用歌手数。 */
+    @Query(
+        """
+        SELECT COUNT(*) FROM (
+            SELECT DISTINCT LOWER(TRIM(COALESCE(artist, '未知歌手'))) AS artistKey
+            FROM local_song
+            WHERE isAvailable = 1
+        )
+        """,
+    )
+    suspend fun countAvailableArtists(): Int
+}
+
+/**
+ * 播放相关本地数据库，统一收纳播放快照、收藏与本地歌曲元数据。
  */
 @Database(
     entities = [
         PlaybackSnapshotEntity::class,
         PlaybackQueueItemEntity::class,
         FavoriteSongEntity::class,
+        LocalSongEntity::class,
     ],
-    version = 1,
+    version = 2,
 )
 @ConstructedBy(PlaybackDatabaseConstructor::class)
 abstract class PlaybackDatabase : RoomDatabase() {
@@ -160,6 +257,9 @@ abstract class PlaybackDatabase : RoomDatabase() {
 
     /** 暴露收藏歌曲 DAO。 */
     abstract fun favoriteSongDao(): FavoriteSongDao
+
+    /** 暴露本地歌曲 DAO。 */
+    abstract fun localSongDao(): LocalSongDao
 }
 
 /**

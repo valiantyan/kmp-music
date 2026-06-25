@@ -5,6 +5,7 @@ import androidx.room3.Room
 import androidx.room3.RoomDatabase
 import androidx.sqlite.driver.bundled.BundledSQLiteDriver
 import com.yanhao.kmpmusic.domain.persistence.PlaybackDatabase
+import com.yanhao.kmpmusic.domain.persistence.PlaybackDatabaseMigrations
 import kotlinx.coroutines.Dispatchers
 
 /**
@@ -31,6 +32,7 @@ fun createAndroidPlaybackDatabase(context: Context): PlaybackDatabase {
 fun createPlaybackDatabase(builder: RoomDatabase.Builder<PlaybackDatabase>): PlaybackDatabase {
     return builder
         .setDriver(BundledSQLiteDriver())
+        .addMigrations(PlaybackDatabaseMigrations.MIGRATION_1_2)
         .setQueryCoroutineContext(Dispatchers.IO)
         .build()
 }
