@@ -1,15 +1,12 @@
 package com.yanhao.kmpmusic.playback
 
 import com.sun.jna.NativeLibrary
-import com.yanhao.kmpmusic.domain.model.PlaybackError
-import com.yanhao.kmpmusic.domain.model.PlaybackErrorType
 import java.io.File
 import java.net.URI
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.receiveAsFlow
 import uk.co.caprica.vlcj.binding.support.runtime.RuntimeUtil
-import uk.co.caprica.vlcj.factory.discovery.NativeDiscovery
 import uk.co.caprica.vlcj.player.base.MediaPlayer
 import uk.co.caprica.vlcj.player.base.MediaPlayerEventAdapter
 import uk.co.caprica.vlcj.player.component.CallbackMediaPlayerComponent
@@ -21,74 +18,19 @@ class VlcjMediaPlayerAdapter(
     private val runtimePath: MacosLibVlcRuntimePath?,
 ) : DesktopMediaPlayerAdapter {
     private val eventChannel: Channel<DesktopMediaPlayerEvent> = Channel(capacity = Channel.UNLIMITED)
-    private val component: CallbackMediaPlayerComponent
-    private var activeGeneration: Long = 0L
-    private var activeSongId: String? = null
-
-    override val events: Flow<DesktopMediaPlayerEvent> = eventChannel.receiveAsFlow()
-
-    init {
-        val resolvedRuntime: MacosLibVlcRuntimePath? = runtimePath
-        val libVlcArgs: Array<String> = buildList {
-            add("--no-video")
-            if (resolvedRuntime != null) {
-                add("--plugin-path=${resolvedRuntime.pluginDirectory}")
-            }
-        }.toTypedArray()
-        if (resolvedRuntime != null) {
-            NativeLibrary.addSearchPath(
-                RuntimeUtil.getLibVlcLibraryName(),
-                resolvedRuntime.libraryDirectory,
-            )
-        } else {
-            NativeDiscovery().discover()
-        }
-        component = CallbackMediaPlayerComponent(*libVlcArgs)
-        component.mediaPlayer().events().addMediaPlayerEventListener(
-            object : MediaPlayerEventAdapter() {
-                override fun playing(mediaPlayer: MediaPlayer) {
-                    eventChannel.trySend(
-                        DesktopMediaPlayerEvent.Playing(
-                            generation = activeGeneration,
-                            positionMs = currentPositionMsValue(mediaPlayer = mediaPlayer),
-                            durationMs = currentDurationMsValue(mediaPlayer = mediaPlayer),
-                        ),
-                    )
-                }
-
-                override fun paused(mediaPlayer: MediaPlayer) {
-                    eventChannel.trySend(
-                        DesktopMediaPlayerEvent.Paused(
-                            generation = activeGeneration,
-                            positionMs = currentPositionMsValue(mediaPlayer = mediaPlayer),
-                            durationMs = currentDurationMsValue(mediaPlayer = mediaPlayer),
-                        ),
-                    )
-                }
-
-                override fun finished(mediaPlayer: MediaPlayer) {
-                    eventChannel.trySend(
-                        DesktopMediaPlayerEvent.Finished(
-                            generation = activeGeneration,
-                        ),
-                    )
-                }
-
-                override fun error(mediaPlayer: MediaPlayer) {
-                    eventChannel.trySend(
-                        DesktopMediaPlayerEvent.Failed(
-                            generation = activeGeneration,
-                            error = PlaybackError(
-                                type = PlaybackErrorType.Unknown,
-                                songId = activeSongId,
-                                message = "播放失败，已尝试播放下一首。",
-                            ),
-                        ),
-                    )
-                }
-            },
+    private val component: CallbackMediaPlayerComponent? = runtimePath?.let { resolvedRuntime ->
+        NativeLibrary.addSearchPath(
+            RuntimeUtil.getLibVlcLibraryName(),
+            resolvedRuntime.libraryDirectory,
+        )
+        CallbackMediaPlayerComponent(
+            "--no-video",
+            "--plugin-path=${resolvedRuntime.pluginDirectory}",
         )
     }
+    private var currentListener: MediaPlayerEventAdapter? = null
+
+    override val events: Flow<DesktopMediaPlayerEvent> = eventChannel.receiveAsFlow()
 
     override suspend fun prepare(
         songId: String,
@@ -97,10 +39,16 @@ class VlcjMediaPlayerAdapter(
         startPositionMs: Long,
         pluginPath: String?,
     ) {
-        activeGeneration = generation
-        activeSongId = songId
+        val mediaPlayer: MediaPlayer = component?.mediaPlayer() ?: run {
+            eventChannel.trySend(
+                DesktopMediaPlayerEvent.Failed(
+                    generation = generation,
+                    error = buildEngineUnavailableError(songId = songId),
+                ),
+            )
+            return
+        }
         val media: String = mediaUri.toVlcjMediaLocation()
-        val mediaPlayer: MediaPlayer = component.mediaPlayer()
         val accepted: Boolean = mediaPlayer.media().prepare(media)
         if (!accepted) {
             eventChannel.trySend(
@@ -111,6 +59,14 @@ class VlcjMediaPlayerAdapter(
             )
             return
         }
+        val snapshot: VlcjMediaCallbackSnapshot = VlcjMediaCallbackSnapshot(
+            generation = generation,
+            songId = songId,
+        )
+        replaceMediaListener(
+            mediaPlayer = mediaPlayer,
+            snapshot = snapshot,
+        )
         if (startPositionMs > 0L) {
             mediaPlayer.controls().setTime(startPositionMs)
         }
@@ -123,18 +79,17 @@ class VlcjMediaPlayerAdapter(
     }
 
     override suspend fun play(generation: Long) {
-        activeGeneration = generation
-        component.mediaPlayer().controls().play()
+        component?.mediaPlayer()?.controls()?.play()
     }
 
     override suspend fun pause(generation: Long) {
-        activeGeneration = generation
-        component.mediaPlayer().controls().pause()
+        val mediaPlayer: MediaPlayer = component?.mediaPlayer() ?: return
+        mediaPlayer.controls().pause()
         eventChannel.trySend(
             DesktopMediaPlayerEvent.Paused(
                 generation = generation,
-                positionMs = currentPositionMs(),
-                durationMs = currentDurationMs(),
+                positionMs = currentPositionMsValue(mediaPlayer = mediaPlayer),
+                durationMs = currentDurationMsValue(mediaPlayer = mediaPlayer),
             ),
         )
     }
@@ -143,20 +98,31 @@ class VlcjMediaPlayerAdapter(
         generation: Long,
         positionMs: Long,
     ) {
-        activeGeneration = generation
-        component.mediaPlayer().controls().setTime(positionMs)
+        component?.mediaPlayer()?.controls()?.setTime(positionMs)
     }
 
     override suspend fun stop(generation: Long) {
-        activeGeneration = generation
-        component.mediaPlayer().controls().stop()
+        component?.mediaPlayer()?.controls()?.stop()
     }
 
-    override suspend fun currentPositionMs(): Long = currentPositionMsValue(mediaPlayer = component.mediaPlayer())
+    override suspend fun currentPositionMs(): Long {
+        val mediaPlayer: MediaPlayer = component?.mediaPlayer() ?: return 0L
+        return currentPositionMsValue(mediaPlayer = mediaPlayer)
+    }
 
-    override suspend fun currentDurationMs(): Long? = currentDurationMsValue(mediaPlayer = component.mediaPlayer())
+    override suspend fun currentDurationMs(): Long? {
+        val mediaPlayer: MediaPlayer = component?.mediaPlayer() ?: return null
+        return currentDurationMsValue(mediaPlayer = mediaPlayer)
+    }
 
-    override suspend fun release() = component.release()
+    override suspend fun release() {
+        val mediaPlayer: MediaPlayer = component?.mediaPlayer() ?: return
+        currentListener?.let { listener ->
+            mediaPlayer.events().removeMediaPlayerEventListener(listener)
+        }
+        currentListener = null
+        component.release()
+    }
 
     private fun currentPositionMsValue(mediaPlayer: MediaPlayer): Long {
         return mediaPlayer.status().time().coerceAtLeast(minimumValue = 0L)
@@ -173,24 +139,41 @@ class VlcjMediaPlayerAdapter(
         return this
     }
 
-    private fun String.toPlaybackError(songId: String): PlaybackError {
-        val file: File? = runCatching { File(URI(this)) }.getOrNull()
-        val type: PlaybackErrorType = when {
-            file != null && !file.exists() -> PlaybackErrorType.MissingFile
-            file != null && !file.canRead() -> PlaybackErrorType.PermissionDenied
-            else -> PlaybackErrorType.Unknown
+    private fun replaceMediaListener(
+        mediaPlayer: MediaPlayer,
+        snapshot: VlcjMediaCallbackSnapshot,
+    ) {
+        currentListener?.let { listener ->
+            mediaPlayer.events().removeMediaPlayerEventListener(listener)
         }
-        return PlaybackError(
-            type = type,
-            songId = songId,
-            message = when (type) {
-                PlaybackErrorType.MissingFile -> "文件不存在或已移动，请重新扫描本地音乐。"
-                PlaybackErrorType.PermissionDenied ->
-                    "无法访问该音乐文件，请在系统设置或文件夹授权中允许访问后重试。"
-                PlaybackErrorType.UnsupportedFormat -> "当前音频格式暂不支持，已尝试播放下一首。"
-                PlaybackErrorType.EngineUnavailable -> "播放器组件不可用，请重新安装应用或联系开发者。"
-                PlaybackErrorType.Unknown -> "播放失败，已尝试播放下一首。"
-            },
-        )
+        val listener: MediaPlayerEventAdapter = object : MediaPlayerEventAdapter() {
+            override fun playing(mediaPlayer: MediaPlayer) {
+                eventChannel.trySend(
+                    snapshot.playing(
+                        positionMs = currentPositionMsValue(mediaPlayer = mediaPlayer),
+                        durationMs = currentDurationMsValue(mediaPlayer = mediaPlayer),
+                    ),
+                )
+            }
+
+            override fun paused(mediaPlayer: MediaPlayer) {
+                eventChannel.trySend(
+                    snapshot.paused(
+                        positionMs = currentPositionMsValue(mediaPlayer = mediaPlayer),
+                        durationMs = currentDurationMsValue(mediaPlayer = mediaPlayer),
+                    ),
+                )
+            }
+
+            override fun finished(mediaPlayer: MediaPlayer) {
+                eventChannel.trySend(snapshot.finished())
+            }
+
+            override fun error(mediaPlayer: MediaPlayer) {
+                eventChannel.trySend(snapshot.failed())
+            }
+        }
+        currentListener = listener
+        mediaPlayer.events().addMediaPlayerEventListener(listener)
     }
 }
