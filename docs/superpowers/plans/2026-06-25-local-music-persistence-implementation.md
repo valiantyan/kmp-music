@@ -38,13 +38,25 @@
 
 - [ ] **Step 1: Add the `local_song` entity and DAO**
 
+Add this import:
+
+```kotlin
+import androidx.room3.Index
+```
+
 Insert this entity after `FavoriteSongEntity`:
 
 ```kotlin
 /**
  * 持久化本地歌曲扫描元数据，收藏状态由 favorite_song 独立保存。
  */
-@Entity(tableName = "local_song")
+@Entity(
+    tableName = "local_song",
+    indices = [
+        Index(value = ["sourceKind", "isAvailable"]),
+        Index(value = ["isAvailable", "modifiedAt"]),
+    ],
+)
 data class LocalSongEntity(
     @PrimaryKey val id: String,
     val sourceId: String,
@@ -77,7 +89,7 @@ interface LocalSongDao {
         """
         SELECT * FROM local_song
         WHERE isAvailable = 1
-        ORDER BY COALESCE(modifiedAt, -9223372036854775808) DESC, LOWER(COALESCE(title, fileName)) ASC
+        ORDER BY COALESCE(modifiedAt, -1) DESC, LOWER(COALESCE(title, fileName)) ASC
         LIMIT :limit
         """,
     )
@@ -88,7 +100,7 @@ interface LocalSongDao {
         """
         SELECT * FROM local_song
         WHERE isAvailable = 1
-        ORDER BY COALESCE(modifiedAt, -9223372036854775808) DESC, LOWER(COALESCE(title, fileName)) ASC
+        ORDER BY COALESCE(modifiedAt, -1) DESC, LOWER(COALESCE(title, fileName)) ASC
         """,
     )
     suspend fun getAllAvailableSongs(): List<LocalSongEntity>
@@ -905,6 +917,39 @@ fun queueSongsSurviveAfterPlaybackContextIsNoLongerInSongs(): Unit = runTest {
 }
 ```
 
+Update the `createController` helper to accept a repository:
+
+```kotlin
+private fun createController(
+    musicLibraryRepository: MusicLibraryRepository = InMemoryMusicLibraryRepository(),
+    localMusicScanner: LocalMusicScanner = FakeControllerLocalMusicScanner,
+    playbackRepository: InMemoryPlaybackRepository = InMemoryPlaybackRepository(),
+    playbackSnapshotStore: InMemoryPlaybackSnapshotStore = InMemoryPlaybackSnapshotStore(),
+    permissionSettingsOpener: PermissionSettingsOpener = PermissionSettingsOpener {},
+    controllerScope: CoroutineScope = testControllerScope(),
+): MusicAppController {
+    return MusicAppController(
+        musicLibraryRepository = musicLibraryRepository,
+        localMusicScanner = localMusicScanner,
+        playbackRepository = playbackRepository,
+        playbackSnapshotStore = playbackSnapshotStore,
+        permissionSettingsOpener = permissionSettingsOpener,
+        controllerScope = controllerScope,
+    )
+}
+```
+
+Add imports:
+
+```kotlin
+import com.yanhao.kmpmusic.data.InMemoryMusicLibraryRepository
+import com.yanhao.kmpmusic.domain.model.Album
+import com.yanhao.kmpmusic.domain.model.Artist
+import com.yanhao.kmpmusic.domain.model.LibrarySnapshot
+import com.yanhao.kmpmusic.domain.model.LibraryStats
+import com.yanhao.kmpmusic.domain.repository.MusicLibraryRepository
+```
+
 Add a `SeededMusicLibraryRepository` helper near other test fakes:
 
 ```kotlin
@@ -1112,6 +1157,61 @@ fun openLocalMusic(section: LocalMusicSection = LocalMusicSection.Songs) {
 
 Add private `buildAlbums` and `buildArtists` to controller using the same aggregation code from `PersistentMusicLibraryRepository`.
 
+Update `syncLibrarySnapshot` so scan success refreshes the home preview and, when the full local library is already loaded, refreshes it too:
+
+```kotlin
+private fun syncLibrarySnapshot(snapshot: LibrarySnapshot) {
+    val likedSongIds: Set<String> = favoritesRepository.getLikedSongIds()
+    val previewWithLikes: List<Song> = musicLibraryRepository.getHomePreview(limit = 6).map { song ->
+        song.copy(isLiked = likedSongIds.contains(song.id) || song.isLiked)
+    }
+    val shouldRefreshFullLibrary: Boolean = uiState.localSongs.isNotEmpty() ||
+        uiState.navigationState.secondaryScreen is SecondaryScreen.LocalMusic
+    val fullSongsWithLikes: List<Song> = if (shouldRefreshFullLibrary) {
+        musicLibraryRepository.getAllAvailableSongs().map { song ->
+            song.copy(isLiked = likedSongIds.contains(song.id) || song.isLiked)
+        }
+    } else {
+        uiState.localSongs
+    }
+    uiState = uiState.copy(
+        homeLocalSongPreview = previewWithLikes,
+        localSongs = fullSongsWithLikes,
+        localAlbums = if (shouldRefreshFullLibrary) buildAlbums(songs = fullSongsWithLikes) else uiState.localAlbums,
+        localArtists = if (shouldRefreshFullLibrary) buildArtists(songs = fullSongsWithLikes) else uiState.localArtists,
+        libraryStats = musicLibraryRepository.getLibraryStats(),
+        localMusicSources = snapshot.sources,
+        localMusicProblems = snapshot.problems,
+        scanState = snapshot.scanState,
+        likedSongIds = likedSongIds + previewWithLikes.filter { song -> song.isLiked }.map { song -> song.id },
+        recentSongs = buildRecentSongs(songs = fullSongsWithLikes.ifEmpty { previewWithLikes }),
+        favoriteSongs = fullSongsWithLikes.filter { song -> song.isLiked },
+    )
+    restorePlaybackSnapshotIfPending(availableSongs = fullSongsWithLikes.ifEmpty { previewWithLikes })
+}
+```
+
+Update `toggleFavorite` to update every loaded song list and the queue snapshot:
+
+```kotlin
+fun toggleFavorite(songId: String) {
+    val likedSongIds: Set<String> = toggleFavoriteUseCase(songId = songId)
+    fun Song.withFavorite(): Song = copy(isLiked = likedSongIds.contains(id))
+    val homePreview = uiState.homeLocalSongPreview.map { song -> song.withFavorite() }
+    val localSongs = uiState.localSongs.map { song -> song.withFavorite() }
+    val queueSnapshot = uiState.queueSongsSnapshot.map { song -> song.withFavorite() }
+    uiState = uiState.copy(
+        likedSongIds = likedSongIds,
+        homeLocalSongPreview = homePreview,
+        localSongs = localSongs,
+        favoriteSongs = localSongs.filter { song -> song.isLiked },
+        queueSongsSnapshot = queueSnapshot,
+        recentSongs = buildRecentSongs(songs = localSongs.ifEmpty { homePreview }),
+    )
+    publishPlaybackUiState()
+}
+```
+
 - [ ] **Step 5: Preserve queue snapshot when playing**
 
 In `playSong`, after resolving queue songs and before launching playback:
@@ -1172,12 +1272,31 @@ git commit -m "拆分首页预览与本地曲库状态"
 
 - [ ] **Step 1: Update search use case to use full available songs**
 
-In `SearchMusicUseCaseImpl.invoke`, replace repository reads with:
+Replace `SearchMusicUseCaseImpl.invoke` with:
 
 ```kotlin
-val allSongs: List<Song> = musicLibraryRepository.getAllAvailableSongs()
-val albums: List<Album> = buildAlbums(songs = allSongs)
-val artists: List<Artist> = buildArtists(songs = allSongs)
+override operator fun invoke(query: String, scope: SearchScope): SearchResult {
+    val normalizedQuery: String = query.trim().lowercase()
+    val allSongs: List<Song> = musicLibraryRepository.getAllAvailableSongs()
+    val allAlbums: List<Album> = buildAlbums(songs = allSongs)
+    val allArtists: List<Artist> = buildArtists(songs = allSongs)
+    val songs: List<Song> = if (scope == SearchScope.All || scope == SearchScope.Songs) {
+        allSongs.filter { song -> matchesSong(song = song, normalizedQuery = normalizedQuery) }
+    } else {
+        emptyList()
+    }
+    val albums: List<Album> = if (scope == SearchScope.All || scope == SearchScope.Albums) {
+        allAlbums.filter { album -> matchesAlbum(album = album, normalizedQuery = normalizedQuery) }
+    } else {
+        emptyList()
+    }
+    val artists: List<Artist> = if (scope == SearchScope.All || scope == SearchScope.Artists) {
+        allArtists.filter { artist -> matchesArtist(artist = artist, normalizedQuery = normalizedQuery) }
+    } else {
+        emptyList()
+    }
+    return SearchResult(songs = songs, albums = albums, artists = artists)
+}
 ```
 
 Add private aggregation methods copied from controller:
