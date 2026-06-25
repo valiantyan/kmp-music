@@ -161,9 +161,12 @@ private fun SecondaryScreen.routeName(): String {
  * 全局 UI 状态。
  */
 data class MusicAppUiState(
-    val songs: List<Song>,
-    val albums: List<Album>,
-    val artists: List<Artist>,
+    val homeLocalSongPreview: List<Song> = emptyList(),
+    val localSongs: List<Song> = emptyList(),
+    val localAlbums: List<Album> = emptyList(),
+    val localArtists: List<Artist> = emptyList(),
+    val favoriteSongs: List<Song> = emptyList(),
+    val queueSongsSnapshot: List<Song> = emptyList(),
     val likedSongIds: Set<String>,
     val currentSongId: String?,
     val playbackStatus: PlaybackStatus,
@@ -176,7 +179,6 @@ data class MusicAppUiState(
     val localMusicSources: List<LocalMusicSourceSummary> = emptyList(),
     val localMusicProblems: List<LocalMusicProblem> = emptyList(),
     val recentSongs: List<Song> = emptyList(),
-    val localSongPreview: List<Song> = emptyList(),
     val scanState: LocalMusicScanState = LocalMusicScanState.Idle,
     val navigationState: NavigationState = NavigationState(),
     val favoriteSection: FavoriteSection = FavoriteSection.Songs,
@@ -192,6 +194,18 @@ data class MusicAppUiState(
     val email: String = "",
     val isMailSent: Boolean = false,
 ) {
+    val songs: List<Song>
+        get() = localSongs.ifEmpty { homeLocalSongPreview }
+
+    val albums: List<Album>
+        get() = localAlbums
+
+    val artists: List<Artist>
+        get() = localArtists
+
+    val localSongPreview: List<Song>
+        get() = homeLocalSongPreview
+
     /**
      * 兼容现有 UI 对播放开关的布尔读取，直到页面逐步迁移到显式播放状态。
      */
@@ -202,14 +216,20 @@ data class MusicAppUiState(
      * 当前播放歌曲，没有真实播放时不显示迷你播放器。
      */
     val currentSong: Song? = currentSongId?.let { songId ->
-        songs.firstOrNull { song -> song.id == songId }
+        queueSongsSnapshot.firstOrNull { song -> song.id == songId }
+            ?: localSongs.firstOrNull { song -> song.id == songId }
+            ?: homeLocalSongPreview.firstOrNull { song -> song.id == songId }
+            ?: favoriteSongs.firstOrNull { song -> song.id == songId }
     }
 
     /**
      * 当前播放队列歌曲。
      */
     val queueSongs: List<Song> = queueSongIds.mapNotNull { songId ->
-        songs.firstOrNull { song -> song.id == songId }
+        queueSongsSnapshot.firstOrNull { song -> song.id == songId }
+            ?: localSongs.firstOrNull { song -> song.id == songId }
+            ?: homeLocalSongPreview.firstOrNull { song -> song.id == songId }
+            ?: favoriteSongs.firstOrNull { song -> song.id == songId }
     }
 
     /**

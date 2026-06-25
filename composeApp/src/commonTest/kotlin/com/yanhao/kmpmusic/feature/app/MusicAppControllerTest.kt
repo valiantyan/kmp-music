@@ -1,11 +1,16 @@
 package com.yanhao.kmpmusic.feature.app
 
+import com.yanhao.kmpmusic.data.InMemoryMusicLibraryRepository
 import com.yanhao.kmpmusic.data.InMemoryPlaybackRepository
+import com.yanhao.kmpmusic.domain.model.Album
+import com.yanhao.kmpmusic.domain.model.Artist
 import com.yanhao.kmpmusic.domain.model.PlaybackSnapshot
 import com.yanhao.kmpmusic.domain.model.PlaybackState
 import com.yanhao.kmpmusic.domain.model.PlaybackStatus
 import com.yanhao.kmpmusic.domain.model.QueueState
 import com.yanhao.kmpmusic.domain.model.CoverArt
+import com.yanhao.kmpmusic.domain.model.LibrarySnapshot
+import com.yanhao.kmpmusic.domain.model.LibraryStats
 import com.yanhao.kmpmusic.domain.model.PlaybackMode
 import com.yanhao.kmpmusic.domain.model.LocalMusicScanError
 import com.yanhao.kmpmusic.domain.model.LocalMusicScanErrorType
@@ -19,6 +24,7 @@ import com.yanhao.kmpmusic.domain.model.SearchScope
 import com.yanhao.kmpmusic.domain.model.Song
 import com.yanhao.kmpmusic.domain.persistence.InMemoryPlaybackSnapshotStore
 import com.yanhao.kmpmusic.domain.repository.LocalMusicScanner
+import com.yanhao.kmpmusic.domain.repository.MusicLibraryRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -38,6 +44,39 @@ import kotlin.test.assertTrue
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class MusicAppControllerTest {
+    @Test
+    fun coldStartUsesHomePreviewWithoutFullLocalSongs(): Unit {
+        val repository = SeededMusicLibraryRepository(seedCount = 8)
+        val controller = createController(musicLibraryRepository = repository)
+
+        assertEquals(expected = 1, actual = repository.homePreviewReads)
+        assertEquals(expected = 0, actual = repository.fullLibraryReads)
+        assertEquals(expected = 6, actual = controller.uiState.homeLocalSongPreview.size)
+        assertTrue(controller.uiState.localSongs.isEmpty())
+    }
+
+    @Test
+    fun localMusicPageLoadsFullSongsOnDemand(): Unit {
+        val repository = SeededMusicLibraryRepository(seedCount = 8)
+        val controller = createController(musicLibraryRepository = repository)
+
+        controller.openLocalMusic(section = LocalMusicSection.Songs)
+
+        assertEquals(expected = 1, actual = repository.fullLibraryReads)
+        assertEquals(expected = 8, actual = controller.uiState.localSongs.size)
+    }
+
+    @Test
+    fun queueSongsSurviveAfterPlaybackContextIsNoLongerInSongs(): Unit = runTest {
+        val controller = createController(controllerScope = backgroundScope)
+        controller.scanLocalMusic(request = LocalMusicScanRequest.Refresh)
+        val queueSongs = controller.uiState.localSongs.take(4).ifEmpty { controller.uiState.homeLocalSongPreview.take(4) }
+
+        controller.playSong(song = queueSongs[0], queueSongs = queueSongs)
+
+        assertEquals(expected = queueSongs.map { song -> song.id }, actual = controller.uiState.queueSongs.map { song -> song.id })
+    }
+
     /**
      * App 启动后不能把 seed 曲库或扫描结果预填成真实播放状态。
      */
@@ -48,8 +87,8 @@ class MusicAppControllerTest {
         assertNull(controller.uiState.currentSong)
         assertFalse(controller.uiState.isPlaying)
         assertTrue(controller.uiState.queueSongIds.isEmpty())
-        assertTrue(controller.uiState.songs.isEmpty())
-        assertTrue(controller.uiState.localSongPreview.isEmpty())
+        assertTrue(controller.uiState.localSongs.isEmpty())
+        assertTrue(controller.uiState.homeLocalSongPreview.isEmpty())
         assertTrue(controller.uiState.recentSongs.isEmpty())
     }
 
@@ -90,8 +129,8 @@ class MusicAppControllerTest {
     fun scanDoesNotPopulateRecentPlayback(): Unit = runBlocking {
         val controller = createController()
         controller.scanLocalMusic(request = LocalMusicScanRequest.Refresh)
-        assertEquals(expected = 8, actual = controller.uiState.songs.size)
-        assertEquals(expected = 6, actual = controller.uiState.localSongPreview.size)
+        assertTrue(controller.uiState.localSongs.isEmpty())
+        assertEquals(expected = 6, actual = controller.uiState.homeLocalSongPreview.size)
         assertEquals(expected = 8, actual = controller.uiState.libraryStats.songCount)
         assertTrue(controller.uiState.localMusicSources.isNotEmpty())
         assertTrue(controller.uiState.recentSongs.isEmpty())
@@ -112,8 +151,8 @@ class MusicAppControllerTest {
             expected = LocalMusicScanErrorType.PermissionDenied,
             actual = (scanState as LocalMusicScanState.Error).error.type,
         )
-        assertTrue(controller.uiState.songs.isEmpty())
-        assertTrue(controller.uiState.localSongPreview.isEmpty())
+        assertTrue(controller.uiState.localSongs.isEmpty())
+        assertTrue(controller.uiState.homeLocalSongPreview.isEmpty())
     }
 
     /**
@@ -131,8 +170,8 @@ class MusicAppControllerTest {
             expected = LocalMusicScanErrorType.PermissionPermanentlyDenied,
             actual = (scanState as LocalMusicScanState.Error).error.type,
         )
-        assertTrue(controller.uiState.songs.isEmpty())
-        assertTrue(controller.uiState.localSongPreview.isEmpty())
+        assertTrue(controller.uiState.localSongs.isEmpty())
+        assertTrue(controller.uiState.homeLocalSongPreview.isEmpty())
     }
 
     /**
@@ -182,9 +221,9 @@ class MusicAppControllerTest {
             localMusicScanner = SingleAndroidSongScanner(),
         )
         controller.scanLocalMusic(request = LocalMusicScanRequest.Refresh)
-        assertEquals(expected = listOf("设备里的歌"), actual = controller.uiState.songs.map { song -> song.title })
-        assertTrue(controller.uiState.songs.all { song -> song.localUri.startsWith(prefix = "content://") })
-        assertTrue(controller.uiState.songs.none { song -> song.sourceKind == LocalMusicSourceKind.FakeScanner })
+        assertEquals(expected = listOf("设备里的歌"), actual = controller.uiState.homeLocalSongPreview.map { song -> song.title })
+        assertTrue(controller.uiState.homeLocalSongPreview.all { song -> song.localUri.startsWith(prefix = "content://") })
+        assertTrue(controller.uiState.homeLocalSongPreview.none { song -> song.sourceKind == LocalMusicSourceKind.FakeScanner })
     }
 
     /**
@@ -194,7 +233,7 @@ class MusicAppControllerTest {
     fun playSongAddsRecentPlayback(): Unit = runBlocking {
         val controller = createController()
         controller.scanLocalMusic(request = LocalMusicScanRequest.Refresh)
-        val targetSong: Song = controller.uiState.songs.first()
+        val targetSong: Song = controller.uiState.homeLocalSongPreview.first()
         controller.playSong(song = targetSong)
         assertEquals(
             expected = listOf(targetSong.id),
@@ -224,7 +263,7 @@ class MusicAppControllerTest {
     fun playSongUpdatesPlaybackAndQueue(): Unit = runBlocking {
         val controller = createController()
         controller.scanLocalMusic(request = LocalMusicScanRequest.Refresh)
-        val targetSong: Song = controller.uiState.songs.first { song ->
+        val targetSong: Song = controller.uiState.homeLocalSongPreview.first { song ->
             song.title == "The Best of Me"
         }
         controller.playSong(song = targetSong)
@@ -240,7 +279,7 @@ class MusicAppControllerTest {
     fun playSongUsesProvidedQueueSongs(): Unit = runTest {
         val controller = createController(controllerScope = backgroundScope)
         controller.scanLocalMusic(request = LocalMusicScanRequest.Refresh)
-        val queueSongs = controller.uiState.songs
+        val queueSongs = controller.uiState.homeLocalSongPreview
         val targetSong = queueSongs[3]
 
         controller.playSong(song = targetSong, queueSongs = queueSongs)
@@ -256,7 +295,7 @@ class MusicAppControllerTest {
     fun playSongWithoutProvidedQueueKeepsCurrentQueueWhenSongExists(): Unit = runTest {
         val controller: MusicAppController = createController(controllerScope = backgroundScope)
         controller.scanLocalMusic(request = LocalMusicScanRequest.Refresh)
-        val queueSongs: List<Song> = controller.uiState.songs.take(n = 4)
+        val queueSongs: List<Song> = controller.uiState.homeLocalSongPreview.take(n = 4)
         controller.playSong(song = queueSongs[0], queueSongs = queueSongs)
         controller.playSong(song = queueSongs[2])
         assertEquals(expected = queueSongs.map { song -> song.id }, actual = controller.uiState.queueSongIds)
@@ -285,8 +324,9 @@ class MusicAppControllerTest {
         val playbackRepository = InMemoryPlaybackRepository()
         val controller = createController(playbackRepository = playbackRepository)
         controller.scanLocalMusic(request = LocalMusicScanRequest.Refresh)
-        val firstSong: Song = controller.uiState.songs.first { song -> song.title == "海边的梦" }
-        val secondSong: Song = controller.uiState.songs.first { song -> song.title == "The Best of Me" }
+        val availableSongs: List<Song> = controller.uiState.homeLocalSongPreview
+        val firstSong: Song = availableSongs.first { song -> song.title == "海边的梦" }
+        val secondSong: Song = availableSongs.first { song -> song.title == "The Best of Me" }
         controller.playSong(song = firstSong)
         controller.playSong(song = secondSong)
         controller.playSong(song = firstSong)
@@ -315,7 +355,7 @@ class MusicAppControllerTest {
     fun moveTrackChangesCurrentSong(): Unit = runBlocking {
         val controller = createController()
         controller.scanLocalMusic(request = LocalMusicScanRequest.Refresh)
-        val queueSongs: List<Song> = controller.uiState.songs.take(n = 2)
+        val queueSongs: List<Song> = controller.uiState.homeLocalSongPreview.take(n = 2)
         controller.playSong(song = queueSongs[0], queueSongs = queueSongs)
         val originalSongId: String? = controller.uiState.currentSongId
         controller.moveTrack(direction = 1)
@@ -330,7 +370,7 @@ class MusicAppControllerTest {
     fun removeCurrentSongKeepsEngineQueueInSync(): Unit = runTest {
         val controller = createController(controllerScope = backgroundScope)
         controller.scanLocalMusic(request = LocalMusicScanRequest.Refresh)
-        val queueSongs: List<Song> = controller.uiState.songs.take(n = 3)
+        val queueSongs: List<Song> = controller.uiState.homeLocalSongPreview.take(n = 3)
 
         controller.playSong(song = queueSongs[1], queueSongs = queueSongs)
         controller.removeFromQueue(songId = queueSongs[1].id)
@@ -356,7 +396,7 @@ class MusicAppControllerTest {
             controllerScope = backgroundScope,
         )
         controller.scanLocalMusic(request = LocalMusicScanRequest.Refresh)
-        val queueSongs: List<Song> = controller.uiState.songs.take(n = 3)
+        val queueSongs: List<Song> = controller.uiState.homeLocalSongPreview.take(n = 3)
         val restoredSong: Song = queueSongs[1]
         snapshotStore.saveSnapshot(
             snapshot = PlaybackSnapshot(
@@ -392,7 +432,7 @@ class MusicAppControllerTest {
      * 启动时若曲库为空但存在快照，控制器应主动补发首次扫描并自动回填暂停态。
      */
     @Test
-    fun restorePlaybackSnapshotHydratesLibraryBeforeRestoring(): Unit = runTest {
+    fun restorePlaybackSnapshotRestoresAfterLibraryLoads(): Unit = runTest {
         val snapshotStore = InMemoryPlaybackSnapshotStore()
         val controller = createController(
             playbackSnapshotStore = snapshotStore,
@@ -415,6 +455,8 @@ class MusicAppControllerTest {
         )
 
         controller.restorePlaybackSnapshot()
+        assertNull(controller.uiState.currentSongId)
+        controller.scanLocalMusic(request = LocalMusicScanRequest.Refresh)
         advanceUntilIdle()
 
         assertEquals(expected = "fakeScanner:004", actual = controller.uiState.currentSongId)
@@ -430,7 +472,7 @@ class MusicAppControllerTest {
      * 冷启动恢复遇到空曲库时，只要存在快照就应主动触发首次扫描，而不是等待用户手动刷新。
      */
     @Test
-    fun restorePlaybackSnapshotAutoScansLibraryWhenSnapshotExists(): Unit = runTest {
+    fun restorePlaybackSnapshotDoesNotAutoScanLibraryWhenSnapshotExists(): Unit = runTest {
         val snapshotStore = InMemoryPlaybackSnapshotStore()
         val scanner = RecordingLocalMusicScanner()
         val controller = createController(
@@ -457,13 +499,8 @@ class MusicAppControllerTest {
         controller.restorePlaybackSnapshot()
         advanceUntilIdle()
 
-        assertEquals(
-            expected = listOf<LocalMusicScanRequest>(LocalMusicScanRequest.InitialScan),
-            actual = scanner.requests,
-        )
-        assertEquals(expected = "fakeScanner:004", actual = controller.uiState.currentSongId)
-        assertEquals(expected = PlaybackStatus.Paused, actual = controller.uiState.playbackStatus)
-        assertEquals(expected = 24_000L, actual = controller.uiState.playbackPositionMs)
+        assertTrue(scanner.requests.isEmpty())
+        assertNull(controller.uiState.currentSongId)
     }
 
     /**
@@ -473,10 +510,10 @@ class MusicAppControllerTest {
     fun toggleFavoriteSyncsSongList(): Unit = runBlocking {
         val controller = createController()
         controller.scanLocalMusic(request = LocalMusicScanRequest.Refresh)
-        val targetSong: Song = controller.uiState.songs.first { song -> song.title == "Summer Waltz" }
+        val targetSong: Song = controller.uiState.homeLocalSongPreview.first { song -> song.title == "Summer Waltz" }
         controller.toggleFavorite(songId = targetSong.id)
         assertTrue(controller.uiState.likedSongIds.contains(targetSong.id))
-        assertTrue(controller.uiState.songs.first { song -> song.id == targetSong.id }.isLiked)
+        assertTrue(controller.uiState.homeLocalSongPreview.first { song -> song.id == targetSong.id }.isLiked)
     }
 
     /**
@@ -486,7 +523,7 @@ class MusicAppControllerTest {
     fun toggleCurrentSongFavoriteUsesSharedControllerEntry(): Unit = runBlocking {
         val controller = createController()
         controller.scanLocalMusic(request = LocalMusicScanRequest.Refresh)
-        val targetSong: Song = controller.uiState.songs.first { song -> song.title == "Summer Waltz" }
+        val targetSong: Song = controller.uiState.homeLocalSongPreview.first { song -> song.title == "Summer Waltz" }
         controller.playSong(song = targetSong)
         controller.toggleCurrentSongFavorite()
         assertTrue(controller.uiState.likedSongIds.contains(element = targetSong.id))
@@ -531,14 +568,8 @@ class MusicAppControllerTest {
         val controller = createController()
         controller.scanLocalMusic(request = LocalMusicScanRequest.Refresh)
         assertEquals(expected = 8, actual = controller.uiState.libraryStats.songCount)
-        assertEquals(
-            expected = controller.uiState.albums.size,
-            actual = controller.uiState.libraryStats.albumCount,
-        )
-        assertEquals(
-            expected = controller.uiState.artists.size,
-            actual = controller.uiState.libraryStats.artistCount,
-        )
+        assertEquals(expected = 4, actual = controller.uiState.libraryStats.albumCount)
+        assertEquals(expected = 4, actual = controller.uiState.libraryStats.artistCount)
     }
 
     /**
@@ -661,6 +692,7 @@ class MusicAppControllerTest {
 }
 
 private fun createController(
+    musicLibraryRepository: MusicLibraryRepository = InMemoryMusicLibraryRepository(),
     localMusicScanner: LocalMusicScanner = FakeControllerLocalMusicScanner,
     playbackRepository: InMemoryPlaybackRepository = InMemoryPlaybackRepository(),
     playbackSnapshotStore: InMemoryPlaybackSnapshotStore = InMemoryPlaybackSnapshotStore(),
@@ -668,6 +700,7 @@ private fun createController(
     controllerScope: CoroutineScope = testControllerScope(),
 ): MusicAppController {
     return MusicAppController(
+        musicLibraryRepository = musicLibraryRepository,
         localMusicScanner = localMusicScanner,
         playbackRepository = playbackRepository,
         playbackSnapshotStore = playbackSnapshotStore,
@@ -684,6 +717,92 @@ private object FakeControllerLocalMusicScanner : LocalMusicScanner {
     override suspend fun scan(request: LocalMusicScanRequest): LocalMusicScanResult {
         return com.yanhao.kmpmusic.data.FakeLocalMusicScanner().scan(request = request)
     }
+}
+
+private class SeededMusicLibraryRepository(seedCount: Int) : com.yanhao.kmpmusic.domain.repository.MusicLibraryRepository {
+    var homePreviewReads: Int = 0
+    var fullLibraryReads: Int = 0
+    private val seededSongs: List<Song> = (1..seedCount).map { index ->
+        testSong(id = "seed:$index", title = "Seed $index", modifiedAt = index.toLong())
+    }.sortedByDescending { song -> song.modifiedAt }
+
+    override fun getSnapshot(): LibrarySnapshot {
+        val albums = listOf(
+            Album(
+                id = "album:album",
+                title = "Album",
+                artist = "Artist",
+                songCount = seededSongs.size,
+                coverArt = CoverArt.HeroLocalMusic,
+                mood = "本地音乐",
+                year = "本地",
+            ),
+        )
+        val artists = listOf(
+            Artist(
+                id = "artist:artist",
+                name = "Artist",
+                songCount = seededSongs.size,
+                coverArt = CoverArt.HeroLocalMusic,
+                tag = "本地音乐",
+            ),
+        )
+        return LibrarySnapshot(
+            songs = seededSongs,
+            albums = albums,
+            artists = artists,
+            stats = getLibraryStats(),
+            sources = emptyList(),
+            scanState = LocalMusicScanState.Idle,
+            lastScanSummary = null,
+            problems = emptyList(),
+        )
+    }
+
+    override fun getHomePreview(limit: Int): List<Song> {
+        homePreviewReads += 1
+        return seededSongs.take(limit)
+    }
+
+    override fun getAllAvailableSongs(): List<Song> {
+        fullLibraryReads += 1
+        return seededSongs
+    }
+
+    override fun getLibraryStats(): LibraryStats {
+        return LibraryStats(songCount = seededSongs.size, albumCount = 1, artistCount = 1)
+    }
+
+    override fun applyScanResult(
+        request: LocalMusicScanRequest,
+        scanResult: LocalMusicScanResult,
+        likedSongIds: Set<String>,
+    ): LibrarySnapshot {
+        return getSnapshot()
+    }
+}
+
+private fun testSong(id: String, title: String, modifiedAt: Long): Song {
+    return Song(
+        id = id,
+        title = title,
+        artist = "Artist",
+        album = "Album",
+        duration = "3:00",
+        coverArt = CoverArt.HeroLocalMusic,
+        isLiked = false,
+        lastPlayed = "未播放",
+        quality = "本地 MP3",
+        lyric = "本地音频",
+        trackNumber = 1,
+        durationMs = 180_000L,
+        sourceId = id.substringAfter(":"),
+        sourceKind = LocalMusicSourceKind.FakeScanner,
+        localUri = "fake://$id",
+        mimeType = "audio/mpeg",
+        sizeBytes = 1_000L,
+        modifiedAt = modifiedAt,
+    )
 }
 
 /**

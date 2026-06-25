@@ -878,7 +878,7 @@ git commit -m "实现本地歌曲持久化仓库"
 - Modify: `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/app/MusicAppController.kt`
 - Test: `composeApp/src/commonTest/kotlin/com/yanhao/kmpmusic/feature/app/MusicAppControllerTest.kt`
 
-- [ ] **Step 1: Add failing controller tests**
+- [x] **Step 1: Add failing controller tests**
 
 Add these tests to `MusicAppControllerTest`:
 
@@ -1044,7 +1044,7 @@ private fun testSong(id: String, title: String, modifiedAt: Long): Song {
 }
 ```
 
-- [ ] **Step 2: Run tests to verify failure**
+- [x] **Step 2: Run tests to verify failure**
 
 Run:
 
@@ -1054,7 +1054,7 @@ Run:
 
 Expected: FAIL because `homeLocalSongPreview` and `localSongs` do not exist.
 
-- [ ] **Step 3: Split `MusicAppUiState`**
+- [x] **Step 3: Split `MusicAppUiState`**
 
 In `MusicAppModels.kt`, replace `songs`, `albums`, `artists`, and `localSongPreview` fields with this group:
 
@@ -1101,7 +1101,7 @@ val queueSongs: List<Song> = queueSongIds.mapNotNull { songId ->
 }
 ```
 
-- [ ] **Step 4: Update controller initialization and local loading**
+- [x] **Step 4: Update controller initialization and local loading**
 
 In `createInitialState`, read preview only:
 
@@ -1212,7 +1212,7 @@ fun toggleFavorite(songId: String) {
 }
 ```
 
-- [ ] **Step 5: Preserve queue snapshot when playing**
+- [x] **Step 5: Preserve queue snapshot when playing**
 
 In `playSong`, after resolving queue songs and before launching playback:
 
@@ -1245,7 +1245,7 @@ playbackCoordinator.restoreSnapshot(
 
 Delete `requestInitialLibraryRefreshForRestoreIfNeeded`.
 
-- [ ] **Step 6: Run controller tests**
+- [x] **Step 6: Run controller tests**
 
 Run:
 
@@ -1255,7 +1255,7 @@ Run:
 
 Expected: `BUILD SUCCESSFUL` after updating old assertions from `uiState.songs` to either `localSongs` or `homeLocalSongPreview`.
 
-- [ ] **Step 7: Commit state split**
+- [x] **Step 7: Commit state split**
 
 ```bash
 git add composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/app/MusicAppModels.kt composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/app/MusicAppController.kt composeApp/src/commonTest/kotlin/com/yanhao/kmpmusic/feature/app/MusicAppControllerTest.kt
