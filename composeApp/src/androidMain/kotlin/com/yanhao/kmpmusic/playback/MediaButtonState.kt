@@ -11,4 +11,5 @@ internal data class MediaButtonState(
     val isFavorite: Boolean,
     val playbackMode: PlaybackMode,
     val playbackStatus: PlaybackStatus,
+    val hasActivePlaybackSession: Boolean,
 )

@@ -46,6 +46,11 @@ private const val ARG_PLAYBACK_MODE: String = "playback_mode"
 private const val ARG_PLAYBACK_STATUS: String = "playback_status"
 
 /**
+ * 按钮刷新命令参数：shared 层是否仍持有当前播放上下文。
+ */
+private const val ARG_HAS_ACTIVE_PLAYBACK_SESSION: String = "has_active_playback_session"
+
+/**
  * 系统媒体通知可触发的自定义播放动作集合，标准播放命令由 [MediaSession] 委托给 [Player]。
  */
 interface PlaybackMediaButtonActions {
@@ -119,6 +124,7 @@ internal object AndroidPlaybackMediaButtons {
             putBoolean(ARG_IS_FAVORITE, state.isFavorite)
             putString(ARG_PLAYBACK_MODE, state.playbackMode.name)
             putString(ARG_PLAYBACK_STATUS, state.playbackStatus.name)
+            putBoolean(ARG_HAS_ACTIVE_PLAYBACK_SESSION, state.hasActivePlaybackSession)
         }
     }
 
@@ -139,6 +145,7 @@ internal object AndroidPlaybackMediaButtons {
             isFavorite = args.getBoolean(ARG_IS_FAVORITE),
             playbackMode = playbackMode,
             playbackStatus = playbackStatus,
+            hasActivePlaybackSession = args.getBoolean(ARG_HAS_ACTIVE_PLAYBACK_SESSION),
         )
     }
 

@@ -106,7 +106,7 @@ class MusicPlaybackService : MediaSessionService() {
             playbackMode = state.playbackMode,
         )
         mediaSession?.setMediaButtonPreferences(latestMediaButtonPreferences)
-        if (state.playbackStatus == PlaybackStatus.Idle) {
+        if (state.playbackStatus == PlaybackStatus.Idle && !state.hasActivePlaybackSession) {
             clearMediaNotification()
         }
     }

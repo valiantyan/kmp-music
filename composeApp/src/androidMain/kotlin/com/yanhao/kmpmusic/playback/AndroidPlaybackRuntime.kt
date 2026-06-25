@@ -35,8 +35,11 @@ class AndroidPlaybackRuntime(
      */
     private fun onPlaybackUiStateChanged(uiState: MusicAppUiState) {
         val song = uiState.currentSong
-        if (song == null || uiState.playbackStatus == com.yanhao.kmpmusic.domain.model.PlaybackStatus.Idle) {
+        if (!uiState.hasActivePlaybackSession) {
             serviceConnector.clearNotification()
+            return
+        }
+        if (song == null) {
             return
         }
         serviceConnector.refreshMediaButtonPreferences(
@@ -44,6 +47,7 @@ class AndroidPlaybackRuntime(
             isFavorite = uiState.likedSongIds.contains(element = song.id),
             playbackMode = uiState.playbackMode,
             playbackStatus = uiState.playbackStatus,
+            hasActivePlaybackSession = uiState.hasActivePlaybackSession,
         )
     }
 

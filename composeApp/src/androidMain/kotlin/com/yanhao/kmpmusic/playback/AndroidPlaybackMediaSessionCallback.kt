@@ -81,7 +81,7 @@ internal class AndroidPlaybackMediaSessionCallback(
         val state: MediaButtonState = AndroidPlaybackMediaButtons.resolveUpdateButtonsState(args = args)
             ?: return Futures.immediateFuture(SessionResult(SessionResult.RESULT_ERROR_BAD_VALUE))
         updateMediaButtonPreferences(state)
-        if (state.playbackStatus == PlaybackStatus.Idle) {
+        if (state.playbackStatus == PlaybackStatus.Idle && !state.hasActivePlaybackSession) {
             clearMediaNotification()
         }
         return Futures.immediateFuture(SessionResult(SessionResult.RESULT_SUCCESS))

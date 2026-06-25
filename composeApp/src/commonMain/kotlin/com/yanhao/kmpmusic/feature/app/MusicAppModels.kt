@@ -223,6 +223,12 @@ data class MusicAppUiState(
         get() = playbackStatus == PlaybackStatus.Playing
 
     /**
+     * 当前仍有播放上下文时，平台层不能把暂态 [PlaybackStatus.Idle] 当成清空队列信号。
+     */
+    val hasActivePlaybackSession: Boolean
+        get() = currentSongId != null || queueSongIds.isNotEmpty()
+
+    /**
      * 当前播放歌曲，没有真实播放时不显示迷你播放器。
      */
     val currentSong: Song? = currentSongId?.let { songId ->

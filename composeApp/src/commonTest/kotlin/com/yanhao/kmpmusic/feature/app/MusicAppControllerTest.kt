@@ -275,6 +275,36 @@ class MusicAppControllerTest {
     }
 
     /**
+     * Android Media3 可能在播放错误恢复后短暂回报 Idle，但只要队列仍在就不能清空平台播放器。
+     */
+    @Test
+    fun idleStatusWithCurrentQueueKeepsPlaybackSessionActive(): Unit {
+        val uiState = MusicAppUiState(
+            likedSongIds = emptySet(),
+            currentSongId = "song-1",
+            playbackStatus = PlaybackStatus.Idle,
+            queueSongIds = listOf("song-1", "song-2"),
+        )
+
+        assertTrue(actual = uiState.hasActivePlaybackSession)
+    }
+
+    /**
+     * 初始空播放状态才代表平台层可以真正撤下通知并清空播放器队列。
+     */
+    @Test
+    fun emptyIdleStatusHasNoActivePlaybackSession(): Unit {
+        val uiState = MusicAppUiState(
+            likedSongIds = emptySet(),
+            currentSongId = null,
+            playbackStatus = PlaybackStatus.Idle,
+            queueSongIds = emptyList(),
+        )
+
+        assertFalse(actual = uiState.hasActivePlaybackSession)
+    }
+
+    /**
      * 从列表点击歌曲时，应把当前列表完整写成播放队列，而不是偷偷回退为单曲队列。
      */
     @Test

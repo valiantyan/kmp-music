@@ -156,12 +156,14 @@ class PlaybackServiceConnector(
         isFavorite: Boolean,
         playbackMode: PlaybackMode,
         playbackStatus: PlaybackStatus,
+        hasActivePlaybackSession: Boolean,
     ) {
         pendingMediaButtonState = MediaButtonState(
             isPlaying = isPlaying,
             isFavorite = isFavorite,
             playbackMode = playbackMode,
             playbackStatus = playbackStatus,
+            hasActivePlaybackSession = hasActivePlaybackSession,
         )
         executeWithController { controller: MediaController ->
             MediaButtonStateSender.send(
@@ -180,6 +182,7 @@ class PlaybackServiceConnector(
             isFavorite = false,
             playbackMode = playbackMode,
             playbackStatus = PlaybackStatus.Idle,
+            hasActivePlaybackSession = false,
         )
         controllerConnection.currentController?.let { controller: MediaController ->
             MediaButtonStateSender.send(
