@@ -219,9 +219,9 @@ private fun AppContent(
     saveableStateHolder.SaveableStateProvider(key = state.navigationState.scrollStateKey) {
         when (val secondaryScreen = state.navigationState.secondaryScreen) {
             is SecondaryScreen.LocalMusic -> LocalMusicScreen(
-                songs = state.songs,
-                albums = state.albums,
-                artists = state.artists,
+                songs = state.localSongs,
+                albums = state.localAlbums,
+                artists = state.localArtists,
                 sources = state.localMusicSources,
                 problems = state.localMusicProblems,
                 initialSection = secondaryScreen.initialSection,
@@ -300,7 +300,7 @@ private fun AppContent(
                         SecondaryScreen.AlbumDetail -> state.selectedAlbum?.let { album ->
                             AlbumDetailScreen(
                                 album = album,
-                                songs = state.detailSongs,
+                                songs = state.localSongs,
                                 currentSongId = state.currentSongId,
                                 onBack = controller::navigateBack,
                                 onSongOpen = { song: Song, queueSongs: List<Song> ->
@@ -319,8 +319,8 @@ private fun AppContent(
                         SecondaryScreen.ArtistDetail -> state.selectedArtist?.let { artist ->
                             ArtistDetailScreen(
                                 artist = artist,
-                                songs = state.detailSongs,
-                                albums = state.detailAlbums,
+                                songs = state.localSongs,
+                                albums = state.localAlbums,
                                 currentSongId = state.currentSongId,
                                 onBack = controller::navigateBack,
                                 onSongOpen = { song: Song, queueSongs: List<Song> ->
@@ -385,14 +385,14 @@ private fun RootScreen(
 ) {
     when (state.navigationState.rootTab) {
         RootTab.Home -> HomeScreen(
-            songs = state.songs,
-            albums = state.albums,
+            songs = state.homeLocalSongPreview,
+            albums = state.localAlbums,
             libraryStats = state.libraryStats,
             scanState = state.scanState,
             recentSongs = state.recentSongs,
-            localSongPreview = state.localSongPreview,
+            localSongPreview = state.homeLocalSongPreview,
             currentSongId = state.currentSongId,
-            onSearch = { controller.navigateToSecondary(SecondaryScreen.Search) },
+            onSearch = controller::openSearch,
             onScan = onScanLocalMusic,
             onLocalMusic = { controller.openLocalMusic(section = LocalMusicSection.Songs) },
             onSongOpen = { song: Song, queueSongs: List<Song> ->
@@ -802,7 +802,11 @@ private fun AppOverlays(
         }
     }
     state.moreSongId?.let { songId ->
-        val song: Song? = state.detailSongs.firstOrNull { item -> item.id == songId }
+        val song: Song? = state.currentSong?.takeIf { item -> item.id == songId }
+            ?: state.queueSongs.firstOrNull { item -> item.id == songId }
+            ?: state.localSongs.firstOrNull { item -> item.id == songId }
+            ?: state.homeLocalSongPreview.firstOrNull { item -> item.id == songId }
+            ?: state.favoriteSongs.firstOrNull { item -> item.id == songId }
         if (song != null) {
             ModalBottomSheet(onDismissRequest = controller::closeMore) {
                 Column(modifier = Modifier.padding(21.dp), verticalArrangement = Arrangement.spacedBy(18.dp)) {

@@ -1270,7 +1270,7 @@ git commit -m "拆分首页预览与本地曲库状态"
 - Modify: `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/app/MusicAppController.kt`
 - Test: `composeApp/src/commonTest/kotlin/com/yanhao/kmpmusic/feature/app/MusicAppControllerTest.kt`
 
-- [ ] **Step 1: Update search use case to use full available songs**
+- [x] **Step 1: Update search use case to use full available songs**
 
 Replace `SearchMusicUseCaseImpl.invoke` with:
 
@@ -1331,7 +1331,7 @@ private fun buildArtists(songs: List<Song>): List<Artist> {
 }
 ```
 
-- [ ] **Step 2: Add controller helpers for opening search and details**
+- [x] **Step 2: Add controller helpers for opening search and details**
 
 Add:
 
@@ -1344,7 +1344,7 @@ fun openSearch() {
 
 Update `openAlbum`, `openArtist`, `openAlbumFromSong`, and `openArtistFromSong` to call `loadLocalMusicLibrary()` before resolving ids.
 
-- [ ] **Step 3: Wire UI to split state**
+- [x] **Step 3: Wire UI to split state**
 
 In `MusicApp.kt`:
 
@@ -1377,7 +1377,7 @@ RootTab.Home -> HomeScreen(
 )
 ```
 
-- [ ] **Step 4: Add search regression test**
+- [x] **Step 4: Add search regression test**
 
 Add to controller tests:
 
@@ -1396,7 +1396,7 @@ fun searchLoadsFullLibraryInsteadOfHomePreviewOnly(): Unit {
 }
 ```
 
-- [ ] **Step 5: Run UI/controller tests**
+- [x] **Step 5: Run UI/controller tests**
 
 Run:
 
@@ -1406,7 +1406,7 @@ Run:
 
 Expected: `BUILD SUCCESSFUL`.
 
-- [ ] **Step 6: Commit UI wiring**
+- [x] **Step 6: Commit UI wiring**
 
 ```bash
 git add composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/app/MusicApp.kt composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/domain/usecase/SearchMusicUseCase.kt composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/app/MusicAppController.kt composeApp/src/commonTest/kotlin/com/yanhao/kmpmusic/feature/app/MusicAppControllerTest.kt

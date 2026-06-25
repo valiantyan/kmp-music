@@ -40,6 +40,7 @@ import com.yanhao.kmpmusic.domain.usecase.SearchMusicUseCase
 import com.yanhao.kmpmusic.domain.usecase.SearchMusicUseCaseImpl
 import com.yanhao.kmpmusic.domain.usecase.ToggleFavoriteUseCase
 import com.yanhao.kmpmusic.domain.usecase.ToggleFavoriteUseCaseImpl
+import com.yanhao.kmpmusic.domain.usecase.buildSearchResult
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.launch
@@ -264,6 +265,12 @@ class MusicAppController(
         navigateToSecondary(screen = SecondaryScreen.LocalMusic(initialSection = section))
     }
 
+    /** 搜索页应按需拿到完整曲库，这样搜索结果不会被首页 preview 截断。 */
+    fun openSearch() {
+        loadLocalMusicLibrary()
+        navigateToSecondary(screen = SecondaryScreen.Search)
+    }
+
     /** 播放歌曲但留在当前页面，未显式传列表时优先复用当前队列上下文。 */
     fun playSong(song: Song, queueSongs: List<Song> = emptyList()) {
         val resolvedQueueSongs: List<Song> = resolvePlaybackQueueSongs(
@@ -391,18 +398,21 @@ class MusicAppController(
 
     /** 打开专辑详情。 */
     fun openAlbum(album: Album) {
+        loadLocalMusicLibrary()
         uiState = uiState.copy(selectedAlbumId = album.id)
         navigateToSecondary(screen = SecondaryScreen.AlbumDetail)
     }
 
     /** 打开歌手详情。 */
     fun openArtist(artist: Artist) {
+        loadLocalMusicLibrary()
         uiState = uiState.copy(selectedArtistId = artist.id)
         navigateToSecondary(screen = SecondaryScreen.ArtistDetail)
     }
 
     /** 从歌曲打开专辑详情。 */
     fun openAlbumFromSong(song: Song) {
+        loadLocalMusicLibrary()
         uiState.detailAlbums.firstOrNull { album -> album.title == song.album }?.let { album ->
             uiState = uiState.copy(moreSongId = null)
             openAlbum(album = album)
@@ -411,6 +421,7 @@ class MusicAppController(
 
     /** 从歌曲打开歌手详情。 */
     fun openArtistFromSong(song: Song) {
+        loadLocalMusicLibrary()
         uiState.detailArtists.firstOrNull { artist -> artist.name == song.artist }?.let { artist ->
             uiState = uiState.copy(moreSongId = null)
             openArtist(artist = artist)
@@ -434,6 +445,13 @@ class MusicAppController(
 
     /** 执行搜索，供 UI 渲染派生结果。 */
     fun search(): com.yanhao.kmpmusic.domain.usecase.SearchResult {
+        if (uiState.localSongs.isNotEmpty()) {
+            return buildSearchResult(
+                query = uiState.searchQuery,
+                scope = uiState.searchScope,
+                allSongs = uiState.localSongs,
+            )
+        }
         return searchMusicUseCase(
             query = uiState.searchQuery,
             scope = uiState.searchScope,
@@ -633,6 +651,9 @@ class MusicAppController(
 
     /** 按需读取完整本地曲库，避免首页冷启动直接打满持久层。 */
     fun loadLocalMusicLibrary() {
+        if (uiState.localSongs.isNotEmpty()) {
+            return
+        }
         val likedSongIds = favoritesRepository.getLikedSongIds()
         val songsWithLikes = musicLibraryRepository.getAllAvailableSongs().map { song ->
             song.copy(isLiked = likedSongIds.contains(song.id) || song.isLiked)

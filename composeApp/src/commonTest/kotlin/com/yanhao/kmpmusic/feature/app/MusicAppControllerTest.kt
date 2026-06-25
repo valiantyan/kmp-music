@@ -561,7 +561,7 @@ class MusicAppControllerTest {
     }
 
     /**
-     * 收藏歌曲应独立于 localSongs 是否已加载，只要喜欢列表里有 id，就应能补齐 preview 外歌曲实体。
+     * 收藏歌曲应独立于 localSongs 是否已加载，只要喜欢列表里有 id，就应能先补齐实体，再按需进入详情。
      */
     @Test
     fun favoriteSongsRemainAvailableBeforeFullLibraryLoads(): Unit {
@@ -583,14 +583,15 @@ class MusicAppControllerTest {
         assertEquals(expected = "album:album", actual = controller.uiState.selectedAlbum?.id)
         controller.openArtist(artist = controller.uiState.favoriteArtists.single())
         assertEquals(expected = "artist:artist", actual = controller.uiState.selectedArtist?.id)
-        assertEquals(expected = 1, actual = repository.songsByIdsReads)
+        assertEquals(expected = 2, actual = repository.songsByIdsReads)
+        assertEquals(expected = 1, actual = repository.fullLibraryReads)
     }
 
     /**
-     * preview 或队列里已经知道的歌曲，应能在未加载全量曲库时打开专辑/歌手详情。
+     * preview 里的歌曲打开详情时，应按需补齐完整曲库并解析到正确实体。
      */
     @Test
-    fun knownPreviewSongsCanOpenDetailsBeforeFullLibraryLoads(): Unit {
+    fun knownPreviewSongsCanOpenDetailsByLoadingFullLibraryOnDemand(): Unit {
         val repository = SeededMusicLibraryRepository(seedCount = 8)
         val controller = createController(musicLibraryRepository = repository)
         val previewSong: Song = controller.uiState.homeLocalSongPreview.first()
@@ -599,7 +600,7 @@ class MusicAppControllerTest {
         assertEquals(expected = "album:album", actual = controller.uiState.selectedAlbum?.id)
         controller.openArtistFromSong(song = previewSong)
         assertEquals(expected = "artist:artist", actual = controller.uiState.selectedArtist?.id)
-        assertEquals(expected = 0, actual = repository.fullLibraryReads)
+        assertEquals(expected = 1, actual = repository.fullLibraryReads)
     }
 
     /**
@@ -657,6 +658,25 @@ class MusicAppControllerTest {
             expected = listOf("One Summer's Day"),
             actual = controller.search().songs.map { song -> song.title },
         )
+    }
+
+    /**
+     * 搜索入口应按需加载完整曲库，而不是只搜索首页 preview。
+     */
+    @Test
+    fun searchLoadsFullLibraryInsteadOfHomePreviewOnly(): Unit {
+        val repository = SeededMusicLibraryRepository(seedCount = 8)
+        val controller = createController(musicLibraryRepository = repository)
+
+        controller.openSearch()
+        controller.setSearchQuery(query = "Seed 8")
+        controller.setSearchScope(scope = SearchScope.Songs)
+
+        assertEquals(
+            expected = listOf("Seed 8"),
+            actual = controller.search().songs.map { song -> song.title },
+        )
+        assertEquals(expected = 1, actual = repository.fullLibraryReads)
     }
 
     /**
