@@ -55,7 +55,7 @@
 
 - `getHomePreview(limit = 6)`: 查询 `isAvailable = true` 的歌曲，按 `modifiedAt DESC`、标题兜底排序，最多返回 6 条。
 - `getAllAvailableSongs()`: 查询全部可用歌曲，用于本地音乐二级页。
-- `applyScanResult(scanResult, likedSongIds)`: 在事务中写入扫描结果，并返回扫描摘要。
+- `applyScanResult(request, scanResult, likedSongIds)`: 在事务中写入扫描结果，并返回扫描摘要。Repository 必须知道本次扫描覆盖的来源集合，避免把未参与扫描的平台来源误标记为不可用。
 - `getLibraryStats()`: 通过 SQL 聚合读取可用歌曲、专辑、歌手统计，避免冷启动为统计全量加载歌曲。
 
 `InMemoryMusicLibraryRepository` 保留给 common 测试、预览或非持久化宿主使用；Android 进程级会话注入 `PersistentMusicLibraryRepository`。
@@ -88,13 +88,14 @@
 1. 用户点击扫描按钮。
 2. Controller 进入扫描中状态，并调用平台 scanner。
 3. scanner 返回本次来源的完整 `MusicFileMetadata` 列表和失败条目。
-4. Repository 在事务中 upsert 本次发现的歌曲：
+4. Repository 根据 `request`、`scanResult.sourceSummaries` 和 `scanResult.discovered.sourceKind` 解析本次扫描覆盖的 `sourceKind` 集合。空扫描结果也必须能落到明确来源；如果来源无法确定，不能执行旧歌不可用标记，只能写入扫描摘要。
+5. Repository 在事务中 upsert 本次发现的歌曲：
    - 新歌曲插入。
    - 已存在歌曲更新扫描元数据、`lastScannedAt` 和 `isAvailable = true`。
    - 收藏、播放历史等用户状态不写入 `local_song`。
-5. 同一 `sourceKind` 下，本次扫描没有出现的旧歌曲标记为 `isAvailable = false`。
-6. 扫描成功后查询扫描摘要、首页预览和统计；如果本地二级页当前打开，也刷新全量 `localSongs`。
-7. 扫描发现 0 首时，对应来源旧歌曲会变为不可用，首页预览变空，本地页显示空态，收藏记录继续保留。
+6. 只在本次扫描覆盖的 `sourceKind` 范围内，把没有出现的旧歌曲标记为 `isAvailable = false`。
+7. 扫描成功后查询扫描摘要、首页预览和统计；如果本地二级页当前打开，也刷新全量 `localSongs`。
+8. 扫描发现 0 首时，对应来源旧歌曲会变为不可用，首页预览变空，本地页显示空态，收藏记录继续保留。
 
 ## 收藏关联
 
@@ -121,7 +122,13 @@
 - `localAlbums: List<Album>`：基于全量本地歌曲聚合。
 - `localArtists: List<Artist>`：基于全量本地歌曲聚合。
 - `libraryStats: LibraryStats`：可从数据库统计或从全量加载结果更新。
-- `queueSongIds` 与 `queueSongs`：继续代表当前播放队列。
+- `queueSongIds` 与 `queueSongs`：继续代表当前播放队列，但 `queueSongs` 不能再只从单个 `songs` 列表派生。播放开始时应保存本次播放上下文的歌曲快照，或提供能跨 `homeLocalSongPreview`、`localSongs`、搜索结果和详情结果解析队列歌曲的统一索引。
+
+实现时需要同步处理依赖旧 `songs` 语义的入口：
+
+- `currentSong`、队列面板和更多操作弹层必须能从当前播放队列快照、首页预览或已加载本地列表中找到歌曲。
+- 收藏页、搜索页、专辑详情和歌手详情不能默认依赖冷启动全量 `songs`；需要进入页面或执行搜索时按需读取所需数据。
+- `resolvePlaybackQueueSongs` 继续优先使用调用方传入的列表，其次才复用当前队列快照，避免首页预览和二级页全量列表互相污染。
 
 搜索、专辑详情、歌手详情如果需要全量曲库，应在进入对应功能时按需加载或查询，不依赖冷启动把全部歌曲塞进状态。
 
@@ -132,6 +139,7 @@
 - 手动扫描出现平台查询错误时，不清空旧数据，只进入扫描错误状态。
 - 扫描成功但结果为空时，这是有效结果，应把对应来源旧歌曲标记不可用。
 - Room schema 升级必须保留已有播放快照、播放队列和收藏数据。
+- Room 升级不能使用破坏性迁移；新增表和字段必须通过版本迁移保留既有 `playback_snapshot`、`playback_queue_item`、`favorite_song` 数据。
 
 ## 测试计划
 
@@ -141,6 +149,8 @@
 - 进入本地二级页时查询全部可用歌曲。
 - 手动扫描 upsert：新增插入，已有歌曲更新元数据。
 - 同一来源扫描后未出现的旧歌曲标记不可用。
+- 只标记本次扫描来源下的旧歌曲不可用，不影响其他平台来源。
+- 空扫描结果必须依赖明确来源标记旧歌不可用；来源不明确时不能误删可见曲库。
 - 收藏状态不写入 `local_song`，读取歌曲时由 `favorite_song` 派生。
 - 不可用歌曲重新扫描回来后恢复收藏状态。
 - 扫描失败不清空旧数据库数据。
@@ -151,6 +161,7 @@
 - 首页预览播放队列最多 6 条。
 - 本地二级页全量列表播放队列包含全部歌曲。
 - 队列面板继续读取当前 `queueSongs`，不被首页预览长度影响。
+- 拆分 `songs` 后，当前歌曲、更多操作弹层和队列面板仍能找到播放上下文中的歌曲。
 
 验证命令：
 
