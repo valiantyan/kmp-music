@@ -33,6 +33,7 @@ class ScanLocalMusicUseCaseImpl(
     ): LibrarySnapshot {
         val result: LocalMusicScanResult = localMusicScanner.scan(request = request)
         return musicLibraryRepository.applyScanResult(
+            request = request,
             scanResult = result,
             likedSongIds = likedSongIds,
         )
