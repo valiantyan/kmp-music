@@ -99,8 +99,6 @@ internal class DesktopPlaybackSessionRuntime(
      * 进程关闭前按顺序释放桌面播放器、停止长生命周期协程并同步持久化最终快照。
      */
     fun close() {
-        val finalPositionMs: Long = controller.uiState.playbackPositionMs
-        val finalDurationMs: Long? = controller.uiState.playbackDurationMs
         val shouldClose: Boolean = synchronized(this) {
             if (isClosed) {
                 false
@@ -125,6 +123,8 @@ internal class DesktopPlaybackSessionRuntime(
                     teardownFailure = teardownFailure?.also { it.addSuppressed(throwable) } ?: throwable
                 }
             }
+            val finalPositionMs: Long = controller.uiState.playbackPositionMs
+            val finalDurationMs: Long? = controller.uiState.playbackDurationMs
             try {
                 persistPlaybackSnapshotForProcessTeardown(
                     finalPositionMs,

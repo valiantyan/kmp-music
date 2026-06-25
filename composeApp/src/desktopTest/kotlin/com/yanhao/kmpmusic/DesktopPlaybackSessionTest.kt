@@ -183,6 +183,31 @@ class DesktopPlaybackSessionTest {
         assertTrue(actual = sessionScope.coroutineContext[Job]?.isCancelled == true)
     }
 
+    @Test
+    fun closePersistsPositionAfterAudioReleaseDrainsUpdates(): Unit = runTest {
+        val sessionScope = CoroutineScope(SupervisorJob() + Default)
+        val controller = MusicAppController(
+            controllerScope = sessionScope,
+        )
+        val persistedPositions = mutableListOf<Long>()
+        controller.seekTo(positionMs = 12_000L)
+        val runtime = DesktopPlaybackSessionRuntime(
+            controller = controller,
+            sessionScope = sessionScope,
+            releaseAudioEngineAndAwait = {
+                controller.seekTo(positionMs = 77_000L)
+            },
+            closePlaybackDatabase = {},
+            persistPlaybackSnapshotForProcessTeardown = { positionMs, _ ->
+                persistedPositions += positionMs
+            },
+        )
+
+        runtime.close()
+
+        assertEquals(expected = listOf(77_000L), actual = persistedPositions)
+    }
+
     private fun persistedSongEntity(): LocalSongEntity {
         return LocalSongEntity(
             id = "desktopFolder:restored-song",
