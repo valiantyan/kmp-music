@@ -14,6 +14,7 @@ import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.withTimeout
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -162,6 +163,115 @@ class DesktopVlcjAudioPlayerEngineTest {
 
         assertFalse(actual = events.any { event -> event is PlaybackEngineEvent.Failed })
         assertEquals(expected = "release", actual = adapter.commands.last())
+        collectJob.cancel()
+        advanceUntilIdle()
+    }
+
+    /** 验证 release 后再次 [setQueue] 会安全返回，且不会再触发新的 prepare。 */
+    @Test
+    fun setQueueAfterReleaseReturnsWithoutPreparing(): Unit = runTest {
+        val adapter = FakeDesktopMediaPlayerAdapter()
+        val engine = testEngine(adapter = adapter)
+
+        engine.release()
+        val setQueueJob = launch {
+            engine.setQueue(
+                items = mediaItems(),
+                startIndex = 0,
+                startPositionMs = 0L,
+            )
+        }
+        advanceUntilIdle()
+        withTimeout(timeMillis = 1_000L) {
+            setQueueJob.join()
+        }
+
+        assertEquals(
+            expected = listOf("release"),
+            actual = adapter.commands,
+        )
+    }
+
+    /** 验证同一 generation 先失败后又收到旧回调时，不会把播放状态从失败中“救活”。 */
+    @Test
+    fun failedGenerationIgnoresLaterPreparedAndPlayingCallbacks(): Unit = runTest {
+        val adapter = FakeDesktopMediaPlayerAdapter()
+        val engine = testEngine(adapter = adapter)
+        val events = mutableListOf<PlaybackEngineEvent>()
+        val collectJob = launch {
+            engine.events.toList(destination = events)
+        }
+        val failure = PlaybackError(
+            type = PlaybackErrorType.Unknown,
+            songId = "song-1",
+            message = "native failure",
+        )
+
+        engine.setQueue(items = mediaItems(), startIndex = 0, startPositionMs = 0L)
+        adapter.emitFailure(generation = 1L, error = failure)
+        adapter.emitPrepared(generation = 1L, durationMs = 180_000L)
+        adapter.emitPlaying(generation = 1L, positionMs = 12_000L, durationMs = 180_000L)
+        runCurrent()
+
+        assertEquals(
+            expected = PlaybackEngineEvent.Failed(error = failure),
+            actual = events.last(),
+        )
+        assertEquals(
+            expected = 1,
+            actual = events.filterIsInstance<PlaybackEngineEvent.CurrentMediaChanged>().size,
+        )
+        assertFalse(
+            actual = events.any { event ->
+                event == PlaybackEngineEvent.StatusChanged(
+                    status = PlaybackStatus.Playing,
+                    positionMs = 12_000L,
+                    durationMs = 180_000L,
+                )
+            },
+        )
+        engine.release()
+        advanceUntilIdle()
+        collectJob.cancel()
+        advanceUntilIdle()
+    }
+
+    /** 验证 stop 会让旧 generation 失效，避免停止后的延迟回调再次推进状态机。 */
+    @Test
+    fun stopIgnoresDelayedCallbacksFromOldGeneration(): Unit = runTest {
+        val adapter = FakeDesktopMediaPlayerAdapter()
+        val engine = testEngine(adapter = adapter)
+        val events = mutableListOf<PlaybackEngineEvent>()
+        val collectJob = launch {
+            engine.events.toList(destination = events)
+        }
+
+        engine.setQueue(items = mediaItems(), startIndex = 0, startPositionMs = 0L)
+        engine.stop()
+        adapter.emitPrepared(generation = 1L, durationMs = 180_000L)
+        adapter.emitPlaying(generation = 1L, positionMs = 8_000L, durationMs = 180_000L)
+        runCurrent()
+
+        assertEquals(
+            expected = PlaybackEngineEvent.StatusChanged(
+                status = PlaybackStatus.Idle,
+                positionMs = 0L,
+                durationMs = null,
+            ),
+            actual = events.last(),
+        )
+        assertFalse(
+            actual = events.any { event ->
+                event == PlaybackEngineEvent.StatusChanged(
+                    status = PlaybackStatus.Playing,
+                    positionMs = 8_000L,
+                    durationMs = 180_000L,
+                )
+            },
+        )
+        assertEquals(expected = "stop:1", actual = adapter.commands.last())
+        engine.release()
+        advanceUntilIdle()
         collectJob.cancel()
         advanceUntilIdle()
     }

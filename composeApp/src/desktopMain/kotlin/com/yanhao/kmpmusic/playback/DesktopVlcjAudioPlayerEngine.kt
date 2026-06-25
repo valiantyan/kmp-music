@@ -48,6 +48,22 @@ class DesktopVlcjAudioPlayerEngine(
     // 引擎唯一命令入口，确保所有状态转换串行执行。
     private val commandChannel: Channel<EngineCommand> = Channel(capacity = Channel.UNLIMITED)
 
+    // 适配器事件订阅任务，释放后取消以阻止 native 回调继续灌入命令通道。
+    private val adapterEventJob: Job = engineScope.launch {
+        adapter.events.collect { event: DesktopMediaPlayerEvent ->
+            commandChannel.send(
+                element = EngineCommand.AdapterEventReceived(event = event),
+            )
+        }
+    }
+
+    // 串行命令循环任务，负责把所有状态变更压到同一条执行序列中。
+    private val commandLoopJob: Job = engineScope.launch {
+        for (command: EngineCommand in commandChannel) {
+            handle(command = command)
+        }
+    }
+
     // 当前引擎持有的播放队列。
     private var queue: List<PlayableMedia> = emptyList()
 
@@ -66,28 +82,18 @@ class DesktopVlcjAudioPlayerEngine(
     // 当前 generation 是否已经进入 prepared 可控状态。
     private var isPrepared: Boolean = false
 
+    // 释放流程是否已开始；一旦开始就不再接受新的外部命令。
+    @Volatile
+    private var isReleasing: Boolean = false
+
     // 引擎是否已经释放；释放后只丢弃后续命令与回调。
+    @Volatile
     private var isReleased: Boolean = false
 
     // 进度轮询任务，便于在暂停/切歌/释放时精准取消。
     private var progressJob: Job? = null
 
     override val events: Flow<PlaybackEngineEvent> = eventChannel.receiveAsFlow()
-
-    init {
-        engineScope.launch {
-            adapter.events.collect { event: DesktopMediaPlayerEvent ->
-                commandChannel.send(
-                    element = EngineCommand.AdapterEventReceived(event = event),
-                )
-            }
-        }
-        engineScope.launch {
-            for (command: EngineCommand in commandChannel) {
-                handle(command = command)
-            }
-        }
-    }
 
     /**
      * 用新的媒体队列替换当前引擎状态，并等待串行命令循环完成入队准备。
@@ -97,8 +103,11 @@ class DesktopVlcjAudioPlayerEngine(
         startIndex: Int,
         startPositionMs: Long,
     ) {
+        if (isReleased || isReleasing) {
+            return
+        }
         val ack: CompletableDeferred<Unit> = CompletableDeferred()
-        commandChannel.send(
+        val sendResult = commandChannel.trySend(
             element = EngineCommand.SetQueue(
                 items = items,
                 startIndex = startIndex,
@@ -106,21 +115,33 @@ class DesktopVlcjAudioPlayerEngine(
                 ack = ack,
             ),
         )
+        if (sendResult.isFailure) {
+            ack.complete(value = Unit)
+        }
         ack.await()
     }
 
     /** 记录播放意图；若媒体已准备好则立刻下发到底层适配器。 */
     override fun play() {
+        if (isReleased || isReleasing) {
+            return
+        }
         commandChannel.trySend(element = EngineCommand.Play)
     }
 
     /** 清空待播放意图，并在已准备时立即下发暂停命令。 */
     override fun pause() {
+        if (isReleased || isReleasing) {
+            return
+        }
         commandChannel.trySend(element = EngineCommand.Pause)
     }
 
     /** 记录或执行 seek，请求始终只保留当前代最后一次位置。 */
     override fun seekTo(positionMs: Long) {
+        if (isReleased || isReleasing) {
+            return
+        }
         commandChannel.trySend(
             element = EngineCommand.SeekTo(
                 positionMs = positionMs.coerceAtLeast(minimumValue = 0L),
@@ -130,11 +151,17 @@ class DesktopVlcjAudioPlayerEngine(
 
     /** 直接切到目标下标，并让旧媒体的后续回调全部失效。 */
     override fun skipToIndex(index: Int) {
+        if (isReleased || isReleasing) {
+            return
+        }
         commandChannel.trySend(element = EngineCommand.SkipToIndex(index = index))
     }
 
     /** 当前任务阶段无需向桌面底层同步播放模式，保留命令以保持契约完整。 */
     override fun setPlaybackMode(playbackMode: PlaybackMode) {
+        if (isReleased || isReleasing) {
+            return
+        }
         commandChannel.trySend(
             element = EngineCommand.SetPlaybackMode(playbackMode = playbackMode),
         )
@@ -142,11 +169,18 @@ class DesktopVlcjAudioPlayerEngine(
 
     /** 停止当前媒体并把引擎推回 idle。 */
     override fun stop() {
+        if (isReleased || isReleasing) {
+            return
+        }
         commandChannel.trySend(element = EngineCommand.Stop)
     }
 
     /** 桌面端显式释放原生资源，并屏蔽后续延迟回调。 */
     fun release() {
+        if (isReleased || isReleasing) {
+            return
+        }
+        isReleasing = true
         commandChannel.trySend(element = EngineCommand.Release)
     }
 
@@ -280,7 +314,9 @@ class DesktopVlcjAudioPlayerEngine(
         isPrepared = false
         isReleased = true
         stopProgressPolling()
+        adapterEventJob.cancel()
         adapter.release()
+        commandChannel.close()
         engineJob.cancel()
     }
 
@@ -361,6 +397,9 @@ class DesktopVlcjAudioPlayerEngine(
     /** 失败后停止轮询，并把底层统一错误形状透传给 common 层。 */
     private suspend fun handleFailed(event: DesktopMediaPlayerEvent.Failed) {
         stopProgressPolling()
+        nextGeneration()
+        pendingPlay = false
+        pendingSeekMs = null
         isPrepared = false
         eventChannel.send(element = PlaybackEngineEvent.Failed(error = event.error))
     }
