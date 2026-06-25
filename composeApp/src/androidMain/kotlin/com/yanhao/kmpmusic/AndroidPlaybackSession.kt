@@ -2,6 +2,7 @@ package com.yanhao.kmpmusic
 
 import android.content.Context
 import com.yanhao.kmpmusic.data.PersistentFavoritesRepository
+import com.yanhao.kmpmusic.data.PersistentMusicLibraryRepository
 import com.yanhao.kmpmusic.data.createAndroidPlaybackDatabase
 import com.yanhao.kmpmusic.domain.model.LocalMusicScanError
 import com.yanhao.kmpmusic.domain.model.LocalMusicScanErrorType
@@ -71,6 +72,7 @@ object AndroidPlaybackSession {
             }
             val playbackDatabase = createAndroidPlaybackDatabase(context = applicationContext)
             val favoriteSongDao = playbackDatabase.favoriteSongDao()
+            val localSongDao = playbackDatabase.localSongDao()
             val favoritesRepository = runBlocking {
                 PersistentFavoritesRepository(
                     favoriteSongDao = favoriteSongDao,
@@ -86,6 +88,10 @@ object AndroidPlaybackSession {
                 playbackSnapshotStore = RoomPlaybackSnapshotStore(
                     database = playbackDatabase,
                     nowMillis = { System.currentTimeMillis() },
+                ),
+                musicLibraryRepository = PersistentMusicLibraryRepository(
+                    localSongDao = localSongDao,
+                    favoriteSongDao = favoriteSongDao,
                 ),
                 injectedFavoritesRepository = favoritesRepository,
                 permissionSettingsOpener = permissionSettingsOpener,

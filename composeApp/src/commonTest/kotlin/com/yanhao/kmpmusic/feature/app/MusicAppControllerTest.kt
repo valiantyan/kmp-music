@@ -529,7 +529,7 @@ class MusicAppControllerTest {
      * 冷启动恢复遇到空曲库时，只记录待恢复状态，不主动触发首次扫描。
      */
     @Test
-    fun restorePlaybackSnapshotDoesNotAutoScanLibraryWhenSnapshotExists(): Unit = runTest {
+    fun restorePlaybackSnapshotDoesNotAutoScanWhenLibraryIsEmpty(): Unit = runTest {
         val snapshotStore = InMemoryPlaybackSnapshotStore()
         val scanner = RecordingLocalMusicScanner()
         val controller = createController(
@@ -558,6 +558,7 @@ class MusicAppControllerTest {
 
         assertTrue(scanner.requests.isEmpty())
         assertNull(controller.uiState.currentSongId)
+        assertFalse(controller.uiState.isPlaying)
     }
 
     /**
