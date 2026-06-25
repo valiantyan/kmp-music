@@ -4,6 +4,7 @@ import com.yanhao.kmpmusic.domain.model.CoverArt
 import com.yanhao.kmpmusic.domain.model.LocalMusicScanRequest
 import com.yanhao.kmpmusic.domain.model.LocalMusicScanResult
 import com.yanhao.kmpmusic.domain.model.LocalMusicSourceKind
+import com.yanhao.kmpmusic.domain.model.LocalMusicSourceSummary
 import com.yanhao.kmpmusic.domain.model.MusicFileMetadata
 import com.yanhao.kmpmusic.domain.persistence.FavoriteSongDao
 import com.yanhao.kmpmusic.domain.persistence.FavoriteSongEntity
@@ -13,6 +14,7 @@ import kotlinx.coroutines.runBlocking
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertSame
 import kotlin.test.assertTrue
 
 class PersistentMusicLibraryRepositoryTest {
@@ -140,6 +142,41 @@ class PersistentMusicLibraryRepositoryTest {
         )
 
         assertTrue(actual = repository.getAllAvailableSongs().single().isLiked)
+    }
+
+    @Test
+    fun applyScanResultPreservesLatestSourceSummariesInReturnedAndCurrentSnapshot(): Unit = runBlocking {
+        val repository: PersistentMusicLibraryRepository = PersistentMusicLibraryRepository(
+            localSongDao = FakeLocalSongDao(),
+            favoriteSongDao = FakeFavoriteSongDao(),
+        )
+        val sourceSummary = LocalMusicSourceSummary(
+            sourceKind = LocalMusicSourceKind.AndroidMediaStore,
+            displayName = "Android 媒体库",
+            songCount = 1,
+            problemCount = 0,
+            lastScannedAt = 123L,
+        )
+
+        val snapshot = repository.applyScanResult(
+            request = LocalMusicScanRequest.Source(LocalMusicSourceKind.AndroidMediaStore),
+            scanResult = LocalMusicScanResult(
+                discovered = listOf(
+                    metadata(
+                        sourceId = "summary",
+                        title = "Summary Song",
+                        modifiedAt = 123L,
+                    ),
+                ),
+                sourceSummaries = listOf(sourceSummary),
+                completedAt = 123L,
+            ),
+            likedSongIds = emptySet(),
+        )
+
+        assertEquals(expected = listOf(sourceSummary), actual = snapshot.sources)
+        assertEquals(expected = listOf(sourceSummary), actual = repository.getSnapshot().sources)
+        assertSame(expected = sourceSummary, actual = snapshot.sources.single())
     }
 
     /** 构造扫描结果里的歌曲元数据，保持测试关注仓库行为而非构造细节。 */

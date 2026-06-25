@@ -11,6 +11,7 @@ import com.yanhao.kmpmusic.domain.model.LocalMusicScanRequest
 import com.yanhao.kmpmusic.domain.model.LocalMusicScanResult
 import com.yanhao.kmpmusic.domain.model.LocalMusicScanState
 import com.yanhao.kmpmusic.domain.model.LocalMusicSourceKind
+import com.yanhao.kmpmusic.domain.model.LocalMusicSourceSummary
 import com.yanhao.kmpmusic.domain.model.MusicFileMetadata
 import com.yanhao.kmpmusic.domain.model.Song
 import com.yanhao.kmpmusic.domain.persistence.FavoriteSongDao
@@ -31,6 +32,9 @@ class PersistentMusicLibraryRepository(
 
     // 最近一次扫描产生的问题列表，避免重新读取快照时丢失错误上下文。
     private var lastProblems: List<LocalMusicProblem> = emptyList()
+
+    // 最近一次扫描的来源摘要，避免重建快照时丢失来源分组信息。
+    private var lastSourceSummaries: List<LocalMusicSourceSummary> = emptyList()
 
     /** 同步返回当前曲库快照，兼容旧调用路径。 */
     override fun getSnapshot(): LibrarySnapshot = runBlocking {
@@ -112,6 +116,7 @@ class PersistentMusicLibraryRepository(
         )
         lastScanState = LocalMusicScanState.Done(summary = summary)
         lastProblems = scanResult.failed
+        lastSourceSummaries = scanResult.sourceSummaries
         buildSnapshot(
             songs = readAllSongs(likedSongIds = likedSongIds),
             scanState = lastScanState,
@@ -163,7 +168,7 @@ class PersistentMusicLibraryRepository(
             albums = albums,
             artists = artists,
             stats = readLibraryStats(),
-            sources = emptyList(),
+            sources = lastSourceSummaries,
             scanState = scanState,
             lastScanSummary = (scanState as? LocalMusicScanState.Done)?.summary,
             problems = lastProblems,
