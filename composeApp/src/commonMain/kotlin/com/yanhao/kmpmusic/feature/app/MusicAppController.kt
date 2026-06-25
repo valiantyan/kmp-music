@@ -403,7 +403,7 @@ class MusicAppController(
 
     /** 从歌曲打开专辑详情。 */
     fun openAlbumFromSong(song: Song) {
-        uiState.albums.firstOrNull { album -> album.title == song.album }?.let { album ->
+        uiState.detailAlbums.firstOrNull { album -> album.title == song.album }?.let { album ->
             uiState = uiState.copy(moreSongId = null)
             openAlbum(album = album)
         }
@@ -411,7 +411,7 @@ class MusicAppController(
 
     /** 从歌曲打开歌手详情。 */
     fun openArtistFromSong(song: Song) {
-        uiState.artists.firstOrNull { artist -> artist.name == song.artist }?.let { artist ->
+        uiState.detailArtists.firstOrNull { artist -> artist.name == song.artist }?.let { artist ->
             uiState = uiState.copy(moreSongId = null)
             openArtist(artist = artist)
         }

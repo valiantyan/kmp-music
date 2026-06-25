@@ -300,7 +300,7 @@ private fun AppContent(
                         SecondaryScreen.AlbumDetail -> state.selectedAlbum?.let { album ->
                             AlbumDetailScreen(
                                 album = album,
-                                songs = state.songs,
+                                songs = state.detailSongs,
                                 currentSongId = state.currentSongId,
                                 onBack = controller::navigateBack,
                                 onSongOpen = { song: Song, queueSongs: List<Song> ->
@@ -319,8 +319,8 @@ private fun AppContent(
                         SecondaryScreen.ArtistDetail -> state.selectedArtist?.let { artist ->
                             ArtistDetailScreen(
                                 artist = artist,
-                                songs = state.songs,
-                                albums = state.albums,
+                                songs = state.detailSongs,
+                                albums = state.detailAlbums,
                                 currentSongId = state.currentSongId,
                                 onBack = controller::navigateBack,
                                 onSongOpen = { song: Song, queueSongs: List<Song> ->

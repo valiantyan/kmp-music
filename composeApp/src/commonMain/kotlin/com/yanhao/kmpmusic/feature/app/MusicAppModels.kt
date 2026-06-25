@@ -206,6 +206,16 @@ data class MusicAppUiState(
     val localSongPreview: List<Song>
         get() = homeLocalSongPreview
 
+    val detailSongs: List<Song>
+        get() = (localSongs + homeLocalSongPreview + favoriteSongs + queueSongsSnapshot)
+            .distinctBy { song -> song.id }
+
+    val detailAlbums: List<Album>
+        get() = (localAlbums + favoriteAlbums).distinctBy { album -> album.id }
+
+    val detailArtists: List<Artist>
+        get() = (localArtists + favoriteArtists).distinctBy { artist -> artist.id }
+
     /**
      * 兼容现有 UI 对播放开关的布尔读取，直到页面逐步迁移到显式播放状态。
      */
@@ -283,10 +293,10 @@ data class MusicAppUiState(
     /**
      * 当前专辑详情对象，曲库为空或专辑缺失时为 null。
      */
-    val selectedAlbum: Album? = albums.firstOrNull { album -> album.id == selectedAlbumId }
+    val selectedAlbum: Album? = detailAlbums.firstOrNull { album -> album.id == selectedAlbumId }
 
     /**
      * 当前歌手详情对象，曲库为空或歌手缺失时为 null。
      */
-    val selectedArtist: Artist? = artists.firstOrNull { artist -> artist.id == selectedArtistId }
+    val selectedArtist: Artist? = detailArtists.firstOrNull { artist -> artist.id == selectedArtistId }
 }

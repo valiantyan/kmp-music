@@ -577,6 +577,12 @@ class MusicAppControllerTest {
         assertFalse(controller.uiState.homeLocalSongPreview.any { song -> song.id == "seed:2" })
         assertEquals(expected = listOf("seed:2"), actual = controller.uiState.favoriteSongs.map { song -> song.id })
         assertTrue(controller.uiState.favoriteSongs.all { song -> song.isLiked })
+        assertEquals(expected = listOf("album:album"), actual = controller.uiState.favoriteAlbums.map { album -> album.id })
+        assertEquals(expected = listOf("artist:artist"), actual = controller.uiState.favoriteArtists.map { artist -> artist.id })
+        controller.openAlbum(album = controller.uiState.favoriteAlbums.single())
+        assertEquals(expected = "album:album", actual = controller.uiState.selectedAlbum?.id)
+        controller.openArtist(artist = controller.uiState.favoriteArtists.single())
+        assertEquals(expected = "artist:artist", actual = controller.uiState.selectedArtist?.id)
         assertEquals(expected = 1, actual = repository.songsByIdsReads)
     }
 
