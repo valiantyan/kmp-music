@@ -6,6 +6,7 @@ import com.yanhao.kmpmusic.domain.model.PlaybackError
 import com.yanhao.kmpmusic.domain.model.PlaybackErrorType
 import com.yanhao.kmpmusic.domain.model.PlaybackStatus
 import com.yanhao.kmpmusic.domain.playback.PlaybackEngineEvent
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.launch
@@ -165,6 +166,44 @@ class DesktopVlcjAudioPlayerEngineTest {
         assertEquals(expected = "release", actual = adapter.commands.last())
         collectJob.cancel()
         advanceUntilIdle()
+    }
+
+    /** 验证 pre-check 已通过的 [setQueue] 即使排在 release 后，也不会把调用方卡死。 */
+    @Test
+    fun releaseCompletesQueuedSetQueueAckFromPreReleaseRace(): Unit = runTest {
+        val adapter = FakeDesktopMediaPlayerAdapter()
+        val setQueueReachedEnqueueGate = CompletableDeferred<Unit>()
+        val allowSetQueueToEnqueue = CompletableDeferred<Unit>()
+        val engine = testEngine(adapter = adapter)
+        engine.installTestHooks(
+            testHooks = DesktopVlcjAudioPlayerEngineTestHooks(
+                beforeSetQueueCommandEnqueue = {
+                    setQueueReachedEnqueueGate.complete(value = Unit)
+                    allowSetQueueToEnqueue.await()
+                },
+            ),
+        )
+
+        val setQueueJob = launch {
+            engine.setQueue(
+                items = mediaItems(),
+                startIndex = 0,
+                startPositionMs = 0L,
+            )
+        }
+
+        setQueueReachedEnqueueGate.await()
+        engine.release()
+        allowSetQueueToEnqueue.complete(value = Unit)
+        advanceUntilIdle()
+        withTimeout(timeMillis = 1_000L) {
+            setQueueJob.join()
+        }
+
+        assertEquals(
+            expected = listOf("release"),
+            actual = adapter.commands,
+        )
     }
 
     /** 验证 release 后再次 [setQueue] 会安全返回，且不会再触发新的 prepare。 */

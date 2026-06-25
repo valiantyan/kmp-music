@@ -48,6 +48,12 @@ class DesktopVlcjAudioPlayerEngine(
     // 引擎唯一命令入口，确保所有状态转换串行执行。
     private val commandChannel: Channel<EngineCommand> = Channel(capacity = Channel.UNLIMITED)
 
+    // 保护 [pendingSetQueueAcks] 的互斥锁，避免 release 与调用方并发改写挂起确认集合。
+    private val pendingSetQueueAckLock: Any = Any()
+
+    // 所有尚未完成的 [setQueue] 确认；release/异常结束时必须统一收口，防止调用方永久挂起。
+    private val pendingSetQueueAcks: MutableSet<CompletableDeferred<Unit>> = linkedSetOf()
+
     // 适配器事件订阅任务，释放后取消以阻止 native 回调继续灌入命令通道。
     private val adapterEventJob: Job = engineScope.launch {
         adapter.events.collect { event: DesktopMediaPlayerEvent ->
@@ -59,8 +65,12 @@ class DesktopVlcjAudioPlayerEngine(
 
     // 串行命令循环任务，负责把所有状态变更压到同一条执行序列中。
     private val commandLoopJob: Job = engineScope.launch {
-        for (command: EngineCommand in commandChannel) {
-            handle(command = command)
+        try {
+            for (command: EngineCommand in commandChannel) {
+                handle(command = command)
+            }
+        } finally {
+            completeAllPendingSetQueueAcks()
         }
     }
 
@@ -93,7 +103,15 @@ class DesktopVlcjAudioPlayerEngine(
     // 进度轮询任务，便于在暂停/切歌/释放时精准取消。
     private var progressJob: Job? = null
 
+    // 仅供桌面测试精确编排 release/setQueue 竞态，不参与生产流程判断。
+    private var testHooks: DesktopVlcjAudioPlayerEngineTestHooks = DesktopVlcjAudioPlayerEngineTestHooks()
+
     override val events: Flow<PlaybackEngineEvent> = eventChannel.receiveAsFlow()
+
+    /** 仅供测试注入时序钩子，避免用 sleep 猜测竞态窗口。 */
+    internal fun installTestHooks(testHooks: DesktopVlcjAudioPlayerEngineTestHooks) {
+        this.testHooks = testHooks
+    }
 
     /**
      * 用新的媒体队列替换当前引擎状态，并等待串行命令循环完成入队准备。
@@ -107,6 +125,8 @@ class DesktopVlcjAudioPlayerEngine(
             return
         }
         val ack: CompletableDeferred<Unit> = CompletableDeferred()
+        registerPendingSetQueueAck(ack = ack)
+        testHooks.beforeSetQueueCommandEnqueue()
         val sendResult = commandChannel.trySend(
             element = EngineCommand.SetQueue(
                 items = items,
@@ -116,7 +136,7 @@ class DesktopVlcjAudioPlayerEngine(
             ),
         )
         if (sendResult.isFailure) {
-            ack.complete(value = Unit)
+            completePendingSetQueueAck(ack = ack)
         }
         ack.await()
     }
@@ -188,7 +208,7 @@ class DesktopVlcjAudioPlayerEngine(
     private suspend fun handle(command: EngineCommand) {
         if (isReleased) {
             if (command is EngineCommand.SetQueue) {
-                command.ack.complete(value = Unit)
+                completePendingSetQueueAck(ack = command.ack)
             }
             return
         }
@@ -208,30 +228,32 @@ class DesktopVlcjAudioPlayerEngine(
 
     /** 统一处理队列替换，空队列直接回传失败，非空队列则进入 loading。 */
     private suspend fun handleSetQueue(command: EngineCommand.SetQueue) {
-        queue = command.items
-        pendingPlay = false
-        pendingSeekMs = null
-        isPrepared = false
-        stopProgressPolling()
-        if (queue.isEmpty()) {
-            currentIndex = -1
-            nextGeneration()
-            eventChannel.send(
-                element = PlaybackEngineEvent.Failed(
-                    error = PlaybackError(
-                        type = PlaybackErrorType.MissingFile,
-                        songId = null,
-                        message = "播放队列为空",
+        try {
+            queue = command.items
+            pendingPlay = false
+            pendingSeekMs = null
+            isPrepared = false
+            stopProgressPolling()
+            if (queue.isEmpty()) {
+                currentIndex = -1
+                nextGeneration()
+                eventChannel.send(
+                    element = PlaybackEngineEvent.Failed(
+                        error = PlaybackError(
+                            type = PlaybackErrorType.MissingFile,
+                            songId = null,
+                            message = "播放队列为空",
+                        ),
                     ),
-                ),
-            )
-            command.ack.complete(value = Unit)
-            return
+                )
+                return
+            }
+            currentIndex = command.startIndex.coerceIn(minimumValue = 0, maximumValue = queue.lastIndex)
+            pendingSeekMs = command.startPositionMs
+            prepareCurrentMedia(startPositionMs = command.startPositionMs)
+        } finally {
+            completePendingSetQueueAck(ack = command.ack)
         }
-        currentIndex = command.startIndex.coerceIn(minimumValue = 0, maximumValue = queue.lastIndex)
-        pendingSeekMs = command.startPositionMs
-        prepareCurrentMedia(startPositionMs = command.startPositionMs)
-        command.ack.complete(value = Unit)
     }
 
     /** 在媒体未 ready 时只记住播放意图，避免跨线程直接触发底层播放。 */
@@ -314,6 +336,7 @@ class DesktopVlcjAudioPlayerEngine(
         isPrepared = false
         isReleased = true
         stopProgressPolling()
+        completeAllPendingSetQueueAcks()
         adapterEventJob.cancel()
         adapter.release()
         commandChannel.close()
@@ -471,6 +494,45 @@ class DesktopVlcjAudioPlayerEngine(
         return generation
     }
 
+    /** 把新的 [setQueue] 确认纳入 release 收尾范围，避免命令还未执行时调用方失联。 */
+    private fun registerPendingSetQueueAck(ack: CompletableDeferred<Unit>) {
+        synchronized(lock = pendingSetQueueAckLock) {
+            pendingSetQueueAcks += ack
+        }
+    }
+
+    /** 完成单个 [setQueue] 确认，并从挂起集合中摘除，避免重复收尾。 */
+    private fun completePendingSetQueueAck(ack: CompletableDeferred<Unit>) {
+        val shouldComplete: Boolean = synchronized(lock = pendingSetQueueAckLock) {
+            pendingSetQueueAcks.remove(element = ack)
+        }
+        if (shouldComplete) {
+            ack.complete(value = Unit)
+        }
+    }
+
+    /** 释放或异常退出命令循环时，统一完成所有遗留 [setQueue] 确认。 */
+    private fun completeAllPendingSetQueueAcks() {
+        val pendingAcks: List<CompletableDeferred<Unit>> = synchronized(lock = pendingSetQueueAckLock) {
+            val snapshot: List<CompletableDeferred<Unit>> = pendingSetQueueAcks.toList()
+            pendingSetQueueAcks.clear()
+            snapshot
+        }
+        pendingAcks.forEach { ack: CompletableDeferred<Unit> ->
+            ack.complete(value = Unit)
+        }
+    }
+
+}
+
+/**
+ * 桌面引擎的测试时序钩子，专门用于稳定复现协程竞态，不暴露给生产调用方。
+ */
+internal class DesktopVlcjAudioPlayerEngineTestHooks(
+    beforeSetQueueCommandEnqueue: suspend () -> Unit = {},
+) {
+    // 在 [setQueue] 真正入队前执行，测试可借此把命令卡在最危险的竞态窗口。
+    val beforeSetQueueCommandEnqueue: suspend () -> Unit = beforeSetQueueCommandEnqueue
 }
 
 /**
