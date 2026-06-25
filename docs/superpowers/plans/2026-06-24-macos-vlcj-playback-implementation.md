@@ -169,7 +169,7 @@ git commit -m "配置 macOS vlcj 播放依赖"
 - Create: `composeApp/src/desktopTest/kotlin/com/yanhao/kmpmusic/playback/FakeDesktopMediaPlayerAdapter.kt`
 - Test: `composeApp/src/desktopTest/kotlin/com/yanhao/kmpmusic/playback/FakeDesktopMediaPlayerAdapterTest.kt`
 
-- [ ] **Step 1: Write the fake adapter test**
+- [x] **Step 1: Write the fake adapter test**
 
 Create `composeApp/src/desktopTest/kotlin/com/yanhao/kmpmusic/playback/FakeDesktopMediaPlayerAdapterTest.kt`:
 
@@ -228,7 +228,7 @@ class FakeDesktopMediaPlayerAdapterTest {
 }
 ```
 
-- [ ] **Step 2: Run the test to verify it fails**
+- [x] **Step 2: Run the test to verify it fails**
 
 Run:
 
@@ -238,7 +238,7 @@ Run:
 
 Expected: FAIL with unresolved references for `DesktopMediaPlayerEvent` and `FakeDesktopMediaPlayerAdapter`.
 
-- [ ] **Step 3: Add the desktop adapter contract**
+- [x] **Step 3: Add the desktop adapter contract**
 
 Create `composeApp/src/desktopMain/kotlin/com/yanhao/kmpmusic/playback/DesktopMediaPlayerAdapter.kt`:
 
@@ -319,7 +319,7 @@ sealed interface DesktopMediaPlayerEvent {
 }
 ```
 
-- [ ] **Step 4: Add the deterministic fake adapter**
+- [x] **Step 4: Add the deterministic fake adapter**
 
 Create `composeApp/src/desktopTest/kotlin/com/yanhao/kmpmusic/playback/FakeDesktopMediaPlayerAdapter.kt`:
 
@@ -428,7 +428,7 @@ class FakeDesktopMediaPlayerAdapter : DesktopMediaPlayerAdapter {
 }
 ```
 
-- [ ] **Step 5: Run the fake adapter test**
+- [x] **Step 5: Run the fake adapter test**
 
 Run:
 
@@ -438,7 +438,7 @@ Run:
 
 Expected: PASS.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add composeApp/src/desktopMain/kotlin/com/yanhao/kmpmusic/playback/DesktopMediaPlayerAdapter.kt composeApp/src/desktopTest/kotlin/com/yanhao/kmpmusic/playback/FakeDesktopMediaPlayerAdapter.kt composeApp/src/desktopTest/kotlin/com/yanhao/kmpmusic/playback/FakeDesktopMediaPlayerAdapterTest.kt
