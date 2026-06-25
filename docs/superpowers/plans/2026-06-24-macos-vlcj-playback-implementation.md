@@ -1035,7 +1035,7 @@ git commit -m "实现桌面播放命令串行引擎"
 - Create: `composeApp/src/desktopMain/kotlin/com/yanhao/kmpmusic/playback/MacosLibVlcRuntime.kt`
 - Test: `composeApp/src/desktopTest/kotlin/com/yanhao/kmpmusic/playback/MacosLibVlcRuntimeTest.kt`
 
-- [ ] **Step 1: Write runtime path tests**
+- [x] **Step 1: Write runtime path tests**
 
 Create `composeApp/src/desktopTest/kotlin/com/yanhao/kmpmusic/playback/MacosLibVlcRuntimeTest.kt`:
 
@@ -1105,7 +1105,7 @@ class MacosLibVlcRuntimeTest {
 }
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run:
 
@@ -1115,7 +1115,7 @@ Run:
 
 Expected: FAIL with unresolved reference `MacosLibVlcRuntime`.
 
-- [ ] **Step 3: Implement runtime resolution**
+- [x] **Step 3: Implement runtime resolution**
 
 Create `composeApp/src/desktopMain/kotlin/com/yanhao/kmpmusic/playback/MacosLibVlcRuntime.kt`:
 
@@ -1179,7 +1179,7 @@ data class MacosLibVlcRuntimePath(
 )
 ```
 
-- [ ] **Step 4: Run runtime tests**
+- [x] **Step 4: Run runtime tests**
 
 Run:
 
@@ -1189,7 +1189,7 @@ Run:
 
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add composeApp/src/desktopMain/kotlin/com/yanhao/kmpmusic/playback/MacosLibVlcRuntime.kt composeApp/src/desktopTest/kotlin/com/yanhao/kmpmusic/playback/MacosLibVlcRuntimeTest.kt
