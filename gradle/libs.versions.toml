@@ -10,6 +10,7 @@ ksp = "2.0.21-1.0.28"
 media3 = "1.10.1"
 room3 = "3.0.0-rc01"
 sqlite = "2.6.2"
+vlcj = "4.12.1"
 
 [libraries]
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
@@ -23,6 +24,7 @@ androidx-room3-compiler = { module = "androidx.room3:room3-compiler", version.re
 androidx-media3-exoplayer = { module = "androidx.media3:media3-exoplayer", version.ref = "media3" }
 androidx-media3-session = { module = "androidx.media3:media3-session", version.ref = "media3" }
 androidx-media3-ui = { module = "androidx.media3:media3-ui", version.ref = "media3" }
+vlcj = { module = "uk.co.caprica:vlcj", version.ref = "vlcj" }
 
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }
