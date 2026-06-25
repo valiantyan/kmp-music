@@ -27,6 +27,7 @@ import com.yanhao.kmpmusic.domain.model.Album
 import com.yanhao.kmpmusic.domain.model.Artist
 import com.yanhao.kmpmusic.domain.model.LocalMusicProblem
 import com.yanhao.kmpmusic.domain.model.LocalMusicSourceSummary
+import com.yanhao.kmpmusic.domain.model.PlaybackStatus
 import com.yanhao.kmpmusic.domain.model.Song
 import com.yanhao.kmpmusic.feature.app.LocalMusicSection
 import com.yanhao.kmpmusic.feature.components.AlbumCard
@@ -46,9 +47,11 @@ fun LocalMusicScreen(
     problems: List<LocalMusicProblem>,
     initialSection: LocalMusicSection,
     currentSongId: String?,
+    currentPlaybackStatus: PlaybackStatus,
     onBack: () -> Unit,
     onSongOpen: (Song, List<Song>) -> Unit,
     onSongPlay: (Song, List<Song>) -> Unit,
+    onCurrentSongToggle: () -> Unit,
     onMore: (Song) -> Unit,
     onAlbumOpen: (Album) -> Unit,
     onArtistOpen: (Artist) -> Unit,
@@ -80,8 +83,10 @@ fun LocalMusicScreen(
             LocalMusicSection.Songs -> songSectionItems(
                 songs = songs,
                 currentSongId = currentSongId,
+                currentPlaybackStatus = currentPlaybackStatus,
                 onSongOpen = onSongOpen,
                 onSongPlay = onSongPlay,
+                onCurrentSongToggle = onCurrentSongToggle,
                 onMore = onMore,
             )
             LocalMusicSection.Albums -> albumSectionItems(
@@ -118,8 +123,10 @@ private fun LocalMusicSectionTabs(
 private fun LazyListScope.songSectionItems(
     songs: List<Song>,
     currentSongId: String?,
+    currentPlaybackStatus: PlaybackStatus,
     onSongOpen: (Song, List<Song>) -> Unit,
     onSongPlay: (Song, List<Song>) -> Unit,
+    onCurrentSongToggle: () -> Unit,
     onMore: (Song) -> Unit,
 ) {
     if (songs.isEmpty()) {
@@ -136,8 +143,10 @@ private fun LazyListScope.songSectionItems(
         SongRow(
             song = song,
             isCurrentSong = song.id == currentSongId,
+            currentPlaybackStatus = currentPlaybackStatus,
             onOpen = { selectedSong: Song -> onSongOpen(selectedSong, songs) },
             onPlay = { selectedSong: Song -> onSongPlay(selectedSong, songs) },
+            onCurrentSongToggle = onCurrentSongToggle,
             onMore = onMore,
             dense = true,
         )

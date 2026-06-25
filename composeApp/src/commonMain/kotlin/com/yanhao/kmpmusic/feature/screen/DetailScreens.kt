@@ -19,6 +19,7 @@ import androidx.compose.ui.unit.sp
 import com.yanhao.kmpmusic.core.theme.MusicColors
 import com.yanhao.kmpmusic.domain.model.Album
 import com.yanhao.kmpmusic.domain.model.Artist
+import com.yanhao.kmpmusic.domain.model.PlaybackStatus
 import com.yanhao.kmpmusic.domain.model.Song
 import com.yanhao.kmpmusic.feature.components.AlbumCard
 import com.yanhao.kmpmusic.feature.components.AppHeader
@@ -35,9 +36,11 @@ fun AlbumDetailScreen(
     album: Album,
     songs: List<Song>,
     currentSongId: String?,
+    currentPlaybackStatus: PlaybackStatus,
     onBack: () -> Unit,
     onSongOpen: (Song, List<Song>) -> Unit,
     onSongPlay: (Song, List<Song>) -> Unit,
+    onCurrentSongToggle: () -> Unit,
     onMore: (Song) -> Unit,
     onLike: (String) -> Unit,
 ) {
@@ -67,8 +70,10 @@ fun AlbumDetailScreen(
                 SongRow(
                     song = song,
                     isCurrentSong = song.id == currentSongId,
+                    currentPlaybackStatus = currentPlaybackStatus,
                     onOpen = { selectedSong: Song -> onSongOpen(selectedSong, albumSongs) },
                     onPlay = { selectedSong: Song -> onSongPlay(selectedSong, albumSongs) },
+                    onCurrentSongToggle = onCurrentSongToggle,
                     onMore = onMore,
                     onLike = onLike,
                     dense = true,
@@ -87,9 +92,11 @@ fun ArtistDetailScreen(
     songs: List<Song>,
     albums: List<Album>,
     currentSongId: String?,
+    currentPlaybackStatus: PlaybackStatus,
     onBack: () -> Unit,
     onSongOpen: (Song, List<Song>) -> Unit,
     onSongPlay: (Song, List<Song>) -> Unit,
+    onCurrentSongToggle: () -> Unit,
     onMore: (Song) -> Unit,
     onLike: (String) -> Unit,
     onAlbumOpen: (Album) -> Unit,
@@ -110,8 +117,10 @@ fun ArtistDetailScreen(
                 SongRow(
                     song = song,
                     isCurrentSong = song.id == currentSongId,
+                    currentPlaybackStatus = currentPlaybackStatus,
                     onOpen = { selectedSong: Song -> onSongOpen(selectedSong, displayedArtistSongs) },
                     onPlay = { selectedSong: Song -> onSongPlay(selectedSong, displayedArtistSongs) },
+                    onCurrentSongToggle = onCurrentSongToggle,
                     onMore = onMore,
                     onLike = onLike,
                     dense = true,

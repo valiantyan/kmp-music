@@ -41,6 +41,7 @@ import com.yanhao.kmpmusic.domain.model.CoverArt
 import com.yanhao.kmpmusic.domain.model.LibraryStats
 import com.yanhao.kmpmusic.domain.model.LocalMusicScanErrorType
 import com.yanhao.kmpmusic.domain.model.LocalMusicScanState
+import com.yanhao.kmpmusic.domain.model.PlaybackStatus
 import com.yanhao.kmpmusic.domain.model.Song
 import com.yanhao.kmpmusic.feature.components.AlbumCard
 import com.yanhao.kmpmusic.feature.components.AppHeader
@@ -61,11 +62,13 @@ fun HomeScreen(
     recentSongs: List<Song>,
     localSongPreview: List<Song>,
     currentSongId: String?,
+    currentPlaybackStatus: PlaybackStatus,
     onSearch: () -> Unit,
     onScan: () -> Unit,
     onLocalMusic: () -> Unit,
     onSongOpen: (Song, List<Song>) -> Unit,
     onSongPlay: (Song, List<Song>) -> Unit,
+    onCurrentSongToggle: () -> Unit,
     onMore: (Song) -> Unit,
     onAlbumOpen: (Album) -> Unit,
 ) {
@@ -102,8 +105,10 @@ fun HomeScreen(
                     SongRow(
                         song = song,
                         isCurrentSong = song.id == currentSongId,
+                        currentPlaybackStatus = currentPlaybackStatus,
                         onOpen = { selectedSong: Song -> onSongOpen(selectedSong, recentSongs) },
                         onPlay = { selectedSong: Song -> onSongPlay(selectedSong, recentSongs) },
+                        onCurrentSongToggle = onCurrentSongToggle,
                         onMore = onMore,
                     )
                 }
@@ -122,8 +127,10 @@ fun HomeScreen(
                     SongRow(
                         song = song,
                         isCurrentSong = song.id == currentSongId,
+                        currentPlaybackStatus = currentPlaybackStatus,
                         onOpen = { selectedSong: Song -> onSongOpen(selectedSong, localSongPreview) },
                         onPlay = { selectedSong: Song -> onSongPlay(selectedSong, localSongPreview) },
+                        onCurrentSongToggle = onCurrentSongToggle,
                         onMore = onMore,
                     )
                 }

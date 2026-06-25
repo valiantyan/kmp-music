@@ -226,6 +226,7 @@ private fun AppContent(
                 problems = state.localMusicProblems,
                 initialSection = secondaryScreen.initialSection,
                 currentSongId = state.currentSongId,
+                currentPlaybackStatus = state.playbackStatus,
                 onBack = controller::navigateBack,
                 onSongOpen = { song: Song, queueSongs: List<Song> ->
                     controller.openSong(song = song, queueSongs = queueSongs)
@@ -233,6 +234,7 @@ private fun AppContent(
                 onSongPlay = { song: Song, queueSongs: List<Song> ->
                     controller.playSong(song = song, queueSongs = queueSongs)
                 },
+                onCurrentSongToggle = controller::togglePlayback,
                 onMore = controller::openMore,
                 onAlbumOpen = controller::openAlbum,
                 onArtistOpen = controller::openArtist,
@@ -262,6 +264,7 @@ private fun AppContent(
                             scope = state.searchScope,
                             result = controller.search(),
                             currentSongId = state.currentSongId,
+                            currentPlaybackStatus = state.playbackStatus,
                             onBack = controller::navigateBack,
                             onQuery = controller::setSearchQuery,
                             onScope = controller::setSearchScope,
@@ -271,6 +274,7 @@ private fun AppContent(
                             onSongPlay = { song: Song, queueSongs: List<Song> ->
                                 controller.playSong(song = song, queueSongs = queueSongs)
                             },
+                            onCurrentSongToggle = controller::togglePlayback,
                             onMore = controller::openMore,
                             onAlbumOpen = controller::openAlbum,
                             onArtistOpen = controller::openArtist,
@@ -302,6 +306,7 @@ private fun AppContent(
                                 album = album,
                                 songs = state.localSongs,
                                 currentSongId = state.currentSongId,
+                                currentPlaybackStatus = state.playbackStatus,
                                 onBack = controller::navigateBack,
                                 onSongOpen = { song: Song, queueSongs: List<Song> ->
                                     controller.openSong(song = song, queueSongs = queueSongs)
@@ -309,6 +314,7 @@ private fun AppContent(
                                 onSongPlay = { song: Song, queueSongs: List<Song> ->
                                     controller.playSong(song = song, queueSongs = queueSongs)
                                 },
+                                onCurrentSongToggle = controller::togglePlayback,
                                 onMore = controller::openMore,
                                 onLike = controller::toggleFavorite,
                             )
@@ -322,6 +328,7 @@ private fun AppContent(
                                 songs = state.localSongs,
                                 albums = state.localAlbums,
                                 currentSongId = state.currentSongId,
+                                currentPlaybackStatus = state.playbackStatus,
                                 onBack = controller::navigateBack,
                                 onSongOpen = { song: Song, queueSongs: List<Song> ->
                                     controller.openSong(song = song, queueSongs = queueSongs)
@@ -329,6 +336,7 @@ private fun AppContent(
                                 onSongPlay = { song: Song, queueSongs: List<Song> ->
                                     controller.playSong(song = song, queueSongs = queueSongs)
                                 },
+                                onCurrentSongToggle = controller::togglePlayback,
                                 onMore = controller::openMore,
                                 onLike = controller::toggleFavorite,
                                 onAlbumOpen = controller::openAlbum,
@@ -392,6 +400,7 @@ private fun RootScreen(
             recentSongs = state.recentSongs,
             localSongPreview = state.homeLocalSongPreview,
             currentSongId = state.currentSongId,
+            currentPlaybackStatus = state.playbackStatus,
             onSearch = controller::openSearch,
             onScan = onScanLocalMusic,
             onLocalMusic = { controller.openLocalMusic(section = LocalMusicSection.Songs) },
@@ -401,6 +410,7 @@ private fun RootScreen(
             onSongPlay = { song: Song, queueSongs: List<Song> ->
                 controller.playSong(song = song, queueSongs = queueSongs)
             },
+            onCurrentSongToggle = controller::togglePlayback,
             onMore = controller::openMore,
             onAlbumOpen = controller::openAlbum,
         )
@@ -409,6 +419,7 @@ private fun RootScreen(
             albums = state.favoriteAlbums,
             artists = state.favoriteArtists,
             currentSongId = state.currentSongId,
+            currentPlaybackStatus = state.playbackStatus,
             section = state.favoriteSection,
             onSection = controller::setFavoriteSection,
             onSongOpen = { song: Song, queueSongs: List<Song> ->
@@ -417,6 +428,7 @@ private fun RootScreen(
             onSongPlay = { song: Song, queueSongs: List<Song> ->
                 controller.playSong(song = song, queueSongs = queueSongs)
             },
+            onCurrentSongToggle = controller::togglePlayback,
             onMore = controller::openMore,
             onLike = controller::toggleFavorite,
             onAlbumOpen = controller::openAlbum,
@@ -782,6 +794,7 @@ private fun AppOverlays(
                     SongRow(
                         song = song,
                         isCurrentSong = song.id == state.currentSongId,
+                        currentPlaybackStatus = state.playbackStatus,
                         onOpen = { selectedSong: Song ->
                             controller.playSong(
                                 song = selectedSong,
@@ -794,6 +807,7 @@ private fun AppOverlays(
                                 queueSongs = queueSongs,
                             )
                         },
+                        onCurrentSongToggle = controller::togglePlayback,
                         onMore = controller::openMore,
                         dense = true,
                     )

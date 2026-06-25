@@ -35,6 +35,7 @@ import com.yanhao.kmpmusic.core.theme.scaledDp
 import com.yanhao.kmpmusic.core.theme.scaledSp
 import com.yanhao.kmpmusic.domain.model.Album
 import com.yanhao.kmpmusic.domain.model.Artist
+import com.yanhao.kmpmusic.domain.model.PlaybackStatus
 import com.yanhao.kmpmusic.domain.model.SearchScope
 import com.yanhao.kmpmusic.domain.model.Song
 import com.yanhao.kmpmusic.domain.usecase.SearchResult
@@ -53,11 +54,13 @@ fun SearchScreen(
     scope: SearchScope,
     result: SearchResult,
     currentSongId: String?,
+    currentPlaybackStatus: PlaybackStatus,
     onBack: () -> Unit,
     onQuery: (String) -> Unit,
     onScope: (SearchScope) -> Unit,
     onSongOpen: (Song, List<Song>) -> Unit,
     onSongPlay: (Song, List<Song>) -> Unit,
+    onCurrentSongToggle: () -> Unit,
     onMore: (Song) -> Unit,
     onAlbumOpen: (Album) -> Unit,
     onArtistOpen: (Artist) -> Unit,
@@ -93,8 +96,10 @@ fun SearchScreen(
                     SongRow(
                         song = song,
                         isCurrentSong = song.id == currentSongId,
+                        currentPlaybackStatus = currentPlaybackStatus,
                         onOpen = { selectedSong: Song -> onSongOpen(selectedSong, displayedSongs) },
                         onPlay = { selectedSong: Song -> onSongPlay(selectedSong, displayedSongs) },
+                        onCurrentSongToggle = onCurrentSongToggle,
                         onMore = onMore,
                         dense = true,
                     )

@@ -11,6 +11,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.yanhao.kmpmusic.domain.model.Album
 import com.yanhao.kmpmusic.domain.model.Artist
+import com.yanhao.kmpmusic.domain.model.PlaybackStatus
 import com.yanhao.kmpmusic.domain.model.Song
 import com.yanhao.kmpmusic.feature.app.FavoriteSection
 import com.yanhao.kmpmusic.feature.components.AlbumCard
@@ -27,10 +28,12 @@ fun FavoritesScreen(
     albums: List<Album>,
     artists: List<Artist>,
     currentSongId: String?,
+    currentPlaybackStatus: PlaybackStatus,
     section: FavoriteSection,
     onSection: (FavoriteSection) -> Unit,
     onSongOpen: (Song, List<Song>) -> Unit,
     onSongPlay: (Song, List<Song>) -> Unit,
+    onCurrentSongToggle: () -> Unit,
     onMore: (Song) -> Unit,
     onLike: (String) -> Unit,
     onAlbumOpen: (Album) -> Unit,
@@ -60,8 +63,10 @@ fun FavoritesScreen(
                     SongRow(
                         song = song,
                         isCurrentSong = song.id == currentSongId,
+                        currentPlaybackStatus = currentPlaybackStatus,
                         onOpen = { selectedSong: Song -> onSongOpen(selectedSong, likedSongs) },
                         onPlay = { selectedSong: Song -> onSongPlay(selectedSong, likedSongs) },
+                        onCurrentSongToggle = onCurrentSongToggle,
                         onMore = onMore,
                         onLike = onLike,
                         dense = true,

@@ -23,6 +23,7 @@ import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material.icons.rounded.FavoriteBorder
 import androidx.compose.material.icons.rounded.MoreVert
+import androidx.compose.material.icons.rounded.Pause
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material3.Icon
@@ -50,6 +51,7 @@ import com.yanhao.kmpmusic.core.theme.scaledDp
 import com.yanhao.kmpmusic.core.theme.scaledSp
 import com.yanhao.kmpmusic.domain.model.Album
 import com.yanhao.kmpmusic.domain.model.Artist
+import com.yanhao.kmpmusic.domain.model.PlaybackStatus
 import com.yanhao.kmpmusic.domain.model.Song
 
 /**
@@ -207,8 +209,10 @@ fun PlayingGlyph(color: Color = MusicColors.Accent) {
 fun SongRow(
     song: Song,
     isCurrentSong: Boolean,
+    currentPlaybackStatus: PlaybackStatus? = null,
     onOpen: (Song) -> Unit,
     onPlay: (Song) -> Unit,
+    onCurrentSongToggle: (() -> Unit)? = null,
     onMore: (Song) -> Unit,
     onLike: ((String) -> Unit)? = null,
     dense: Boolean = false,
@@ -218,6 +222,15 @@ fun SongRow(
     val coverSize: Dp = scaledDp(if (dense) MusicDimens.DenseSongCoverSize else MusicDimens.SongCoverSize)
     val coverShape: RoundedCornerShape = RoundedCornerShape(scaledDp(8.dp))
     val coverShadowElevation: Dp = if (dense) 0.dp else scaledDp(10.dp)
+    val isCurrentSongPlaying: Boolean = isSongRowPlaying(
+        isCurrentSong = isCurrentSong,
+        currentPlaybackStatus = currentPlaybackStatus,
+    )
+    val shouldToggleCurrentSong: Boolean = canSongRowToggleCurrentPlayback(
+        isCurrentSong = isCurrentSong,
+        currentPlaybackStatus = currentPlaybackStatus,
+        onCurrentSongToggle = onCurrentSongToggle,
+    )
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(scaledDp(if (dense) 9.dp else 12.dp)),
@@ -297,10 +310,20 @@ fun SongRow(
             modifier = Modifier.size(scaledDp(42.dp)),
             shape = CircleShape,
             color = MusicColors.Soft,
-            onClick = { onPlay(song) },
+            onClick = {
+                if (shouldToggleCurrentSong) {
+                    onCurrentSongToggle?.invoke()
+                } else {
+                    onPlay(song)
+                }
+            },
         ) {
             Box(contentAlignment = Alignment.Center) {
-                Icon(Icons.Rounded.PlayArrow, contentDescription = "播放 ${song.title}", tint = MusicColors.Ink)
+                Icon(
+                    imageVector = if (isCurrentSongPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
+                    contentDescription = if (isCurrentSongPlaying) "暂停 ${song.title}" else "播放 ${song.title}",
+                    tint = MusicColors.Ink,
+                )
             }
         }
         IconButton(
@@ -310,6 +333,26 @@ fun SongRow(
             Icon(Icons.Rounded.MoreVert, contentDescription = "${song.title} 更多操作", tint = MusicColors.Muted)
         }
     }
+}
+
+// 当前歌曲只有真正播放时才显示暂停，暂停和错误态都保留播放入口。
+private fun isSongRowPlaying(
+    isCurrentSong: Boolean,
+    currentPlaybackStatus: PlaybackStatus?,
+): Boolean {
+    return isCurrentSong && currentPlaybackStatus == PlaybackStatus.Playing
+}
+
+// 当前歌曲的播放/暂停态复用全局控制器切换，错误态走行级播放用于重试。
+private fun canSongRowToggleCurrentPlayback(
+    isCurrentSong: Boolean,
+    currentPlaybackStatus: PlaybackStatus?,
+    onCurrentSongToggle: (() -> Unit)?,
+): Boolean {
+    if (!isCurrentSong || onCurrentSongToggle == null) {
+        return false
+    }
+    return currentPlaybackStatus == PlaybackStatus.Playing || currentPlaybackStatus == PlaybackStatus.Paused
 }
 
 /**
