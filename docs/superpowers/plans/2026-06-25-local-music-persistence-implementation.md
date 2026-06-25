@@ -398,7 +398,7 @@ git commit -m "扩展曲库仓库读取接口"
 - Create: `composeApp/src/commonTest/kotlin/com/yanhao/kmpmusic/data/PersistentMusicLibraryRepositoryTest.kt`
 - Modify: `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/domain/persistence/PlaybackDatabase.kt`
 
-- [ ] **Step 1: Write repository tests with a fake DAO**
+- [x] **Step 1: Write repository tests with a fake DAO**
 
 Create `PersistentMusicLibraryRepositoryTest.kt` with these test names and helpers:
 
@@ -617,7 +617,7 @@ private fun entity(
 }
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run:
 
@@ -627,7 +627,7 @@ Run:
 
 Expected: FAIL because `PersistentMusicLibraryRepository` does not exist.
 
-- [ ] **Step 3: Implement the persistent repository**
+- [x] **Step 3: Implement the persistent repository**
 
 Create `PersistentMusicLibraryRepository.kt`:
 
@@ -854,7 +854,7 @@ class PersistentMusicLibraryRepository(
 }
 ```
 
-- [ ] **Step 4: Run repository tests**
+- [x] **Step 4: Run repository tests**
 
 Run:
 
@@ -864,7 +864,7 @@ Run:
 
 Expected: `BUILD SUCCESSFUL`.
 
-- [ ] **Step 5: Commit persistent repository**
+- [x] **Step 5: Commit persistent repository**
 
 ```bash
 git add composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/data/PersistentMusicLibraryRepository.kt composeApp/src/commonTest/kotlin/com/yanhao/kmpmusic/data/PersistentMusicLibraryRepositoryTest.kt
