@@ -3,6 +3,7 @@ package com.yanhao.kmpmusic.data
 import com.yanhao.kmpmusic.domain.model.CoverArt
 import com.yanhao.kmpmusic.domain.model.LocalMusicScanRequest
 import com.yanhao.kmpmusic.domain.model.LocalMusicScanResult
+import com.yanhao.kmpmusic.domain.model.LocalMusicScanState
 import com.yanhao.kmpmusic.domain.model.LocalMusicSourceKind
 import com.yanhao.kmpmusic.domain.model.LocalMusicSourceSummary
 import com.yanhao.kmpmusic.domain.model.MusicFileMetadata
@@ -179,11 +180,106 @@ class PersistentMusicLibraryRepositoryTest {
         assertSame(expected = sourceSummary, actual = snapshot.sources.single())
     }
 
+    @Test
+    fun multiSourceScanCountsAddedAndUpdatedByEntitySourceOnly(): Unit = runBlocking {
+        val localSongDao: FakeLocalSongDao = FakeLocalSongDao()
+        val repository: PersistentMusicLibraryRepository = PersistentMusicLibraryRepository(
+            localSongDao = localSongDao,
+            favoriteSongDao = FakeFavoriteSongDao(),
+        )
+        localSongDao.upsertSongs(
+            songs = listOf(
+                entity(
+                    id = "androidMediaStore:existing",
+                    sourceId = "existing",
+                    title = "Existing Android",
+                    modifiedAt = 1L,
+                ),
+            ),
+        )
+
+        val snapshot = repository.applyScanResult(
+            request = LocalMusicScanRequest.Refresh,
+            scanResult = LocalMusicScanResult(
+                discovered = listOf(
+                    metadata(
+                        sourceKind = LocalMusicSourceKind.AndroidMediaStore,
+                        sourceId = "existing",
+                        title = "Existing Android Updated",
+                        modifiedAt = 2L,
+                    ),
+                    metadata(
+                        sourceKind = LocalMusicSourceKind.DesktopFolder,
+                        sourceId = "fresh",
+                        title = "Fresh Desktop",
+                        modifiedAt = 3L,
+                    ),
+                ),
+                completedAt = 99L,
+            ),
+            likedSongIds = emptySet(),
+        )
+
+        val summary: LocalMusicScanState.Done = snapshot.scanState as LocalMusicScanState.Done
+        assertEquals(expected = 1, actual = summary.summary.addedCount)
+        assertEquals(expected = 1, actual = summary.summary.updatedCount)
+        assertEquals(expected = 0, actual = summary.summary.removedCount)
+    }
+
+    @Test
+    fun refreshWithoutDiscoveredSongsMarksAllExistingSourcesUnavailable(): Unit = runBlocking {
+        val localSongDao: FakeLocalSongDao = FakeLocalSongDao()
+        val repository: PersistentMusicLibraryRepository = PersistentMusicLibraryRepository(
+            localSongDao = localSongDao,
+            favoriteSongDao = FakeFavoriteSongDao(),
+        )
+        localSongDao.upsertSongs(
+            songs = listOf(
+                entity(
+                    id = "androidMediaStore:gone",
+                    sourceId = "gone",
+                    title = "Gone Android",
+                    modifiedAt = 1L,
+                ),
+                entity(
+                    id = "desktopFolder:gone",
+                    sourceKind = "desktopFolder",
+                    sourceId = "gone",
+                    title = "Gone Desktop",
+                    modifiedAt = 2L,
+                ),
+            ),
+        )
+
+        val snapshot = repository.applyScanResult(
+            request = LocalMusicScanRequest.Refresh,
+            scanResult = LocalMusicScanResult(
+                discovered = emptyList(),
+                sourceSummaries = emptyList(),
+                completedAt = 88L,
+            ),
+            likedSongIds = emptySet(),
+        )
+
+        val summary: LocalMusicScanState.Done = snapshot.scanState as LocalMusicScanState.Done
+        assertFalse(actual = localSongDao.row("androidMediaStore:gone")!!.isAvailable)
+        assertFalse(actual = localSongDao.row("desktopFolder:gone")!!.isAvailable)
+        assertTrue(actual = repository.getAllAvailableSongs().isEmpty())
+        assertEquals(expected = 2, actual = summary.summary.removedCount)
+        assertEquals(expected = 0, actual = summary.summary.addedCount)
+        assertEquals(expected = 0, actual = summary.summary.updatedCount)
+    }
+
     /** 构造扫描结果里的歌曲元数据，保持测试关注仓库行为而非构造细节。 */
-    private fun metadata(sourceId: String, title: String, modifiedAt: Long): MusicFileMetadata {
+    private fun metadata(
+        sourceId: String,
+        title: String,
+        modifiedAt: Long,
+        sourceKind: LocalMusicSourceKind = LocalMusicSourceKind.AndroidMediaStore,
+    ): MusicFileMetadata {
         return MusicFileMetadata(
             sourceId = sourceId,
-            sourceKind = LocalMusicSourceKind.AndroidMediaStore,
+            sourceKind = sourceKind,
             localUri = "content://media/$sourceId",
             fileName = "$title.mp3",
             title = title,
@@ -217,6 +313,14 @@ private class FakeLocalSongDao : LocalSongDao {
         return rows.values
             .filter { entity: LocalSongEntity -> entity.sourceKind == sourceKind && entity.isAvailable }
             .map { entity: LocalSongEntity -> entity.id }
+    }
+
+    /** 返回当前仍可用的来源类型集合，供全量扫描空结果时判定覆盖范围。 */
+    override suspend fun getAvailableSourceKinds(): List<String> {
+        return rows.values
+            .filter { entity: LocalSongEntity -> entity.isAvailable }
+            .map { entity: LocalSongEntity -> entity.sourceKind }
+            .distinct()
     }
 
     /** 覆盖写入歌曲行，保持与 Room 的 replace 语义一致。 */

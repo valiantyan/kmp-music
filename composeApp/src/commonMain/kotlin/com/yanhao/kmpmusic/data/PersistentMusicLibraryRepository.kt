@@ -69,47 +69,43 @@ class PersistentMusicLibraryRepository(
         scanResult: LocalMusicScanResult,
         likedSongIds: Set<String>,
     ): LibrarySnapshot = runBlocking {
-        val coveredSources: Set<LocalMusicSourceKind> = resolveCoveredSources(
+        val coveredSourceKinds: Set<String> = resolveCoveredSourceKinds(
             request = request,
             scanResult = scanResult,
         )
         val discoveredEntities: List<LocalSongEntity> = scanResult.discovered
             .filter { metadata: MusicFileMetadata -> metadata.localUri.isNotBlank() }
             .map { metadata: MusicFileMetadata -> metadata.toEntity(lastScannedAt = scanResult.completedAt) }
-        val previousIdsBySource: Map<LocalMusicSourceKind, Set<String>> = coveredSources.associateWith { sourceKind: LocalMusicSourceKind ->
-            localSongDao.getAvailableSongIdsBySource(sourceKind = sourceKind.value).toSet()
+        val previousIdsBySourceKind: Map<String, Set<String>> = coveredSourceKinds.associateWith { sourceKind: String ->
+            localSongDao.getAvailableSongIdsBySource(sourceKind = sourceKind).toSet()
         }
         localSongDao.upsertSongs(songs = discoveredEntities)
-        coveredSources.forEach { sourceKind: LocalMusicSourceKind ->
+        coveredSourceKinds.forEach { sourceKind: String ->
             val discoveredIds: Set<String> = discoveredEntities
-                .filter { entity: LocalSongEntity -> entity.sourceKind == sourceKind.value }
+                .filter { entity: LocalSongEntity -> entity.sourceKind == sourceKind }
                 .map { entity: LocalSongEntity -> entity.id }
                 .toSet()
-            val missingIds: Set<String> = previousIdsBySource.getValue(sourceKind) - discoveredIds
+            val missingIds: Set<String> = previousIdsBySourceKind.getValue(sourceKind) - discoveredIds
             if (missingIds.isNotEmpty()) {
                 localSongDao.markUnavailable(
-                    sourceKind = sourceKind.value,
+                    sourceKind = sourceKind,
                     songIds = missingIds.toList(),
                 )
             }
         }
         val summary: LocalMusicLastScanSummary = LocalMusicLastScanSummary(
             addedCount = discoveredEntities.count { entity: LocalSongEntity ->
-                coveredSources.any { sourceKind: LocalMusicSourceKind ->
-                    previousIdsBySource[sourceKind]?.contains(element = entity.id) == false
-                }
+                previousIdsBySourceKind[entity.sourceKind]?.contains(element = entity.id) == false
             },
             updatedCount = discoveredEntities.count { entity: LocalSongEntity ->
-                coveredSources.any { sourceKind: LocalMusicSourceKind ->
-                    previousIdsBySource[sourceKind]?.contains(element = entity.id) == true
-                }
+                previousIdsBySourceKind[entity.sourceKind]?.contains(element = entity.id) == true
             },
-            removedCount = coveredSources.sumOf { sourceKind: LocalMusicSourceKind ->
+            removedCount = coveredSourceKinds.sumOf { sourceKind: String ->
                 val discoveredIds: Set<String> = discoveredEntities
-                    .filter { entity: LocalSongEntity -> entity.sourceKind == sourceKind.value }
+                    .filter { entity: LocalSongEntity -> entity.sourceKind == sourceKind }
                     .map { entity: LocalSongEntity -> entity.id }
                     .toSet()
-                (previousIdsBySource.getValue(sourceKind) - discoveredIds).size
+                (previousIdsBySourceKind.getValue(sourceKind) - discoveredIds).size
             },
             problemCount = scanResult.failed.size,
             completedAt = scanResult.completedAt,
@@ -176,23 +172,32 @@ class PersistentMusicLibraryRepository(
     }
 
     /** 根据请求和结果推导本轮覆盖的来源集合，避免跨来源误下线。 */
-    private fun resolveCoveredSources(
+    private suspend fun resolveCoveredSourceKinds(
         request: LocalMusicScanRequest,
         scanResult: LocalMusicScanResult,
-    ): Set<LocalMusicSourceKind> {
-        val fromRequest: Set<LocalMusicSourceKind> = when (request) {
-            is LocalMusicScanRequest.Source -> setOf(element = request.sourceKind)
+    ): Set<String> {
+        val fromRequest: Set<String> = when (request) {
+            is LocalMusicScanRequest.Source -> setOf(element = request.sourceKind.value)
             LocalMusicScanRequest.InitialScan,
             LocalMusicScanRequest.Refresh,
             -> emptySet()
         }
-        val fromSummaries: Set<LocalMusicSourceKind> = scanResult.sourceSummaries
-            .map { source -> source.sourceKind }
+        val fromSummaries: Set<String> = scanResult.sourceSummaries
+            .map { source: LocalMusicSourceSummary -> source.sourceKind.value }
             .toSet()
-        val fromDiscovered: Set<LocalMusicSourceKind> = scanResult.discovered
-            .map { metadata: MusicFileMetadata -> metadata.sourceKind }
+        val fromDiscovered: Set<String> = scanResult.discovered
+            .map { metadata: MusicFileMetadata -> metadata.sourceKind.value }
             .toSet()
-        return fromRequest + fromSummaries + fromDiscovered
+        val explicitSources: Set<String> = fromRequest + fromSummaries + fromDiscovered
+        if (explicitSources.isNotEmpty()) {
+            return explicitSources
+        }
+        return when (request) {
+            LocalMusicScanRequest.InitialScan,
+            LocalMusicScanRequest.Refresh,
+            -> localSongDao.getAvailableSourceKinds().toSet()
+            is LocalMusicScanRequest.Source -> emptySet()
+        }
     }
 
     /** 把扫描元数据转换为可覆盖写入数据库的本地歌曲实体。 */

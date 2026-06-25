@@ -198,6 +198,10 @@ interface LocalSongDao {
     @Query("SELECT id FROM local_song WHERE sourceKind = :sourceKind AND isAvailable = 1")
     suspend fun getAvailableSongIdsBySource(sourceKind: String): List<String>
 
+    /** 读取当前仍有可用歌曲的来源类型，供全量扫描空结果时判定覆盖范围。 */
+    @Query("SELECT DISTINCT sourceKind FROM local_song WHERE isAvailable = 1")
+    suspend fun getAvailableSourceKinds(): List<String>
+
     /** 覆盖写入扫描确认存在的歌曲元数据。 */
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsertSongs(songs: List<LocalSongEntity>)
