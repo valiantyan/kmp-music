@@ -14,10 +14,12 @@ import com.yanhao.kmpmusic.domain.persistence.PlaybackSnapshotStore
 import com.yanhao.kmpmusic.domain.repository.PlaybackRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.joinAll
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 
@@ -44,7 +46,7 @@ class PlaybackCoordinator(
     private val pendingSnapshotWritesLock: Any = Any()
 
     // 当前仍在执行的快照写入任务，避免 Desktop 退出时和数据库 close 发生竞态。
-    private val pendingSnapshotWrites: MutableSet<Job> = linkedSetOf()
+    private val pendingSnapshotWrites: MutableSet<Deferred<Unit>> = linkedSetOf()
 
     // 引擎事件订阅任务。
     private var eventJob: Job? = null
@@ -620,32 +622,26 @@ class PlaybackCoordinator(
 
     /** 在退出前同步落盘最后一份快照，避免宿主提前销毁。 */
     private suspend fun saveSnapshotNowAndAwait() {
-        launchSnapshotWrite().join()
+        saveCurrentSnapshot()
     }
 
     /** 等待当前已发出的快照写入全部完成，供数据库关闭前收口。 */
     suspend fun awaitPendingSnapshotWrites() {
         while (true) {
-            val pendingJobs: List<Job> = synchronized(lock = pendingSnapshotWritesLock) {
+            val pendingJobs: List<Deferred<Unit>> = synchronized(lock = pendingSnapshotWritesLock) {
                 pendingSnapshotWrites.toList()
             }
             if (pendingJobs.isEmpty()) {
                 return
             }
-            pendingJobs.joinAll()
+            pendingJobs.awaitAll()
         }
     }
 
     /** 启动单次快照写入并纳入 pending 集合，避免 teardown 和异步写入交错。 */
-    private fun launchSnapshotWrite(): Job {
-        val job: Job = snapshotWriteScope.launch(start = CoroutineStart.UNDISPATCHED) {
-            playbackSnapshotStore.saveSnapshot(
-                snapshot = PlaybackSnapshot(
-                    playbackState = playbackRepository.getPlaybackState(),
-                    queueState = playbackRepository.getQueueState(),
-                    updatedAt = nowMillis(),
-                ),
-            )
+    private fun launchSnapshotWrite(): Deferred<Unit> {
+        val job: Deferred<Unit> = snapshotWriteScope.async(start = CoroutineStart.UNDISPATCHED) {
+            saveCurrentSnapshot()
         }
         synchronized(lock = pendingSnapshotWritesLock) {
             pendingSnapshotWrites += job
@@ -656,6 +652,17 @@ class PlaybackCoordinator(
             }
         }
         return job
+    }
+
+    /** 读取当前仓库状态并保存快照，供异步写入和退出同步写入复用。 */
+    private suspend fun saveCurrentSnapshot() {
+        playbackSnapshotStore.saveSnapshot(
+            snapshot = PlaybackSnapshot(
+                playbackState = playbackRepository.getPlaybackState(),
+                queueState = playbackRepository.getQueueState(),
+                updatedAt = nowMillis(),
+            ),
+        )
     }
 
     /** 成功进入播放态后清空失败计数，避免旧错误污染新一轮播放。 */

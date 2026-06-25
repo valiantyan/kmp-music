@@ -13,11 +13,13 @@ import com.yanhao.kmpmusic.domain.model.PlaybackStatus
 import com.yanhao.kmpmusic.domain.model.QueueState
 import com.yanhao.kmpmusic.domain.model.Song
 import com.yanhao.kmpmusic.domain.persistence.InMemoryPlaybackSnapshotStore
+import com.yanhao.kmpmusic.domain.persistence.PlaybackSnapshotStore
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
 
 /**
@@ -590,6 +592,44 @@ class PlaybackCoordinatorTest {
     }
 
     /**
+     * 进程退出同步快照必须把落盘失败抛回宿主，避免关闭数据库后误判保存成功。
+     */
+    @Test
+    fun processTeardownPropagatesSnapshotSaveFailure(): Unit = runTest {
+        val repository = InMemoryPlaybackRepository()
+        val coordinator = PlaybackCoordinator(
+            playbackRepository = repository,
+            audioPlayerEngine = FakeAudioPlayerEngine(),
+            playbackSnapshotStore = FailingPlaybackSnapshotStore(),
+            snapshotWriteScope = backgroundScope,
+        )
+        val songs = buildSongs(count = 1)
+        repository.saveQueueState(
+            state = QueueState(
+                songIds = listOf(songs[0].id),
+                currentIndex = 0,
+            ),
+        )
+        repository.savePlaybackState(
+            state = PlaybackState(
+                currentSongId = songs[0].id,
+                status = PlaybackStatus.Playing,
+                positionMs = 12_000L,
+                durationMs = songs[0].durationMs,
+            ),
+        )
+
+        val failure: IllegalStateException = assertFailsWith<IllegalStateException> {
+            coordinator.persistSnapshotForProcessTeardown(
+                positionMs = 24_000L,
+                durationMs = songs[0].durationMs,
+            )
+        }
+
+        assertEquals(expected = "snapshot write failed", actual = failure.message)
+    }
+
+    /**
      * 构造本地歌曲样本，避免测试依赖 UI seed 数据。
      */
     private fun buildSongs(count: Int): List<Song> {
@@ -612,6 +652,31 @@ class PlaybackCoordinatorTest {
                 localUri = "content://media/external/audio/media/$index",
                 mimeType = "audio/mpeg",
             )
+        }
+    }
+
+    /**
+     * 专门用于 teardown 失败路径，确保协调器不会吞掉持久化异常。
+     */
+    private class FailingPlaybackSnapshotStore : PlaybackSnapshotStore {
+        /** 永远抛出保存失败，模拟 Room 关闭前的真实写入异常。 */
+        override suspend fun saveSnapshot(snapshot: PlaybackSnapshot) {
+            throw IllegalStateException("snapshot write failed")
+        }
+
+        /** 测试不需要恢复入口。 */
+        override suspend fun hasSavedSnapshot(): Boolean {
+            return false
+        }
+
+        /** 测试不需要队列入口。 */
+        override suspend fun getSavedQueueSongIds(): List<String> {
+            return emptyList()
+        }
+
+        /** 测试不需要恢复入口。 */
+        override suspend fun restoreSnapshot(availableSongIds: Set<String>): PlaybackSnapshot {
+            return PlaybackSnapshot()
         }
     }
 }
