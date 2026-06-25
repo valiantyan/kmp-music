@@ -36,7 +36,7 @@
 - Modify: `composeApp/src/androidMain/kotlin/com/yanhao/kmpmusic/data/AndroidPlaybackDatabase.kt`
 - Generated: `composeApp/schemas/com.yanhao.kmpmusic.domain.persistence.PlaybackDatabase/2.json`
 
-- [ ] **Step 1: Add the `local_song` entity and DAO**
+- [x] **Step 1: Add the `local_song` entity and DAO**
 
 Add this import:
 
@@ -168,7 +168,7 @@ Add the DAO accessor:
 abstract fun localSongDao(): LocalSongDao
 ```
 
-- [ ] **Step 2: Add the migration**
+- [x] **Step 2: Add the migration**
 
 Create `PlaybackDatabaseMigrations.kt`:
 
@@ -223,7 +223,7 @@ private fun SQLiteConnection.execSql(sql: String) {
 }
 ```
 
-- [ ] **Step 3: Register the migration**
+- [x] **Step 3: Register the migration**
 
 Modify `AndroidPlaybackDatabase.kt`:
 
@@ -243,7 +243,7 @@ fun createPlaybackDatabase(builder: RoomDatabase.Builder<PlaybackDatabase>): Pla
 }
 ```
 
-- [ ] **Step 4: Run compile to generate schema 2**
+- [x] **Step 4: Run compile to generate schema 2**
 
 Run:
 
@@ -253,7 +253,7 @@ Run:
 
 Expected: `BUILD SUCCESSFUL` and `composeApp/schemas/com.yanhao.kmpmusic.domain.persistence.PlaybackDatabase/2.json` exists. If Room reports a schema mismatch, align the migration SQL and entity fields before continuing.
 
-- [ ] **Step 5: Commit schema work**
+- [x] **Step 5: Commit schema work**
 
 ```bash
 git add composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/domain/persistence/PlaybackDatabase.kt composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/domain/persistence/PlaybackDatabaseMigrations.kt composeApp/src/androidMain/kotlin/com/yanhao/kmpmusic/data/AndroidPlaybackDatabase.kt composeApp/schemas/com.yanhao.kmpmusic.domain.persistence.PlaybackDatabase/2.json
@@ -268,7 +268,7 @@ git commit -m "添加本地歌曲数据库表"
 - Modify: `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/domain/usecase/ScanLocalMusicUseCase.kt`
 - Test: `composeApp/src/commonTest/kotlin/com/yanhao/kmpmusic/domain/usecase/MergeLocalMusicScanResultUseCaseTest.kt`
 
-- [ ] **Step 1: Expand the repository contract**
+- [x] **Step 1: Expand the repository contract**
 
 Replace `MusicLibraryRepository` with:
 
@@ -317,7 +317,7 @@ interface MusicLibraryRepository {
 }
 ```
 
-- [ ] **Step 2: Update the in-memory repository**
+- [x] **Step 2: Update the in-memory repository**
 
 In `InMemoryMusicLibraryRepository.kt`, keep the current `snapshot` field and add:
 
@@ -362,7 +362,7 @@ import com.yanhao.kmpmusic.domain.model.LocalMusicScanRequest
 import com.yanhao.kmpmusic.domain.model.Song
 ```
 
-- [ ] **Step 3: Pass scan request through the use case**
+- [x] **Step 3: Pass scan request through the use case**
 
 In `ScanLocalMusicUseCaseImpl.invoke`, replace the repository call:
 
@@ -374,7 +374,7 @@ return musicLibraryRepository.applyScanResult(
 )
 ```
 
-- [ ] **Step 4: Run existing scan use case test**
+- [x] **Step 4: Run existing scan use case test**
 
 Run:
 
@@ -384,7 +384,7 @@ Run:
 
 Expected: `BUILD SUCCESSFUL`.
 
-- [ ] **Step 5: Commit interface compatibility**
+- [x] **Step 5: Commit interface compatibility**
 
 ```bash
 git add composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/domain/repository/MusicLibraryRepository.kt composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/data/InMemoryMusicLibraryRepository.kt composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/domain/usecase/ScanLocalMusicUseCase.kt
