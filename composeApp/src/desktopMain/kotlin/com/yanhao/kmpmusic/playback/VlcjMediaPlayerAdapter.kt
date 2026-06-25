@@ -152,17 +152,11 @@ class VlcjMediaPlayerAdapter(
         component.mediaPlayer().controls().stop()
     }
 
-    override suspend fun currentPositionMs(): Long {
-        return currentPositionMsValue(mediaPlayer = component.mediaPlayer())
-    }
+    override suspend fun currentPositionMs(): Long = currentPositionMsValue(mediaPlayer = component.mediaPlayer())
 
-    override suspend fun currentDurationMs(): Long? {
-        return currentDurationMsValue(mediaPlayer = component.mediaPlayer())
-    }
+    override suspend fun currentDurationMs(): Long? = currentDurationMsValue(mediaPlayer = component.mediaPlayer())
 
-    override suspend fun release() {
-        component.release()
-    }
+    override suspend fun release() = component.release()
 
     private fun currentPositionMsValue(mediaPlayer: MediaPlayer): Long {
         return mediaPlayer.status().time().coerceAtLeast(minimumValue = 0L)
