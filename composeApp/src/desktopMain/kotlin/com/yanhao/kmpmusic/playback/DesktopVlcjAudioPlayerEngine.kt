@@ -461,6 +461,7 @@ class DesktopVlcjAudioPlayerEngine(
             ),
         )
         adapter.prepare(
+            songId = media.songId,
             mediaUri = media.localUri,
             generation = activeGeneration,
             startPositionMs = startPositionMs,

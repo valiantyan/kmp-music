@@ -16,13 +16,14 @@ class FakeDesktopMediaPlayerAdapter : DesktopMediaPlayerAdapter {
     override val events: Flow<DesktopMediaPlayerEvent> = eventChannel.receiveAsFlow()
 
     override suspend fun prepare(
+        songId: String,
         mediaUri: String,
         generation: Long,
         startPositionMs: Long,
         pluginPath: String?,
     ) {
         positionMs = startPositionMs
-        commands += "prepare:$mediaUri:$generation:$startPositionMs"
+        commands += "prepare:$songId:$mediaUri:$generation:$startPositionMs"
     }
 
     override suspend fun play(generation: Long) {

@@ -13,12 +13,14 @@ interface DesktopMediaPlayerAdapter {
     /**
      * 准备单个音频媒体。
      *
+     * @param songId 当前媒体对应的歌曲标识，用于错误归因。
      * @param mediaUri 媒体 URI。
      * @param generation 请求该工作的媒体代号。
      * @param startPositionMs 起始进度，单位毫秒。
      * @param pluginPath vlcj 插件目录路径，桌面端可为空。
      */
     suspend fun prepare(
+        songId: String,
         mediaUri: String,
         generation: Long,
         startPositionMs: Long,

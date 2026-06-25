@@ -17,6 +17,7 @@ class FakeDesktopMediaPlayerAdapterTest {
         }
 
         adapter.prepare(
+            songId = "song-1",
             mediaUri = "file:///Users/test/Music/song.mp3",
             generation = 7L,
             startPositionMs = 12_000L,
@@ -29,7 +30,7 @@ class FakeDesktopMediaPlayerAdapterTest {
 
         assertEquals(
             expected = listOf(
-                "prepare:file:///Users/test/Music/song.mp3:7:12000",
+                "prepare:song-1:file:///Users/test/Music/song.mp3:7:12000",
                 "play:7",
             ),
             actual = adapter.commands,

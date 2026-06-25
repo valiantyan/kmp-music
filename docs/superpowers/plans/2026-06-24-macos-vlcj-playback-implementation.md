@@ -1202,7 +1202,7 @@ git commit -m "添加 macOS LibVLC 运行时发现"
 - Create: `composeApp/src/desktopMain/kotlin/com/yanhao/kmpmusic/playback/VlcjMediaPlayerAdapter.kt`
 - Modify: `composeApp/src/desktopMain/kotlin/com/yanhao/kmpmusic/playback/DesktopVlcjAudioPlayerEngine.kt`
 
-- [ ] **Step 1: Add compile-only usage of the vlcj adapter**
+- [x] **Step 1: Add compile-only usage of the vlcj adapter**
 
 Create `composeApp/src/desktopMain/kotlin/com/yanhao/kmpmusic/playback/VlcjMediaPlayerAdapter.kt`:
 
@@ -1401,7 +1401,7 @@ class VlcjMediaPlayerAdapter(
 }
 ```
 
-- [ ] **Step 2: Add song id propagation from the engine**
+- [x] **Step 2: Add song id propagation from the engine**
 
 Modify `DesktopMediaPlayerAdapter.prepare` in `DesktopMediaPlayerAdapter.kt` to include `songId`:
 
@@ -1524,7 +1524,7 @@ private fun String.toPlaybackError(songId: String): PlaybackError {
 }
 ```
 
-- [ ] **Step 3: Compile Desktop main**
+- [x] **Step 3: Compile Desktop main**
 
 Run:
 
@@ -1534,7 +1534,7 @@ Run:
 
 Expected: PASS.
 
-- [ ] **Step 4: Rerun desktop playback tests after signature changes**
+- [x] **Step 4: Rerun desktop playback tests after signature changes**
 
 Run:
 
@@ -1544,7 +1544,7 @@ Run:
 
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add composeApp/src/desktopMain/kotlin/com/yanhao/kmpmusic/playback composeApp/src/desktopTest/kotlin/com/yanhao/kmpmusic/playback
