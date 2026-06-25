@@ -218,7 +218,7 @@ interface LocalSongDao {
     @Query(
         """
         SELECT COUNT(*) FROM (
-            SELECT DISTINCT LOWER(TRIM(COALESCE(album, '未知专辑'))) AS albumKey
+            SELECT DISTINCT LOWER(COALESCE(NULLIF(TRIM(album), ''), '未知专辑')) AS albumKey
             FROM local_song
             WHERE isAvailable = 1
         )
@@ -230,7 +230,7 @@ interface LocalSongDao {
     @Query(
         """
         SELECT COUNT(*) FROM (
-            SELECT DISTINCT LOWER(TRIM(COALESCE(artist, '未知歌手'))) AS artistKey
+            SELECT DISTINCT LOWER(COALESCE(NULLIF(TRIM(artist), ''), '未知歌手')) AS artistKey
             FROM local_song
             WHERE isAvailable = 1
         )

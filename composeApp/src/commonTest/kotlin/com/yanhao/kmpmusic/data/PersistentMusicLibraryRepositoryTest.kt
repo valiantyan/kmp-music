@@ -270,6 +270,49 @@ class PersistentMusicLibraryRepositoryTest {
         assertEquals(expected = 0, actual = summary.summary.updatedCount)
     }
 
+    @Test
+    fun snapshotStatsCountBlankAlbumAndArtistAsSingleUnknownGroup(): Unit = runBlocking {
+        val localSongDao: FakeLocalSongDao = FakeLocalSongDao()
+        val repository: PersistentMusicLibraryRepository = PersistentMusicLibraryRepository(
+            localSongDao = localSongDao,
+            favoriteSongDao = FakeFavoriteSongDao(),
+        )
+        localSongDao.upsertSongs(
+            songs = listOf(
+                entity(
+                    id = "androidMediaStore:null-metadata",
+                    title = "Null Metadata",
+                    modifiedAt = 1L,
+                    artist = null,
+                    album = null,
+                ),
+                entity(
+                    id = "androidMediaStore:empty-metadata",
+                    title = "Empty Metadata",
+                    modifiedAt = 2L,
+                    artist = "",
+                    album = "",
+                ),
+                entity(
+                    id = "androidMediaStore:blank-metadata",
+                    title = "Blank Metadata",
+                    modifiedAt = 3L,
+                    artist = "   ",
+                    album = "  \t  ",
+                ),
+            ),
+        )
+
+        val snapshot = repository.getSnapshot()
+
+        assertEquals(expected = 1, actual = snapshot.albums.size)
+        assertEquals(expected = "未知专辑", actual = snapshot.albums.single().title)
+        assertEquals(expected = 1, actual = snapshot.artists.size)
+        assertEquals(expected = "未知歌手", actual = snapshot.artists.single().name)
+        assertEquals(expected = 1, actual = snapshot.stats.albumCount)
+        assertEquals(expected = 1, actual = snapshot.stats.artistCount)
+    }
+
     /** 构造扫描结果里的歌曲元数据，保持测试关注仓库行为而非构造细节。 */
     private fun metadata(
         sourceId: String,
@@ -349,7 +392,7 @@ private class FakeLocalSongDao : LocalSongDao {
     override suspend fun countAvailableAlbums(): Int {
         return rows.values
             .filter { entity: LocalSongEntity -> entity.isAvailable }
-            .map { entity: LocalSongEntity -> (entity.album ?: "未知专辑").trim().lowercase() }
+            .map { entity: LocalSongEntity -> normalizeAlbumKey(album = entity.album) }
             .toSet()
             .size
     }
@@ -358,7 +401,7 @@ private class FakeLocalSongDao : LocalSongDao {
     override suspend fun countAvailableArtists(): Int {
         return rows.values
             .filter { entity: LocalSongEntity -> entity.isAvailable }
-            .map { entity: LocalSongEntity -> (entity.artist ?: "未知歌手").trim().lowercase() }
+            .map { entity: LocalSongEntity -> normalizeArtistKey(artist = entity.artist) }
             .toSet()
             .size
     }
@@ -377,6 +420,16 @@ private class FakeLocalSongDao : LocalSongDao {
                     (entity.title ?: entity.fileName).lowercase()
                 },
             )
+    }
+
+    /** 统一模拟 SQL 中专辑统计的空白兜底规则，避免测试口径漂移。 */
+    private fun normalizeAlbumKey(album: String?): String {
+        return album?.trim()?.takeIf { value: String -> value.isNotEmpty() }?.lowercase() ?: "未知专辑"
+    }
+
+    /** 统一模拟 SQL 中歌手统计的空白兜底规则，避免测试口径漂移。 */
+    private fun normalizeArtistKey(artist: String?): String {
+        return artist?.trim()?.takeIf { value: String -> value.isNotEmpty() }?.lowercase() ?: "未知歌手"
     }
 }
 
@@ -405,6 +458,8 @@ private fun entity(
     sourceId: String = id.substringAfter(delimiter = ":"),
     title: String,
     modifiedAt: Long,
+    artist: String? = "Artist",
+    album: String? = "Album",
 ): LocalSongEntity {
     return LocalSongEntity(
         id = id,
@@ -413,8 +468,8 @@ private fun entity(
         localUri = "content://media/$sourceId",
         fileName = "$title.mp3",
         title = title,
-        artist = "Artist",
-        album = "Album",
+        artist = artist,
+        album = album,
         durationMs = 180_000L,
         mimeType = "audio/mpeg",
         sizeBytes = 1_000L,
