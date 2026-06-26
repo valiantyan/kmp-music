@@ -41,7 +41,7 @@ This plan covers one project: macOS Desktop UI 1:1 reproduction from the HTML pr
 - Create: `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/desktop/DesktopMusicApp.kt`
 - Modify: `composeApp/src/desktopMain/kotlin/com/yanhao/kmpmusic/DesktopMain.kt`
 
-- [ ] **Step 1: Create Desktop token file**
+- [x] **Step 1: Create Desktop token file**
 
 Create `DesktopMusicTokens.kt` with the following initial content:
 
@@ -119,7 +119,7 @@ fun desktopPageHorizontalPadding(width: Dp): Dp {
 }
 ```
 
-- [ ] **Step 2: Create a compile-safe Desktop shell stub**
+- [x] **Step 2: Create a compile-safe Desktop shell stub**
 
 Create `DesktopMusicApp.kt` with this minimal shell. It intentionally renders only the main grid and a smoke text so the window can switch away from the mobile surface before full UI components are added.
 
@@ -160,7 +160,7 @@ fun DesktopMusicApp(
 }
 ```
 
-- [ ] **Step 3: Route DesktopMain to the Desktop shell**
+- [x] **Step 3: Route DesktopMain to the Desktop shell**
 
 Modify `DesktopMain.kt` to import `DesktopMusicApp`, use Desktop window dimensions, and stop calling mobile `App`:
 
@@ -197,7 +197,7 @@ fun main() = application {
 }
 ```
 
-- [ ] **Step 4: Compile Desktop Kotlin**
+- [x] **Step 4: Compile Desktop Kotlin**
 
 Run:
 
@@ -207,7 +207,7 @@ Run:
 
 Expected: build succeeds. The Desktop target is declared as `jvm("desktop")` in `composeApp/build.gradle.kts`, so the compile task is `:composeApp:compileKotlinDesktop`.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/desktop/DesktopMusicTokens.kt \

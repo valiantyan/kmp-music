@@ -4,7 +4,8 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.WindowState
 import androidx.compose.ui.window.application
-import androidx.compose.ui.unit.dp
+import com.yanhao.kmpmusic.feature.desktop.DesktopMusicApp
+import com.yanhao.kmpmusic.feature.desktop.DesktopMusicDimens
 
 /**
  * Desktop 入口。
@@ -16,11 +17,14 @@ fun main() = application {
             exitApplication()
         },
         title = "KMP Music",
-        state = WindowState(width = 430.dp, height = 930.dp),
+        state = WindowState(
+            width = DesktopMusicDimens.DefaultWindowWidth,
+            height = DesktopMusicDimens.DefaultWindowHeight,
+        ),
     ) {
         LaunchedEffect(Unit) {
             DesktopPlaybackSession.ensurePlaybackSnapshotRestoreRequested()
         }
-        App(controller = DesktopPlaybackSession.controller)
+        DesktopMusicApp(controller = DesktopPlaybackSession.controller)
     }
 }
