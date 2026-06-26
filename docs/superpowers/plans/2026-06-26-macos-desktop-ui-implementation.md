@@ -912,7 +912,7 @@ git commit -m "接入桌面播放器与状态测试"
 - Modify: `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/desktop/DesktopMusicComponents.kt`
 - Modify: `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/desktop/DesktopMusicApp.kt`
 
-- [ ] **Step 1: Add table, album, segmented, and settings components**
+- [x] **Step 1: Add table, album, segmented, and settings components**
 
 Extend `DesktopMusicComponents.kt` with these components:
 
@@ -1077,7 +1077,7 @@ private fun DesktopSongTableRow(
 }
 ```
 
-- [ ] **Step 2: Create Desktop root screens**
+- [x] **Step 2: Create Desktop root screens**
 
 Create `DesktopMusicScreens.kt` with root screens:
 
@@ -1229,7 +1229,7 @@ fun DesktopEmptyStateScreen(
 }
 ```
 
-- [ ] **Step 3: Wire root screens into DesktopMusicApp**
+- [x] **Step 3: Wire root screens into DesktopMusicApp**
 
 In `DesktopMusicApp.kt`, replace the temporary workspace `Text` with a `DesktopWorkspace` composable call:
 
@@ -1328,7 +1328,7 @@ private fun DesktopWorkspace(
 }
 ```
 
-- [ ] **Step 4: Compile**
+- [x] **Step 4: Compile**
 
 Run:
 
@@ -1338,7 +1338,7 @@ Run:
 
 Expected: Desktop compile passes and root pages render through Desktop shell.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/desktop/DesktopMusicComponents.kt \
