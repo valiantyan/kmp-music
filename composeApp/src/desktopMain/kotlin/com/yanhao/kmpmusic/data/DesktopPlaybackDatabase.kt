@@ -2,6 +2,7 @@ package com.yanhao.kmpmusic.data
 
 import androidx.room3.Room
 import com.yanhao.kmpmusic.domain.persistence.PlaybackDatabase
+import com.yanhao.kmpmusic.domain.persistence.PlaybackDatabaseConstructor
 import java.io.File
 
 /**
@@ -29,6 +30,7 @@ internal fun createDesktopPlaybackDatabaseAtPath(databasePath: String): Playback
     return createPlaybackDatabase(
         builder = Room.databaseBuilder<PlaybackDatabase>(
             name = databasePath,
+            factory = PlaybackDatabaseConstructor::initialize,
         ),
     )
 }

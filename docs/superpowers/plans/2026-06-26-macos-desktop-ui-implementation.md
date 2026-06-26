@@ -1715,7 +1715,7 @@ git commit -m "补齐桌面版二级页面与浮层"
 - Inspect and modify after visual verification: `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/desktop/DesktopMusicApp.kt`
 - Inspect only unless overlay access fails: `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/app/MusicApp.kt`
 
-- [ ] **Step 1: Run full Desktop verification**
+- [x] **Step 1: Run full Desktop verification**
 
 Run:
 
@@ -1725,7 +1725,7 @@ Run:
 
 Expected: tests and Desktop compile pass.
 
-- [ ] **Step 2: Launch Desktop app for visual check**
+- [x] **Step 2: Launch Desktop app for visual check**
 
 Run the Desktop application task configured in `composeApp/build.gradle.kts`:
 
@@ -1735,7 +1735,7 @@ Run the Desktop application task configured in `composeApp/build.gradle.kts`:
 
 Expected: the macOS window opens at Desktop dimensions and no longer shows the 430dp mobile shell.
 
-- [ ] **Step 3: Check three viewport sizes against the HTML**
+- [x] **Step 3: Check three viewport sizes against the HTML**
 
 Manually resize the Desktop app to:
 
@@ -1753,7 +1753,7 @@ For each size, verify:
 - Settings page uses a `210px` left category column.
 - At smaller width, album grid reduces density and text does not overlap.
 
-- [ ] **Step 4: Run Android compile to guard mobile breakage**
+- [x] **Step 4: Run Android compile to guard mobile breakage**
 
 Run:
 
@@ -1763,7 +1763,7 @@ Run:
 
 Expected: Android compile passes. This is required because Desktop UI files are in `commonMain` but must not break Android/iOS compilation even though they are not called by mobile entry points.
 
-- [ ] **Step 5: Final git status check**
+- [x] **Step 5: Final git status check**
 
 Run:
 
@@ -1773,7 +1773,7 @@ git status --short --branch
 
 Expected: only intentional Desktop UI files are modified. `prototypes/kmp-music-desktop-uiux/` may remain untracked if it was already untracked before implementation; do not add it unless the user explicitly asks to track the prototype.
 
-- [ ] **Step 6: Commit final polish**
+- [x] **Step 6: Commit final polish**
 
 ```bash
 git add composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/desktop \
