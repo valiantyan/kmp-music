@@ -27,6 +27,16 @@ KMP Music 已经完成 Android 真实播放链路：App 内控制、队列、播
 - `SEAbdulbasit/MusicApp-KMP` vlcj 依赖：https://github.com/SEAbdulbasit/MusicApp-KMP/blob/ac05ceb542967fbe1ac09d0e0ba86c4c18effc4d/shared/build.gradle.kts#L107-L110
 - vlcj 项目：https://github.com/caprica/vlcj
 - Maven Central vlcj：https://central.sonatype.com/artifact/uk.co.caprica/vlcj
+- Maven Central metadata：https://repo1.maven.org/maven2/uk/co/caprica/vlcj/maven-metadata.xml
+- VideoLAN macOS 最新稳定包目录：https://download.videolan.org/pub/videolan/vlc/last/macosx/
+- VideoLAN 法务与再分发说明：https://www.videolan.org/legal.html
+- Apple 公证指南：https://developer.apple.com/documentation/security/notarizing-macos-software-before-distribution
+- Apple Code Signing Guide：https://developer.apple.com/library/archive/documentation/Security/Conceptual/CodeSigningGuide/Procedures/Procedures.html
+- Apple TN2206 Code Signing In Depth：https://developer.apple.com/library/archive/technotes/tn2206/_index.html
+
+截至 2026-06-24，Maven Central metadata 显示 `uk.co.caprica:vlcj` 最新 release 字段是 `5.0.0-M4`，但这是 milestone；`4.x` 稳定线最新非 milestone 版本是 `4.12.1`。Caprica 项目页仍以 vlcj 4 为正式使用示例，并明确 vlcj 5 / LibVLC 4 仍属于开发中路线。本项目首版应使用 `uk.co.caprica:vlcj:4.12.1`，不把 `5.0.0-M*` 作为生产依赖。
+
+截至 2026-06-24，VideoLAN 官方 macOS 最新稳定包目录指向 `vlc-3.0.23-arm64.dmg`、`vlc-3.0.23-intel64.dmg` 和 `vlc-3.0.23-universal.dmg`。本轮只支持 Apple Silicon，因此正式 LibVLC 运行时来源固定为官方 `vlc-3.0.23-arm64.dmg`。官方 SHA-256 为 `fc6fac08d87f538517d44aca0c5e7a244b67c8c4cb589bf478363a7315fd5e0d`，并在供应链记录中保存下载 URL、`.sha256`、`.asc`、提取日期、架构、授权文件和源码获取说明。
 
 ## 范围
 
@@ -75,6 +85,8 @@ MusicApp UI
 - `commonMain` 不出现 JavaFX、vlcj、LibVLC、macOS 文件系统探测或打包路径。
 - `desktopMain` 不直接修改 UI state，只通过 `PlaybackEngineEvent` 回流播放事实。
 
+macOS 首版必须使用 headless / callback 路线：`DesktopVlcjAudioPlayerEngine` 可以使用 `CallbackMediaPlayerComponent` 或更低层的 audio-only vlcj adapter，但不得使用 `EmbeddedMediaPlayerComponent`、AWT/Swing 视频 surface 或窗口嵌入组件。原因是本轮只做音频播放，Compose Desktop 不需要 native video peer；引入 embedded AWT 组件会把窗口生命周期、焦点、线程和空白 surface 风险带入首版。未来如果要做视频或可视化，应另开设计，不复用本轮 audio-only engine 决策。
+
 ## Desktop 会话
 
 新增轻量桌面进程级会话，例如 `DesktopPlaybackSession`。它对应 Android 的 `AndroidPlaybackSession`，但不包含 service、通知或系统媒体协议。
@@ -97,16 +109,36 @@ MusicApp UI
 正式交付策略：
 
 - macOS Apple Silicon DMG 内置 LibVLC 运行时文件。
-- App 启动或首次播放初始化时，优先从应用包内的固定目录发现 LibVLC。
-- `NativeDiscovery` 可作为辅助，但不能只依赖系统已安装 VLC。
+- App 启动或首次播放初始化时，优先且必须从应用包内固定目录发现 LibVLC。
+- 正式包的 LibVLC 来源固定为 VideoLAN 官方 `vlc-3.0.23-arm64.dmg`，SHA-256 必须匹配 `fc6fac08d87f538517d44aca0c5e7a244b67c8c4cb589bf478363a7315fd5e0d`；升级版本必须单独评审并更新来源记录。
+- 构建脚本应先校验官方 `.sha256`，再从官方 DMG 提取 LibVLC 运行时文件；供应链记录必须包含 URL、文件名、SHA-256、签名校验结果、架构、提取时间和授权说明。
+- App 包内建议目录为 `KMP Music.app/Contents/Frameworks/LibVLC/`，其中保留 `lib/`、`plugins/` 和运行所需的同级动态库结构。
+- engine 初始化时显式配置 bundle 内 library path 与 plugin path，例如通过 vlcj/JNA library search path 和 LibVLC `--plugin-path` 参数，不能依赖全局 `DYLD_LIBRARY_PATH`。
+- `NativeDiscovery` 可作为开发辅助，但 release 构建中不能只依赖系统已安装 VLC。
 - 开发环境允许 fallback 到 `/Applications/VLC.app` 或本机 LibVLC，用于快速验证。
-- 用户交付环境不要求安装 VLC。
+- 用户交付环境不要求安装 VLC，也不提示用户去安装 VLC。
 
 错误策略：
 
 - 内置 LibVLC 缺失、架构不匹配或加载失败时，engine 发出 `PlaybackErrorType.EngineUnavailable`。
 - UI 错误文案应指向“播放器组件不可用，请重新安装应用或联系开发者”，而不是要求普通用户理解 LibVLC。
 - 设计和打包记录必须保留 LibVLC 来源、版本、架构和授权说明。
+
+授权和合规策略：
+
+- VideoLAN 允许在遵守对应开源许可证的前提下再分发；打包产物必须附带 VLC/LibVLC 的 `COPYING`、第三方库授权和源码获取说明。
+- `vlcj` 默认是 GPL v3 or later；如果 KMP Music 未来不是 GPL 兼容分发，必须在实施前确认商业授权或替代依赖路线。
+- 许可证检查是发布阻断项，不能在 DMG 验收后补。
+
+签名与公证策略：
+
+- 所有 LibVLC 相关 Mach-O 动态库、可执行文件、framework 或 bundle 都属于嵌套代码，必须先完成签名，再签名外层 App，最后签名/公证 DMG。
+- 动态库必须位于 App bundle 内的标准代码位置，优先 `Contents/Frameworks/LibVLC/`；不得让主程序或任一嵌套库通过绝对路径、Homebrew 路径或 App 外 `@rpath` 加载动态库。
+- 打包阶段必须用 `install_name_tool` 或等价方式把动态库依赖修正为 bundle 内相对路径，例如 `@loader_path` 或受控 `@rpath`，再执行签名。
+- release 签名使用 Developer ID Application 证书、Hardened Runtime 和 secure timestamp；公证使用 `notarytool`，成功后对 DMG 或 App staple ticket。
+- 优先把提取出的 LibVLC 运行时用本项目 Developer ID 重新签名，减少 Hardened Runtime library validation 风险；只有确认无法同一团队签名时，才评估 `com.apple.security.cs.disable-library-validation` entitlement。
+- 签名后不得修改 App bundle 内容；授权文件、来源记录和 LibVLC 文件必须在签名前写入。
+- 发布验收必须运行 `codesign --verify --deep --strict --verbose=2`、`spctl -a -t exec -vv`、`otool -L` 外部路径检查，以及隔离属性下的首次启动测试。
 
 ## 播放行为
 
@@ -125,6 +157,28 @@ MusicApp UI
 - `seekTo(positionMs)` 调用 vlcj 时间跳转，立即补发一次 `ProgressChanged`。
 - `skipToIndex(index)` 只切换到底层目标媒体并准备，不自行决定下一首业务规则。
 - `stop()` 停止播放、停止进度轮询并释放当前播放状态。
+
+### Desktop Engine Command Serialization
+
+业界成熟播放器处理快速连续 seek / skip 的核心规则不是让每个按钮回调直接碰底层 player，而是把播放引擎变成单一状态机：一个 owner、一个串行命令队列、明确的 generation token、过期事件丢弃。vlcj 自身也强调会把异步 native events 串行分发，避免错误事件处理造成死锁；本项目还需要在 engine 层再做一次业务命令串行，避免 `PlaybackCoordinator` 快速发出 `skipToIndex -> seekTo -> play` 时和 LibVLC 异步回调交错。
+
+`DesktopVlcjAudioPlayerEngine` 必须满足以下规则：
+
+- 所有公开命令，包括 `setQueue`、`play`、`pause`、`seekTo`、`skipToIndex`、`stop` 和 `release`，统一进入 engine 私有 serial dispatcher / actor / channel；任何 UI 线程、controller 线程或 vlcj callback 线程都不直接调用 LibVLC 控制 API。
+- `setQueue`、`skipToIndex` 和底层 media prepare 会创建新的 media generation；vlcj 回调、progress tick 和错误事件必须携带或能映射到当前 generation，过期 generation 的事件全部丢弃。
+- `skipToIndex` 优先级高于 `seekTo`：切歌会取消旧媒体上的 pending seek、pending play 和 progress tick；新媒体准备完成后只应用新媒体自己的 `startPositionMs` 或最新 pending seek。
+- `seekTo` 使用 latest-wins 规则：同一媒体连续拖动时只保留最后一次 seek 位置；底层 seek 未完成期间到来的旧 seek 结果不能把 UI 进度倒退。
+- `play()` 在媒体尚未 ready 时只设置 `pendingPlay = true`；真正调用底层 play 的时机是当前 generation 准备完成之后。`pause()` 必须清除 `pendingPlay`。
+- `stop()` 和 `release()` 是栅栏命令，会使当前 generation 失效，并取消 pending seek / pending play / progress polling。
+- vlcj `playing`、`paused`、`finished`、`error` 等回调线程只投递事件到 serial dispatcher，不在回调内 re-enter LibVLC。
+- engine 向 common 层发出的 `CurrentMediaChanged`、`StatusChanged`、`ProgressChanged`、`Ended` 和 `Error` 必须按当前 generation 线性化后的事实发出。
+
+需要新增 fake adapter 测试覆盖：
+
+- 连续 20 次 `seekTo` 只保留最后一次进度。
+- `skipToIndex(A) -> seekTo(old) -> skipToIndex(B) -> play()` 不会把 A 的 seek 或 playing 事件应用到 B。
+- `play() -> pause()` 在媒体 ready 前连续触发时，最终状态为暂停且不自动播放。
+- release 后到达的 delayed callback 不再更新状态或发出错误。
 
 自然结束：
 
@@ -155,6 +209,20 @@ MusicApp UI
 | vlcj 只给出泛化 error 且无法判定原因 | `Unknown` |
 
 失败事件必须包含当前 `songId`，无法定位时才允许为 `null`。连续失败跳过、单曲循环失败阈值和错误保留规则继续复用 `PlaybackCoordinator`。
+
+## User-facing Error Actions
+
+错误类型不只用于日志，也要定义用户能采取的行动。UI 文案要说人话，诊断细节留在日志和 debug 信息里。
+
+| common 错误 | 用户文案 | 用户行动 | 播放行为 |
+| --- | --- | --- | --- |
+| `EngineUnavailable` | 播放器组件不可用，请重新安装应用或联系开发者。 | 不提示安装 VLC；允许用户重试一次，仍失败则保留错误。 | 停止当前播放，不自动跳过。 |
+| `MissingFile` | 文件不存在或已移动，请重新扫描本地音乐。 | 提供重新扫描入口；保留当前列表状态。 | 按 `PlaybackCoordinator` 连续失败规则尝试下一首。 |
+| `PermissionDenied` | 无法访问该音乐文件，请在系统设置或文件夹授权中允许访问后重试。 | 提供重试或重新选择文件夹入口。 | 暂停当前媒体，不静默跳过用户可能仍想授权的文件。 |
+| `UnsupportedFormat` | 当前音频格式暂不支持，已尝试播放下一首。 | 不提供盲目重试；允许查看文件或重新扫描。 | 按连续失败规则尝试下一首。 |
+| `Unknown` | 播放失败，已尝试播放下一首。 | 允许重试当前歌曲；debug 日志保留底层 message。 | 按连续失败规则尝试下一首。 |
+
+所有错误 toast / banner 都应包含歌曲名；如果 `songId` 为空，使用“当前歌曲”。连续失败达到阈值后，文案改为“连续多首播放失败，已停止播放”，避免用户误以为 App 仍在正常推进。
 
 ## 与 Android 行为对齐
 
@@ -208,6 +276,11 @@ DMG 验收：
 - 扫描本地音乐并成功播放，证明内置 LibVLC 生效。
 - 如果刻意移除 App 内 LibVLC 目录，播放失败应显示 `EngineUnavailable` 对应用户文案。
 - 打包产物包含 LibVLC 来源、版本、架构和授权说明。
+- 断开 `/Applications/VLC.app`、Homebrew VLC 和其他系统 LibVLC 后仍可播放。
+- `codesign --verify --deep --strict --verbose=2` 对 App 返回有效签名。
+- `spctl -a -t exec -vv` 对 App 返回 Developer ID accepted。
+- `otool -L` 检查主程序和 LibVLC 动态库，不允许出现 App bundle 外的非系统动态库路径。
+- DMG 公证成功并 staple 后，在带 quarantine 属性的首次启动路径下通过 Gatekeeper。
 
 ## 实施顺序建议
 
@@ -227,8 +300,10 @@ DMG 验收：
 | --- | --- |
 | LibVLC 打包路径或动态库依赖不完整 | 先做最小 bundle 验证，再固化路径发现和验收脚本。 |
 | Apple Silicon / Intel 架构混用导致加载失败 | 首版只验收 Apple Silicon，错误映射为 `EngineUnavailable`。 |
-| vlcj 事件线程误用导致死锁或崩溃 | 回调中只转发事件，不直接控制播放器。 |
+| vlcj 事件线程误用导致死锁或崩溃 | 回调中只转发事件，所有命令进入 serial dispatcher。 |
+| 快速 seek / skip 导致过期事件覆盖新状态 | 使用 media generation、latest-wins seek 和 stale event drop。 |
 | 格式错误无法精确分类 | 可判定时映射 `UnsupportedFormat`，否则映射 `Unknown` 并保留诊断 message。 |
+| 内置动态库签名或公证失败 | 动态库放入 `Contents/Frameworks`，修正 install name，先签内层再签 App，最后公证 DMG。 |
 | 打包体积增加 | 接受体积换取开箱即用；后续再优化 LibVLC 裁剪。 |
 | 授权说明遗漏 | DMG 验收必须检查来源、版本、架构和授权说明文件。 |
 

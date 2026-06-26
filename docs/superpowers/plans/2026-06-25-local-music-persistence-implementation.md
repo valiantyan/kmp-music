@@ -1419,7 +1419,7 @@ git commit -m "按需加载本地曲库页面数据"
 - Modify: `composeApp/src/androidMain/kotlin/com/yanhao/kmpmusic/AndroidPlaybackSession.kt`
 - Test: `composeApp/src/commonTest/kotlin/com/yanhao/kmpmusic/feature/app/MusicAppControllerTest.kt`
 
-- [ ] **Step 1: Replace auto-scan restore test**
+- [x] **Step 1: Replace auto-scan restore test**
 
 In `MusicAppControllerTest`, replace `restorePlaybackSnapshotAutoScansLibraryWhenSnapshotExists` expectations with:
 
@@ -1458,7 +1458,7 @@ fun restorePlaybackSnapshotDoesNotAutoScanWhenLibraryIsEmpty(): Unit = runTest {
 }
 ```
 
-- [ ] **Step 2: Run test to verify failure**
+- [x] **Step 2: Run test to verify failure**
 
 Run:
 
@@ -1468,7 +1468,7 @@ Run:
 
 Expected: FAIL until controller auto-scan code is removed in Task 4 or this task.
 
-- [ ] **Step 3: Inject persistent repository on Android**
+- [x] **Step 3: Inject persistent repository on Android**
 
 In `AndroidPlaybackSession.kt`, add import:
 
@@ -1491,7 +1491,7 @@ musicLibraryRepository = PersistentMusicLibraryRepository(
 ),
 ```
 
-- [ ] **Step 4: Run Android compile**
+- [x] **Step 4: Run Android compile**
 
 Run:
 
@@ -1501,7 +1501,7 @@ Run:
 
 Expected: `BUILD SUCCESSFUL`.
 
-- [ ] **Step 5: Commit Android injection**
+- [x] **Step 5: Commit Android injection**
 
 ```bash
 git add composeApp/src/androidMain/kotlin/com/yanhao/kmpmusic/AndroidPlaybackSession.kt composeApp/src/commonTest/kotlin/com/yanhao/kmpmusic/feature/app/MusicAppControllerTest.kt
@@ -1514,7 +1514,7 @@ git commit -m "接入 Android 本地曲库持久化"
 - Review: all files changed in Tasks 1-6
 - Generated: `composeApp/schemas/com.yanhao.kmpmusic.domain.persistence.PlaybackDatabase/2.json`
 
-- [ ] **Step 1: Run shared tests**
+- [x] **Step 1: Run shared tests**
 
 Run:
 
@@ -1524,7 +1524,7 @@ Run:
 
 Expected: `BUILD SUCCESSFUL`.
 
-- [ ] **Step 2: Run Android compile**
+- [x] **Step 2: Run Android compile**
 
 Run:
 
@@ -1534,7 +1534,7 @@ Run:
 
 Expected: `BUILD SUCCESSFUL`.
 
-- [ ] **Step 3: Check for forbidden auto-scan path**
+- [x] **Step 3: Check for forbidden auto-scan path**
 
 Run:
 
@@ -1544,7 +1544,7 @@ rg -n "InitialScan|requestInitialLibraryRefreshForRestoreIfNeeded|scanLocalMusic
 
 Expected: no controller restore path calls `InitialScan`. It is acceptable for the `LocalMusicScanRequest.InitialScan` model declaration to remain if future platforms still need the request type.
 
-- [ ] **Step 4: Check git status**
+- [x] **Step 4: Check git status**
 
 Run:
 
@@ -1554,7 +1554,7 @@ git status --short --branch
 
 Expected: only intentional files from this implementation are modified or staged; unrelated existing docs and handoff files remain untouched.
 
-- [ ] **Step 5: Confirm no extra commit is required**
+- [x] **Step 5: Confirm no extra commit is required**
 
 Run:
 
