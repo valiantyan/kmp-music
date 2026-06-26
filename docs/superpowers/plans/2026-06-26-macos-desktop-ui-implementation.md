@@ -224,7 +224,7 @@ git commit -m "添加桌面版 UI 入口与视觉 token"
 - Create: `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/desktop/DesktopMusicComponents.kt`
 - Modify: `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/desktop/DesktopMusicApp.kt`
 
-- [ ] **Step 1: Add reusable shell components**
+- [x] **Step 1: Add reusable shell components**
 
 Create `DesktopMusicComponents.kt` with the title bar, rail, page header, buttons, and stat cards:
 
@@ -507,7 +507,7 @@ After creating the file, verify the yellow traffic light line is exactly:
 TrafficLight(color = Color(0xFFFEBC2E))
 ```
 
-- [ ] **Step 2: Replace shell stub with the Desktop grid**
+- [x] **Step 2: Replace shell stub with the Desktop grid**
 
 Modify `DesktopMusicApp.kt` to render the fixed title bar, rail, workspace, and player slot:
 
@@ -579,7 +579,7 @@ import com.yanhao.kmpmusic.feature.app.RootTab
 import com.yanhao.kmpmusic.feature.app.SecondaryScreen
 ```
 
-- [ ] **Step 3: Compile**
+- [x] **Step 3: Compile**
 
 Run:
 
@@ -589,7 +589,7 @@ Run:
 
 Expected: build succeeds and no Android/iOS files are modified.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/desktop/DesktopMusicComponents.kt \
