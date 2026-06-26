@@ -1765,7 +1765,7 @@ git commit -m "接入桌面播放会话和持久化"
 - Modify: `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/screen/PlayerScreen.kt`
 - Test: `composeApp/src/commonTest/kotlin/com/yanhao/kmpmusic/feature/app/PlaybackErrorMessageTest.kt`
 
-- [ ] **Step 1: Write error copy tests**
+- [x] **Step 1: Write error copy tests**
 
 Create `composeApp/src/commonTest/kotlin/com/yanhao/kmpmusic/feature/app/PlaybackErrorMessageTest.kt`:
 
@@ -1808,7 +1808,7 @@ class PlaybackErrorMessageTest {
 }
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run:
 
@@ -1818,7 +1818,7 @@ Run:
 
 Expected: FAIL with unresolved reference `userMessage`.
 
-- [ ] **Step 3: Add the shared error copy helper**
+- [x] **Step 3: Add the shared error copy helper**
 
 Create `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/app/PlaybackErrorMessage.kt`:
 
@@ -1844,7 +1844,7 @@ fun PlaybackError.userMessage(songTitle: String?): String {
 }
 ```
 
-- [ ] **Step 4: Render friendly copy on the player screen**
+- [x] **Step 4: Render friendly copy on the player screen**
 
 Modify `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/screen/PlayerScreen.kt` imports:
 
@@ -1865,7 +1865,7 @@ if (playbackError != null) {
 }
 ```
 
-- [ ] **Step 5: Run error copy tests**
+- [x] **Step 5: Run error copy tests**
 
 Run:
 
@@ -1876,7 +1876,7 @@ Run:
 
 Expected: both PASS.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/app/PlaybackErrorMessage.kt composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/screen/PlayerScreen.kt composeApp/src/commonTest/kotlin/com/yanhao/kmpmusic/feature/app/PlaybackErrorMessageTest.kt

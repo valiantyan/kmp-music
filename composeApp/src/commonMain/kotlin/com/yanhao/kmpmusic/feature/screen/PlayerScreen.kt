@@ -38,6 +38,7 @@ import com.yanhao.kmpmusic.core.theme.MusicColors
 import com.yanhao.kmpmusic.domain.model.PlaybackError
 import com.yanhao.kmpmusic.domain.model.PlaybackMode
 import com.yanhao.kmpmusic.domain.model.Song
+import com.yanhao.kmpmusic.feature.app.userMessage
 import com.yanhao.kmpmusic.feature.components.AppHeader
 import com.yanhao.kmpmusic.feature.components.coverArtPainter
 
@@ -102,7 +103,7 @@ fun PlayerScreen(
         }
         if (playbackError != null) {
             Text(
-                text = playbackError.message,
+                text = playbackError.userMessage(songTitle = song.title),
                 color = MaterialTheme.colorScheme.error,
                 fontSize = 13.sp,
                 fontWeight = FontWeight.Bold,
