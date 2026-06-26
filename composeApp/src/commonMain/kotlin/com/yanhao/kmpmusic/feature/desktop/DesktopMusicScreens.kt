@@ -11,6 +11,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Person
+import androidx.compose.material.icons.rounded.Search
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
@@ -18,13 +19,147 @@ import androidx.compose.ui.unit.dp
 import com.yanhao.kmpmusic.domain.model.Album
 import com.yanhao.kmpmusic.domain.model.Artist
 import com.yanhao.kmpmusic.domain.model.LibraryStats
+import com.yanhao.kmpmusic.domain.model.LocalMusicProblem
+import com.yanhao.kmpmusic.domain.model.LocalMusicSourceSummary
 import com.yanhao.kmpmusic.domain.model.PlaybackStatus
 import com.yanhao.kmpmusic.domain.model.Song
+import com.yanhao.kmpmusic.domain.model.ThemeMode
 import com.yanhao.kmpmusic.feature.app.FavoriteSection
+import com.yanhao.kmpmusic.feature.app.LocalMusicSection
+import com.yanhao.kmpmusic.feature.app.MusicAppController
+import com.yanhao.kmpmusic.feature.app.MusicAppUiState
+import com.yanhao.kmpmusic.feature.app.SecondaryScreen
 
 private const val HOME_ALBUM_PREVIEW_COUNT = 4
 private const val FAVORITE_ALBUM_PREVIEW_COUNT = 4
 private const val ARTIST_STRIP_COUNT = 4
+
+/**
+ * 桌面二级页统一从这里分发，避免 [DesktopMusicApp] 复制具体页面路由。
+ */
+@Composable
+fun DesktopSecondaryScreen(
+    state: MusicAppUiState,
+    controller: MusicAppController,
+    onScanLocalMusic: () -> Unit,
+) {
+    when (state.navigationState.secondaryScreen) {
+        SecondaryScreen.Search -> DesktopSearchScreen(
+            query = state.searchQuery,
+            resultSongs = controller.search().songs,
+            currentSongId = state.currentSongId,
+            currentPlaybackStatus = state.playbackStatus,
+            onQuery = controller::setSearchQuery,
+            onBack = controller::navigateBack,
+            onSongOpen = { song: Song, queueSongs: List<Song> ->
+                controller.openSong(
+                    song = song,
+                    queueSongs = queueSongs,
+                )
+            },
+            onSongPlay = { song: Song, queueSongs: List<Song> ->
+                controller.playSong(
+                    song = song,
+                    queueSongs = queueSongs,
+                )
+            },
+            onMore = controller::openMore,
+        )
+        SecondaryScreen.Player -> DesktopPlayerDetailScreen(
+            song = state.currentSong,
+            isPlaying = state.isPlaying,
+            onBack = controller::navigateBack,
+            onToggle = controller::togglePlayback,
+            onPrev = { controller.moveTrack(direction = -1) },
+            onNext = { controller.moveTrack(direction = 1) },
+            onQueue = controller::openQueue,
+        )
+        SecondaryScreen.AlbumDetail -> DesktopAlbumDetailScreen(
+            album = state.selectedAlbum,
+            songs = state.localSongs,
+            currentSongId = state.currentSongId,
+            currentPlaybackStatus = state.playbackStatus,
+            onBack = controller::navigateBack,
+            onSongOpen = { song: Song, queueSongs: List<Song> ->
+                controller.openSong(
+                    song = song,
+                    queueSongs = queueSongs,
+                )
+            },
+            onSongPlay = { song: Song, queueSongs: List<Song> ->
+                controller.playSong(
+                    song = song,
+                    queueSongs = queueSongs,
+                )
+            },
+            onMore = controller::openMore,
+        )
+        SecondaryScreen.ArtistDetail -> DesktopArtistDetailScreen(
+            artist = state.selectedArtist,
+            songs = state.localSongs,
+            albums = state.localAlbums,
+            currentSongId = state.currentSongId,
+            currentPlaybackStatus = state.playbackStatus,
+            onBack = controller::navigateBack,
+            onSongOpen = { song: Song, queueSongs: List<Song> ->
+                controller.openSong(
+                    song = song,
+                    queueSongs = queueSongs,
+                )
+            },
+            onSongPlay = { song: Song, queueSongs: List<Song> ->
+                controller.playSong(
+                    song = song,
+                    queueSongs = queueSongs,
+                )
+            },
+            onMore = controller::openMore,
+        )
+        SecondaryScreen.Settings -> DesktopSettingsScreen(
+            themeMode = state.themeMode,
+            onThemeMode = controller::setThemeMode,
+            onBack = controller::navigateBack,
+            onScan = onScanLocalMusic,
+            onLocalMusicSources = {
+                controller.openLocalMusic(section = LocalMusicSection.Sources)
+            },
+            onClearCache = controller::openClearCacheDialog,
+        )
+        SecondaryScreen.Login -> DesktopLoginScreen(
+            email = state.email,
+            isMailSent = state.isMailSent,
+            onEmail = controller::setEmail,
+            onSend = controller::sendLoginMail,
+            onBack = controller::navigateBack,
+        )
+        is SecondaryScreen.LocalMusic -> DesktopLocalSourcesScreen(
+            songs = state.localSongs,
+            sources = state.localMusicSources,
+            problems = state.localMusicProblems,
+            currentSongId = state.currentSongId,
+            currentPlaybackStatus = state.playbackStatus,
+            onBack = controller::navigateBack,
+            onScan = onScanLocalMusic,
+            onSongOpen = { song: Song, queueSongs: List<Song> ->
+                controller.openSong(
+                    song = song,
+                    queueSongs = queueSongs,
+                )
+            },
+            onSongPlay = { song: Song, queueSongs: List<Song> ->
+                controller.playSong(
+                    song = song,
+                    queueSongs = queueSongs,
+                )
+            },
+            onMore = controller::openMore,
+        )
+        null -> DesktopEmptyStateScreen(
+            title = "本地音乐",
+            subtitle = "桌面首页",
+        )
+    }
+}
 
 @Composable
 // 本地音乐首页只展示播放历史反推的最近专辑，避免把全库误标成最近播放。
@@ -380,6 +515,300 @@ fun DesktopMeRootScreen(
                 message = "还没有最近播放的专辑，先播放一些音乐吧。",
             )
         }
+    }
+}
+
+/**
+ * 搜索页沿用桌面表格承载结果，保持和根页一致的交互密度。
+ */
+@Composable
+private fun DesktopSearchScreen(
+    query: String,
+    resultSongs: List<Song>,
+    currentSongId: String?,
+    currentPlaybackStatus: PlaybackStatus,
+    onQuery: (String) -> Unit,
+    onBack: () -> Unit,
+    onSongOpen: (Song, List<Song>) -> Unit,
+    onSongPlay: (Song, List<Song>) -> Unit,
+    onMore: (Song) -> Unit,
+) {
+    val eyebrow: String = if (query.isBlank()) {
+        "搜索歌曲、专辑、歌手"
+    } else {
+        "搜索结果：$query"
+    }
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState()),
+    ) {
+        DesktopPageHeader(
+            title = "搜索",
+            eyebrow = eyebrow,
+        ) {
+            DesktopPrimaryButton(text = "返回", onClick = onBack)
+        }
+        DesktopContentRow(
+            icon = Icons.Rounded.Search,
+            title = if (query.isBlank()) "开始搜索" else query,
+            subtitle = "点击上方标题栏继续输入关键词",
+            actionLabel = if (query.isBlank()) null else "清空",
+            onClick = if (query.isBlank()) null else ({ onQuery("") }),
+        )
+        Spacer(modifier = Modifier.height(18.dp))
+        DesktopSongTable(
+            songs = resultSongs,
+            currentSongId = currentSongId,
+            currentPlaybackStatus = currentPlaybackStatus,
+            showFavoriteColumn = false,
+            trailingDateLabel = "添加时间",
+            onSongOpen = onSongOpen,
+            onSongPlay = onSongPlay,
+            onCurrentSongToggle = {},
+            onMore = onMore,
+        )
+    }
+}
+
+/**
+ * 播放详情页只暴露桌面版必要控制，真实播放逻辑仍由控制器负责。
+ */
+@Composable
+private fun DesktopPlayerDetailScreen(
+    song: Song?,
+    isPlaying: Boolean,
+    onBack: () -> Unit,
+    onToggle: () -> Unit,
+    onPrev: () -> Unit,
+    onNext: () -> Unit,
+    onQueue: () -> Unit,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState()),
+    ) {
+        DesktopPageHeader(
+            title = song?.title ?: "暂无播放",
+            eyebrow = song?.artist ?: "播放一首本地歌曲后会显示详情",
+        ) {
+            DesktopPrimaryButton(text = "返回", onClick = onBack)
+            DesktopPrimaryButton(text = if (isPlaying) "暂停" else "播放", onClick = onToggle)
+            DesktopPrimaryButton(text = "队列", onClick = onQueue)
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(18.dp)) {
+            DesktopPrimaryButton(text = "上一首", onClick = onPrev)
+            DesktopPrimaryButton(text = "下一首", onClick = onNext)
+        }
+    }
+}
+
+/**
+ * 专辑详情直接基于当前共享曲库过滤，避免再维护桌面专属数据投影。
+ */
+@Composable
+private fun DesktopAlbumDetailScreen(
+    album: Album?,
+    songs: List<Song>,
+    currentSongId: String?,
+    currentPlaybackStatus: PlaybackStatus,
+    onBack: () -> Unit,
+    onSongOpen: (Song, List<Song>) -> Unit,
+    onSongPlay: (Song, List<Song>) -> Unit,
+    onMore: (Song) -> Unit,
+) {
+    val albumSongs: List<Song> = album?.let { selectedAlbum: Album ->
+        songs.filter { song: Song -> song.album == selectedAlbum.title }
+    }.orEmpty()
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState()),
+    ) {
+        DesktopPageHeader(
+            title = album?.title ?: "专辑不可用",
+            eyebrow = album?.artist ?: "没有找到专辑信息",
+        ) {
+            DesktopPrimaryButton(text = "返回", onClick = onBack)
+            DesktopPrimaryButton(
+                text = "▶ 播放全部",
+                onClick = {
+                    albumSongs.firstOrNull()?.let { song: Song ->
+                        onSongPlay(song, albumSongs)
+                    }
+                },
+            )
+        }
+        DesktopSongTable(
+            songs = albumSongs,
+            currentSongId = currentSongId,
+            currentPlaybackStatus = currentPlaybackStatus,
+            showFavoriteColumn = false,
+            trailingDateLabel = "添加时间",
+            onSongOpen = onSongOpen,
+            onSongPlay = onSongPlay,
+            onCurrentSongToggle = {},
+            onMore = onMore,
+        )
+    }
+}
+
+/**
+ * 歌手详情页复用桌面表格与统计文案，减少重复布局。
+ */
+@Composable
+private fun DesktopArtistDetailScreen(
+    artist: Artist?,
+    songs: List<Song>,
+    albums: List<Album>,
+    currentSongId: String?,
+    currentPlaybackStatus: PlaybackStatus,
+    onBack: () -> Unit,
+    onSongOpen: (Song, List<Song>) -> Unit,
+    onSongPlay: (Song, List<Song>) -> Unit,
+    onMore: (Song) -> Unit,
+) {
+    val artistSongs: List<Song> = artist?.let { selectedArtist: Artist ->
+        songs.filter { song: Song -> song.artist == selectedArtist.name }
+    }.orEmpty()
+    val artistAlbumCount: Int = artist?.let { selectedArtist: Artist ->
+        albums.count { album: Album -> album.artist == selectedArtist.name }
+    } ?: 0
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState()),
+    ) {
+        DesktopPageHeader(
+            title = artist?.name ?: "歌手不可用",
+            eyebrow = "歌曲 ${artistSongs.size} 首，专辑 $artistAlbumCount 张",
+        ) {
+            DesktopPrimaryButton(text = "返回", onClick = onBack)
+        }
+        DesktopSongTable(
+            songs = artistSongs,
+            currentSongId = currentSongId,
+            currentPlaybackStatus = currentPlaybackStatus,
+            showFavoriteColumn = false,
+            trailingDateLabel = "添加时间",
+            onSongOpen = onSongOpen,
+            onSongPlay = onSongPlay,
+            onCurrentSongToggle = {},
+            onMore = onMore,
+        )
+    }
+}
+
+/**
+ * 设置页只暴露当前桌面端已实现的偏好与维护动作。
+ */
+@Composable
+private fun DesktopSettingsScreen(
+    themeMode: ThemeMode,
+    onThemeMode: (ThemeMode) -> Unit,
+    onBack: () -> Unit,
+    onScan: () -> Unit,
+    onLocalMusicSources: () -> Unit,
+    onClearCache: () -> Unit,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState()),
+    ) {
+        DesktopPageHeader(
+            title = "设置",
+            eyebrow = "播放、扫描与显示偏好",
+        ) {
+            DesktopPrimaryButton(text = "返回", onClick = onBack)
+        }
+        DesktopSegmentedControl(
+            labels = ThemeMode.entries.map { themeEntry: ThemeMode -> themeEntry.name },
+            selectedIndex = ThemeMode.entries.indexOf(themeMode),
+            onSelect = { index: Int -> onThemeMode(ThemeMode.entries[index]) },
+        )
+        Spacer(modifier = Modifier.height(18.dp))
+        DesktopPrimaryButton(text = "管理本地文件夹", onClick = onLocalMusicSources)
+        Spacer(modifier = Modifier.height(12.dp))
+        DesktopPrimaryButton(text = "重新扫描", onClick = onScan)
+        Spacer(modifier = Modifier.height(12.dp))
+        DesktopPrimaryButton(text = "清理缓存", onClick = onClearCache)
+    }
+}
+
+/**
+ * 登录页当前仅承接邮箱登录入口，不复制移动端整套表单样式。
+ */
+@Composable
+private fun DesktopLoginScreen(
+    email: String,
+    isMailSent: Boolean,
+    onEmail: (String) -> Unit,
+    onSend: () -> Unit,
+    onBack: () -> Unit,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState()),
+    ) {
+        DesktopPageHeader(
+            title = "登录音乐账号",
+            eyebrow = if (isMailSent) "登录邮件已发送" else "使用邮箱接收魔法链接",
+        ) {
+            DesktopPrimaryButton(text = "返回", onClick = onBack)
+            DesktopPrimaryButton(text = "发送登录邮件", onClick = onSend)
+        }
+        DesktopContentRow(
+            icon = DesktopContentRowSyncIcon,
+            title = email.ifBlank { "未填写邮箱" },
+            subtitle = "当前桌面入口沿用共享登录状态，后续可在这里补完整输入体验。",
+            actionLabel = if (email.isBlank()) null else "清空",
+            onClick = if (email.isBlank()) null else ({ onEmail("") }),
+        )
+    }
+}
+
+/**
+ * 本地来源页先复用桌面表格展示扫描结果，并通过页头暴露扫描入口。
+ */
+@Composable
+private fun DesktopLocalSourcesScreen(
+    songs: List<Song>,
+    sources: List<LocalMusicSourceSummary>,
+    problems: List<LocalMusicProblem>,
+    currentSongId: String?,
+    currentPlaybackStatus: PlaybackStatus,
+    onBack: () -> Unit,
+    onScan: () -> Unit,
+    onSongOpen: (Song, List<Song>) -> Unit,
+    onSongPlay: (Song, List<Song>) -> Unit,
+    onMore: (Song) -> Unit,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState()),
+    ) {
+        DesktopPageHeader(
+            title = "本地文件夹",
+            eyebrow = "来源 ${sources.size} 个，问题 ${problems.size} 个",
+        ) {
+            DesktopPrimaryButton(text = "返回", onClick = onBack)
+            DesktopPrimaryButton(text = "重新扫描", onClick = onScan)
+        }
+        DesktopSongTable(
+            songs = songs,
+            currentSongId = currentSongId,
+            currentPlaybackStatus = currentPlaybackStatus,
+            showFavoriteColumn = false,
+            trailingDateLabel = "添加时间",
+            onSongOpen = onSongOpen,
+            onSongPlay = onSongPlay,
+            onCurrentSongToggle = {},
+            onMore = onMore,
+        )
     }
 }
 

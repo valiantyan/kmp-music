@@ -769,7 +769,7 @@ private fun BottomNavigation(
  */
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
-private fun AppOverlays(
+internal fun AppOverlays(
     state: MusicAppUiState,
     controller: MusicAppController,
 ) {

@@ -13,10 +13,11 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import com.yanhao.kmpmusic.core.theme.KmpMusicTheme
 import com.yanhao.kmpmusic.domain.model.LocalMusicScanRequest
+import com.yanhao.kmpmusic.feature.app.AppOverlays
+import com.yanhao.kmpmusic.feature.app.LocalMusicSection
 import com.yanhao.kmpmusic.feature.app.MusicAppController
 import com.yanhao.kmpmusic.feature.app.MusicAppUiState
 import com.yanhao.kmpmusic.feature.app.RootTab
-import com.yanhao.kmpmusic.feature.app.LocalMusicSection
 import com.yanhao.kmpmusic.feature.app.SecondaryScreen
 import kotlinx.coroutines.launch
 
@@ -35,47 +36,50 @@ fun DesktopMusicApp(
         }
     }
     KmpMusicTheme(themeMode = state.themeMode) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(DesktopMusicColors.WindowBackground),
-        ) {
-            DesktopTitleBar(onSearch = controller::openSearch)
-            Row(modifier = Modifier.weight(1f)) {
-                DesktopRail(
-                    activeDestination = state.desktopRailDestination(),
-                    onRootTab = controller::navigateToRoot,
-                    onSettings = { controller.navigateToSecondary(SecondaryScreen.Settings) },
-                )
-                DesktopWorkspace(
-                    state = state,
-                    controller = controller,
-                    onScanLocalMusic = scanLocalMusic,
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxHeight()
-                        .background(DesktopMusicColors.Paper),
+        Box(modifier = Modifier.fillMaxSize()) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(DesktopMusicColors.WindowBackground),
+            ) {
+                DesktopTitleBar(onSearch = controller::openSearch)
+                Row(modifier = Modifier.weight(1f)) {
+                    DesktopRail(
+                        activeDestination = state.desktopRailDestination(),
+                        onRootTab = controller::navigateToRoot,
+                        onSettings = { controller.navigateToSecondary(SecondaryScreen.Settings) },
+                    )
+                    DesktopWorkspace(
+                        state = state,
+                        controller = controller,
+                        onScanLocalMusic = scanLocalMusic,
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxHeight()
+                            .background(DesktopMusicColors.Paper),
+                    )
+                }
+                DesktopBottomPlayer(
+                    song = state.currentSong,
+                    isPlaying = state.isPlaying,
+                    playbackPositionMs = state.playbackPositionMs,
+                    playbackDurationMs = state.playbackDurationMs,
+                    onOpen = controller::openPlayer,
+                    onToggle = controller::togglePlayback,
+                    onPrev = { controller.moveTrack(direction = -1) },
+                    onNext = { controller.moveTrack(direction = 1) },
+                    onMode = controller::cyclePlaybackMode,
+                    onLike = controller::toggleFavorite,
+                    onQueue = controller::openQueue,
                 )
             }
-            DesktopBottomPlayer(
-                song = state.currentSong,
-                isPlaying = state.isPlaying,
-                playbackPositionMs = state.playbackPositionMs,
-                playbackDurationMs = state.playbackDurationMs,
-                onOpen = controller::openPlayer,
-                onToggle = controller::togglePlayback,
-                onPrev = { controller.moveTrack(direction = -1) },
-                onNext = { controller.moveTrack(direction = 1) },
-                onMode = controller::cyclePlaybackMode,
-                onLike = controller::toggleFavorite,
-                onQueue = controller::openQueue,
-            )
+            AppOverlays(state = state, controller = controller)
         }
     }
 }
 
 /**
- * 桌面工作区统一承接一级页和临时二级页占位，后续任务可以继续沿着这里扩展。
+ * 桌面工作区统一承接一级页和二级页，保持外层 shell 不需要感知具体页面细节。
  */
 @Composable
 private fun DesktopWorkspace(
@@ -176,9 +180,10 @@ private fun DesktopWorkspace(
                 }
                 return@BoxWithConstraints
             }
-            DesktopEmptyStateScreen(
-                title = "二级页面",
-                subtitle = "下一任务接入桌面二级页",
+            DesktopSecondaryScreen(
+                state = state,
+                controller = controller,
+                onScanLocalMusic = onScanLocalMusic,
             )
         }
     }

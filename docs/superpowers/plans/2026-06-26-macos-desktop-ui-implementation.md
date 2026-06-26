@@ -1356,7 +1356,7 @@ git commit -m "复刻桌面版首页收藏我的页面"
 - Modify: `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/desktop/DesktopMusicApp.kt`
 - Modify: `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/app/MusicApp.kt`
 
-- [ ] **Step 1: Expose mobile overlay composable safely**
+- [x] **Step 1: Expose mobile overlay composable safely**
 
 In `MusicApp.kt`, keep the existing `@Composable` annotation and function body unchanged. Replace this function declaration line:
 
@@ -1372,7 +1372,7 @@ internal fun AppOverlays(
 
 Do not change the parameters or function body.
 
-- [ ] **Step 2: Add Desktop secondary route function**
+- [x] **Step 2: Add Desktop secondary route function**
 
 In `DesktopMusicScreens.kt`, add:
 
@@ -1455,7 +1455,7 @@ fun DesktopSecondaryScreen(
 
 Add imports for `MusicAppUiState`, `MusicAppController`, `SecondaryScreen`, `LocalMusicSection`, `ThemeMode`, `LocalMusicSourceSummary`, and `LocalMusicProblem`.
 
-- [ ] **Step 3: Implement concise Desktop secondary screens**
+- [x] **Step 3: Implement concise Desktop secondary screens**
 
 Add concrete functions in `DesktopMusicScreens.kt`. Use Desktop tables/cards and avoid mobile components:
 
@@ -1657,7 +1657,7 @@ fun DesktopEmptyStateScreen(
 }
 ```
 
-- [ ] **Step 4: Wire secondary pages and overlays**
+- [x] **Step 4: Wire secondary pages and overlays**
 
 In `DesktopMusicApp.kt`, replace the secondary empty-state branch with:
 
@@ -1684,7 +1684,7 @@ Add import:
 import com.yanhao.kmpmusic.feature.app.AppOverlays
 ```
 
-- [ ] **Step 5: Run tests and compile**
+- [x] **Step 5: Run tests and compile**
 
 Run:
 
@@ -1694,7 +1694,7 @@ Run:
 
 Expected: tests and Desktop compile pass.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/desktop/DesktopMusicScreens.kt \
