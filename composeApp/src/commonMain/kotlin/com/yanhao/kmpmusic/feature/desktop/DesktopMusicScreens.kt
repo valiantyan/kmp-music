@@ -192,7 +192,7 @@ fun DesktopFavoritesRootScreen(
                     DesktopSectionHeader(
                         title = "收藏的专辑",
                         actionLabel = "查看全部",
-                        onAction = { albums.firstOrNull()?.let(onAlbumOpen) },
+                        onAction = { onSection(FavoriteSection.Albums) },
                     )
                     Spacer(modifier = Modifier.height(14.dp))
                     DesktopAlbumGrid(
@@ -204,8 +204,6 @@ fun DesktopFavoritesRootScreen(
             FavoriteSection.Albums -> {
                 DesktopSectionHeader(
                     title = "收藏的专辑",
-                    actionLabel = "查看全部",
-                    onAction = { albums.firstOrNull()?.let(onAlbumOpen) },
                 )
                 Spacer(modifier = Modifier.height(14.dp))
                 DesktopAlbumGrid(
@@ -216,8 +214,6 @@ fun DesktopFavoritesRootScreen(
             FavoriteSection.Artists -> {
                 DesktopSectionHeader(
                     title = "收藏的歌手",
-                    actionLabel = "查看全部",
-                    onAction = { artists.firstOrNull()?.let(onArtistOpen) },
                 )
                 Spacer(modifier = Modifier.height(14.dp))
                 DesktopArtistStrip(
@@ -316,7 +312,7 @@ fun DesktopMeRootScreen(
                 title = "常听歌手",
                 subtitle = "你常听的歌手",
                 actionLabel = "更多",
-                onClick = { artists.firstOrNull()?.let(onArtistOpen) },
+                onClick = {},
                 extraContent = {
                     Spacer(modifier = Modifier.height(6.dp))
                     DesktopArtistStrip(

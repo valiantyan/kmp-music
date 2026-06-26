@@ -766,8 +766,8 @@ private fun desktopSongTableTrailingValue(
 @Composable
 fun DesktopSectionHeader(
     title: String,
-    actionLabel: String,
-    onAction: () -> Unit,
+    actionLabel: String? = null,
+    onAction: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
     Row(
@@ -781,23 +781,25 @@ fun DesktopSectionHeader(
             fontSize = DesktopMusicType.StatTitle,
             fontWeight = FontWeight.ExtraBold,
         )
-        Row(
-            modifier = Modifier.clickable(onClick = onAction),
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(
-                text = actionLabel,
-                color = DesktopMusicColors.MutedStrong,
-                fontSize = DesktopMusicType.Eyebrow,
-                fontWeight = FontWeight.SemiBold,
-            )
-            Icon(
-                imageVector = Icons.Rounded.ChevronRight,
-                contentDescription = null,
-                tint = DesktopMusicColors.MutedStrong,
-                modifier = Modifier.size(16.dp),
-            )
+        if (actionLabel != null && onAction != null) {
+            Row(
+                modifier = Modifier.clickable(onClick = onAction),
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = actionLabel,
+                    color = DesktopMusicColors.MutedStrong,
+                    fontSize = DesktopMusicType.Eyebrow,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                Icon(
+                    imageVector = Icons.Rounded.ChevronRight,
+                    contentDescription = null,
+                    tint = DesktopMusicColors.MutedStrong,
+                    modifier = Modifier.size(16.dp),
+                )
+            }
         }
     }
 }
