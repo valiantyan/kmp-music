@@ -49,6 +49,20 @@ fun DesktopMusicApp(
                         onRootTab = controller::navigateToRoot,
                         onSettings = { controller.navigateToSecondary(SecondaryScreen.Settings) },
                     )
+                    if (state.shouldShowLibrarySidebar()) {
+                        DesktopLibrarySidebar(
+                            libraryStats = state.libraryStats,
+                            recentSongs = state.recentSongs,
+                            onSearch = controller::openSearch,
+                            onSection = controller::openLocalMusic,
+                            onSongOpen = { song, queueSongs ->
+                                controller.openSong(
+                                    song = song,
+                                    queueSongs = queueSongs,
+                                )
+                            },
+                        )
+                    }
                     DesktopWorkspace(
                         state = state,
                         controller = controller,
@@ -199,4 +213,9 @@ private fun MusicAppUiState.desktopRailDestination(): DesktopRailDestination {
             RootTab.Me -> DesktopRailDestination.Me
         }
     }
+}
+
+/** 首页保持效果图中的资料库侧栏，二级页让内容区获得完整宽度。 */
+private fun MusicAppUiState.shouldShowLibrarySidebar(): Boolean {
+    return navigationState.secondaryScreen == null && navigationState.rootTab == RootTab.Home
 }

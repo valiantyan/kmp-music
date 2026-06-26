@@ -474,17 +474,24 @@ fun DesktopStatCard(
                     fontSize = 24.sp,
                 )
             }
-            Column {
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
                 Text(
                     text = title,
                     color = DesktopMusicColors.Ink,
                     fontSize = DesktopMusicType.StatTitle,
                     fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                 )
                 Text(
                     text = value,
                     color = Color(0xFF5E6A78),
                     fontSize = DesktopMusicType.Eyebrow,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                 )
             }
         }
@@ -643,42 +650,42 @@ private fun DesktopSongTableHeader(
             text = "#",
             modifier = Modifier.width(42.dp),
             color = Color(0xFF7D8795),
-            fontSize = DesktopMusicType.Body,
+            fontSize = DesktopMusicType.TableHeader,
             fontWeight = FontWeight.SemiBold,
         )
         Text(
             text = "标题",
             modifier = Modifier.weight(2.4f),
             color = Color(0xFF7D8795),
-            fontSize = DesktopMusicType.Body,
+            fontSize = DesktopMusicType.TableHeader,
             fontWeight = FontWeight.SemiBold,
         )
         Text(
             text = "歌手",
             modifier = Modifier.weight(1.2f),
             color = Color(0xFF7D8795),
-            fontSize = DesktopMusicType.Body,
+            fontSize = DesktopMusicType.TableHeader,
             fontWeight = FontWeight.SemiBold,
         )
         Text(
             text = "专辑",
             modifier = Modifier.weight(1.2f),
             color = Color(0xFF7D8795),
-            fontSize = DesktopMusicType.Body,
+            fontSize = DesktopMusicType.TableHeader,
             fontWeight = FontWeight.SemiBold,
         )
         Text(
             text = "时长",
             modifier = Modifier.width(72.dp),
             color = Color(0xFF7D8795),
-            fontSize = DesktopMusicType.Body,
+            fontSize = DesktopMusicType.TableHeader,
             fontWeight = FontWeight.SemiBold,
         )
         Text(
             text = trailingDateLabel,
             modifier = Modifier.width(98.dp),
             color = Color(0xFF7D8795),
-            fontSize = DesktopMusicType.Body,
+            fontSize = DesktopMusicType.TableHeader,
             fontWeight = FontWeight.SemiBold,
         )
         Text(text = "", modifier = Modifier.width(40.dp))
@@ -762,7 +769,8 @@ private fun DesktopSongTableRow(
             Text(
                 text = song.title,
                 color = if (isCurrentSong) DesktopMusicColors.PlayerRed else DesktopMusicColors.Ink,
-                fontWeight = FontWeight.Bold,
+                fontSize = DesktopMusicType.TableTitle,
+                fontWeight = FontWeight.SemiBold,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -771,7 +779,7 @@ private fun DesktopSongTableRow(
             text = song.artist,
             modifier = Modifier.weight(1.2f),
             color = DesktopMusicColors.Ink,
-            fontSize = DesktopMusicType.Body,
+            fontSize = DesktopMusicType.TableTitle,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
@@ -779,7 +787,7 @@ private fun DesktopSongTableRow(
             text = song.album,
             modifier = Modifier.weight(1.2f),
             color = DesktopMusicColors.Ink,
-            fontSize = DesktopMusicType.Body,
+            fontSize = DesktopMusicType.TableTitle,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )

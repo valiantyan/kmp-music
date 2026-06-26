@@ -34,6 +34,7 @@ object DesktopMusicDimens {
     val DefaultWindowHeight: Dp = 820.dp
     val TitleBarHeight: Dp = 42.dp
     val RailWidth: Dp = 88.dp
+    val LibrarySidebarWidth: Dp = 304.dp
     val PlayerHeight: Dp = 96.dp
     val PagePaddingTop: Dp = 34.dp
     val PagePaddingBottom: Dp = 30.dp
@@ -42,7 +43,7 @@ object DesktopMusicDimens {
     val RailItemSize: Dp = 64.dp
     val BrandSize: Dp = 40.dp
     val PrimaryButtonHeight: Dp = 40.dp
-    val StatCardMinHeight: Dp = 76.dp
+    val StatCardMinHeight: Dp = 84.dp
     val TableHeaderHeight: Dp = 40.dp
     val TableRowHeight: Dp = 48.dp
     val TableCoverSize: Dp = 34.dp
@@ -57,7 +58,11 @@ object DesktopMusicType {
     val PageTitle: TextUnit = 36.sp
     val Eyebrow: TextUnit = 14.sp
     val Body: TextUnit = 13.sp
+    val TableHeader: TextUnit = 12.sp
+    val TableTitle: TextUnit = 14.sp
     val StatTitle: TextUnit = 15.sp
+    val SidebarTitle: TextUnit = 17.sp
+    val SidebarBody: TextUnit = 13.sp
     val RailLabel: TextUnit = 12.sp
 }
 

@@ -17,6 +17,7 @@ fun main() = application {
             exitApplication()
         },
         title = "KMP Music",
+        undecorated = true,
         state = WindowState(
             width = DesktopMusicDimens.DefaultWindowWidth,
             height = DesktopMusicDimens.DefaultWindowHeight,
