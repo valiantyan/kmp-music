@@ -177,3 +177,44 @@ class VlcjMediaPlayerAdapter(
         mediaPlayer.events().addMediaPlayerEventListener(listener)
     }
 }
+
+/**
+ * LibVLC 运行时不可用时的占位适配器，负责把缺失运行时收敛为确定性的播放器不可用错误。
+ */
+class UnavailableDesktopMediaPlayerAdapter : DesktopMediaPlayerAdapter {
+    private val eventChannel: Channel<DesktopMediaPlayerEvent> = Channel(capacity = Channel.UNLIMITED)
+
+    override val events: Flow<DesktopMediaPlayerEvent> = eventChannel.receiveAsFlow()
+
+    override suspend fun prepare(
+        songId: String,
+        mediaUri: String,
+        generation: Long,
+        startPositionMs: Long,
+        pluginPath: String?,
+    ) {
+        eventChannel.trySend(
+            DesktopMediaPlayerEvent.Failed(
+                generation = generation,
+                error = buildEngineUnavailableError(songId = songId),
+            ),
+        )
+    }
+
+    override suspend fun play(generation: Long) = Unit
+
+    override suspend fun pause(generation: Long) = Unit
+
+    override suspend fun seekTo(
+        generation: Long,
+        positionMs: Long,
+    ) = Unit
+
+    override suspend fun stop(generation: Long) = Unit
+
+    override suspend fun currentPositionMs(): Long = 0L
+
+    override suspend fun currentDurationMs(): Long? = null
+
+    override suspend fun release() = Unit
+}

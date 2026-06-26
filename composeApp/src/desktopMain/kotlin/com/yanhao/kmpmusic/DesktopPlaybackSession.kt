@@ -11,6 +11,7 @@ import com.yanhao.kmpmusic.domain.repository.LocalMusicScanner
 import com.yanhao.kmpmusic.feature.app.MusicAppController
 import com.yanhao.kmpmusic.playback.DesktopVlcjAudioPlayerEngine
 import com.yanhao.kmpmusic.playback.MacosLibVlcRuntime
+import com.yanhao.kmpmusic.playback.UnavailableDesktopMediaPlayerAdapter
 import com.yanhao.kmpmusic.playback.VlcjMediaPlayerAdapter
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -154,11 +155,19 @@ object DesktopPlaybackSession {
         val sessionScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
         val playbackDatabase: PlaybackDatabase = createDesktopPlaybackDatabase()
         val runtimePath = MacosLibVlcRuntime.resolve()
-        val audioEngine = DesktopVlcjAudioPlayerEngine(
-            adapter = VlcjMediaPlayerAdapter(runtimePath = runtimePath),
-            scope = sessionScope,
-            libVlcPluginPath = runtimePath?.pluginDirectory,
-        )
+        val audioEngine = if (runtimePath == null) {
+            DesktopVlcjAudioPlayerEngine(
+                adapter = UnavailableDesktopMediaPlayerAdapter(),
+                scope = sessionScope,
+                libVlcPluginPath = null,
+            )
+        } else {
+            DesktopVlcjAudioPlayerEngine(
+                adapter = VlcjMediaPlayerAdapter(runtimePath = runtimePath),
+                scope = sessionScope,
+                libVlcPluginPath = runtimePath.pluginDirectory,
+            )
+        }
         DesktopPlaybackSessionRuntime(
             controller = createDesktopPlaybackController(
                 playbackDatabase = playbackDatabase,

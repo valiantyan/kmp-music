@@ -2161,7 +2161,7 @@ git commit -m "添加 macOS LibVLC 打包验收任务"
 **Files:**
 - Modify: `composeApp/src/desktopMain/kotlin/com/yanhao/kmpmusic/DesktopPlaybackSession.kt`
 
-- [ ] **Step 1: Add EngineUnavailable fallback when LibVLC cannot resolve**
+- [x] **Step 1: Add EngineUnavailable fallback when LibVLC cannot resolve**
 
 Modify `DesktopPlaybackSession` engine creation:
 
@@ -2228,7 +2228,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.receiveAsFlow
 ```
 
-- [ ] **Step 2: Run Desktop app with development VLC fallback**
+- [x] **Step 2: Run Desktop app with development VLC fallback**
 
 Run:
 
@@ -2243,7 +2243,9 @@ Expected manual result on Apple Silicon macOS with VLC installed:
 - pause/play, next/previous, seek, and queue selection update audio and UI consistently;
 - closing and reopening restores queue and paused position without auto-playing.
 
-- [ ] **Step 3: Run compile and tests after manual smoke test**
+Attempt result on 2026-06-26: `./gradlew :composeApp:desktopRun` was executed, but Gradle failed before launching the app with `No main class specified and classpath is not an executable jar.` In the current environment `/Applications/VLC.app` is also missing, so local VLC fallback playback could not be manually verified.
+
+- [x] **Step 3: Run compile and tests after manual smoke test**
 
 Run:
 
