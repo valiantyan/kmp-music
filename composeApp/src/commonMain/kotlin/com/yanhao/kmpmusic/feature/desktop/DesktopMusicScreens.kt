@@ -58,12 +58,6 @@ fun DesktopSecondaryScreen(
             currentPlaybackStatus = state.playbackStatus,
             onQuery = controller::setSearchQuery,
             onBack = controller::navigateBack,
-            onSongOpen = { song: Song, queueSongs: List<Song> ->
-                controller.openSong(
-                    song = song,
-                    queueSongs = queueSongs,
-                )
-            },
             onSongPlay = { song: Song, queueSongs: List<Song> ->
                 controller.playSong(
                     song = song,
@@ -87,12 +81,6 @@ fun DesktopSecondaryScreen(
             currentSongId = state.currentSongId,
             currentPlaybackStatus = state.playbackStatus,
             onBack = controller::navigateBack,
-            onSongOpen = { song: Song, queueSongs: List<Song> ->
-                controller.openSong(
-                    song = song,
-                    queueSongs = queueSongs,
-                )
-            },
             onSongPlay = { song: Song, queueSongs: List<Song> ->
                 controller.playSong(
                     song = song,
@@ -108,12 +96,6 @@ fun DesktopSecondaryScreen(
             currentSongId = state.currentSongId,
             currentPlaybackStatus = state.playbackStatus,
             onBack = controller::navigateBack,
-            onSongOpen = { song: Song, queueSongs: List<Song> ->
-                controller.openSong(
-                    song = song,
-                    queueSongs = queueSongs,
-                )
-            },
             onSongPlay = { song: Song, queueSongs: List<Song> ->
                 controller.playSong(
                     song = song,
@@ -150,12 +132,6 @@ fun DesktopSecondaryScreen(
             currentPlaybackStatus = state.playbackStatus,
             onBack = controller::navigateBack,
             onScan = onScanLocalMusic,
-            onSongOpen = { song: Song, queueSongs: List<Song> ->
-                controller.openSong(
-                    song = song,
-                    queueSongs = queueSongs,
-                )
-            },
             onSongPlay = { song: Song, queueSongs: List<Song> ->
                 controller.playSong(
                     song = song,
@@ -185,7 +161,6 @@ fun DesktopLocalMusicRootScreen(
     onScan: () -> Unit,
     onBrowseLibrary: () -> Unit,
     onBrowseAlbums: () -> Unit,
-    onSongOpen: (Song, List<Song>) -> Unit,
     onSongPlay: (Song, List<Song>) -> Unit,
     onCurrentSongToggle: () -> Unit,
     onMore: (Song) -> Unit,
@@ -245,7 +220,6 @@ fun DesktopLocalMusicRootScreen(
             currentPlaybackStatus = currentPlaybackStatus,
             showFavoriteColumn = false,
             trailingDateLabel = "添加时间",
-            onSongOpen = onSongOpen,
             onSongPlay = onSongPlay,
             onCurrentSongToggle = onCurrentSongToggle,
             onMore = onMore,
@@ -279,7 +253,6 @@ fun DesktopFavoritesRootScreen(
     currentSongId: String?,
     currentPlaybackStatus: PlaybackStatus,
     onSection: (FavoriteSection) -> Unit,
-    onSongOpen: (Song, List<Song>) -> Unit,
     onSongPlay: (Song, List<Song>) -> Unit,
     onCurrentSongToggle: () -> Unit,
     onMore: (Song) -> Unit,
@@ -339,7 +312,6 @@ fun DesktopFavoritesRootScreen(
                     currentPlaybackStatus = currentPlaybackStatus,
                     showFavoriteColumn = true,
                     trailingDateLabel = "收藏时间",
-                    onSongOpen = onSongOpen,
                     onSongPlay = onSongPlay,
                     onCurrentSongToggle = onCurrentSongToggle,
                     onMore = onMore,
@@ -541,7 +513,6 @@ private fun DesktopSearchScreen(
     currentPlaybackStatus: PlaybackStatus,
     onQuery: (String) -> Unit,
     onBack: () -> Unit,
-    onSongOpen: (Song, List<Song>) -> Unit,
     onSongPlay: (Song, List<Song>) -> Unit,
     onMore: (Song) -> Unit,
 ) {
@@ -575,7 +546,6 @@ private fun DesktopSearchScreen(
             currentPlaybackStatus = currentPlaybackStatus,
             showFavoriteColumn = false,
             trailingDateLabel = "添加时间",
-            onSongOpen = onSongOpen,
             onSongPlay = onSongPlay,
             onCurrentSongToggle = {},
             onMore = onMore,
@@ -626,7 +596,6 @@ private fun DesktopAlbumDetailScreen(
     currentSongId: String?,
     currentPlaybackStatus: PlaybackStatus,
     onBack: () -> Unit,
-    onSongOpen: (Song, List<Song>) -> Unit,
     onSongPlay: (Song, List<Song>) -> Unit,
     onMore: (Song) -> Unit,
 ) {
@@ -658,7 +627,6 @@ private fun DesktopAlbumDetailScreen(
             currentPlaybackStatus = currentPlaybackStatus,
             showFavoriteColumn = false,
             trailingDateLabel = "添加时间",
-            onSongOpen = onSongOpen,
             onSongPlay = onSongPlay,
             onCurrentSongToggle = {},
             onMore = onMore,
@@ -677,7 +645,6 @@ private fun DesktopArtistDetailScreen(
     currentSongId: String?,
     currentPlaybackStatus: PlaybackStatus,
     onBack: () -> Unit,
-    onSongOpen: (Song, List<Song>) -> Unit,
     onSongPlay: (Song, List<Song>) -> Unit,
     onMore: (Song) -> Unit,
 ) {
@@ -704,7 +671,6 @@ private fun DesktopArtistDetailScreen(
             currentPlaybackStatus = currentPlaybackStatus,
             showFavoriteColumn = false,
             trailingDateLabel = "添加时间",
-            onSongOpen = onSongOpen,
             onSongPlay = onSongPlay,
             onCurrentSongToggle = {},
             onMore = onMore,
@@ -855,7 +821,6 @@ private fun DesktopLocalMusicScreen(
     currentPlaybackStatus: PlaybackStatus,
     onBack: () -> Unit,
     onScan: () -> Unit,
-    onSongOpen: (Song, List<Song>) -> Unit,
     onSongPlay: (Song, List<Song>) -> Unit,
     onMore: (Song) -> Unit,
     onAlbumOpen: (Album) -> Unit,
@@ -897,7 +862,6 @@ private fun DesktopLocalMusicScreen(
                 currentPlaybackStatus = currentPlaybackStatus,
                 showFavoriteColumn = false,
                 trailingDateLabel = "添加时间",
-                onSongOpen = onSongOpen,
                 onSongPlay = onSongPlay,
                 onCurrentSongToggle = {},
                 onMore = onMore,

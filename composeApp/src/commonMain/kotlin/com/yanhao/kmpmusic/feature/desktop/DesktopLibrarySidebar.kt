@@ -50,7 +50,7 @@ fun DesktopLibrarySidebar(
     recentSongs: List<Song>,
     onSearch: () -> Unit,
     onSection: (LocalMusicSection) -> Unit,
-    onSongOpen: (Song, List<Song>) -> Unit,
+    onSongPlay: (Song, List<Song>) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -73,7 +73,7 @@ fun DesktopLibrarySidebar(
         Spacer(modifier = Modifier.height(30.dp))
         DesktopLibraryRecentSongs(
             songs = recentSongs.take(n = RECENT_SIDEBAR_SONG_COUNT),
-            onSongOpen = onSongOpen,
+            onSongPlay = onSongPlay,
         )
         Spacer(modifier = Modifier.weight(1f))
     }
@@ -287,7 +287,7 @@ private fun DesktopLibraryStatRow(
 @Composable
 private fun DesktopLibraryRecentSongs(
     songs: List<Song>,
-    onSongOpen: (Song, List<Song>) -> Unit,
+    onSongPlay: (Song, List<Song>) -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
         Row(
@@ -319,7 +319,7 @@ private fun DesktopLibraryRecentSongs(
         songs.forEach { song: Song ->
             DesktopLibraryRecentSongRow(
                 song = song,
-                onClick = { onSongOpen(song, songs) },
+                onClick = { onSongPlay(song, songs) },
             )
         }
     }

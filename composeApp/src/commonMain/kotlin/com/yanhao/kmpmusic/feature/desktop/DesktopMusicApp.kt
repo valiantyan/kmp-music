@@ -63,8 +63,8 @@ fun DesktopMusicApp(
                             recentSongs = state.recentSongs,
                             onSearch = controller::openSearch,
                             onSection = controller::openLocalMusic,
-                            onSongOpen = { song, queueSongs ->
-                                controller.openSong(
+                            onSongPlay = { song, queueSongs ->
+                                controller.playSong(
                                     song = song,
                                     queueSongs = queueSongs,
                                 )
@@ -142,12 +142,6 @@ private fun DesktopWorkspace(
                         onBrowseAlbums = {
                             controller.openLocalMusic(section = LocalMusicSection.Albums)
                         },
-                        onSongOpen = { song, queueSongs ->
-                            controller.openSong(
-                                song = song,
-                                queueSongs = queueSongs,
-                            )
-                        },
                         onSongPlay = { song, queueSongs ->
                             controller.playSong(
                                 song = song,
@@ -166,12 +160,6 @@ private fun DesktopWorkspace(
                         currentSongId = state.currentSongId,
                         currentPlaybackStatus = state.playbackStatus,
                         onSection = controller::setFavoriteSection,
-                        onSongOpen = { song, queueSongs ->
-                            controller.openSong(
-                                song = song,
-                                queueSongs = queueSongs,
-                            )
-                        },
                         onSongPlay = { song, queueSongs ->
                             controller.playSong(
                                 song = song,

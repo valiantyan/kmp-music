@@ -586,7 +586,6 @@ fun DesktopSongTable(
     currentPlaybackStatus: PlaybackStatus,
     showFavoriteColumn: Boolean,
     trailingDateLabel: String,
-    onSongOpen: (Song, List<Song>) -> Unit,
     onSongPlay: (Song, List<Song>) -> Unit,
     onCurrentSongToggle: () -> Unit,
     onMore: (Song) -> Unit,
@@ -606,7 +605,6 @@ fun DesktopSongTable(
                 currentPlaybackStatus = currentPlaybackStatus,
                 showFavoriteColumn = showFavoriteColumn,
                 trailingDateLabel = trailingDateLabel,
-                onSongOpen = onSongOpen,
                 onSongPlay = onSongPlay,
                 onCurrentSongToggle = onCurrentSongToggle,
                 onMore = onMore,
@@ -691,7 +689,6 @@ private fun DesktopSongTableRow(
     currentPlaybackStatus: PlaybackStatus,
     showFavoriteColumn: Boolean,
     trailingDateLabel: String,
-    onSongOpen: (Song, List<Song>) -> Unit,
     onSongPlay: (Song, List<Song>) -> Unit,
     onCurrentSongToggle: () -> Unit,
     onMore: (Song) -> Unit,
@@ -741,7 +738,7 @@ private fun DesktopSongTableRow(
         Row(
             modifier = Modifier
                 .weight(2.4f)
-                .clickable { onSongOpen(song, songs) },
+                .clickable { onSongPlay(song, songs) },
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
