@@ -682,11 +682,11 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.QueueMusic
 import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material.icons.rounded.FavoriteBorder
 import androidx.compose.material.icons.rounded.Pause
 import androidx.compose.material.icons.rounded.PlayArrow
+import androidx.compose.material.icons.rounded.QueueMusic
 import androidx.compose.material.icons.rounded.Repeat
 import androidx.compose.material.icons.rounded.SkipNext
 import androidx.compose.material.icons.rounded.SkipPrevious
@@ -749,7 +749,7 @@ fun DesktopBottomPlayer(
             Text(text = "♩", fontSize = DesktopMusicType.PageTitle, color = DesktopMusicColors.Ink)
             Box(modifier = Modifier.width(118.dp).height(4.dp).clip(CircleShape).background(DesktopMusicColors.Accent))
             IconButton(onClick = onQueue) {
-                Icon(Icons.AutoMirrored.Rounded.QueueMusic, contentDescription = "播放队列", tint = DesktopMusicColors.Ink)
+                Icon(Icons.Rounded.QueueMusic, contentDescription = "播放队列", tint = DesktopMusicColors.Ink)
             }
         }
     }
@@ -988,8 +988,7 @@ Add required imports:
 ```kotlin
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.aspectRatio
-import androidx.compose.foundation.layout.weight
+import androidx.compose.ui.layout.ContentScale
 import com.yanhao.kmpmusic.domain.model.Song
 import com.yanhao.kmpmusic.feature.components.coverArtPainter
 ```
@@ -1359,19 +1358,19 @@ git commit -m "复刻桌面版首页收藏我的页面"
 
 - [ ] **Step 1: Expose mobile overlay composable safely**
 
-In `MusicApp.kt`, change `private fun AppOverlays` to internal so Desktop shell can reuse queue, more menu, permission, and cache dialogs without copying behavior:
+In `MusicApp.kt`, keep the existing `@Composable` annotation and function body unchanged. Replace this function declaration line:
 
 ```kotlin
-@Composable
-internal fun AppOverlays(
-    state: MusicAppUiState,
-    controller: MusicAppController,
-) {
-    ...
-}
+private fun AppOverlays(
 ```
 
-Do not change the function body.
+with:
+
+```kotlin
+internal fun AppOverlays(
+```
+
+Do not change the parameters or function body.
 
 - [ ] **Step 2: Add Desktop secondary route function**
 
@@ -1670,17 +1669,11 @@ DesktopSecondaryScreen(
 )
 ```
 
-Add overlay call at the root of `DesktopMusicApp`, after the main `Column`:
+In `DesktopMusicApp.kt`, wrap the existing top-level `Column` inside a `Box(modifier = Modifier.fillMaxSize())`. Keep the current `Column` body exactly as implemented by previous tasks, then add the overlay call immediately after that `Column` inside the same `Box`:
 
 ```kotlin
 Box(modifier = Modifier.fillMaxSize()) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(DesktopMusicColors.WindowBackground),
-    ) {
-        ...
-    }
+    // Existing Desktop app Column remains here.
     AppOverlays(state = state, controller = controller)
 }
 ```
@@ -1817,3 +1810,36 @@ This plan contains no unresolved marker or unspecified task. Desktop compile use
 - Rail root navigation consistently calls `navigateToRoot`.
 - Settings navigation consistently calls `navigateToSecondary(SecondaryScreen.Settings)`.
 - Song table callbacks consistently use `(Song, List<Song>)`.
+
+## Three-Round Cross Audit
+
+### Round 1: Executability Questions
+
+- Question: Can an executor identify the exact files to create or modify before touching code?
+  Answer: Yes. The File Structure section lists every created/modified file, and each task repeats the exact file set.
+- Question: Can an executor run verification after each meaningful slice?
+  Answer: Yes. Tasks 1, 2, and 4 run `:composeApp:compileKotlinDesktop`; Tasks 3 and 5 run `:composeApp:desktopTest :composeApp:compileKotlinDesktop`; Task 6 adds Desktop launch and Android compile.
+- Question: Are there code snippets that obviously fail before implementation starts?
+  Answer: Audited and corrected. The plan now uses valid `Color(0xFFFEBC2E)`, imports `ContentScale`, avoids the nonexistent RowScope extension import, uses `Icons.Rounded.QueueMusic`, and replaces the `AppOverlays` visibility line without using a fake function body.
+
+### Round 2: Spec Coverage Questions
+
+- Question: Where does the plan ensure Desktop is no longer the `430.dp x 930.dp` mobile shell?
+  Answer: Task 1 changes `DesktopMain.kt` to `DesktopMusicDimens.DefaultWindowWidth` and `DefaultWindowHeight`, and Task 2 renders the Desktop grid.
+- Question: Where does the plan preserve Android/iOS mobile UI?
+  Answer: File Structure forbids Android/iOS and mobile `MusicApp` changes except `AppOverlays` visibility, and Task 6 requires `:composeApp:compileDebugKotlinAndroid`.
+- Question: Where does the plan cover HTML root pages and secondary pages?
+  Answer: Task 4 covers 本地音乐、收藏、我的 root pages; Task 5 covers 搜索、播放详情、专辑、歌手、设置、登录、本地来源.
+- Question: Where does the plan prevent WebView/prototype asset shortcuts?
+  Answer: Architecture states no WebView or prototype runtime assets; Task 5 secondary-screen instructions explicitly avoid `prototypes/kmp-music-desktop-uiux/assets/*`.
+
+### Round 3: Verification And Risk Questions
+
+- Question: How will executor know the plan did not silently copy fake HTML sample data?
+  Answer: Root and secondary screen snippets read `MusicAppUiState`, `controller.search()`, `state.localSongs`, `state.favoriteSongs`, source summaries, and problems. They do not load HTML `songs`, `albums`, JS, or prototype `assets`.
+- Question: How does the plan guard current playback state consistency?
+  Answer: Task 3 adds `playerScreenAndBottomPlayerReadSamePlaybackState`, then wires `DesktopBottomPlayer` and player detail to the same `MusicAppUiState`.
+- Question: How does the plan verify visual fidelity instead of accepting a compile-only result?
+  Answer: Task 6 launches `:composeApp:run` and requires manual checks at `1120 x 760`, `1240 x 800`, and `1440 x 900`, including title bar, rail, bottom player, table density, segmented control, settings column, and text overlap.
+- Question: What remains intentionally lower fidelity in the implementation plan?
+  Answer: The plan implements a safe, functional Desktop skeleton first. Final pixel polish is explicitly reserved for Task 6 after visual launch, where the executor adjusts the Desktop files against the HTML reference and commits the result.
