@@ -9,6 +9,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Person
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -19,9 +21,10 @@ import com.yanhao.kmpmusic.domain.model.PlaybackStatus
 import com.yanhao.kmpmusic.domain.model.Song
 import com.yanhao.kmpmusic.feature.app.FavoriteSection
 
-/**
- * 桌面首页直接消费共享曲库与播放状态，避免再派生一份桌面专用首页模型。
- */
+private const val HOME_ALBUM_PREVIEW_COUNT = 4
+private const val FAVORITE_ALBUM_PREVIEW_COUNT = 4
+private const val ARTIST_STRIP_COUNT = 4
+
 @Composable
 fun DesktopLocalMusicRootScreen(
     songs: List<Song>,
@@ -30,12 +33,19 @@ fun DesktopLocalMusicRootScreen(
     currentSongId: String?,
     currentPlaybackStatus: PlaybackStatus,
     onScan: () -> Unit,
+    onBrowseLibrary: () -> Unit,
+    onBrowseAlbums: () -> Unit,
     onSongOpen: (Song, List<Song>) -> Unit,
     onSongPlay: (Song, List<Song>) -> Unit,
     onCurrentSongToggle: () -> Unit,
     onMore: (Song) -> Unit,
     onAlbumOpen: (Album) -> Unit,
 ) {
+    val playAllLabel: String = rootPlayAllLabel(
+        songs = songs,
+        currentSongId = currentSongId,
+        currentPlaybackStatus = currentPlaybackStatus,
+    )
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -45,49 +55,40 @@ fun DesktopLocalMusicRootScreen(
             title = "本地音乐",
             eyebrow = "已扫描 ${libraryStats.songCount} 首歌曲，${libraryStats.albumCount} 张专辑，${libraryStats.artistCount} 位歌手",
         ) {
-            DesktopPrimaryButton(
-                text = "↻ 重新扫描",
+            DesktopSecondaryButton(
+                text = "重新扫描",
+                icon = DesktopScanIcon,
                 onClick = onScan,
             )
+            DesktopMoreButton(onClick = onBrowseLibrary)
         }
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(18.dp),
-        ) {
-            DesktopStatCard(
-                icon = "♫",
-                title = "歌曲",
-                value = libraryStats.songCount.toString(),
-                modifier = Modifier.weight(1f),
-            )
-            DesktopStatCard(
-                icon = "●",
-                title = "专辑",
-                value = libraryStats.albumCount.toString(),
-                modifier = Modifier.weight(1f),
-            )
-            DesktopStatCard(
-                icon = "♟",
-                title = "歌手",
-                value = libraryStats.artistCount.toString(),
-                modifier = Modifier.weight(1f),
-            )
-        }
+        DesktopThreeStatRow(
+            firstTitle = "歌曲",
+            firstValue = libraryStats.songCount.toString(),
+            secondTitle = "专辑",
+            secondValue = libraryStats.albumCount.toString(),
+            thirdTitle = "歌手",
+            thirdValue = libraryStats.artistCount.toString(),
+        )
         Spacer(modifier = Modifier.height(22.dp))
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-        ) {
-            DesktopPrimaryButton(
-                text = "▶ 播放全部",
-                onClick = {
-                    songs.firstOrNull()?.let { song: Song -> onSongPlay(song, songs) }
-                },
-            )
-        }
+        DesktopToolbar(
+            playAllLabel = playAllLabel,
+            sortLabel = "排序：最近添加",
+            onPlayAll = {
+                playOrToggleRootCollection(
+                    songs = songs,
+                    currentSongId = currentSongId,
+                    currentPlaybackStatus = currentPlaybackStatus,
+                    onSongPlay = onSongPlay,
+                    onCurrentSongToggle = onCurrentSongToggle,
+                )
+            },
+        )
+        Spacer(modifier = Modifier.height(14.dp))
         DesktopSongTable(
             songs = songs,
             currentSongId = currentSongId,
+            currentPlaybackStatus = currentPlaybackStatus,
             showFavoriteColumn = false,
             trailingDateLabel = "添加时间",
             onSongOpen = onSongOpen,
@@ -95,12 +96,22 @@ fun DesktopLocalMusicRootScreen(
             onCurrentSongToggle = onCurrentSongToggle,
             onMore = onMore,
         )
+        if (albums.isNotEmpty()) {
+            Spacer(modifier = Modifier.height(24.dp))
+            DesktopSectionHeader(
+                title = "最近播放的专辑",
+                actionLabel = "查看全部",
+                onAction = onBrowseAlbums,
+            )
+            Spacer(modifier = Modifier.height(14.dp))
+            DesktopAlbumGrid(
+                albums = albums.take(HOME_ALBUM_PREVIEW_COUNT),
+                onAlbumOpen = onAlbumOpen,
+            )
+        }
     }
 }
 
-/**
- * 收藏页继续复用共享收藏分段和收藏列表，桌面端只负责排版。
- */
 @Composable
 fun DesktopFavoritesRootScreen(
     songs: List<Song>,
@@ -108,14 +119,22 @@ fun DesktopFavoritesRootScreen(
     artists: List<Artist>,
     section: FavoriteSection,
     currentSongId: String?,
+    currentPlaybackStatus: PlaybackStatus,
     onSection: (FavoriteSection) -> Unit,
     onSongOpen: (Song, List<Song>) -> Unit,
     onSongPlay: (Song, List<Song>) -> Unit,
     onCurrentSongToggle: () -> Unit,
     onMore: (Song) -> Unit,
     onLike: (String) -> Unit,
+    onAlbumOpen: (Album) -> Unit,
+    onArtistOpen: (Artist) -> Unit,
 ) {
     val likedSongs: List<Song> = songs.filter { song: Song -> song.isLiked }
+    val playAllLabel: String = rootPlayAllLabel(
+        songs = likedSongs,
+        currentSongId = currentSongId,
+        currentPlaybackStatus = currentPlaybackStatus,
+    )
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -131,47 +150,99 @@ fun DesktopFavoritesRootScreen(
                 onSelect = { index: Int -> onSection(FavoriteSection.entries[index]) },
             )
         }
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(18.dp),
-        ) {
-            DesktopStatCard(
-                icon = "♫",
-                title = "收藏歌曲",
-                value = likedSongs.size.toString(),
-                modifier = Modifier.weight(1f),
-            )
-            DesktopStatCard(
-                icon = "●",
-                title = "收藏专辑",
-                value = albums.size.toString(),
-                modifier = Modifier.weight(1f),
-            )
-            DesktopStatCard(
-                icon = "♟",
-                title = "收藏歌手",
-                value = artists.size.toString(),
-                modifier = Modifier.weight(1f),
-            )
-        }
-        Spacer(modifier = Modifier.height(22.dp))
-        DesktopSongTable(
-            songs = likedSongs,
-            currentSongId = currentSongId,
-            showFavoriteColumn = true,
-            trailingDateLabel = "收藏时间",
-            onSongOpen = onSongOpen,
-            onSongPlay = onSongPlay,
-            onCurrentSongToggle = onCurrentSongToggle,
-            onMore = onMore,
-            onLike = onLike,
+        DesktopThreeStatRow(
+            firstTitle = "收藏歌曲",
+            firstValue = likedSongs.size.toString(),
+            secondTitle = "收藏专辑",
+            secondValue = albums.size.toString(),
+            thirdTitle = "收藏歌手",
+            thirdValue = artists.size.toString(),
         )
+        Spacer(modifier = Modifier.height(22.dp))
+        when (section) {
+            FavoriteSection.Songs -> {
+                DesktopToolbar(
+                    playAllLabel = playAllLabel,
+                    sortLabel = "排序：最近收藏",
+                    onPlayAll = {
+                        playOrToggleRootCollection(
+                            songs = likedSongs,
+                            currentSongId = currentSongId,
+                            currentPlaybackStatus = currentPlaybackStatus,
+                            onSongPlay = onSongPlay,
+                            onCurrentSongToggle = onCurrentSongToggle,
+                        )
+                    },
+                )
+                Spacer(modifier = Modifier.height(14.dp))
+                DesktopSongTable(
+                    songs = likedSongs,
+                    currentSongId = currentSongId,
+                    currentPlaybackStatus = currentPlaybackStatus,
+                    showFavoriteColumn = true,
+                    trailingDateLabel = "收藏时间",
+                    onSongOpen = onSongOpen,
+                    onSongPlay = onSongPlay,
+                    onCurrentSongToggle = onCurrentSongToggle,
+                    onMore = onMore,
+                    onLike = onLike,
+                )
+                if (albums.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(24.dp))
+                    DesktopSectionHeader(
+                        title = "收藏的专辑",
+                        actionLabel = "查看全部",
+                        onAction = { albums.firstOrNull()?.let(onAlbumOpen) },
+                    )
+                    Spacer(modifier = Modifier.height(14.dp))
+                    DesktopAlbumGrid(
+                        albums = albums.take(FAVORITE_ALBUM_PREVIEW_COUNT),
+                        onAlbumOpen = onAlbumOpen,
+                    )
+                }
+            }
+            FavoriteSection.Albums -> {
+                DesktopSectionHeader(
+                    title = "收藏的专辑",
+                    actionLabel = "查看全部",
+                    onAction = { albums.firstOrNull()?.let(onAlbumOpen) },
+                )
+                Spacer(modifier = Modifier.height(14.dp))
+                DesktopAlbumGrid(
+                    albums = albums,
+                    onAlbumOpen = onAlbumOpen,
+                )
+            }
+            FavoriteSection.Artists -> {
+                DesktopSectionHeader(
+                    title = "收藏的歌手",
+                    actionLabel = "查看全部",
+                    onAction = { artists.firstOrNull()?.let(onArtistOpen) },
+                )
+                Spacer(modifier = Modifier.height(14.dp))
+                DesktopArtistStrip(
+                    artists = artists.take(ARTIST_STRIP_COUNT),
+                    onArtistOpen = onArtistOpen,
+                )
+                if (artists.size > ARTIST_STRIP_COUNT) {
+                    Spacer(modifier = Modifier.height(14.dp))
+                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        artists.drop(ARTIST_STRIP_COUNT).forEach { artist: Artist ->
+                            DesktopContentRow(
+                                icon = Icons.Rounded.Person,
+                                title = artist.name,
+                                subtitle = "${artist.songCount} 首歌曲 · ${artist.tag}",
+                                actionLabel = "打开",
+                                onClick = { onArtistOpen(artist) },
+                            )
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 
-/**
- * 我的页先承接共享统计和导航动作，详细设置内容留给后续二级页任务接入。
- */
 @Composable
 fun DesktopMeRootScreen(
     albums: List<Album>,
@@ -179,7 +250,12 @@ fun DesktopMeRootScreen(
     libraryStats: LibraryStats,
     favoriteCount: Int,
     onLogin: () -> Unit,
+    onFavorites: () -> Unit,
+    onFolders: () -> Unit,
     onSettings: () -> Unit,
+    onBrowseAlbums: () -> Unit,
+    onAlbumOpen: (Album) -> Unit,
+    onArtistOpen: (Artist) -> Unit,
 ) {
     Column(
         modifier = Modifier
@@ -190,18 +266,31 @@ fun DesktopMeRootScreen(
             title = "我的",
             eyebrow = "本地资料与同步状态",
         )
+        DesktopProfilePanel(
+            title = "登录音乐账号",
+            description = "使用 Supabase 同步收藏、播放记录和多端资料，让你的音乐在所有设备上保持一致。",
+            buttonText = "立即登录",
+            onClick = onLogin,
+        )
+        Spacer(modifier = Modifier.height(20.dp))
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(18.dp),
         ) {
             DesktopStatCard(
                 icon = "♫",
+                title = "本地歌曲",
+                value = libraryStats.songCount.toString(),
+                modifier = Modifier.weight(1f),
+            )
+            DesktopStatCard(
+                icon = "●",
                 title = "本地专辑",
                 value = libraryStats.albumCount.toString(),
                 modifier = Modifier.weight(1f),
             )
             DesktopStatCard(
-                icon = "●",
+                icon = "♟",
                 title = "歌手",
                 value = libraryStats.artistCount.toString(),
                 modifier = Modifier.weight(1f),
@@ -212,32 +301,61 @@ fun DesktopMeRootScreen(
                 value = favoriteCount.toString(),
                 modifier = Modifier.weight(1f),
             )
-            DesktopStatCard(
-                icon = "◷",
-                title = "最近播放",
-                value = "最近",
-                modifier = Modifier.weight(1f),
+        }
+        Spacer(modifier = Modifier.height(20.dp))
+        Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+            DesktopContentRow(
+                icon = DesktopContentRowFavoritesIcon,
+                title = "我的收藏",
+                subtitle = "查看收藏的歌曲、专辑和歌手",
+                actionLabel = "查看全部",
+                onClick = onFavorites,
+            )
+            DesktopContentRow(
+                icon = Icons.Rounded.Person,
+                title = "常听歌手",
+                subtitle = "你常听的歌手",
+                actionLabel = "更多",
+                onClick = { artists.firstOrNull()?.let(onArtistOpen) },
+                extraContent = {
+                    Spacer(modifier = Modifier.height(6.dp))
+                    DesktopArtistStrip(
+                        artists = artists.take(ARTIST_STRIP_COUNT),
+                        onArtistOpen = onArtistOpen,
+                    )
+                },
+            )
+            DesktopContentRow(
+                icon = DesktopContentRowFolderIcon,
+                title = "本地文件夹",
+                subtitle = "管理你的本地音乐文件与目录",
+                actionLabel = "管理",
+                onClick = onFolders,
+            )
+            DesktopContentRow(
+                icon = DesktopContentRowSyncIcon,
+                title = "同步与备份",
+                subtitle = "同步状态、备份与恢复选项",
+                actionLabel = "设置",
+                onClick = onSettings,
             )
         }
-        Spacer(modifier = Modifier.height(18.dp))
-        DesktopPrimaryButton(
-            text = "✓ 立即登录",
-            onClick = onLogin,
-        )
-        Spacer(modifier = Modifier.height(18.dp))
-        DesktopPrimaryButton(
-            text = "设置",
-            onClick = onSettings,
-        )
-        if (albums.isNotEmpty() || artists.isNotEmpty()) {
-            Spacer(modifier = Modifier.height(18.dp))
+        if (albums.isNotEmpty()) {
+            Spacer(modifier = Modifier.height(24.dp))
+            DesktopSectionHeader(
+                title = "最近播放的专辑",
+                actionLabel = "查看全部",
+                onAction = onBrowseAlbums,
+            )
+            Spacer(modifier = Modifier.height(14.dp))
+            DesktopAlbumGrid(
+                albums = albums.take(HOME_ALBUM_PREVIEW_COUNT),
+                onAlbumOpen = onAlbumOpen,
+            )
         }
     }
 }
 
-/**
- * 在二级页面尚未接入前保留统一占位，避免桌面工作区退回临时文案。
- */
 @Composable
 fun DesktopEmptyStateScreen(
     title: String,
@@ -253,4 +371,75 @@ fun DesktopEmptyStateScreen(
             eyebrow = subtitle,
         )
     }
+}
+
+@Composable
+private fun DesktopThreeStatRow(
+    firstTitle: String,
+    firstValue: String,
+    secondTitle: String,
+    secondValue: String,
+    thirdTitle: String,
+    thirdValue: String,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(18.dp),
+    ) {
+        DesktopStatCard(
+            icon = "♫",
+            title = firstTitle,
+            value = firstValue,
+            modifier = Modifier.weight(1f),
+        )
+        DesktopStatCard(
+            icon = "●",
+            title = secondTitle,
+            value = secondValue,
+            modifier = Modifier.weight(1f),
+        )
+        DesktopStatCard(
+            icon = "♟",
+            title = thirdTitle,
+            value = thirdValue,
+            modifier = Modifier.weight(1f),
+        )
+    }
+}
+
+private fun rootPlayAllLabel(
+    songs: List<Song>,
+    currentSongId: String?,
+    currentPlaybackStatus: PlaybackStatus,
+): String {
+    val containsCurrentSong: Boolean = songs.any { song: Song -> song.id == currentSongId }
+    if (!containsCurrentSong) {
+        return "播放全部"
+    }
+    return when (currentPlaybackStatus) {
+        PlaybackStatus.Playing,
+        PlaybackStatus.Buffering,
+        PlaybackStatus.Loading,
+        -> "暂停播放"
+        PlaybackStatus.Paused,
+        PlaybackStatus.Ended,
+        PlaybackStatus.Idle,
+        PlaybackStatus.Error,
+        -> "继续播放"
+    }
+}
+
+private fun playOrToggleRootCollection(
+    songs: List<Song>,
+    currentSongId: String?,
+    currentPlaybackStatus: PlaybackStatus,
+    onSongPlay: (Song, List<Song>) -> Unit,
+    onCurrentSongToggle: () -> Unit,
+) {
+    val containsCurrentSong: Boolean = songs.any { song: Song -> song.id == currentSongId }
+    if (containsCurrentSong && currentPlaybackStatus != PlaybackStatus.Error) {
+        onCurrentSongToggle()
+        return
+    }
+    songs.firstOrNull()?.let { song: Song -> onSongPlay(song, songs) }
 }

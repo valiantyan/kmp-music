@@ -16,6 +16,7 @@ import com.yanhao.kmpmusic.domain.model.LocalMusicScanRequest
 import com.yanhao.kmpmusic.feature.app.MusicAppController
 import com.yanhao.kmpmusic.feature.app.MusicAppUiState
 import com.yanhao.kmpmusic.feature.app.RootTab
+import com.yanhao.kmpmusic.feature.app.LocalMusicSection
 import com.yanhao.kmpmusic.feature.app.SecondaryScreen
 import kotlinx.coroutines.launch
 
@@ -105,6 +106,12 @@ private fun DesktopWorkspace(
                         currentSongId = state.currentSongId,
                         currentPlaybackStatus = state.playbackStatus,
                         onScan = onScanLocalMusic,
+                        onBrowseLibrary = {
+                            controller.openLocalMusic(section = LocalMusicSection.Songs)
+                        },
+                        onBrowseAlbums = {
+                            controller.openLocalMusic(section = LocalMusicSection.Albums)
+                        },
                         onSongOpen = { song, queueSongs ->
                             controller.openSong(
                                 song = song,
@@ -127,6 +134,7 @@ private fun DesktopWorkspace(
                         artists = state.favoriteArtists,
                         section = state.favoriteSection,
                         currentSongId = state.currentSongId,
+                        currentPlaybackStatus = state.playbackStatus,
                         onSection = controller::setFavoriteSection,
                         onSongOpen = { song, queueSongs ->
                             controller.openSong(
@@ -143,6 +151,8 @@ private fun DesktopWorkspace(
                         onCurrentSongToggle = controller::togglePlayback,
                         onMore = controller::openMore,
                         onLike = controller::toggleFavorite,
+                        onAlbumOpen = controller::openAlbum,
+                        onArtistOpen = controller::openArtist,
                     )
                     RootTab.Me -> DesktopMeRootScreen(
                         albums = state.albums,
@@ -150,7 +160,16 @@ private fun DesktopWorkspace(
                         libraryStats = state.libraryStats,
                         favoriteCount = state.likedSongIds.size,
                         onLogin = { controller.navigateToSecondary(SecondaryScreen.Login) },
+                        onFavorites = { controller.navigateToRoot(RootTab.Favorites) },
+                        onFolders = {
+                            controller.openLocalMusic(section = LocalMusicSection.Sources)
+                        },
                         onSettings = { controller.navigateToSecondary(SecondaryScreen.Settings) },
+                        onBrowseAlbums = {
+                            controller.openLocalMusic(section = LocalMusicSection.Albums)
+                        },
+                        onAlbumOpen = controller::openAlbum,
+                        onArtistOpen = controller::openArtist,
                     )
                 }
                 return@BoxWithConstraints

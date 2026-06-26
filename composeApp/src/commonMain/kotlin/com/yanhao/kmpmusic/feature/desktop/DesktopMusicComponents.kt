@@ -6,10 +6,12 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -20,11 +22,17 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.ChevronRight
+import androidx.compose.material.icons.rounded.ExpandMore
 import androidx.compose.material.icons.rounded.Favorite
+import androidx.compose.material.icons.rounded.Folder
 import androidx.compose.material.icons.rounded.Home
+import androidx.compose.material.icons.rounded.MoreHoriz
 import androidx.compose.material.icons.rounded.Person
+import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.Settings
+import androidx.compose.material.icons.rounded.Sync
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -40,6 +48,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.yanhao.kmpmusic.domain.model.Album
+import com.yanhao.kmpmusic.domain.model.Artist
+import com.yanhao.kmpmusic.domain.model.CoverArt
+import com.yanhao.kmpmusic.domain.model.PlaybackStatus
 import com.yanhao.kmpmusic.domain.model.Song
 import com.yanhao.kmpmusic.feature.components.coverArtPainter
 import com.yanhao.kmpmusic.feature.app.RootTab
@@ -313,6 +325,63 @@ fun DesktopPrimaryButton(
 }
 
 @Composable
+fun DesktopSecondaryButton(
+    text: String,
+    icon: ImageVector,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        modifier = modifier.height(DesktopMusicDimens.PrimaryButtonHeight),
+        shape = RoundedCornerShape(14.dp),
+        color = Color.White.copy(alpha = 0.84f),
+        border = BorderStroke(width = 1.dp, color = DesktopMusicColors.Line),
+        onClick = onClick,
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 18.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = DesktopMusicColors.Ink,
+                modifier = Modifier.size(16.dp),
+            )
+            Text(
+                text = text,
+                color = DesktopMusicColors.Ink,
+                fontSize = DesktopMusicType.Eyebrow,
+                fontWeight = FontWeight.Bold,
+            )
+        }
+    }
+}
+
+@Composable
+fun DesktopMoreButton(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        modifier = modifier.size(DesktopMusicDimens.PrimaryButtonHeight),
+        shape = RoundedCornerShape(14.dp),
+        color = Color.White.copy(alpha = 0.84f),
+        border = BorderStroke(width = 1.dp, color = DesktopMusicColors.Line),
+        onClick = onClick,
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            Icon(
+                imageVector = Icons.Rounded.MoreHoriz,
+                contentDescription = "更多",
+                tint = DesktopMusicColors.Ink,
+            )
+        }
+    }
+}
+
+@Composable
 fun DesktopStatCard(
     icon: String,
     title: String,
@@ -353,6 +422,58 @@ fun DesktopStatCard(
                     fontSize = DesktopMusicType.Eyebrow,
                 )
             }
+        }
+    }
+}
+
+@Composable
+fun DesktopToolbar(
+    playAllLabel: String,
+    sortLabel: String,
+    onPlayAll: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        DesktopPrimaryButton(
+            text = playAllLabel,
+            onClick = onPlayAll,
+        )
+        DesktopSortButton(label = sortLabel)
+    }
+}
+
+@Composable
+fun DesktopSortButton(
+    label: String,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        modifier = modifier.height(DesktopMusicDimens.PrimaryButtonHeight),
+        shape = RoundedCornerShape(14.dp),
+        color = Color.White.copy(alpha = 0.84f),
+        border = BorderStroke(width = 1.dp, color = DesktopMusicColors.Line),
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 18.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = label,
+                color = DesktopMusicColors.Ink,
+                fontSize = DesktopMusicType.Eyebrow,
+                fontWeight = FontWeight.SemiBold,
+            )
+            Icon(
+                imageVector = Icons.Rounded.ExpandMore,
+                contentDescription = null,
+                tint = DesktopMusicColors.Muted,
+                modifier = Modifier.size(16.dp),
+            )
         }
     }
 }
@@ -403,6 +524,7 @@ fun DesktopSegmentedControl(
 fun DesktopSongTable(
     songs: List<Song>,
     currentSongId: String?,
+    currentPlaybackStatus: PlaybackStatus,
     showFavoriteColumn: Boolean,
     trailingDateLabel: String,
     onSongOpen: (Song, List<Song>) -> Unit,
@@ -422,6 +544,7 @@ fun DesktopSongTable(
                 song = song,
                 songs = songs,
                 isCurrentSong = song.id == currentSongId,
+                currentPlaybackStatus = currentPlaybackStatus,
                 showFavoriteColumn = showFavoriteColumn,
                 trailingDateLabel = trailingDateLabel,
                 onSongOpen = onSongOpen,
@@ -506,6 +629,7 @@ private fun DesktopSongTableRow(
     song: Song,
     songs: List<Song>,
     isCurrentSong: Boolean,
+    currentPlaybackStatus: PlaybackStatus,
     showFavoriteColumn: Boolean,
     trailingDateLabel: String,
     onSongOpen: (Song, List<Song>) -> Unit,
@@ -514,6 +638,8 @@ private fun DesktopSongTableRow(
     onMore: (Song) -> Unit,
     onLike: ((String) -> Unit)?,
 ) {
+    val isCurrentSongPlaying: Boolean =
+        isCurrentSong && currentPlaybackStatus == PlaybackStatus.Playing
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -530,12 +656,29 @@ private fun DesktopSongTableRow(
                 color = if (song.isLiked) DesktopMusicColors.PlayerRed else DesktopMusicColors.Muted,
             )
         }
-        Text(
-            text = (index + 1).toString(),
+        Surface(
             modifier = Modifier.width(42.dp),
-            color = DesktopMusicColors.Muted,
-            fontSize = DesktopMusicType.Body,
-        )
+            color = Color.Transparent,
+            onClick = {
+                if (isCurrentSong) {
+                    onCurrentSongToggle()
+                } else {
+                    onSongPlay(song, songs)
+                }
+            },
+        ) {
+            Box(
+                modifier = Modifier.fillMaxHeight(),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    text = if (isCurrentSongPlaying) "Ⅱ" else if (isCurrentSong) "▶" else (index + 1).toString(),
+                    color = if (isCurrentSong) DesktopMusicColors.PlayerRed else DesktopMusicColors.Muted,
+                    fontSize = DesktopMusicType.Body,
+                    fontWeight = if (isCurrentSong) FontWeight.Bold else FontWeight.Normal,
+                )
+            }
+        }
         Row(
             modifier = Modifier
                 .weight(2.4f)
@@ -582,10 +725,12 @@ private fun DesktopSongTableRow(
             fontSize = DesktopMusicType.Body,
         )
         Text(
-            text = if (trailingDateLabel == "收藏时间") "最近收藏" else "最近添加",
+            text = song.lastPlayed,
             modifier = Modifier.width(98.dp),
             color = DesktopMusicColors.Muted,
             fontSize = DesktopMusicType.Body,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
         )
         Surface(
             modifier = Modifier.size(30.dp),
@@ -603,3 +748,309 @@ private fun DesktopSongTableRow(
         }
     }
 }
+
+@Composable
+fun DesktopSectionHeader(
+    title: String,
+    actionLabel: String,
+    onAction: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = title,
+            color = DesktopMusicColors.Ink,
+            fontSize = DesktopMusicType.StatTitle,
+            fontWeight = FontWeight.ExtraBold,
+        )
+        Row(
+            modifier = Modifier.clickable(onClick = onAction),
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = actionLabel,
+                color = DesktopMusicColors.MutedStrong,
+                fontSize = DesktopMusicType.Eyebrow,
+                fontWeight = FontWeight.SemiBold,
+            )
+            Icon(
+                imageVector = Icons.Rounded.ChevronRight,
+                contentDescription = null,
+                tint = DesktopMusicColors.MutedStrong,
+                modifier = Modifier.size(16.dp),
+            )
+        }
+    }
+}
+
+@Composable
+fun DesktopAlbumGrid(
+    albums: List<Album>,
+    onAlbumOpen: (Album) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    BoxWithConstraints(modifier = modifier.fillMaxWidth()) {
+        val columns: Int = if (maxWidth < 720.dp) 2 else 4
+        val rows: List<List<Album>> = albums.chunked(size = columns)
+        Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            rows.forEach { rowAlbums: List<Album> ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                ) {
+                    rowAlbums.forEach { album: Album ->
+                        DesktopAlbumCard(
+                            album = album,
+                            onOpen = onAlbumOpen,
+                            modifier = Modifier.weight(1f),
+                        )
+                    }
+                    repeat(columns - rowAlbums.size) {
+                        Spacer(modifier = Modifier.weight(1f))
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun DesktopAlbumCard(
+    album: Album,
+    onOpen: (Album) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        modifier = modifier.clickable { onOpen(album) },
+        shape = RoundedCornerShape(16.dp),
+        color = Color.White.copy(alpha = 0.72f),
+        border = BorderStroke(width = 1.dp, color = DesktopMusicColors.Line),
+    ) {
+        Column(
+            modifier = Modifier.padding(14.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Image(
+                painter = coverArtPainter(album.coverArt),
+                contentDescription = "${album.title} 封面",
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .aspectRatio(1f)
+                    .clip(RoundedCornerShape(12.dp)),
+                contentScale = ContentScale.Crop,
+            )
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(
+                    text = album.title,
+                    color = DesktopMusicColors.Ink,
+                    fontSize = DesktopMusicType.StatTitle,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    text = album.artist,
+                    color = DesktopMusicColors.MutedStrong,
+                    fontSize = DesktopMusicType.Body,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    text = "${album.songCount} 首 · ${album.year}",
+                    color = DesktopMusicColors.Muted,
+                    fontSize = DesktopMusicType.Body,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun DesktopProfilePanel(
+    title: String,
+    description: String,
+    buttonText: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    coverArt: CoverArt = CoverArt.AlbumTimeForest,
+) {
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(18.dp),
+        color = Color.White.copy(alpha = 0.72f),
+        border = BorderStroke(width = 1.dp, color = DesktopMusicColors.Line),
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 24.dp, vertical = 22.dp),
+            horizontalArrangement = Arrangement.spacedBy(18.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Image(
+                painter = coverArtPainter(coverArt),
+                contentDescription = "账号头像视觉",
+                modifier = Modifier
+                    .size(88.dp)
+                    .clip(CircleShape),
+                contentScale = ContentScale.Crop,
+            )
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                Text(
+                    text = title,
+                    color = DesktopMusicColors.Ink,
+                    fontSize = DesktopMusicType.PageTitle,
+                    fontWeight = FontWeight.ExtraBold,
+                )
+                Text(
+                    text = description,
+                    color = DesktopMusicColors.MutedStrong,
+                    fontSize = DesktopMusicType.Eyebrow,
+                )
+                DesktopPrimaryButton(text = buttonText, onClick = onClick)
+            }
+        }
+    }
+}
+
+@Composable
+fun DesktopContentRow(
+    icon: ImageVector,
+    title: String,
+    subtitle: String,
+    actionLabel: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    extraContent: @Composable (() -> Unit)? = null,
+) {
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        color = Color.White.copy(alpha = 0.72f),
+        border = BorderStroke(width = 1.dp, color = DesktopMusicColors.Line),
+        onClick = onClick,
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 18.dp, vertical = 18.dp),
+            horizontalArrangement = Arrangement.spacedBy(14.dp),
+            verticalAlignment = Alignment.Top,
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(38.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(DesktopMusicColors.AccentSoft),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = DesktopMusicColors.AccentDeep,
+                    modifier = Modifier.size(18.dp),
+                )
+            }
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                Text(
+                    text = title,
+                    color = DesktopMusicColors.Ink,
+                    fontSize = DesktopMusicType.StatTitle,
+                    fontWeight = FontWeight.Bold,
+                )
+                Text(
+                    text = subtitle,
+                    color = DesktopMusicColors.MutedStrong,
+                    fontSize = DesktopMusicType.Body,
+                )
+                extraContent?.invoke()
+            }
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = actionLabel,
+                    color = DesktopMusicColors.MutedStrong,
+                    fontSize = DesktopMusicType.Eyebrow,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                Icon(
+                    imageVector = Icons.Rounded.ChevronRight,
+                    contentDescription = null,
+                    tint = DesktopMusicColors.MutedStrong,
+                    modifier = Modifier.size(16.dp),
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun DesktopArtistStrip(
+    artists: List<Artist>,
+    onArtistOpen: (Artist) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        artists.forEach { artist: Artist ->
+            Surface(
+                modifier = Modifier
+                    .weight(1f)
+                    .clickable { onArtistOpen(artist) },
+                shape = RoundedCornerShape(14.dp),
+                color = DesktopMusicColors.Soft,
+            ) {
+                Column(
+                    modifier = Modifier.padding(12.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Image(
+                        painter = coverArtPainter(artist.coverArt),
+                        contentDescription = "${artist.name} 头像",
+                        modifier = Modifier
+                            .size(56.dp)
+                            .clip(CircleShape),
+                        contentScale = ContentScale.Crop,
+                    )
+                    Text(
+                        text = artist.name,
+                        color = DesktopMusicColors.Ink,
+                        fontSize = DesktopMusicType.Body,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    Text(
+                        text = "${artist.songCount} 首",
+                        color = DesktopMusicColors.Muted,
+                        fontSize = DesktopMusicType.Body,
+                    )
+                }
+            }
+        }
+    }
+}
+
+val DesktopContentRowFavoritesIcon: ImageVector
+    get() = Icons.Rounded.Favorite
+
+val DesktopContentRowFolderIcon: ImageVector
+    get() = Icons.Rounded.Folder
+
+val DesktopContentRowSyncIcon: ImageVector
+    get() = Icons.Rounded.Sync
+
+val DesktopScanIcon: ImageVector
+    get() = Icons.Rounded.Refresh
