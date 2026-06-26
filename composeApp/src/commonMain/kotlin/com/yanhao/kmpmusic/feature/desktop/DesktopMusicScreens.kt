@@ -13,6 +13,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Person
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.yanhao.kmpmusic.domain.model.Album
 import com.yanhao.kmpmusic.domain.model.Artist
@@ -26,9 +27,11 @@ private const val FAVORITE_ALBUM_PREVIEW_COUNT = 4
 private const val ARTIST_STRIP_COUNT = 4
 
 @Composable
+// 本地音乐首页只展示播放历史反推的最近专辑，避免把全库误标成最近播放。
 fun DesktopLocalMusicRootScreen(
     songs: List<Song>,
     albums: List<Album>,
+    recentSongs: List<Song>,
     libraryStats: LibraryStats,
     currentSongId: String?,
     currentPlaybackStatus: PlaybackStatus,
@@ -45,6 +48,10 @@ fun DesktopLocalMusicRootScreen(
         songs = songs,
         currentSongId = currentSongId,
         currentPlaybackStatus = currentPlaybackStatus,
+    )
+    val recentAlbums: List<Album> = buildRecentAlbums(
+        recentSongs = recentSongs,
+        albums = albums,
     )
     Column(
         modifier = Modifier
@@ -96,17 +103,21 @@ fun DesktopLocalMusicRootScreen(
             onCurrentSongToggle = onCurrentSongToggle,
             onMore = onMore,
         )
-        if (albums.isNotEmpty()) {
-            Spacer(modifier = Modifier.height(24.dp))
-            DesktopSectionHeader(
-                title = "最近播放的专辑",
-                actionLabel = "查看全部",
-                onAction = onBrowseAlbums,
-            )
-            Spacer(modifier = Modifier.height(14.dp))
+        Spacer(modifier = Modifier.height(24.dp))
+        DesktopSectionHeader(
+            title = "最近播放的专辑",
+            actionLabel = "查看全部",
+            onAction = onBrowseAlbums,
+        )
+        Spacer(modifier = Modifier.height(14.dp))
+        if (recentAlbums.isNotEmpty()) {
             DesktopAlbumGrid(
-                albums = albums.take(HOME_ALBUM_PREVIEW_COUNT),
+                albums = recentAlbums,
                 onAlbumOpen = onAlbumOpen,
+            )
+        } else {
+            DesktopSectionEmptyMessage(
+                message = "播放后会在这里显示最近听过的专辑。",
             )
         }
     }
@@ -240,8 +251,10 @@ fun DesktopFavoritesRootScreen(
 }
 
 @Composable
+// 我的页汇总账号、收藏与最近播放概览，最近播放必须来自真实播放历史。
 fun DesktopMeRootScreen(
     albums: List<Album>,
+    recentSongs: List<Song>,
     artists: List<Artist>,
     libraryStats: LibraryStats,
     favoriteCount: Int,
@@ -253,6 +266,10 @@ fun DesktopMeRootScreen(
     onAlbumOpen: (Album) -> Unit,
     onArtistOpen: (Artist) -> Unit,
 ) {
+    val recentAlbums: List<Album> = buildRecentAlbums(
+        recentSongs = recentSongs,
+        albums = albums,
+    )
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -294,7 +311,7 @@ fun DesktopMeRootScreen(
             DesktopStatCard(
                 icon = "♫",
                 title = "最近播放",
-                value = libraryStats.songCount.toString(),
+                value = recentSongs.size.toString(),
                 modifier = Modifier.weight(1f),
             )
         }
@@ -336,17 +353,21 @@ fun DesktopMeRootScreen(
                 onClick = onSettings,
             )
         }
-        if (albums.isNotEmpty()) {
-            Spacer(modifier = Modifier.height(24.dp))
-            DesktopSectionHeader(
-                title = "最近播放的专辑",
-                actionLabel = "查看全部",
-                onAction = onBrowseAlbums,
-            )
-            Spacer(modifier = Modifier.height(14.dp))
+        Spacer(modifier = Modifier.height(24.dp))
+        DesktopSectionHeader(
+            title = "最近播放的专辑",
+            actionLabel = "查看全部",
+            onAction = onBrowseAlbums,
+        )
+        Spacer(modifier = Modifier.height(14.dp))
+        if (recentAlbums.isNotEmpty()) {
             DesktopAlbumGrid(
-                albums = albums.take(HOME_ALBUM_PREVIEW_COUNT),
+                albums = recentAlbums,
                 onAlbumOpen = onAlbumOpen,
+            )
+        } else {
+            DesktopSectionEmptyMessage(
+                message = "还没有最近播放的专辑，先播放一些音乐吧。",
             )
         }
     }
@@ -438,4 +459,33 @@ private fun playOrToggleRootCollection(
         return
     }
     songs.firstOrNull()?.let { song: Song -> onSongPlay(song, songs) }
+}
+
+/**
+ * 根据最近播放歌曲反推最近播放的专辑，按歌曲顺序保留首次出现的专辑。
+ */
+private fun buildRecentAlbums(
+    recentSongs: List<Song>,
+    albums: List<Album>,
+): List<Album> {
+    val albumsByTitle: Map<String, Album> = albums.associateBy { album -> album.title }
+    return recentSongs.mapNotNull { song: Song -> albumsByTitle[song.album] }
+        .distinctBy { album -> album.title }
+        .take(HOME_ALBUM_PREVIEW_COUNT)
+}
+
+/**
+ * 最近播放区为空时的轻提示，避免用全库内容冒充最近播放。
+ */
+@Composable
+private fun DesktopSectionEmptyMessage(
+    message: String,
+) {
+    androidx.compose.material3.Text(
+        text = message,
+        color = DesktopMusicColors.MutedStrong,
+        fontSize = DesktopMusicType.Eyebrow,
+        maxLines = 1,
+        overflow = TextOverflow.Ellipsis,
+    )
 }

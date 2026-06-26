@@ -102,6 +102,7 @@ private fun DesktopWorkspace(
                     RootTab.Home -> DesktopLocalMusicRootScreen(
                         songs = state.songs,
                         albums = state.albums,
+                        recentSongs = state.recentSongs,
                         libraryStats = state.libraryStats,
                         currentSongId = state.currentSongId,
                         currentPlaybackStatus = state.playbackStatus,
@@ -156,6 +157,7 @@ private fun DesktopWorkspace(
                     )
                     RootTab.Me -> DesktopMeRootScreen(
                         albums = state.albums,
+                        recentSongs = state.recentSongs,
                         artists = state.artists,
                         libraryStats = state.libraryStats,
                         favoriteCount = state.likedSongIds.size,
