@@ -2120,6 +2120,8 @@ Insert this comment above `stageMacosArm64LibVlcIntoReleaseApp`:
 
 - [x] **Step 5: Run release app staging**
 
+Status: verified on 2026-06-26. `:composeApp:stageMacosArm64LibVlcIntoReleaseApp` exited `0`, and both `Contents/Frameworks/LibVLC/lib` and `Contents/Frameworks/LibVLC/plugins` were present in the built release app bundle.
+
 Run:
 
 ```bash
@@ -2133,6 +2135,8 @@ Expected:
 - `composeApp/build/compose/binaries/main-release/app/KMP Music.app/Contents/Frameworks/LibVLC/plugins` exists.
 
 - [x] **Step 6: Run verification on a signed local build**
+
+Status: verified on 2026-06-26 against the locally built unsigned app. `:composeApp:verifyMacosArm64ReleaseApp` reached the helper script and failed at `codesign --verify --deep --strict --verbose=2` with a clear sealed-resource error after LibVLC files were staged into the app bundle, which satisfies the expected unsigned local failure path.
 
 Run:
 
