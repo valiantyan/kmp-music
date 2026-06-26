@@ -32,6 +32,7 @@ object DesktopMusicDimens {
     val MinWindowHeight: Dp = 760.dp
     val DefaultWindowWidth: Dp = 1240.dp
     val DefaultWindowHeight: Dp = 820.dp
+    val WindowCornerRadius: Dp = 12.dp
     val TitleBarHeight: Dp = 42.dp
     val RailWidth: Dp = 88.dp
     val LibrarySidebarWidth: Dp = 304.dp
