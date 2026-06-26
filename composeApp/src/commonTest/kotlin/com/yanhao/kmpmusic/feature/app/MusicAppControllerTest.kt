@@ -259,6 +259,44 @@ class MusicAppControllerTest {
     }
 
     /**
+     * 桌面 rail 返回一级页面时必须同步清空二级页面，避免导航高亮与内容错位。
+     */
+    @Test
+    fun desktopRailRootNavigationClearsSecondaryScreen(): Unit {
+        val controller = createController()
+        controller.navigateToSecondary(screen = SecondaryScreen.Search)
+        assertFalse(controller.uiState.navigationState.isTopLevel)
+
+        controller.navigateToRoot(tab = RootTab.Favorites)
+
+        assertTrue(controller.uiState.navigationState.isTopLevel)
+        assertEquals(expected = RootTab.Favorites, actual = controller.uiState.navigationState.rootTab)
+        assertNull(controller.uiState.navigationState.secondaryScreen)
+    }
+
+    /**
+     * 桌面底部播放器与播放详情页必须读取同一份播放状态，避免两个入口各自维护开关。
+     */
+    @Test
+    fun playerScreenAndBottomPlayerReadSamePlaybackState(): Unit = runBlocking {
+        val controller = createController()
+        controller.scanLocalMusic(request = LocalMusicScanRequest.Refresh)
+        val targetSong: Song = controller.uiState.homeLocalSongPreview.first()
+
+        controller.playSong(song = targetSong)
+        controller.openPlayer()
+
+        assertEquals(expected = SecondaryScreen.Player, actual = controller.uiState.navigationState.secondaryScreen)
+        assertEquals(expected = targetSong.id, actual = controller.uiState.currentSongId)
+        assertTrue(controller.uiState.isPlaying)
+
+        controller.togglePlayback()
+
+        assertEquals(expected = targetSong.id, actual = controller.uiState.currentSongId)
+        assertFalse(controller.uiState.isPlaying)
+    }
+
+    /**
      * 播放歌曲后当前歌曲、播放状态和队列应同步。
      */
     @Test

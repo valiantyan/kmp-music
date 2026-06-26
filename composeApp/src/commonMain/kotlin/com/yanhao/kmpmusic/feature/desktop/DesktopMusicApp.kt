@@ -6,13 +6,10 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import com.yanhao.kmpmusic.core.theme.KmpMusicTheme
 import com.yanhao.kmpmusic.feature.app.MusicAppController
 import com.yanhao.kmpmusic.feature.app.MusicAppUiState
@@ -53,22 +50,24 @@ fun DesktopMusicApp(
                     )
                 }
             }
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(DesktopMusicDimens.PlayerHeight)
-                    .background(Color.White.copy(alpha = 0.86f)),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(
-                    text = "Desktop Player",
-                    color = DesktopMusicColors.Muted,
-                )
-            }
+            DesktopBottomPlayer(
+                song = state.currentSong,
+                isPlaying = state.isPlaying,
+                playbackPositionMs = state.playbackPositionMs,
+                playbackDurationMs = state.playbackDurationMs,
+                onOpen = controller::openPlayer,
+                onToggle = controller::togglePlayback,
+                onPrev = { controller.moveTrack(direction = -1) },
+                onNext = { controller.moveTrack(direction = 1) },
+                onMode = controller::cyclePlaybackMode,
+                onLike = controller::toggleFavorite,
+                onQueue = controller::openQueue,
+            )
         }
     }
 }
 
+/** 桌面左侧 rail 需要把根页面与设置页映射成唯一选中态。 */
 private fun MusicAppUiState.desktopRailDestination(): DesktopRailDestination {
     return when (navigationState.secondaryScreen) {
         SecondaryScreen.Settings -> DesktopRailDestination.Settings

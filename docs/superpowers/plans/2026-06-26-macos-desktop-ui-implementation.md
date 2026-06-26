@@ -606,7 +606,7 @@ git commit -m "实现桌面版主框架组件"
 - Modify: `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/desktop/DesktopMusicApp.kt`
 - Modify: `composeApp/src/commonTest/kotlin/com/yanhao/kmpmusic/feature/app/MusicAppControllerTest.kt`
 
-- [ ] **Step 1: Add controller test for rail root navigation**
+- [x] **Step 1: Add controller test for rail root navigation**
 
 Append this test to `MusicAppControllerTest`:
 
@@ -625,7 +625,7 @@ fun desktopRailRootNavigationClearsSecondaryScreen(): Unit {
 }
 ```
 
-- [ ] **Step 2: Add controller test for player/detail shared state**
+- [x] **Step 2: Add controller test for player/detail shared state**
 
 Append this test to `MusicAppControllerTest`:
 
@@ -650,7 +650,7 @@ fun playerScreenAndBottomPlayerReadSamePlaybackState(): Unit = runBlocking {
 }
 ```
 
-- [ ] **Step 3: Run the focused tests**
+- [x] **Step 3: Run the focused tests**
 
 Run:
 
@@ -660,7 +660,7 @@ Run:
 
 Expected: all `MusicAppControllerTest` tests pass, including the two new tests.
 
-- [ ] **Step 4: Create Desktop player component**
+- [x] **Step 4: Create Desktop player component**
 
 Create `DesktopMusicPlayer.kt`:
 
@@ -864,7 +864,7 @@ private fun formatTime(valueMs: Long): String {
 }
 ```
 
-- [ ] **Step 5: Wire player into DesktopMusicApp**
+- [x] **Step 5: Wire player into DesktopMusicApp**
 
 Replace the temporary player `Box` in `DesktopMusicApp.kt` with:
 
@@ -884,7 +884,7 @@ DesktopBottomPlayer(
 )
 ```
 
-- [ ] **Step 6: Run tests and compile**
+- [x] **Step 6: Run tests and compile**
 
 Run:
 
@@ -894,7 +894,7 @@ Run:
 
 Expected: tests and Desktop compile pass.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/desktop/DesktopMusicPlayer.kt \
