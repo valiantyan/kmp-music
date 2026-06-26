@@ -2027,7 +2027,7 @@ git commit -m "添加 macOS LibVLC 下载提取任务"
 - Modify: `composeApp/build.gradle.kts`
 - Create: `composeApp/src/desktopMain/packaging/macos-libvlc/verify-macos-app-libvlc.sh`
 
-- [ ] **Step 1: Add the verification helper**
+- [x] **Step 1: Add the verification helper**
 
 Create `composeApp/src/desktopMain/packaging/macos-libvlc/verify-macos-app-libvlc.sh`:
 
@@ -2070,7 +2070,7 @@ fi
 echo "macOS app LibVLC verification passed"
 ```
 
-- [ ] **Step 2: Make the verification helper executable**
+- [x] **Step 2: Make the verification helper executable**
 
 Run:
 
@@ -2080,7 +2080,7 @@ chmod +x composeApp/src/desktopMain/packaging/macos-libvlc/verify-macos-app-libv
 
 Expected: command exits 0.
 
-- [ ] **Step 3: Add staging tasks around Compose Desktop packaging**
+- [x] **Step 3: Add staging tasks around Compose Desktop packaging**
 
 Modify `composeApp/build.gradle.kts` after the extraction task:
 
@@ -2109,7 +2109,7 @@ tasks.named("packageReleaseDmg") {
 }
 ```
 
-- [ ] **Step 4: Add explicit release signing note to the task comments**
+- [x] **Step 4: Add explicit release signing note to the task comments**
 
 Insert this comment above `stageMacosArm64LibVlcIntoReleaseApp`:
 
@@ -2118,7 +2118,7 @@ Insert this comment above `stageMacosArm64LibVlcIntoReleaseApp`:
 // sign the outer app last. Running packageReleaseDmg before nested signing invalidates release acceptance.
 ```
 
-- [ ] **Step 5: Run release app staging**
+- [x] **Step 5: Run release app staging**
 
 Run:
 
@@ -2132,7 +2132,7 @@ Expected:
 - `composeApp/build/compose/binaries/main-release/app/KMP Music.app/Contents/Frameworks/LibVLC/lib` exists;
 - `composeApp/build/compose/binaries/main-release/app/KMP Music.app/Contents/Frameworks/LibVLC/plugins` exists.
 
-- [ ] **Step 6: Run verification on a signed local build**
+- [x] **Step 6: Run verification on a signed local build**
 
 Run:
 
@@ -2145,7 +2145,7 @@ Expected:
 - PASS on a Developer ID signed release app;
 - FAIL with a clear `codesign` or `spctl` error on an unsigned local app.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add composeApp/build.gradle.kts composeApp/src/desktopMain/packaging/macos-libvlc/verify-macos-app-libvlc.sh

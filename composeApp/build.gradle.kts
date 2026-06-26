@@ -1,3 +1,4 @@
+import org.gradle.api.tasks.Copy
 import org.gradle.api.tasks.Exec
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
@@ -131,6 +132,8 @@ compose.desktop {
 
 val macosLibVlcDownloadDir = layout.buildDirectory.dir("macos-libvlc/download")
 val macosLibVlcRuntimeDir = layout.buildDirectory.dir("macos-libvlc/runtime/LibVLC")
+val releaseAppName = "KMP Music.app"
+val releaseAppDir = layout.buildDirectory.dir("compose/binaries/main-release/app/$releaseAppName")
 
 tasks.register<Exec>("downloadMacosArm64LibVlc") {
     workingDir = projectDir
@@ -150,4 +153,26 @@ tasks.register<Exec>("extractMacosArm64LibVlc") {
         macosLibVlcDownloadDir.get().file("vlc-3.0.23-arm64.dmg").asFile.absolutePath,
         macosLibVlcRuntimeDir.get().asFile.absolutePath,
     )
+}
+
+// The release signing/notarization pipeline must sign nested LibVLC code after this task and
+// sign the outer app last. Running packageReleaseDmg before nested signing invalidates release acceptance.
+tasks.register<Copy>("stageMacosArm64LibVlcIntoReleaseApp") {
+    dependsOn("extractMacosArm64LibVlc", "createReleaseDistributable")
+    from(macosLibVlcRuntimeDir)
+    into(releaseAppDir.map { directory -> directory.dir("Contents/Frameworks/LibVLC") })
+}
+
+tasks.register<Exec>("verifyMacosArm64ReleaseApp") {
+    dependsOn("stageMacosArm64LibVlcIntoReleaseApp")
+    workingDir = projectDir
+    commandLine(
+        "bash",
+        "$projectDir/src/desktopMain/packaging/macos-libvlc/verify-macos-app-libvlc.sh",
+        releaseAppDir.get().asFile.absolutePath,
+    )
+}
+
+tasks.matching { task -> task.name == "packageReleaseDmg" }.configureEach {
+    dependsOn("stageMacosArm64LibVlcIntoReleaseApp")
 }
