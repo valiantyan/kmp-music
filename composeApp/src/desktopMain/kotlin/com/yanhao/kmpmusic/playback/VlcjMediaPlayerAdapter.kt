@@ -23,9 +23,9 @@ class VlcjMediaPlayerAdapter(
             RuntimeUtil.getLibVlcLibraryName(),
             resolvedRuntime.libraryDirectory,
         )
+        setLibVlcPluginPath(pluginDirectory = resolvedRuntime.pluginDirectory)
         CallbackMediaPlayerComponent(
             "--no-video",
-            "--plugin-path=${resolvedRuntime.pluginDirectory}",
         )
     }
     private var currentListener: MediaPlayerEventAdapter? = null
@@ -175,6 +175,16 @@ class VlcjMediaPlayerAdapter(
         }
         currentListener = listener
         mediaPlayer.events().addMediaPlayerEventListener(listener)
+    }
+}
+
+// macOS 的 LibVLC 3 不再接受 `--plugin-path`，原生发现逻辑会读取 [VLC_PLUGIN_PATH]。
+private fun setLibVlcPluginPath(pluginDirectory: String): Unit {
+    val result: Int = NativeLibrary.getInstance("c")
+        .getFunction("setenv")
+        .invokeInt(arrayOf("VLC_PLUGIN_PATH", pluginDirectory, 1))
+    if (result != 0) {
+        throw IllegalStateException("无法设置 VLC_PLUGIN_PATH，LibVLC 插件目录不可用。")
     }
 }
 

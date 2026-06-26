@@ -2271,7 +2271,7 @@ Result on 2026-06-26: committed with message `修复桌面启动缺少 Main disp
 **Files:**
 - No source file changes.
 
-- [ ] **Step 1: Run focused playback tests**
+- [x] **Step 1: Run focused playback tests**
 
 Run:
 
@@ -2281,7 +2281,7 @@ Run:
 
 Expected: PASS.
 
-- [ ] **Step 2: Run shared playback regression tests**
+- [x] **Step 2: Run shared playback regression tests**
 
 Run:
 
@@ -2291,7 +2291,7 @@ Run:
 
 Expected: PASS.
 
-- [ ] **Step 3: Run all Desktop tests and compile**
+- [x] **Step 3: Run all Desktop tests and compile**
 
 Run:
 
@@ -2301,7 +2301,7 @@ Run:
 
 Expected: PASS.
 
-- [ ] **Step 4: Run Android compile regression**
+- [x] **Step 4: Run Android compile regression**
 
 Run:
 
@@ -2320,12 +2320,14 @@ git add composeApp/src gradle/libs.versions.toml composeApp/build.gradle.kts
 git commit -m "修复 macOS 播放验证问题"
 ```
 
+Result: verification passed on the first run, so no verification-only fixes or commit were needed.
+
 ## Task 12: Perform Apple Silicon DMG Acceptance
 
 **Files:**
 - Modify: `composeApp/src/desktopMain/packaging/macos-libvlc/SOURCE_RECORD.md`
 
-- [ ] **Step 1: Build the release app and stage LibVLC**
+- [x] **Step 1: Build the release app and stage LibVLC**
 
 Run:
 
@@ -2334,6 +2336,8 @@ Run:
 ```
 
 Expected: `KMP Music.app/Contents/Frameworks/LibVLC/lib` and `plugins` exist in the release app bundle.
+
+Result: 2026-06-26 运行 `./gradlew :composeApp:stageMacosArm64LibVlcIntoReleaseApp` 成功；已确认 release app bundle 下存在 `Contents/Frameworks/LibVLC/lib`、`plugins`，并额外包含 `licenses`。
 
 - [ ] **Step 2: Sign nested code and outer app**
 
@@ -2346,6 +2350,8 @@ codesign --force --deep --options runtime --timestamp --sign "${DEVELOPER_ID_APP
 ```
 
 Expected: both commands exit 0.
+
+Blocked: 2026-06-26 当前机器缺少签名所需前置条件；`printenv DEVELOPER_ID_APPLICATION_IDENTITY` 无输出，`security find-identity -v -p codesigning` 返回 `0 valid identities found`。按验收顺序停止，未继续执行依赖签名结果的后续步骤。
 
 - [ ] **Step 3: Verify signed app**
 

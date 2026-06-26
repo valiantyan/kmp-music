@@ -1,5 +1,6 @@
 import org.gradle.api.tasks.Copy
 import org.gradle.api.tasks.Exec
+import org.gradle.api.tasks.JavaExec
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
@@ -38,7 +39,12 @@ kotlin {
         }
     }
 
-    jvm("desktop")
+    jvm("desktop") {
+        @OptIn(ExperimentalKotlinGradlePluginApi::class)
+        mainRun {
+            mainClass.set("com.yanhao.kmpmusic.DesktopMainKt")
+        }
+    }
 
     sourceSets {
         val desktopMain by getting
@@ -155,6 +161,19 @@ tasks.register<Exec>("extractMacosArm64LibVlc") {
         macosLibVlcDownloadDir.get().file("vlc-3.0.23-arm64.dmg").asFile.absolutePath,
         macosLibVlcRuntimeDir.get().asFile.absolutePath,
     )
+}
+
+// Desktop 开发运行也必须开箱即用，不能依赖开发者额外安装 `/Applications/VLC.app`。
+fun JavaExec.configureDesktopDevelopmentRun(): Unit {
+    dependsOn("extractMacosArm64LibVlc")
+    systemProperty(
+        "kmp.music.libvlc.runtime.dir",
+        macosLibVlcRuntimeDir.get().asFile.absolutePath,
+    )
+}
+
+tasks.matching { task -> task.name == "run" || task.name == "desktopRun" }.configureEach {
+    (this as? JavaExec)?.configureDesktopDevelopmentRun()
 }
 
 // The release signing/notarization pipeline must sign nested LibVLC code after this task and
