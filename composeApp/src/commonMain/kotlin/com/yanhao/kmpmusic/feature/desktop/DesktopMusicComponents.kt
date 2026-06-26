@@ -725,7 +725,10 @@ private fun DesktopSongTableRow(
             fontSize = DesktopMusicType.Body,
         )
         Text(
-            text = song.lastPlayed,
+            text = desktopSongTableTrailingValue(
+                trailingDateLabel = trailingDateLabel,
+                song = song,
+            ),
             modifier = Modifier.width(98.dp),
             color = DesktopMusicColors.Muted,
             fontSize = DesktopMusicType.Body,
@@ -746,6 +749,17 @@ private fun DesktopSongTableRow(
                 )
             }
         }
+    }
+}
+
+private fun desktopSongTableTrailingValue(
+    trailingDateLabel: String,
+    song: Song,
+): String {
+    return when (trailingDateLabel) {
+        "收藏时间" -> "最近收藏"
+        "添加时间" -> "最近添加"
+        else -> song.lastPlayed
     }
 }
 
