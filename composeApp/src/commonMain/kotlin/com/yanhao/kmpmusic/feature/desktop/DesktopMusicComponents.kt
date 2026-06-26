@@ -4,7 +4,9 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Box
@@ -322,6 +324,69 @@ fun DesktopPrimaryButton(
             )
         }
     }
+}
+
+/**
+ * 桌面输入框统一复用浅色玻璃样式，避免搜索和登录各自拼接不一致的表单外观。
+ */
+@Composable
+fun DesktopTextInput(
+    value: String,
+    onValueChange: (String) -> Unit,
+    placeholder: String,
+    modifier: Modifier = Modifier,
+    leadingIcon: ImageVector? = null,
+) {
+    val interactionSource: MutableInteractionSource = MutableInteractionSource()
+    BasicTextField(
+        value = value,
+        onValueChange = onValueChange,
+        modifier = modifier,
+        singleLine = true,
+        textStyle = androidx.compose.ui.text.TextStyle(
+            color = DesktopMusicColors.Ink,
+            fontSize = DesktopMusicType.Eyebrow,
+            fontWeight = FontWeight.SemiBold,
+        ),
+        interactionSource = interactionSource,
+        decorationBox = { innerTextField: @Composable () -> Unit ->
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+                color = Color.White.copy(alpha = 0.84f),
+                border = BorderStroke(width = 1.dp, color = DesktopMusicColors.Line),
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    if (leadingIcon != null) {
+                        Icon(
+                            imageVector = leadingIcon,
+                            contentDescription = null,
+                            tint = DesktopMusicColors.Muted,
+                            modifier = Modifier.size(18.dp),
+                        )
+                    }
+                    Box(
+                        modifier = Modifier.weight(1f),
+                        contentAlignment = Alignment.CenterStart,
+                    ) {
+                        if (value.isBlank()) {
+                            Text(
+                                text = placeholder,
+                                color = DesktopMusicColors.Muted,
+                                fontSize = DesktopMusicType.Eyebrow,
+                                fontWeight = FontWeight.Medium,
+                            )
+                        }
+                        innerTextField()
+                    }
+                }
+            }
+        },
+    )
 }
 
 @Composable
