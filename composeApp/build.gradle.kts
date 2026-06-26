@@ -1,3 +1,4 @@
+import org.gradle.api.tasks.Exec
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
@@ -126,4 +127,27 @@ compose.desktop {
             packageVersion = "1.0.0"
         }
     }
+}
+
+val macosLibVlcDownloadDir = layout.buildDirectory.dir("macos-libvlc/download")
+val macosLibVlcRuntimeDir = layout.buildDirectory.dir("macos-libvlc/runtime/LibVLC")
+
+tasks.register<Exec>("downloadMacosArm64LibVlc") {
+    workingDir = projectDir
+    commandLine(
+        "bash",
+        "$projectDir/src/desktopMain/packaging/macos-libvlc/download-macos-arm64-libvlc.sh",
+        macosLibVlcDownloadDir.get().asFile.absolutePath,
+    )
+}
+
+tasks.register<Exec>("extractMacosArm64LibVlc") {
+    dependsOn("downloadMacosArm64LibVlc")
+    workingDir = projectDir
+    commandLine(
+        "bash",
+        "$projectDir/src/desktopMain/packaging/macos-libvlc/extract-macos-arm64-libvlc.sh",
+        macosLibVlcDownloadDir.get().file("vlc-3.0.23-arm64.dmg").asFile.absolutePath,
+        macosLibVlcRuntimeDir.get().asFile.absolutePath,
+    )
 }

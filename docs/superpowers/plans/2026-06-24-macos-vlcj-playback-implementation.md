@@ -1890,7 +1890,7 @@ git commit -m "统一播放错误用户文案"
 - Create: `composeApp/src/desktopMain/packaging/macos-libvlc/extract-macos-arm64-libvlc.sh`
 - Modify: `composeApp/build.gradle.kts`
 
-- [ ] **Step 1: Add the download helper**
+- [x] **Step 1: Add the download helper**
 
 Create `composeApp/src/desktopMain/packaging/macos-libvlc/download-macos-arm64-libvlc.sh`:
 
@@ -1920,7 +1920,7 @@ fi
 echo "${dmg_path}"
 ```
 
-- [ ] **Step 2: Add the extraction helper**
+- [x] **Step 2: Add the extraction helper**
 
 Create `composeApp/src/desktopMain/packaging/macos-libvlc/extract-macos-arm64-libvlc.sh`:
 
@@ -1960,7 +1960,7 @@ fi
 echo "${output_dir}"
 ```
 
-- [ ] **Step 3: Make helpers executable**
+- [x] **Step 3: Make helpers executable**
 
 Run:
 
@@ -1970,7 +1970,7 @@ chmod +x composeApp/src/desktopMain/packaging/macos-libvlc/download-macos-arm64-
 
 Expected: command exits 0.
 
-- [ ] **Step 4: Add Gradle tasks for download and extraction**
+- [x] **Step 4: Add Gradle tasks for download and extraction**
 
 Modify `composeApp/build.gradle.kts` after `compose.desktop`:
 
@@ -1999,7 +1999,7 @@ tasks.register<Exec>("extractMacosArm64LibVlc") {
 }
 ```
 
-- [ ] **Step 5: Run extraction on Apple Silicon macOS**
+- [x] **Step 5: Run extraction on Apple Silicon macOS**
 
 Run:
 
