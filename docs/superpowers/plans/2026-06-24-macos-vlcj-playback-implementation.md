@@ -2014,7 +2014,7 @@ Expected:
 - `composeApp/build/macos-libvlc/runtime/LibVLC/plugins` exists;
 - SHA-256 mismatch stops the task before extraction.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add composeApp/build.gradle.kts composeApp/src/desktopMain/packaging/macos-libvlc/download-macos-arm64-libvlc.sh composeApp/src/desktopMain/packaging/macos-libvlc/extract-macos-arm64-libvlc.sh
