@@ -59,7 +59,7 @@ KMP Music 是一个基于 Kotlin Multiplatform 和 Compose Multiplatform 的跨�
 ./gradlew :composeApp:compileDebugKotlinAndroid :composeApp:desktopTest
 
 # 运行 Desktop App
-./gradlew :composeApp:desktopRun
+./gradlew :composeApp:run
 
 # 查看 composeApp 可用任务
 ./gradlew :composeApp:tasks

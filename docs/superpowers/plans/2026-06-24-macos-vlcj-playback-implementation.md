@@ -2228,12 +2228,12 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.receiveAsFlow
 ```
 
-- [x] **Step 2: Run Desktop app with development VLC fallback**
+- [ ] **Step 2: Run Desktop app with development VLC fallback**
 
 Run:
 
 ```bash
-./gradlew :composeApp:desktopRun
+./gradlew :composeApp:run
 ```
 
 Expected manual result on Apple Silicon macOS with VLC installed:
@@ -2243,7 +2243,7 @@ Expected manual result on Apple Silicon macOS with VLC installed:
 - pause/play, next/previous, seek, and queue selection update audio and UI consistently;
 - closing and reopening restores queue and paused position without auto-playing.
 
-Attempt result on 2026-06-26: `./gradlew :composeApp:desktopRun` was executed, but Gradle failed before launching the app with `No main class specified and classpath is not an executable jar.` In the current environment `/Applications/VLC.app` is also missing, so local VLC fallback playback could not be manually verified.
+Attempt result on 2026-06-26: `./gradlew :composeApp:desktopRun --args='--help'` still fails before launch with `No main class specified and classpath is not an executable jar.`, which confirms it is only a Kotlin/JVM carrier task here rather than the supported Compose Desktop smoke entry. After adding the Swing Main dispatcher dependency, `./gradlew :composeApp:run --args='--help'` now reaches the Desktop app entry instead of failing during startup with `Module with the Main dispatcher is missing`. Manual VLC fallback smoke is still blocked in this environment because `/Applications/VLC.app` is missing, so the expected playback interactions above remain unverified.
 
 - [x] **Step 3: Run compile and tests after manual smoke test**
 
@@ -2255,12 +2255,16 @@ Run:
 
 Expected: PASS.
 
-- [ ] **Step 4: Commit**
+Result on 2026-06-26: `./gradlew :composeApp:compileKotlinDesktop :composeApp:desktopTest` passed after the repo-side Desktop launch fixes. This confirms compile/tests coverage only; it does not replace the still-pending manual runtime smoke in Step 2.
+
+- [x] **Step 4: Commit**
 
 ```bash
 git add composeApp/src/desktopMain/kotlin/com/yanhao/kmpmusic/DesktopPlaybackSession.kt composeApp/src/desktopMain/kotlin/com/yanhao/kmpmusic/playback/VlcjMediaPlayerAdapter.kt
 git commit -m "验证桌面真实播放开发链路"
 ```
+
+Result on 2026-06-26: committed with message `修复桌面启动缺少 Main dispatcher 并校正 Task10 状态`.
 
 ## Task 11: Run Full Automated Verification
 
