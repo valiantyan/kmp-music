@@ -141,6 +141,9 @@ class PlaybackServiceConnector(
         }
     }
 
+    /** Android 系统媒体音量由系统面板承接，应用内桌面音量接口在这里保持契约兼容。 */
+    override fun setVolume(volume: Float) = Unit
+
     /** 通过 [MediaController] 停止播放。 */
     override fun stop() {
         executeWithController { controller: MediaController ->

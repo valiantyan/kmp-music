@@ -126,7 +126,7 @@ fun PlayerScreen(
                         PlaybackMode.Shuffle -> Icons.Rounded.Shuffle
                     },
                     contentDescription = when (playbackMode) {
-                        PlaybackMode.LoopAll -> "列表循环"
+                        PlaybackMode.LoopAll -> "顺序播放"
                         PlaybackMode.LoopOne -> "单曲循环"
                         PlaybackMode.Shuffle -> "随机播放"
                     },

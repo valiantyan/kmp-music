@@ -359,6 +359,11 @@ class MusicAppController(
         playbackCoordinator.cyclePlaybackMode()
     }
 
+    /** 调整播放器音量，具体平台由 [PlaybackCoordinator] 下发到播放引擎。 */
+    fun setVolume(volume: Float) {
+        playbackCoordinator.setVolume(volume = volume)
+    }
+
     /**
      * Android 播放 service 退出前，通过协调器补写最终暂停快照，避免恢复时丢掉最后位置。
      */

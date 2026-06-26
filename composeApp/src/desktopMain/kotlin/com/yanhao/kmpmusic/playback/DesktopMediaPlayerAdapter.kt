@@ -52,6 +52,9 @@ interface DesktopMediaPlayerAdapter {
     /** 返回适配器当前已知的总时长，未知时返回 null。 */
     suspend fun currentDurationMs(): Long?
 
+    /** 设置底层播放器音量，传入值为 0 到 100 的平台音量。 */
+    suspend fun setVolume(volumePercent: Int)
+
     /** 释放底层原生资源。 */
     suspend fun release()
 }

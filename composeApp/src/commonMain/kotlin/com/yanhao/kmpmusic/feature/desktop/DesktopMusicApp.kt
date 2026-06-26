@@ -27,6 +27,9 @@ import kotlinx.coroutines.launch
 @Composable
 fun DesktopMusicApp(
     controller: MusicAppController,
+    onCloseWindow: () -> Unit = {},
+    onMinimizeWindow: () -> Unit = {},
+    onToggleFullscreen: () -> Unit = {},
 ) {
     val state: MusicAppUiState = controller.uiState
     val coroutineScope = rememberCoroutineScope()
@@ -42,7 +45,12 @@ fun DesktopMusicApp(
                     .fillMaxSize()
                     .background(DesktopMusicColors.WindowBackground),
             ) {
-                DesktopTitleBar(onSearch = controller::openSearch)
+                DesktopTitleBar(
+                    onSearch = controller::openSearch,
+                    onCloseWindow = onCloseWindow,
+                    onMinimizeWindow = onMinimizeWindow,
+                    onToggleFullscreen = onToggleFullscreen,
+                )
                 Row(modifier = Modifier.weight(1f)) {
                     DesktopRail(
                         activeDestination = state.desktopRailDestination(),
@@ -78,12 +86,15 @@ fun DesktopMusicApp(
                     isPlaying = state.isPlaying,
                     playbackPositionMs = state.playbackPositionMs,
                     playbackDurationMs = state.playbackDurationMs,
+                    playbackMode = state.playbackMode,
                     onOpen = controller::openPlayer,
                     onToggle = controller::togglePlayback,
                     onPrev = { controller.moveTrack(direction = -1) },
                     onNext = { controller.moveTrack(direction = 1) },
                     onMode = controller::cyclePlaybackMode,
                     onLike = controller::toggleFavorite,
+                    onSeek = controller::seekTo,
+                    onVolumeChange = controller::setVolume,
                     onQueue = controller::openQueue,
                 )
             }

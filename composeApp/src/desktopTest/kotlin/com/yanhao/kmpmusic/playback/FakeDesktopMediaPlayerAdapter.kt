@@ -10,6 +10,7 @@ class FakeDesktopMediaPlayerAdapter : DesktopMediaPlayerAdapter {
 
     private var positionMs: Long = 0L
     private var durationMs: Long? = null
+    private var volumePercent: Int = 100
 
     val commands: MutableList<String> = mutableListOf()
 
@@ -53,6 +54,11 @@ class FakeDesktopMediaPlayerAdapter : DesktopMediaPlayerAdapter {
 
     override suspend fun currentDurationMs(): Long? {
         return durationMs
+    }
+
+    override suspend fun setVolume(volumePercent: Int) {
+        this.volumePercent = volumePercent
+        commands += "volume:$volumePercent"
     }
 
     override suspend fun release() {

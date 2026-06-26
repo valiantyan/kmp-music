@@ -262,7 +262,11 @@ class PlaybackCoordinator(
         val targetIndex: Int = nextIndex(queueState = queueState)
         if (targetIndex >= 0) {
             moveToIndex(targetIndex = targetIndex)
+            return
         }
+        playbackRepository.savePlaybackState(
+            state = playbackRepository.getPlaybackState().copy(status = PlaybackStatus.Ended),
+        )
     }
 
     /**
@@ -313,7 +317,7 @@ class PlaybackCoordinator(
     }
 
     /**
-     * 按设计稿顺序切换列表循环、单曲循环和随机播放。
+     * 按设计稿顺序切换顺序播放、单曲循环和随机播放。
      */
     fun cyclePlaybackMode() {
         val queueState: QueueState = playbackRepository.getQueueState()
@@ -336,6 +340,13 @@ class PlaybackCoordinator(
         saveSnapshotNow()
         onStateChanged()
         audioPlayerEngine.setPlaybackMode(playbackMode = nextMode)
+    }
+
+    /**
+     * 归一化音量后下发到平台引擎，避免 UI 层直接依赖具体播放器实现。
+     */
+    fun setVolume(volume: Float) {
+        audioPlayerEngine.setVolume(volume = volume.coerceIn(minimumValue = 0f, maximumValue = 1f))
     }
 
     /**
@@ -503,7 +514,11 @@ class PlaybackCoordinator(
         }
         if (targetIndex >= 0) {
             moveToIndex(targetIndex = targetIndex)
+            return
         }
+        playbackRepository.savePlaybackState(
+            state = playbackRepository.getPlaybackState().copy(status = PlaybackStatus.Ended),
+        )
     }
 
     /** 先写入错误态，再按失败阈值决定是否自动跳过。 */
@@ -539,7 +554,7 @@ class PlaybackCoordinator(
         }
     }
 
-    /** 计算下一首下标；随机模式保证一轮内不重复。 */
+    /** 计算下一首下标；顺序播放按队列有序循环，随机模式保证一轮内不重复。 */
     private fun nextIndex(queueState: QueueState): Int {
         if (queueState.songIds.isEmpty()) {
             return -1

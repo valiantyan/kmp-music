@@ -2,13 +2,17 @@ package com.yanhao.kmpmusic.feature.desktop
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -16,11 +20,14 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.QueueMusic
+import androidx.compose.material.icons.automirrored.rounded.VolumeUp
 import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material.icons.rounded.FavoriteBorder
 import androidx.compose.material.icons.rounded.Pause
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.Repeat
+import androidx.compose.material.icons.rounded.RepeatOne
+import androidx.compose.material.icons.rounded.Shuffle
 import androidx.compose.material.icons.rounded.SkipNext
 import androidx.compose.material.icons.rounded.SkipPrevious
 import androidx.compose.material3.Icon
@@ -28,14 +35,22 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.yanhao.kmpmusic.domain.model.PlaybackMode
 import com.yanhao.kmpmusic.domain.model.Song
 import com.yanhao.kmpmusic.feature.components.coverArtPainter
 
@@ -48,15 +63,22 @@ fun DesktopBottomPlayer(
     isPlaying: Boolean,
     playbackPositionMs: Long,
     playbackDurationMs: Long?,
+    playbackMode: PlaybackMode,
     onOpen: () -> Unit,
     onToggle: () -> Unit,
     onPrev: () -> Unit,
     onNext: () -> Unit,
     onMode: () -> Unit,
     onLike: (String) -> Unit,
+    onSeek: (Long) -> Unit,
+    onVolumeChange: (Float) -> Unit,
     onQueue: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    var volume: Float by remember { mutableStateOf(value = 0.68f) }
+    LaunchedEffect(Unit) {
+        onVolumeChange(volume)
+    }
     Row(
         modifier = modifier
             .fillMaxWidth()
@@ -75,34 +97,40 @@ fun DesktopBottomPlayer(
             isPlaying = isPlaying,
             playbackPositionMs = playbackPositionMs,
             playbackDurationMs = playbackDurationMs,
+            playbackMode = playbackMode,
             onToggle = onToggle,
             onPrev = onPrev,
             onNext = onNext,
             onMode = onMode,
+            onSeek = onSeek,
             modifier = Modifier.weight(1f),
         )
         Row(
             modifier = Modifier.width(DesktopMusicDimens.PlayerActionsColumnWidth),
-            horizontalArrangement = Arrangement.End,
+            horizontalArrangement = Arrangement.spacedBy(14.dp, Alignment.End),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text(
-                text = "♩",
-                fontSize = DesktopMusicType.PageTitle,
-                color = DesktopMusicColors.Ink,
+            Icon(
+                imageVector = Icons.AutoMirrored.Rounded.VolumeUp,
+                contentDescription = "音量",
+                tint = DesktopMusicColors.MutedStrong,
+                modifier = Modifier.size(22.dp),
             )
-            Box(
-                modifier = Modifier
-                    .width(118.dp)
-                    .height(4.dp)
-                    .clip(CircleShape)
-                    .background(DesktopMusicColors.Accent),
+            DesktopThinSlider(
+                value = volume,
+                valueRange = 0f..1f,
+                enabled = true,
+                onValueChange = { nextVolume: Float ->
+                    volume = nextVolume
+                    onVolumeChange(nextVolume)
+                },
+                modifier = Modifier.width(92.dp),
             )
             IconButton(onClick = onQueue) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Rounded.QueueMusic,
                     contentDescription = "播放队列",
-                    tint = DesktopMusicColors.Ink,
+                    tint = DesktopMusicColors.MutedStrong,
                 )
             }
         }
@@ -198,21 +226,36 @@ private fun DesktopPlayerControls(
     isPlaying: Boolean,
     playbackPositionMs: Long,
     playbackDurationMs: Long?,
+    playbackMode: PlaybackMode,
     onToggle: () -> Unit,
     onPrev: () -> Unit,
     onNext: () -> Unit,
     onMode: () -> Unit,
+    onSeek: (Long) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val durationMs: Long = playbackDurationMs?.coerceAtLeast(minimumValue = 0L) ?: 0L
+    val safePositionMs: Long = playbackPositionMs.coerceIn(
+        minimumValue = 0L,
+        maximumValue = durationMs.takeIf { value: Long -> value > 0L } ?: playbackPositionMs.coerceAtLeast(
+            minimumValue = 0L,
+        ),
+    )
+    val progressValue: Float = if (durationMs > 0L) {
+        safePositionMs.toFloat()
+    } else {
+        0f
+    }
+    val modeIcon: PlaybackModeIcon = playbackMode.toPlaybackModeIcon()
     Row(
         modifier = modifier,
-        horizontalArrangement = Arrangement.spacedBy(14.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         IconButton(onClick = onMode) {
             Icon(
-                imageVector = Icons.Rounded.Repeat,
-                contentDescription = "播放模式",
+                imageVector = modeIcon.imageVector,
+                contentDescription = modeIcon.contentDescription,
                 tint = DesktopMusicColors.Accent,
             )
         }
@@ -248,27 +291,122 @@ private fun DesktopPlayerControls(
                 tint = DesktopMusicColors.Ink,
             )
         }
-        DesktopProgressText(
-            positionMs = playbackPositionMs,
-            durationMs = playbackDurationMs,
+        Text(
+            text = formatTime(valueMs = safePositionMs),
+            color = DesktopMusicColors.MutedStrong,
+            fontSize = DesktopMusicType.Body,
+        )
+        DesktopThinSlider(
+            value = progressValue,
+            valueRange = 0f..durationMs.coerceAtLeast(minimumValue = 1L).toFloat(),
+            enabled = durationMs > 0L,
+            onValueChange = { value: Float -> onSeek(value.toLong()) },
+            modifier = Modifier
+                .weight(1f)
+                .height(26.dp),
+        )
+        Text(
+            text = formatTime(valueMs = durationMs),
+            color = DesktopMusicColors.MutedStrong,
+            fontSize = DesktopMusicType.Body,
         )
     }
 }
 
 /**
- * 进度文本只负责把真实播放时间格式化为桌面原型需要的文案。
+ * 桌面播放器细轨道滑杆，统一承接进度和音量，贴近原型里的轻量控件。
  */
 @Composable
-private fun DesktopProgressText(
-    positionMs: Long,
-    durationMs: Long?,
+private fun DesktopThinSlider(
+    value: Float,
+    valueRange: ClosedFloatingPointRange<Float>,
+    enabled: Boolean,
+    onValueChange: (Float) -> Unit,
+    modifier: Modifier = Modifier,
 ) {
-    Text(
-        text = "${formatTime(valueMs = positionMs)} / ${formatTime(valueMs = durationMs ?: 0L)}",
-        color = DesktopMusicColors.Ink,
-        fontSize = DesktopMusicType.Body,
+    val rangeSpan: Float = (valueRange.endInclusive - valueRange.start).coerceAtLeast(minimumValue = 1f)
+    val progressFraction: Float = ((value - valueRange.start) / rangeSpan).coerceIn(
+        minimumValue = 0f,
+        maximumValue = 1f,
     )
+    val updateFromX: (Float, Float) -> Unit = { positionX: Float, width: Float ->
+        if (enabled && width > 0f) {
+            val fraction: Float = (positionX / width).coerceIn(minimumValue = 0f, maximumValue = 1f)
+            onValueChange(valueRange.start + rangeSpan * fraction)
+        }
+    }
+    BoxWithConstraints(
+        modifier = modifier
+            .height(22.dp)
+            .pointerInput(enabled, valueRange) {
+                detectTapGestures { offset ->
+                    updateFromX(offset.x, size.width.toFloat())
+                }
+            }
+            .pointerInput(enabled, valueRange) {
+                detectDragGestures(
+                    onDragStart = { offset ->
+                        updateFromX(offset.x, size.width.toFloat())
+                    },
+                    onDrag = { change, _ ->
+                        change.consume()
+                        updateFromX(change.position.x, size.width.toFloat())
+                    },
+                )
+            },
+        contentAlignment = Alignment.CenterStart,
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(3.dp)
+                .clip(CircleShape)
+                .background(Color(0xFFDCE3E8)),
+        )
+        Box(
+            modifier = Modifier
+                .fillMaxWidth(fraction = progressFraction)
+                .height(3.dp)
+                .clip(CircleShape)
+                .background(if (enabled) DesktopMusicColors.Accent else DesktopMusicColors.Accent.copy(alpha = 0.45f)),
+        )
+        Box(
+            modifier = Modifier
+                .offset(x = (maxWidth - 10.dp) * progressFraction)
+                .size(10.dp)
+                .clip(CircleShape)
+                .background(if (enabled) DesktopMusicColors.Accent else DesktopMusicColors.Accent.copy(alpha = 0.45f)),
+        )
+    }
 }
+
+/**
+ * 把播放模式映射为底栏图标和文案，顺序播放使用循环图标表示队列有序循环。
+ */
+private fun PlaybackMode.toPlaybackModeIcon(): PlaybackModeIcon {
+    return when (this) {
+        PlaybackMode.LoopAll -> PlaybackModeIcon(
+            imageVector = Icons.Rounded.Repeat,
+            contentDescription = "顺序播放",
+        )
+        PlaybackMode.LoopOne -> PlaybackModeIcon(
+            imageVector = Icons.Rounded.RepeatOne,
+            contentDescription = "单曲循环",
+        )
+        PlaybackMode.Shuffle -> PlaybackModeIcon(
+            imageVector = Icons.Rounded.Shuffle,
+            contentDescription = "随机播放",
+        )
+    }
+}
+
+/**
+ * 播放模式按钮需要同时更新图标和可访问文案，封装后避免分支散落在 UI 中。
+ */
+private data class PlaybackModeIcon(
+    val imageVector: ImageVector,
+    val contentDescription: String,
+)
 
 /**
  * 底部栏统一使用分:秒格式，保证空态和负值都安全回落到 0。

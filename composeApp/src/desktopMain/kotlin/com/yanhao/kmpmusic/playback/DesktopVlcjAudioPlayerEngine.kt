@@ -187,6 +187,18 @@ class DesktopVlcjAudioPlayerEngine(
         )
     }
 
+    /** 将归一化音量交给命令循环串行处理，避免 UI 线程直接触碰 vlcj。 */
+    override fun setVolume(volume: Float) {
+        if (isReleased || isReleasing) {
+            return
+        }
+        commandChannel.trySend(
+            element = EngineCommand.SetVolume(
+                volume = volume.coerceIn(minimumValue = 0f, maximumValue = 1f),
+            ),
+        )
+    }
+
     /** 停止当前媒体并把引擎推回 idle。 */
     override fun stop() {
         if (isReleased || isReleasing) {
@@ -225,6 +237,7 @@ class DesktopVlcjAudioPlayerEngine(
             is EngineCommand.SeekTo -> handleSeekTo(positionMs = command.positionMs)
             is EngineCommand.SkipToIndex -> handleSkipToIndex(index = command.index)
             is EngineCommand.SetPlaybackMode -> Unit
+            is EngineCommand.SetVolume -> handleSetVolume(volume = command.volume)
             EngineCommand.Stop -> handleStop()
             EngineCommand.Release -> handleRelease()
             is EngineCommand.AdapterEventReceived -> handleAdapterEvent(event = command.event)
@@ -303,6 +316,11 @@ class DesktopVlcjAudioPlayerEngine(
                 durationMs = adapter.currentDurationMs(),
             ),
         )
+    }
+
+    /** 将 0.0-1.0 的共享音量映射成 vlcj 需要的 0-100 平台音量。 */
+    private suspend fun handleSetVolume(volume: Float) {
+        adapter.setVolume(volumePercent = (volume.coerceIn(minimumValue = 0f, maximumValue = 1f) * 100).toInt())
     }
 
     /** 切歌会重置上一代待播放/待 seek 状态，并让新媒体从头开始准备。 */
@@ -568,6 +586,9 @@ private sealed interface EngineCommand {
 
     /** 保留播放模式同步接口，便于后续桌面能力继续接线。 */
     data class SetPlaybackMode(val playbackMode: PlaybackMode) : EngineCommand
+
+    /** 请求设置当前播放器音量，值为 0.0 到 1.0。 */
+    data class SetVolume(val volume: Float) : EngineCommand
 
     /** 请求停止当前媒体并回到 idle。 */
     data object Stop : EngineCommand

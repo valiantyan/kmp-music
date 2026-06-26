@@ -253,5 +253,7 @@ private class RecordingAudioPlayerEngine : AudioPlayerEngine {
 
     override fun setPlaybackMode(playbackMode: PlaybackMode) = Unit
 
+    override fun setVolume(volume: Float) = Unit
+
     override fun stop() = Unit
 }

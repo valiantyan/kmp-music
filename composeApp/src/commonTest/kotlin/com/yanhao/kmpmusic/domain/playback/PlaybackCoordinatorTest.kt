@@ -107,10 +107,10 @@ class PlaybackCoordinatorTest {
     }
 
     /**
-     * 列表循环在最后一首结束后应回到第一首。
+     * 顺序播放点击下一首时应按队列循环，最后一首回到第一首。
      */
     @Test
-    fun loopAllMovesFromLastSongToFirstSong(): Unit = runTest {
+    fun sequenceModeNextFromLastSongLoopsToFirstSong(): Unit = runTest {
         val repository = InMemoryPlaybackRepository()
         val coordinator = PlaybackCoordinator(
             playbackRepository = repository,
@@ -120,6 +120,27 @@ class PlaybackCoordinatorTest {
         val songs = buildSongs(count = 3)
 
         coordinator.playSong(song = songs[2], queueSongs = songs)
+        coordinator.moveNext()
+
+        assertEquals(expected = 0, actual = repository.getQueueState().currentIndex)
+        assertEquals(expected = songs[0].id, actual = repository.getPlaybackState().currentSongId)
+    }
+
+    /**
+     * 顺序播放自然结束时也应复用同一套队列循环规则。
+     */
+    @Test
+    fun sequenceModeEndedFromLastSongLoopsToFirstSong(): Unit = runTest {
+        val repository = InMemoryPlaybackRepository()
+        val coordinator = PlaybackCoordinator(
+            playbackRepository = repository,
+            audioPlayerEngine = FakeAudioPlayerEngine(),
+            snapshotWriteScope = backgroundScope,
+        )
+        val songs = buildSongs(count = 3)
+
+        coordinator.playSong(song = songs[2], queueSongs = songs)
+        advanceUntilIdle()
         coordinator.handleEngineEventForTest(PlaybackEngineEvent.Ended)
 
         assertEquals(expected = 0, actual = repository.getQueueState().currentIndex)

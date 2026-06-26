@@ -34,6 +34,8 @@ enum class PlaybackStatus {
 
 /**
  * 平台无关的队列播放模式。
+ *
+ * [LoopAll] 保留旧快照兼容命名，当前产品语义为顺序播放并在队尾回到队首。
  */
 enum class PlaybackMode {
     LoopAll,
@@ -116,7 +118,7 @@ data class PlaybackState(
  *
  * @property songIds 当前播放队列中的歌曲标识。
  * @property currentIndex 当前正在消费的队列下标，没有活动项时为 -1。
- * @property playbackMode 当前队列的循环/随机模式。
+ * @property playbackMode 当前队列的顺序/循环/随机模式。
  * @property shuffleHistory Shuffle 模式下已播放过的下标历史。
  * @property shuffleRemaining Shuffle 模式下待播放的下标集合。
  */

@@ -33,6 +33,10 @@ class FakeAudioPlayerEngine : AudioPlayerEngine {
     var playbackMode: PlaybackMode = PlaybackMode.LoopAll
         private set
 
+    /** 最近一次由协调器同步到平台引擎的归一化音量。 */
+    var volume: Float = 1f
+        private set
+
     /** 对外暴露确定性事件流。 */
     override val events: Flow<PlaybackEngineEvent> = eventChannel.receiveAsFlow()
 
@@ -129,6 +133,11 @@ class FakeAudioPlayerEngine : AudioPlayerEngine {
     /** 记录 common 层同步下来的模式，确保测试可以验证平台模式接线。 */
     override fun setPlaybackMode(playbackMode: PlaybackMode) {
         this.playbackMode = playbackMode
+    }
+
+    /** 记录 common 层同步下来的音量，确保测试可以验证平台音量接线。 */
+    override fun setVolume(volume: Float) {
+        this.volume = volume.coerceIn(minimumValue = 0f, maximumValue = 1f)
     }
 
     /** 发出停止后的 idle 事件。 */

@@ -46,6 +46,8 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -68,6 +70,9 @@ enum class DesktopRailDestination {
 @Composable
 fun DesktopTitleBar(
     onSearch: () -> Unit,
+    onCloseWindow: () -> Unit,
+    onMinimizeWindow: () -> Unit,
+    onToggleFullscreen: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Row(
@@ -84,9 +89,21 @@ fun DesktopTitleBar(
                 .padding(start = 18.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            TrafficLight(color = Color(0xFFFF5F57))
-            TrafficLight(color = Color(0xFFFEBC2E))
-            TrafficLight(color = Color(0xFF28C840))
+            TrafficLight(
+                color = Color(0xFFFF5F57),
+                contentDescription = "关闭窗口",
+                onClick = onCloseWindow,
+            )
+            TrafficLight(
+                color = Color(0xFFFEBC2E),
+                contentDescription = "最小化窗口",
+                onClick = onMinimizeWindow,
+            )
+            TrafficLight(
+                color = Color(0xFF28C840),
+                contentDescription = "全屏窗口",
+                onClick = onToggleFullscreen,
+            )
         }
         Box(
             modifier = Modifier.weight(1f),
@@ -132,12 +149,20 @@ fun DesktopTitleBar(
 }
 
 @Composable
-private fun TrafficLight(color: Color) {
+private fun TrafficLight(
+    color: Color,
+    contentDescription: String,
+    onClick: () -> Unit,
+) {
     Box(
         modifier = Modifier
             .size(12.dp)
             .clip(CircleShape)
-            .background(color),
+            .background(color)
+            .semantics {
+                this.contentDescription = contentDescription
+            }
+            .clickable(onClick = onClick),
     )
 }
 

@@ -115,6 +115,12 @@ class VlcjMediaPlayerAdapter(
         return currentDurationMsValue(mediaPlayer = mediaPlayer)
     }
 
+    override suspend fun setVolume(volumePercent: Int) {
+        component?.mediaPlayer()?.audio()?.setVolume(
+            volumePercent.coerceIn(minimumValue = 0, maximumValue = 100),
+        )
+    }
+
     override suspend fun release() {
         val mediaPlayer: MediaPlayer = component?.mediaPlayer() ?: return
         currentListener?.let { listener ->
@@ -225,6 +231,8 @@ class UnavailableDesktopMediaPlayerAdapter : DesktopMediaPlayerAdapter {
     override suspend fun currentPositionMs(): Long = 0L
 
     override suspend fun currentDurationMs(): Long? = null
+
+    override suspend fun setVolume(volumePercent: Int) = Unit
 
     override suspend fun release() = Unit
 }

@@ -51,6 +51,13 @@ interface AudioPlayerEngine {
      */
     fun setPlaybackMode(playbackMode: PlaybackMode)
 
+    /**
+     * 设置当前播放器音量。
+     *
+     * @param volume 归一化音量，范围 0.0 到 1.0。
+     */
+    fun setVolume(volume: Float)
+
     /** 停止当前播放。 */
     fun stop()
 }
