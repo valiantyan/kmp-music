@@ -270,6 +270,10 @@ fun DesktopMeRootScreen(
         recentSongs = recentSongs,
         albums = albums,
     )
+    val frequentArtists: List<Artist> = buildFrequentArtists(
+        recentSongs = recentSongs,
+        artists = artists,
+    )
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -332,10 +336,16 @@ fun DesktopMeRootScreen(
                 onClick = null,
                 extraContent = {
                     Spacer(modifier = Modifier.height(6.dp))
-                    DesktopArtistStrip(
-                        artists = artists.take(ARTIST_STRIP_COUNT),
-                        onArtistOpen = onArtistOpen,
-                    )
+                    if (frequentArtists.isNotEmpty()) {
+                        DesktopArtistStrip(
+                            artists = frequentArtists.take(ARTIST_STRIP_COUNT),
+                            onArtistOpen = onArtistOpen,
+                        )
+                    } else {
+                        DesktopSectionEmptyMessage(
+                            message = "播放后会在这里显示你最近常听的歌手。",
+                        )
+                    }
                 },
             )
             DesktopContentRow(
@@ -468,10 +478,77 @@ private fun buildRecentAlbums(
     recentSongs: List<Song>,
     albums: List<Album>,
 ): List<Album> {
-    val albumsByTitle: Map<String, Album> = albums.associateBy { album -> album.title }
-    return recentSongs.mapNotNull { song: Song -> albumsByTitle[song.album] }
-        .distinctBy { album -> album.title }
+    val albumsByTitle: Map<String, List<Album>> = albums.groupBy { album ->
+        normalizeDesktopLookupKey(album.title)
+    }
+    return recentSongs.mapNotNull { song: Song ->
+        val normalizedAlbumTitle: String = normalizeDesktopLookupKey(song.album)
+        val normalizedArtistName: String = normalizeDesktopLookupKey(song.artist)
+        val titleMatches: List<Album> = albumsByTitle[normalizedAlbumTitle].orEmpty()
+        titleMatches.firstOrNull { album ->
+            normalizeDesktopLookupKey(album.artist) == normalizedArtistName
+        } ?: titleMatches.singleOrNull()
+    }
+        .distinctBy { album -> album.id }
         .take(HOME_ALBUM_PREVIEW_COUNT)
+}
+
+private fun buildFrequentArtists(
+    recentSongs: List<Song>,
+    artists: List<Artist>,
+): List<Artist> {
+    if (recentSongs.isEmpty()) {
+        return emptyList()
+    }
+    data class RecentArtistAccumulator(
+        val name: String,
+        val recentCount: Int,
+        val firstRecentIndex: Int,
+        val coverArt: com.yanhao.kmpmusic.domain.model.CoverArt,
+    )
+
+    val artistsByNormalizedName: Map<String, Artist> = artists.associateBy { artist ->
+        normalizeDesktopLookupKey(artist.name)
+    }
+    val recentArtistStats: Map<String, RecentArtistAccumulator> =
+        recentSongs.withIndex().fold(mutableMapOf()) { acc, indexedSong ->
+            val normalizedArtistName: String = normalizeDesktopLookupKey(indexedSong.value.artist)
+            val existing: RecentArtistAccumulator? = acc[normalizedArtistName]
+            acc[normalizedArtistName] = if (existing == null) {
+                RecentArtistAccumulator(
+                    name = indexedSong.value.artist,
+                    recentCount = 1,
+                    firstRecentIndex = indexedSong.index,
+                    coverArt = indexedSong.value.coverArt,
+                )
+            } else {
+                existing.copy(recentCount = existing.recentCount + 1)
+            }
+            acc
+        }
+    return recentArtistStats.entries
+        .sortedWith(
+            compareByDescending<Map.Entry<String, RecentArtistAccumulator>> { entry ->
+                entry.value.recentCount
+            }.thenBy { entry ->
+                entry.value.firstRecentIndex
+            },
+        )
+        .map { entry ->
+            val recentArtist: RecentArtistAccumulator = entry.value
+            artistsByNormalizedName[entry.key]?.copy(songCount = recentArtist.recentCount)
+                ?: Artist(
+                    id = "artist:${entry.key}",
+                    name = recentArtist.name,
+                    songCount = recentArtist.recentCount,
+                    coverArt = recentArtist.coverArt,
+                    tag = "最近播放",
+                )
+        }
+}
+
+private fun normalizeDesktopLookupKey(value: String): String {
+    return value.trim().lowercase()
 }
 
 /**

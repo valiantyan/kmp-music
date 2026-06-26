@@ -727,7 +727,7 @@ private fun DesktopSongTableRow(
         Text(
             text = desktopSongTableTrailingValue(
                 trailingDateLabel = trailingDateLabel,
-                index = index,
+                song = song,
             ),
             modifier = Modifier.width(98.dp),
             color = DesktopMusicColors.Muted,
@@ -754,39 +754,58 @@ private fun DesktopSongTableRow(
 
 private fun desktopSongTableTrailingValue(
     trailingDateLabel: String,
-    index: Int,
+    song: Song,
 ): String {
-    val labels: List<String> = when (trailingDateLabel) {
-        "收藏时间" -> listOf(
-            "刚刚收藏",
-            "2 分钟前收藏",
-            "5 分钟前收藏",
-            "12 分钟前收藏",
-            "1 小时前收藏",
-            "今天收藏",
-            "昨天收藏",
-        )
-        "添加时间" -> listOf(
-            "刚刚添加",
-            "2 分钟前添加",
-            "5 分钟前添加",
-            "12 分钟前添加",
-            "1 小时前添加",
-            "今天添加",
-            "昨天添加",
-        )
-        else -> listOf(
-            "刚刚",
-            "2 分钟前",
-            "5 分钟前",
-            "12 分钟前",
-            "1 小时前",
-            "今天",
-            "昨天",
-        )
+    return when (trailingDateLabel) {
+        "收藏时间" -> "已收藏"
+        "添加时间" -> song.modifiedAt?.let(::formatDesktopModifiedDate) ?: "最近添加"
+        else -> "最近"
     }
-    return labels[index % labels.size]
 }
+
+private fun formatDesktopModifiedDate(timestampMillis: Long): String {
+    val epochDay: Long = floorDivByDay(timestampMillis)
+    val civilDate: CivilDate = civilDateFromEpochDay(epochDay)
+    val month: String = civilDate.month.toString().padStart(length = 2, padChar = '0')
+    val day: String = civilDate.day.toString().padStart(length = 2, padChar = '0')
+    return "${civilDate.year}-$month-$day"
+}
+
+private fun floorDivByDay(timestampMillis: Long): Long {
+    val dayMillis: Long = 86_400_000L
+    return if (timestampMillis >= 0L) {
+        timestampMillis / dayMillis
+    } else {
+        ((timestampMillis + 1L) / dayMillis) - 1L
+    }
+}
+
+private fun civilDateFromEpochDay(epochDay: Long): CivilDate {
+    val shiftedDay: Long = epochDay + 719_468L
+    val era: Long = if (shiftedDay >= 0L) shiftedDay else shiftedDay - 146_096L
+    val eraIndex: Long = era / 146_097L
+    val dayOfEra: Long = shiftedDay - eraIndex * 146_097L
+    val yearOfEra: Long = (
+        dayOfEra - dayOfEra / 1_460L + dayOfEra / 36_524L - dayOfEra / 146_096L
+        ) / 365L
+    val year: Long = yearOfEra + eraIndex * 400L
+    val dayOfYear: Long = dayOfEra - (365L * yearOfEra + yearOfEra / 4L - yearOfEra / 100L)
+    val monthPrime: Long = (5L * dayOfYear + 2L) / 153L
+    val day: Int = (dayOfYear - (153L * monthPrime + 2L) / 5L + 1L).toInt()
+    val month: Int = (monthPrime + if (monthPrime < 10L) 3L else -9L).toInt()
+    val resolvedYear: Int = (year + if (month <= 2) 1L else 0L).toInt()
+    return CivilDate(
+        year = resolvedYear,
+        month = month,
+        day = day,
+    )
+}
+
+private data class CivilDate(
+    val year: Int,
+    val month: Int,
+    val day: Int,
+)
 
 @Composable
 fun DesktopSectionHeader(
