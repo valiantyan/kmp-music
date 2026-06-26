@@ -274,12 +274,6 @@ fun DesktopMeRootScreen(
             horizontalArrangement = Arrangement.spacedBy(18.dp),
         ) {
             DesktopStatCard(
-                icon = "♫",
-                title = "本地歌曲",
-                value = libraryStats.songCount.toString(),
-                modifier = Modifier.weight(1f),
-            )
-            DesktopStatCard(
                 icon = "●",
                 title = "本地专辑",
                 value = libraryStats.albumCount.toString(),
@@ -297,6 +291,12 @@ fun DesktopMeRootScreen(
                 value = favoriteCount.toString(),
                 modifier = Modifier.weight(1f),
             )
+            DesktopStatCard(
+                icon = "♫",
+                title = "最近播放",
+                value = libraryStats.songCount.toString(),
+                modifier = Modifier.weight(1f),
+            )
         }
         Spacer(modifier = Modifier.height(20.dp))
         Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
@@ -311,8 +311,8 @@ fun DesktopMeRootScreen(
                 icon = Icons.Rounded.Person,
                 title = "常听歌手",
                 subtitle = "你常听的歌手",
-                actionLabel = "更多",
-                onClick = {},
+                actionLabel = null,
+                onClick = null,
                 extraContent = {
                     Spacer(modifier = Modifier.height(6.dp))
                     DesktopArtistStrip(

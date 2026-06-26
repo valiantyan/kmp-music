@@ -727,7 +727,7 @@ private fun DesktopSongTableRow(
         Text(
             text = desktopSongTableTrailingValue(
                 trailingDateLabel = trailingDateLabel,
-                song = song,
+                index = index,
             ),
             modifier = Modifier.width(98.dp),
             color = DesktopMusicColors.Muted,
@@ -754,13 +754,38 @@ private fun DesktopSongTableRow(
 
 private fun desktopSongTableTrailingValue(
     trailingDateLabel: String,
-    song: Song,
+    index: Int,
 ): String {
-    return when (trailingDateLabel) {
-        "收藏时间" -> "最近收藏"
-        "添加时间" -> "最近添加"
-        else -> song.lastPlayed
+    val labels: List<String> = when (trailingDateLabel) {
+        "收藏时间" -> listOf(
+            "刚刚收藏",
+            "2 分钟前收藏",
+            "5 分钟前收藏",
+            "12 分钟前收藏",
+            "1 小时前收藏",
+            "今天收藏",
+            "昨天收藏",
+        )
+        "添加时间" -> listOf(
+            "刚刚添加",
+            "2 分钟前添加",
+            "5 分钟前添加",
+            "12 分钟前添加",
+            "1 小时前添加",
+            "今天添加",
+            "昨天添加",
+        )
+        else -> listOf(
+            "刚刚",
+            "2 分钟前",
+            "5 分钟前",
+            "12 分钟前",
+            "1 小时前",
+            "今天",
+            "昨天",
+        )
     }
+    return labels[index % labels.size]
 }
 
 @Composable
@@ -940,18 +965,12 @@ fun DesktopContentRow(
     icon: ImageVector,
     title: String,
     subtitle: String,
-    actionLabel: String,
-    onClick: () -> Unit,
+    actionLabel: String? = null,
+    onClick: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
     extraContent: @Composable (() -> Unit)? = null,
 ) {
-    Surface(
-        modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        color = Color.White.copy(alpha = 0.72f),
-        border = BorderStroke(width = 1.dp, color = DesktopMusicColors.Line),
-        onClick = onClick,
-    ) {
+    val content: @Composable () -> Unit = {
         Row(
             modifier = Modifier.padding(horizontal = 18.dp, vertical = 18.dp),
             horizontalArrangement = Arrangement.spacedBy(14.dp),
@@ -988,23 +1007,45 @@ fun DesktopContentRow(
                 )
                 extraContent?.invoke()
             }
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(4.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(
-                    text = actionLabel,
-                    color = DesktopMusicColors.MutedStrong,
-                    fontSize = DesktopMusicType.Eyebrow,
-                    fontWeight = FontWeight.SemiBold,
-                )
-                Icon(
-                    imageVector = Icons.Rounded.ChevronRight,
-                    contentDescription = null,
-                    tint = DesktopMusicColors.MutedStrong,
-                    modifier = Modifier.size(16.dp),
-                )
+            if (actionLabel != null) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = actionLabel,
+                        color = DesktopMusicColors.MutedStrong,
+                        fontSize = DesktopMusicType.Eyebrow,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                    Icon(
+                        imageVector = Icons.Rounded.ChevronRight,
+                        contentDescription = null,
+                        tint = DesktopMusicColors.MutedStrong,
+                        modifier = Modifier.size(16.dp),
+                    )
+                }
             }
+        }
+    }
+    if (onClick != null) {
+        Surface(
+            modifier = modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp),
+            color = Color.White.copy(alpha = 0.72f),
+            border = BorderStroke(width = 1.dp, color = DesktopMusicColors.Line),
+            onClick = onClick,
+        ) {
+            content()
+        }
+    } else {
+        Surface(
+            modifier = modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp),
+            color = Color.White.copy(alpha = 0.72f),
+            border = BorderStroke(width = 1.dp, color = DesktopMusicColors.Line),
+        ) {
+            content()
         }
     }
 }
