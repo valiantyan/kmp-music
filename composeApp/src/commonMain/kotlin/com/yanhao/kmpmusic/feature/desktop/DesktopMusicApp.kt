@@ -8,11 +8,9 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import com.yanhao.kmpmusic.core.theme.KmpMusicTheme
 import com.yanhao.kmpmusic.domain.model.LocalMusicScanRequest
 import com.yanhao.kmpmusic.feature.app.AppOverlays
@@ -40,8 +38,7 @@ fun DesktopMusicApp(
     KmpMusicTheme(themeMode = state.themeMode) {
         Box(
             modifier = Modifier
-                .fillMaxSize()
-                .clip(RoundedCornerShape(DesktopMusicDimens.WindowCornerRadius)),
+                .fillMaxSize(),
         ) {
             Column(
                 modifier = Modifier
