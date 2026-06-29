@@ -786,7 +786,7 @@ git commit -m "使用 Coil 统一封面显示"
 - Create: `composeApp/src/iosMain/kotlin/com/yanhao/kmpmusic/feature/components/CoilImageBitmap.ios.kt`
 - Create: `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/components/CoverPaletteLoader.kt`
 
-- [ ] **Step 1: Add common expect bridge**
+- [x] **Step 1: Add common expect bridge**
 
 Create `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/components/CoilImageBitmap.kt`:
 
@@ -802,7 +802,7 @@ import coil3.Image
 internal expect fun coilImageToImageBitmap(image: Image): ImageBitmap?
 ```
 
-- [ ] **Step 2: Add Android actual bridge**
+- [x] **Step 2: Add Android actual bridge**
 
 Create `composeApp/src/androidMain/kotlin/com/yanhao/kmpmusic/feature/components/CoilImageBitmap.android.kt`:
 
@@ -821,7 +821,7 @@ internal actual fun coilImageToImageBitmap(image: Image): ImageBitmap? {
 }
 ```
 
-- [ ] **Step 3: Add Desktop actual bridge**
+- [x] **Step 3: Add Desktop actual bridge**
 
 Create `composeApp/src/desktopMain/kotlin/com/yanhao/kmpmusic/feature/components/CoilImageBitmap.desktop.kt`:
 
@@ -841,7 +841,7 @@ internal actual fun coilImageToImageBitmap(image: Image): ImageBitmap? {
 }
 ```
 
-- [ ] **Step 4: Add iOS actual bridge**
+- [x] **Step 4: Add iOS actual bridge**
 
 Create `composeApp/src/iosMain/kotlin/com/yanhao/kmpmusic/feature/components/CoilImageBitmap.ios.kt`:
 
@@ -861,7 +861,7 @@ internal actual fun coilImageToImageBitmap(image: Image): ImageBitmap? {
 }
 ```
 
-- [ ] **Step 5: Add the palette loader**
+- [x] **Step 5: Add the palette loader**
 
 Create `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/components/CoverPaletteLoader.kt`:
 
@@ -1005,7 +1005,7 @@ private suspend fun <T> loadPaletteFromModel(
 }
 ```
 
-- [ ] **Step 6: Compile desktop**
+- [x] **Step 6: Compile desktop**
 
 Run:
 
@@ -1015,7 +1015,7 @@ Run:
 
 Expected: PASS.
 
-- [ ] **Step 7: Compile Android**
+- [x] **Step 7: Compile Android**
 
 Run:
 
@@ -1025,7 +1025,7 @@ Run:
 
 Expected: PASS.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/components/CoilImageBitmap.kt composeApp/src/androidMain/kotlin/com/yanhao/kmpmusic/feature/components/CoilImageBitmap.android.kt composeApp/src/desktopMain/kotlin/com/yanhao/kmpmusic/feature/components/CoilImageBitmap.desktop.kt composeApp/src/iosMain/kotlin/com/yanhao/kmpmusic/feature/components/CoilImageBitmap.ios.kt composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/components/CoverPaletteLoader.kt
