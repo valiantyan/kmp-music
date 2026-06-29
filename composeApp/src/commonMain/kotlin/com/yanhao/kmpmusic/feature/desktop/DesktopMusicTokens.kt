@@ -47,6 +47,7 @@ object DesktopMusicDimens {
     val TableHeaderHeight: Dp = 40.dp
     val TableRowHeight: Dp = 48.dp
     val TableCoverSize: Dp = 34.dp
+    val TableColumnGap: Dp = 20.dp
     val AlbumMinWidth: Dp = 120.dp
     val SettingNavWidth: Dp = 210.dp
     val PlayerTrackColumnWidth: Dp = 310.dp

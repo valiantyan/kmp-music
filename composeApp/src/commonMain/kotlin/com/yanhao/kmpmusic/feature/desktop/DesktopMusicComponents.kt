@@ -639,21 +639,27 @@ private fun DesktopSongTableHeader(
         )
         Text(
             text = "标题",
-            modifier = Modifier.weight(2.4f),
+            modifier = Modifier
+                .weight(2.4f)
+                .padding(end = DesktopMusicDimens.TableColumnGap),
             color = Color(0xFF7D8795),
             fontSize = DesktopMusicType.TableHeader,
             fontWeight = FontWeight.SemiBold,
         )
         Text(
             text = "歌手",
-            modifier = Modifier.weight(1.2f),
+            modifier = Modifier
+                .weight(1.2f)
+                .padding(end = DesktopMusicDimens.TableColumnGap),
             color = Color(0xFF7D8795),
             fontSize = DesktopMusicType.TableHeader,
             fontWeight = FontWeight.SemiBold,
         )
         Text(
             text = "专辑",
-            modifier = Modifier.weight(1.2f),
+            modifier = Modifier
+                .weight(1.2f)
+                .padding(end = DesktopMusicDimens.TableColumnGap),
             color = Color(0xFF7D8795),
             fontSize = DesktopMusicType.TableHeader,
             fontWeight = FontWeight.SemiBold,
@@ -737,6 +743,7 @@ private fun DesktopSongTableRow(
         Row(
             modifier = Modifier
                 .weight(2.4f)
+                .padding(end = DesktopMusicDimens.TableColumnGap)
                 .clickable { onSongPlay(song, songs) },
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalAlignment = Alignment.CenterVertically,
@@ -752,6 +759,7 @@ private fun DesktopSongTableRow(
             )
             Text(
                 text = song.title,
+                modifier = Modifier.weight(1f),
                 color = if (isCurrentSong) DesktopMusicColors.PlayerRed else DesktopMusicColors.Ink,
                 fontSize = DesktopMusicType.Body,
                 fontWeight = FontWeight.SemiBold,
@@ -761,7 +769,9 @@ private fun DesktopSongTableRow(
         }
         Text(
             text = song.artist,
-            modifier = Modifier.weight(1.2f),
+            modifier = Modifier
+                .weight(1.2f)
+                .padding(end = DesktopMusicDimens.TableColumnGap),
             color = DesktopMusicColors.Ink,
             fontSize = DesktopMusicType.TableTitle,
             maxLines = 1,
@@ -769,7 +779,9 @@ private fun DesktopSongTableRow(
         )
         Text(
             text = song.album,
-            modifier = Modifier.weight(1.2f),
+            modifier = Modifier
+                .weight(1.2f)
+                .padding(end = DesktopMusicDimens.TableColumnGap),
             color = DesktopMusicColors.Ink,
             fontSize = DesktopMusicType.TableTitle,
             maxLines = 1,
