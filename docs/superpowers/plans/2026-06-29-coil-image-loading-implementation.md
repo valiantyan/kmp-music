@@ -1158,7 +1158,7 @@ git commit -m "统一播放器封面取色来源"
 **Files:**
 - Modify: none unless validation exposes a compile or test issue.
 
-- [ ] **Step 1: Run the final old-API scan**
+- [x] **Step 1: Run the final old-API scan**
 
 Run:
 
@@ -1184,7 +1184,7 @@ rg "coil3" composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/app comp
 
 Expected: no matches. Coil imports belong in `feature/components` for this implementation.
 
-- [ ] **Step 2: Verify architecture boundaries were not crossed**
+- [x] **Step 2: Verify architecture boundaries were not crossed**
 
 Run:
 
@@ -1202,7 +1202,7 @@ git diff --name-only origin/main -- prototypes composeApp/src/androidMain/res co
 
 Expected: no output. This confirms the implementation did not change prototype assets, platform-private resources, or bundled fallback artwork. The only resource mapping change should be Kotlin code in `feature/components`.
 
-- [ ] **Step 3: Run the required verification commands**
+- [x] **Step 3: Run the required verification commands**
 
 Run:
 
@@ -1212,7 +1212,7 @@ Run:
 
 Expected: PASS.
 
-- [ ] **Step 4: Check git status**
+- [x] **Step 4: Check git status**
 
 Run:
 
@@ -1222,7 +1222,7 @@ git status --short --branch
 
 Expected: clean working tree on the current branch, with local commits ahead of `origin/main`.
 
-- [ ] **Step 5: Record visual verification status in the delivery message**
+- [x] **Step 5: Record visual verification status in the delivery message**
 
 If no device or desktop screenshot was taken, the final delivery message must include:
 
