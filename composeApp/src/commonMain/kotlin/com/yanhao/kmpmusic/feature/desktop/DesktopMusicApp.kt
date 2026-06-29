@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import com.yanhao.kmpmusic.core.theme.KmpMusicTheme
@@ -33,6 +34,20 @@ fun DesktopMusicApp(
     val scanLocalMusic: () -> Unit = {
         coroutineScope.launch {
             controller.scanLocalMusic(request = LocalMusicScanRequest.Refresh)
+        }
+    }
+    LaunchedEffect(
+        state.navigationState.rootTab,
+        state.navigationState.secondaryScreen,
+        state.libraryStats.songCount,
+        state.localSongs.size,
+    ) {
+        if (state.navigationState.rootTab == RootTab.Home &&
+            state.navigationState.secondaryScreen == null &&
+            state.libraryStats.songCount > 0 &&
+            state.localSongs.isEmpty()
+        ) {
+            controller.loadLocalMusicLibrary()
         }
     }
     KmpMusicTheme(themeMode = state.themeMode) {
