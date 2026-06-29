@@ -98,7 +98,7 @@ Pass 3, failure scenarios and executable validation:
 - Create: `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/components/CoverArtImageRequest.kt`
 - Create: `composeApp/src/commonTest/kotlin/com/yanhao/kmpmusic/feature/components/CoverArtImageRequestTest.kt`
 
-- [ ] **Step 1: Add the failing request model test**
+- [x] **Step 1: Add the failing request model test**
 
 Create `composeApp/src/commonTest/kotlin/com/yanhao/kmpmusic/feature/components/CoverArtImageRequestTest.kt`:
 
@@ -151,7 +151,7 @@ class CoverArtImageRequestTest {
 }
 ```
 
-- [ ] **Step 2: Run the new test and verify it fails**
+- [x] **Step 2: Run the new test and verify it fails**
 
 Run:
 
@@ -161,7 +161,7 @@ Run:
 
 Expected: FAIL with unresolved references for `CoverArtImageRequest`, `buildCoverArtImageRequest`, and `coverArtResourcePath`.
 
-- [ ] **Step 3: Add Coil aliases to the version catalog**
+- [x] **Step 3: Add Coil aliases to the version catalog**
 
 Modify `gradle/libs.versions.toml`:
 
@@ -200,7 +200,7 @@ androidx-media3-ui = { module = "androidx.media3:media3-ui", version.ref = "medi
 vlcj = { module = "uk.co.caprica:vlcj", version.ref = "vlcj" }
 ```
 
-- [ ] **Step 4: Add Coil dependencies to commonMain**
+- [x] **Step 4: Add Coil dependencies to commonMain**
 
 Modify the `commonMain.dependencies` block in `composeApp/build.gradle.kts`:
 
@@ -219,7 +219,7 @@ commonMain.dependencies {
 }
 ```
 
-- [ ] **Step 5: Add the request model**
+- [x] **Step 5: Add the request model**
 
 Create `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/components/CoverArtImageRequest.kt`:
 
@@ -268,7 +268,7 @@ internal fun coverArtResourcePath(coverArt: CoverArt): String {
 }
 ```
 
-- [ ] **Step 6: Run the request model test**
+- [x] **Step 6: Run the request model test**
 
 Run:
 
@@ -278,7 +278,7 @@ Run:
 
 Expected: PASS.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add gradle/libs.versions.toml composeApp/build.gradle.kts composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/components/CoverArtImageRequest.kt composeApp/src/commonTest/kotlin/com/yanhao/kmpmusic/feature/components/CoverArtImageRequestTest.kt
@@ -291,7 +291,7 @@ git commit -m "接入 Coil 封面请求模型"
 - Modify: `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/components/CoverArtPainter.kt`
 - Test: `composeApp/src/commonTest/kotlin/com/yanhao/kmpmusic/feature/components/CoverArtImageRequestTest.kt`
 
-- [ ] **Step 1: Replace the painter file with a Coil-backed image component**
+- [x] **Step 1: Replace the painter file with a Coil-backed image component**
 
 Replace `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/components/CoverArtPainter.kt` with:
 
@@ -380,7 +380,7 @@ fun CoverArtImage(
 }
 ```
 
-- [ ] **Step 2: Verify `CoverArtPainter.kt` no longer exposes painter helpers**
+- [x] **Step 2: Verify `CoverArtPainter.kt` no longer exposes painter helpers**
 
 Run:
 
@@ -390,7 +390,7 @@ rg "painterResource|DrawableResource|coverArtResource\\(|fallbackCoverArtPainter
 
 Expected: no matches. Fallback rendering is handled by switching `AsyncImage` from the external model to `Res.getUri(request.fallbackResourcePath)`, so the final fallback image is still loaded by Coil.
 
-- [ ] **Step 3: Compile common sources and verify old painter callers now fail**
+- [x] **Step 3: Compile common sources and verify old painter callers now fail**
 
 Run:
 
@@ -400,7 +400,7 @@ Run:
 
 Expected: FAIL with unresolved reference errors for `coverArtPainter` in mobile and desktop UI files. This confirms the old UI path has been cut.
 
-- [ ] **Step 4: Stop before committing**
+- [x] **Step 4: Stop before committing**
 
 Stop after the compile failure from Step 3. The repository will compile again after Tasks 3 and 4 migrate all callers, then those changes are committed together.
 
