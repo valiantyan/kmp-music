@@ -42,6 +42,14 @@ enum class LocalMusicSection {
 }
 
 /**
+ * 搜索页的数据上下文。
+ */
+enum class SearchContext {
+    LocalLibrary,
+    Favorites,
+}
+
+/**
  * 底部全局 chrome 的整体位置策略。
  */
 enum class BottomChromePlacement {
@@ -88,7 +96,7 @@ enum class AppChromeMode(
  * 二级页面路由。
  */
 sealed interface SecondaryScreen {
-    data object Search : SecondaryScreen
+    data class Search(val context: SearchContext = SearchContext.LocalLibrary) : SecondaryScreen
     data object Player : SecondaryScreen
     data object AlbumDetail : SecondaryScreen
     data object ArtistDetail : SecondaryScreen
@@ -125,7 +133,7 @@ data class NavigationState(
         SecondaryScreen.Settings,
         -> AppChromeMode.SecondaryFullscreen
         // 普通二级页面：只显示 mini player，底部 Tab 隐藏。
-        SecondaryScreen.Search,
+        is SecondaryScreen.Search,
         SecondaryScreen.AlbumDetail,
         SecondaryScreen.ArtistDetail,
         SecondaryScreen.Login,
@@ -147,7 +155,7 @@ data class NavigationState(
  */
 private fun SecondaryScreen.routeName(): String {
     return when (this) {
-        SecondaryScreen.Search -> "Search"
+        is SecondaryScreen.Search -> "Search:${context.name}"
         SecondaryScreen.Player -> "Player"
         SecondaryScreen.AlbumDetail -> "AlbumDetail"
         SecondaryScreen.ArtistDetail -> "ArtistDetail"
@@ -186,6 +194,7 @@ data class MusicAppUiState(
     val selectedArtistId: String = "trip",
     val searchQuery: String = "",
     val searchScope: SearchScope = SearchScope.All,
+    val searchContext: SearchContext = SearchContext.LocalLibrary,
     val themeMode: ThemeMode = ThemeMode.Light,
     val isQueueOpen: Boolean = false,
     val moreSongId: String? = null,

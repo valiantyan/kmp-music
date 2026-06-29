@@ -51,7 +51,7 @@ fun DesktopSecondaryScreen(
     onScanLocalMusic: () -> Unit,
 ) {
     when (state.navigationState.secondaryScreen) {
-        SecondaryScreen.Search -> DesktopSearchScreen(
+        is SecondaryScreen.Search -> DesktopSearchScreen(
             query = state.searchQuery,
             resultSongs = controller.search().songs,
             currentSongId = state.currentSongId,

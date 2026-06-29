@@ -256,7 +256,7 @@ private fun AppContent(
                             controller = controller,
                             onScanLocalMusic = onScanLocalMusic,
                         )
-                        SecondaryScreen.Search -> SearchScreen(
+                        is SecondaryScreen.Search -> SearchScreen(
                             query = state.searchQuery,
                             scope = state.searchScope,
                             result = controller.search(),

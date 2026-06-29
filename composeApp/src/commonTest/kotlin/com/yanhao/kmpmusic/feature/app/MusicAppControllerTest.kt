@@ -250,7 +250,7 @@ class MusicAppControllerTest {
     fun secondaryScreenKeepsPreviousRootTab(): Unit {
         val controller = createController()
         controller.navigateToRoot(tab = RootTab.Favorites)
-        controller.navigateToSecondary(screen = SecondaryScreen.Search)
+        controller.navigateToSecondary(screen = SecondaryScreen.Search(context = SearchContext.LocalLibrary))
         assertFalse(controller.uiState.navigationState.isTopLevel)
         assertEquals(RootTab.Favorites, controller.uiState.navigationState.previousRootTab)
         controller.navigateBack()
@@ -264,7 +264,7 @@ class MusicAppControllerTest {
     @Test
     fun desktopRailRootNavigationClearsSecondaryScreen(): Unit {
         val controller = createController()
-        controller.navigateToSecondary(screen = SecondaryScreen.Search)
+        controller.navigateToSecondary(screen = SecondaryScreen.Search(context = SearchContext.LocalLibrary))
         assertFalse(controller.uiState.navigationState.isTopLevel)
 
         controller.navigateToRoot(tab = RootTab.Favorites)
@@ -730,6 +730,42 @@ class MusicAppControllerTest {
     }
 
     /**
+     * 首页顶部搜索应进入本地曲库搜索上下文。
+     */
+    @Test
+    fun homeSearchOpensLocalLibrarySearchContext(): Unit {
+        val controller = createController()
+
+        controller.navigateToRoot(tab = RootTab.Home)
+        controller.openSearch(context = SearchContext.LocalLibrary)
+
+        assertEquals(
+            expected = SecondaryScreen.Search(context = SearchContext.LocalLibrary),
+            actual = controller.uiState.navigationState.secondaryScreen,
+        )
+        assertEquals(expected = RootTab.Home, actual = controller.uiState.navigationState.previousRootTab)
+        assertEquals(expected = SearchContext.LocalLibrary, actual = controller.uiState.searchContext)
+    }
+
+    /**
+     * 收藏顶部搜索应进入收藏搜索上下文。
+     */
+    @Test
+    fun favoritesSearchOpensFavoritesSearchContext(): Unit {
+        val controller = createController()
+
+        controller.navigateToRoot(tab = RootTab.Favorites)
+        controller.openSearch(context = SearchContext.Favorites)
+
+        assertEquals(
+            expected = SecondaryScreen.Search(context = SearchContext.Favorites),
+            actual = controller.uiState.navigationState.secondaryScreen,
+        )
+        assertEquals(expected = RootTab.Favorites, actual = controller.uiState.navigationState.previousRootTab)
+        assertEquals(expected = SearchContext.Favorites, actual = controller.uiState.searchContext)
+    }
+
+    /**
      * 搜索入口应按需加载完整曲库，而不是只搜索首页 preview。
      */
     @Test
@@ -737,7 +773,7 @@ class MusicAppControllerTest {
         val repository = SeededMusicLibraryRepository(seedCount = 8)
         val controller = createController(musicLibraryRepository = repository)
 
-        controller.openSearch()
+        controller.openSearch(context = SearchContext.LocalLibrary)
         controller.setSearchQuery(query = "Seed 8")
         controller.setSearchScope(scope = SearchScope.Songs)
 

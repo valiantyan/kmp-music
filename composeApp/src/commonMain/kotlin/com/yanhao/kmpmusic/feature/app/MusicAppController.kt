@@ -265,10 +265,17 @@ class MusicAppController(
         navigateToSecondary(screen = SecondaryScreen.LocalMusic(initialSection = section))
     }
 
-    /** 搜索页应按需拿到完整曲库，这样搜索结果不会被首页 preview 截断。 */
-    fun openSearch() {
-        loadLocalMusicLibrary()
-        navigateToSecondary(screen = SecondaryScreen.Search)
+    /** 搜索页应按入口上下文拿到对应数据集合，避免搜索结果跨页面串联。 */
+    fun openSearch(context: SearchContext = SearchContext.LocalLibrary) {
+        if (context == SearchContext.LocalLibrary) {
+            loadLocalMusicLibrary()
+        }
+        uiState = uiState.copy(
+            searchContext = context,
+            searchQuery = "",
+            searchScope = SearchScope.All,
+        )
+        navigateToSecondary(screen = SecondaryScreen.Search(context = context))
     }
 
     /** 播放歌曲但留在当前页面，未显式传列表时优先复用当前队列上下文。 */
