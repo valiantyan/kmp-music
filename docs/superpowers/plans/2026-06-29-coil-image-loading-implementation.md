@@ -1,0 +1,1186 @@
+# Coil Image Loading Implementation Plan
+
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+
+**Goal:** Route every Compose UI cover image and cover-driven palette through Coil while preserving `coverImageUri` first and `CoverArt` fallback behavior.
+
+**Architecture:** Keep image source decisions inside `feature/components`, not in pages. Add a small testable request model, a `CoverArtImage` composable backed by Coil, and a palette loader that uses the same Coil source order before feeding the existing palette extraction algorithms.
+
+**Tech Stack:** Kotlin Multiplatform 2.0.21, Compose Multiplatform 1.7.3, Coil 3.5.0, kotlin-test, Android/JVM/iOS source sets.
+
+---
+
+## Scope Check
+
+The spec covers one subsystem: Compose UI image loading and cover-driven palette extraction. It intentionally excludes Media3 notification artwork, scanning, playback, persistence, and domain model redesign, so this remains one implementation plan.
+
+## File Structure
+
+- Modify `gradle/libs.versions.toml`: add Coil version and library aliases.
+- Modify `composeApp/build.gradle.kts`: add Coil dependencies to `commonMain`.
+- Create `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/components/CoverArtImageRequest.kt`: pure request model, resource path mapping, and source selection.
+- Create `composeApp/src/commonTest/kotlin/com/yanhao/kmpmusic/feature/components/CoverArtImageRequestTest.kt`: source selection and enum coverage tests.
+- Modify `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/components/CoverArtPainter.kt`: replace painter-centered API with Coil image and palette-facing APIs.
+- Delete `composeApp/src/androidMain/kotlin/com/yanhao/kmpmusic/feature/components/CoverArtPainter.android.kt`: remove Android hand decoding for UI covers.
+- Delete `composeApp/src/desktopMain/kotlin/com/yanhao/kmpmusic/feature/components/CoverArtPainter.desktop.kt`: remove Desktop hand decoding for UI covers.
+- Delete `composeApp/src/iosMain/kotlin/com/yanhao/kmpmusic/feature/components/CoverArtPainter.ios.kt`: remove iOS fallback-only actual.
+- Create `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/components/CoverPaletteLoader.kt`: Coil `ImageLoader` palette-loading composables.
+- Create `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/components/CoilImageBitmap.kt`: expect bridge from `coil3.Image` to Compose `ImageBitmap`.
+- Create `composeApp/src/androidMain/kotlin/com/yanhao/kmpmusic/feature/components/CoilImageBitmap.android.kt`: Android bitmap conversion.
+- Create `composeApp/src/desktopMain/kotlin/com/yanhao/kmpmusic/feature/components/CoilImageBitmap.desktop.kt`: Desktop bitmap conversion.
+- Create `composeApp/src/iosMain/kotlin/com/yanhao/kmpmusic/feature/components/CoilImageBitmap.ios.kt`: iOS bitmap conversion.
+- Modify mobile UI files that currently call `Image(painter = coverArtPainter(...))`: replace with `CoverArtImage(...)`.
+- Modify desktop UI files that currently call `Image(painter = coverArtPainter(...))`: replace with `CoverArtImage(...)`.
+- Modify `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/app/MusicApp.kt`: mini player image and palette use Coil source.
+- Modify `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/desktop/DesktopPlayerDetailScreen.kt`: desktop player page palette uses Coil source.
+
+## Task 1: Add Coil Dependencies and Testable Request Model
+
+**Files:**
+- Modify: `gradle/libs.versions.toml`
+- Modify: `composeApp/build.gradle.kts`
+- Create: `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/components/CoverArtImageRequest.kt`
+- Create: `composeApp/src/commonTest/kotlin/com/yanhao/kmpmusic/feature/components/CoverArtImageRequestTest.kt`
+
+- [ ] **Step 1: Add the failing request model test**
+
+Create `composeApp/src/commonTest/kotlin/com/yanhao/kmpmusic/feature/components/CoverArtImageRequestTest.kt`:
+
+```kotlin
+package com.yanhao.kmpmusic.feature.components
+
+import com.yanhao.kmpmusic.domain.model.CoverArt
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
+
+class CoverArtImageRequestTest {
+    @Test
+    fun buildCoverArtImageRequestUsesCoverImageUriBeforeFallbackResource(): Unit {
+        val request: CoverArtImageRequest = buildCoverArtImageRequest(
+            coverArt = CoverArt.AlbumBestOfMe,
+            coverImageUri = "file:///tmp/cover.art",
+        )
+
+        assertEquals("file:///tmp/cover.art", request.primaryModel)
+        assertEquals("drawable/album_best_of_me.png", request.fallbackResourcePath)
+        assertTrue(request.usesExternalCover)
+    }
+
+    @Test
+    fun buildCoverArtImageRequestUsesFallbackResourceWhenCoverImageUriIsBlank(): Unit {
+        val request: CoverArtImageRequest = buildCoverArtImageRequest(
+            coverArt = CoverArt.CoverSeaDream,
+            coverImageUri = "   ",
+        )
+
+        assertEquals("drawable/cover_sea_dream.png", request.primaryModel)
+        assertEquals("drawable/cover_sea_dream.png", request.fallbackResourcePath)
+        assertFalse(request.usesExternalCover)
+    }
+
+    @Test
+    fun coverArtResourcePathMapsEveryCoverArtValue(): Unit {
+        val paths: Set<String> = CoverArt.entries.map(::coverArtResourcePath).toSet()
+
+        assertEquals(CoverArt.entries.size, paths.size)
+        assertEquals("drawable/album_best_of_me.png", coverArtResourcePath(CoverArt.AlbumBestOfMe))
+        assertEquals("drawable/album_river_year.png", coverArtResourcePath(CoverArt.AlbumRiverYear))
+        assertEquals("drawable/album_time_forest.png", coverArtResourcePath(CoverArt.AlbumTimeForest))
+        assertEquals("drawable/cover_sea_dream.png", coverArtResourcePath(CoverArt.CoverSeaDream))
+        assertEquals("drawable/cover_summer_waltz.png", coverArtResourcePath(CoverArt.CoverSummerWaltz))
+        assertEquals("drawable/hero_local_folder.png", coverArtResourcePath(CoverArt.HeroLocalMusic))
+    }
+}
+```
+
+- [ ] **Step 2: Run the new test and verify it fails**
+
+Run:
+
+```bash
+./gradlew :composeApp:desktopTest --tests com.yanhao.kmpmusic.feature.components.CoverArtImageRequestTest
+```
+
+Expected: FAIL with unresolved references for `CoverArtImageRequest`, `buildCoverArtImageRequest`, and `coverArtResourcePath`.
+
+- [ ] **Step 3: Add Coil aliases to the version catalog**
+
+Modify `gradle/libs.versions.toml`:
+
+```toml
+[versions]
+agp = "8.13.2"
+coil = "3.5.0"
+composeMultiplatform = "1.7.3"
+kotlin = "2.0.21"
+kotlinxCoroutines = "1.9.0"
+kotlinxSerialization = "1.8.1"
+androidxCore = "1.17.0"
+androidxAppCompat = "1.7.1"
+ksp = "2.0.21-1.0.28"
+media3 = "1.10.1"
+room3 = "3.0.0-rc01"
+sqlite = "2.6.2"
+vlcj = "4.12.1"
+
+[libraries]
+coil-compose = { module = "io.coil-kt.coil3:coil-compose", version.ref = "coil" }
+coil-compose-core = { module = "io.coil-kt.coil3:coil-compose-core", version.ref = "coil" }
+kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
+kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlinxCoroutines" }
+kotlinx-coroutines-swing = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-swing", version.ref = "kotlinxCoroutines" }
+kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "kotlinxCoroutines" }
+kotlinx-serialization-core = { module = "org.jetbrains.kotlinx:kotlinx-serialization-core", version.ref = "kotlinxSerialization" }
+androidx-core = { module = "androidx.core:core", version.ref = "androidxCore" }
+androidx-appcompat = { module = "androidx.appcompat:appcompat", version.ref = "androidxAppCompat" }
+androidx-sqlite-bundled = { module = "androidx.sqlite:sqlite-bundled", version.ref = "sqlite" }
+androidx-room3-runtime = { module = "androidx.room3:room3-runtime", version.ref = "room3" }
+androidx-room3-compiler = { module = "androidx.room3:room3-compiler", version.ref = "room3" }
+androidx-media3-exoplayer = { module = "androidx.media3:media3-exoplayer", version.ref = "media3" }
+androidx-media3-session = { module = "androidx.media3:media3-session", version.ref = "media3" }
+androidx-media3-ui = { module = "androidx.media3:media3-ui", version.ref = "media3" }
+vlcj = { module = "uk.co.caprica:vlcj", version.ref = "vlcj" }
+```
+
+- [ ] **Step 4: Add Coil dependencies to commonMain**
+
+Modify the `commonMain.dependencies` block in `composeApp/build.gradle.kts`:
+
+```kotlin
+commonMain.dependencies {
+    implementation(compose.runtime)
+    implementation(compose.foundation)
+    implementation(compose.material3)
+    implementation(compose.materialIconsExtended)
+    implementation(compose.components.resources)
+    implementation(libs.coil.compose)
+    implementation(libs.coil.compose.core)
+    implementation(libs.kotlinx.coroutines.core)
+    implementation(libs.androidx.room3.runtime)
+    implementation(libs.androidx.sqlite.bundled)
+}
+```
+
+- [ ] **Step 5: Add the request model**
+
+Create `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/components/CoverArtImageRequest.kt`:
+
+```kotlin
+package com.yanhao.kmpmusic.feature.components
+
+import com.yanhao.kmpmusic.domain.model.CoverArt
+
+/**
+ * Coil 封面加载请求的纯数据部分，便于测试来源优先级。
+ */
+internal data class CoverArtImageRequest(
+    val primaryModel: String,
+    val fallbackResourcePath: String,
+    val usesExternalCover: Boolean,
+)
+
+/**
+ * 构建封面来源：扫描封面优先，应用内资源兜底。
+ */
+internal fun buildCoverArtImageRequest(
+    coverArt: CoverArt,
+    coverImageUri: String?,
+): CoverArtImageRequest {
+    val fallbackResourcePath: String = coverArtResourcePath(coverArt = coverArt)
+    val normalizedCoverImageUri: String? = coverImageUri?.trim()?.takeIf { uri: String -> uri.isNotEmpty() }
+    return CoverArtImageRequest(
+        primaryModel = normalizedCoverImageUri ?: fallbackResourcePath,
+        fallbackResourcePath = fallbackResourcePath,
+        usesExternalCover = normalizedCoverImageUri != null,
+    )
+}
+
+/**
+ * Compose Multiplatform resources 中的封面路径，供 Res.getUri 加载。
+ */
+internal fun coverArtResourcePath(coverArt: CoverArt): String {
+    return when (coverArt) {
+        CoverArt.AlbumBestOfMe -> "drawable/album_best_of_me.png"
+        CoverArt.AlbumRiverYear -> "drawable/album_river_year.png"
+        CoverArt.AlbumTimeForest -> "drawable/album_time_forest.png"
+        CoverArt.CoverSeaDream -> "drawable/cover_sea_dream.png"
+        CoverArt.CoverSummerWaltz -> "drawable/cover_summer_waltz.png"
+        CoverArt.HeroLocalMusic -> "drawable/hero_local_folder.png"
+    }
+}
+```
+
+- [ ] **Step 6: Run the request model test**
+
+Run:
+
+```bash
+./gradlew :composeApp:desktopTest --tests com.yanhao.kmpmusic.feature.components.CoverArtImageRequestTest
+```
+
+Expected: PASS.
+
+- [ ] **Step 7: Commit**
+
+```bash
+git add gradle/libs.versions.toml composeApp/build.gradle.kts composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/components/CoverArtImageRequest.kt composeApp/src/commonTest/kotlin/com/yanhao/kmpmusic/feature/components/CoverArtImageRequestTest.kt
+git commit -m "接入 Coil 封面请求模型"
+```
+
+## Task 2: Add Shared Coil CoverArtImage Component
+
+**Files:**
+- Modify: `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/components/CoverArtPainter.kt`
+- Test: `composeApp/src/commonTest/kotlin/com/yanhao/kmpmusic/feature/components/CoverArtImageRequestTest.kt`
+
+- [ ] **Step 1: Replace the painter file with a Coil-backed image component**
+
+Replace `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/components/CoverArtPainter.kt` with:
+
+```kotlin
+package com.yanhao.kmpmusic.feature.components
+
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.ui.layout.ContentScale
+import coil3.compose.AsyncImage
+import com.yanhao.kmpmusic.domain.model.CoverArt
+import kmpmusic.composeapp.generated.resources.Res
+import org.jetbrains.compose.resources.painterResource
+
+/**
+ * 将 domain 层封面标识映射到 Compose resource URI。
+ */
+@Composable
+internal fun coverArtResourceUri(coverArt: CoverArt): String {
+    return Res.getUri(coverArtResourcePath(coverArt = coverArt))
+}
+
+/**
+ * Coil 封面图组件。扫描封面优先，加载失败时回退到应用内资源。
+ */
+@Composable
+fun CoverArtImage(
+    coverArt: CoverArt,
+    coverImageUri: String?,
+    contentDescription: String?,
+    modifier: Modifier = Modifier,
+    contentScale: ContentScale = ContentScale.Crop,
+) {
+    val request: CoverArtImageRequest = remember(coverArt, coverImageUri) {
+        buildCoverArtImageRequest(
+            coverArt = coverArt,
+            coverImageUri = coverImageUri,
+        )
+    }
+    val fallbackPainter: Painter = fallbackCoverArtPainter(coverArt = coverArt)
+    val model: String = if (request.usesExternalCover) {
+        request.primaryModel
+    } else {
+        Res.getUri(request.fallbackResourcePath)
+    }
+    AsyncImage(
+        model = model,
+        contentDescription = contentDescription,
+        modifier = modifier,
+        contentScale = contentScale,
+        placeholder = fallbackPainter,
+        error = fallbackPainter,
+        fallback = fallbackPainter,
+    )
+}
+
+/**
+ * 只使用应用内兜底封面时的便捷重载。
+ */
+@Composable
+fun CoverArtImage(
+    coverArt: CoverArt,
+    contentDescription: String?,
+    modifier: Modifier = Modifier,
+    contentScale: ContentScale = ContentScale.Crop,
+) {
+    CoverArtImage(
+        coverArt = coverArt,
+        coverImageUri = null,
+        contentDescription = contentDescription,
+        modifier = modifier,
+        contentScale = contentScale,
+    )
+}
+
+/**
+ * 应用内兜底资源的 Painter，仅用于 Coil placeholder/error/fallback。
+ */
+@Composable
+internal fun fallbackCoverArtPainter(coverArt: CoverArt): Painter {
+    return painterResource(resource = coverArtResource(coverArt = coverArt))
+}
+```
+
+- [ ] **Step 2: Keep `coverArtResource` in the same file below the new component**
+
+Append this mapping in `CoverArtPainter.kt` below the imports or above `coverArtResourceUri` if it was removed during replacement:
+
+```kotlin
+import kmpmusic.composeapp.generated.resources.album_best_of_me
+import kmpmusic.composeapp.generated.resources.album_river_year
+import kmpmusic.composeapp.generated.resources.album_time_forest
+import kmpmusic.composeapp.generated.resources.cover_sea_dream
+import kmpmusic.composeapp.generated.resources.cover_summer_waltz
+import kmpmusic.composeapp.generated.resources.hero_local_folder
+import org.jetbrains.compose.resources.DrawableResource
+
+/**
+ * 将 domain 层封面标识映射到 Compose 图片资源。
+ */
+fun coverArtResource(coverArt: CoverArt): DrawableResource {
+    return when (coverArt) {
+        CoverArt.AlbumBestOfMe -> Res.drawable.album_best_of_me
+        CoverArt.AlbumRiverYear -> Res.drawable.album_river_year
+        CoverArt.AlbumTimeForest -> Res.drawable.album_time_forest
+        CoverArt.CoverSeaDream -> Res.drawable.cover_sea_dream
+        CoverArt.CoverSummerWaltz -> Res.drawable.cover_summer_waltz
+        CoverArt.HeroLocalMusic -> Res.drawable.hero_local_folder
+    }
+}
+```
+
+If imports are duplicated after this edit, keep one import for each symbol and run the compiler in the next step.
+
+- [ ] **Step 3: Compile common sources and verify old painter callers now fail**
+
+Run:
+
+```bash
+./gradlew :composeApp:compileKotlinDesktop
+```
+
+Expected: FAIL with unresolved reference errors for `coverArtPainter` in mobile and desktop UI files. This confirms the old UI path has been cut.
+
+- [ ] **Step 4: Stop before committing**
+
+Stop after the compile failure from Step 3. The repository will compile again after Tasks 3 and 4 migrate all callers, then those changes are committed together.
+
+## Task 3: Migrate Mobile Shared UI Callers to CoverArtImage
+
+**Files:**
+- Modify: `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/screen/PlayerScreen.kt`
+- Modify: `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/screen/HomeScreen.kt`
+- Modify: `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/screen/MeScreen.kt`
+- Modify: `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/screen/DetailScreens.kt`
+- Modify: `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/components/CommonComponents.kt`
+- Modify: `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/app/MusicApp.kt`
+
+- [ ] **Step 1: Replace PlayerScreen cover**
+
+In `PlayerScreen.kt`, replace the `Image` import with no image import if unused, replace the `coverArtPainter` import with:
+
+```kotlin
+import com.yanhao.kmpmusic.feature.components.CoverArtImage
+```
+
+Replace the cover block with:
+
+```kotlin
+CoverArtImage(
+    coverArt = song.coverArt,
+    coverImageUri = song.coverImageUri,
+    contentDescription = "${song.title} 封面",
+    modifier = Modifier.size(328.dp).clip(RoundedCornerShape(30.dp)).align(Alignment.CenterHorizontally),
+    contentScale = ContentScale.Crop,
+)
+```
+
+- [ ] **Step 2: Replace CommonComponents covers**
+
+In `CommonComponents.kt`, replace:
+
+```kotlin
+import com.yanhao.kmpmusic.feature.components.coverArtPainter
+```
+
+with:
+
+```kotlin
+import com.yanhao.kmpmusic.feature.components.CoverArtImage
+```
+
+Replace the `SongRow` cover `Image(...)` with:
+
+```kotlin
+CoverArtImage(
+    coverArt = song.coverArt,
+    coverImageUri = song.coverImageUri,
+    contentDescription = "${song.title} 封面",
+    modifier = Modifier
+        .size(coverSize)
+        .then(
+            if (coverShadowElevation > 0.dp) {
+                Modifier.shadow(
+                    elevation = coverShadowElevation,
+                    shape = coverShape,
+                    clip = false,
+                )
+            } else {
+                Modifier
+            },
+        )
+        .clip(coverShape),
+    contentScale = ContentScale.Crop,
+)
+```
+
+Replace the `AlbumCard` cover with:
+
+```kotlin
+CoverArtImage(
+    coverArt = album.coverArt,
+    coverImageUri = album.coverImageUri,
+    contentDescription = "${album.title} 专辑封面",
+    modifier = Modifier
+        .fillMaxWidth()
+        .aspectRatio(ratio = 1f)
+        .shadow(elevation = scaledDp(12.dp), shape = RoundedCornerShape(scaledDp(MusicDimens.AlbumRadius)), clip = false)
+        .clip(RoundedCornerShape(scaledDp(MusicDimens.AlbumRadius))),
+    contentScale = ContentScale.Crop,
+)
+```
+
+Replace the `ArtistRow` image with:
+
+```kotlin
+CoverArtImage(
+    coverArt = artist.coverArt,
+    coverImageUri = artist.coverImageUri,
+    contentDescription = "${artist.name} 图片",
+    modifier = Modifier.size(scaledDp(58.dp)).clip(CircleShape),
+    contentScale = ContentScale.Crop,
+)
+```
+
+- [ ] **Step 3: Replace HomeScreen and MeScreen static covers**
+
+In `HomeScreen.kt`, replace the `coverArtPainter` import with:
+
+```kotlin
+import com.yanhao.kmpmusic.feature.components.CoverArtImage
+```
+
+Replace the hero local-folder image with:
+
+```kotlin
+CoverArtImage(
+    coverArt = CoverArt.HeroLocalMusic,
+    contentDescription = "本地音乐库文件夹插画",
+    modifier = Modifier
+        .size(scaledDp(MusicDimens.HeroFolderSize))
+        .clip(RoundedCornerShape(scaledDp(28.dp))),
+    contentScale = ContentScale.Crop,
+)
+```
+
+In `MeScreen.kt`, replace the `coverArtPainter` import with:
+
+```kotlin
+import com.yanhao.kmpmusic.feature.components.CoverArtImage
+```
+
+Replace the account avatar image with:
+
+```kotlin
+CoverArtImage(
+    coverArt = CoverArt.AlbumTimeForest,
+    contentDescription = "账号头像视觉",
+    modifier = Modifier.size(70.dp).clip(CircleShape),
+    contentScale = ContentScale.Crop,
+)
+```
+
+Replace the album preview image with:
+
+```kotlin
+CoverArtImage(
+    coverArt = album.coverArt,
+    coverImageUri = album.coverImageUri,
+    contentDescription = "${album.title} 封面",
+    modifier = Modifier
+        .fillMaxWidth()
+        .aspectRatio(ratio = 1f)
+        .clip(RoundedCornerShape(11.dp)),
+    contentScale = ContentScale.Crop,
+)
+```
+
+- [ ] **Step 4: Replace DetailScreens one-line cover lambdas**
+
+In `DetailScreens.kt`, replace the `coverArtPainter` import with:
+
+```kotlin
+import com.yanhao.kmpmusic.feature.components.CoverArtImage
+```
+
+Replace the album detail cover lambda with:
+
+```kotlin
+cover = {
+    CoverArtImage(
+        coverArt = album.coverArt,
+        coverImageUri = album.coverImageUri,
+        contentDescription = "${album.title} 专辑封面",
+        modifier = Modifier.size(126.dp).clip(RoundedCornerShape(18.dp)),
+        contentScale = ContentScale.Crop,
+    )
+}
+```
+
+Replace the artist detail cover lambda with:
+
+```kotlin
+cover = {
+    CoverArtImage(
+        coverArt = artist.coverArt,
+        coverImageUri = artist.coverImageUri,
+        contentDescription = "${artist.name} 图片",
+        modifier = Modifier.size(126.dp).clip(CircleShape),
+        contentScale = ContentScale.Crop,
+    )
+}
+```
+
+- [ ] **Step 5: Replace MiniPlayer image but leave palette for Task 5**
+
+In `MusicApp.kt`, replace the mini player `androidx.compose.foundation.Image(bitmap = coverImage, ...)` call with:
+
+```kotlin
+CoverArtImage(
+    coverArt = song.coverArt,
+    coverImageUri = song.coverImageUri,
+    contentDescription = "${song.title} 封面",
+    modifier = Modifier.size(scaledDp(45.dp)).clip(RoundedCornerShape(scaledDp(8.dp))),
+    contentScale = ContentScale.Crop,
+)
+```
+
+Add:
+
+```kotlin
+import com.yanhao.kmpmusic.feature.components.CoverArtImage
+```
+
+Do not remove `coverImage` and `extractMiniPlayerPalette` yet; Task 5 replaces palette logic after the palette loader exists.
+
+- [ ] **Step 6: Verify remaining mobile old calls**
+
+Run:
+
+```bash
+rg "coverArtPainter\\(" composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/screen composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/components composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/app
+```
+
+Expected: no matches in `feature/screen`, `feature/components/CommonComponents.kt`, or `feature/app/MusicApp.kt`. Matches in desktop files are handled in Task 4.
+
+## Task 4: Migrate Desktop Callers and Remove Platform Painter Actuals
+
+**Files:**
+- Modify: `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/desktop/DesktopMusicPlayer.kt`
+- Modify: `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/desktop/DesktopLibrarySidebar.kt`
+- Modify: `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/desktop/DesktopMusicComponents.kt`
+- Modify: `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/desktop/DesktopPlayerDetailScreen.kt`
+- Delete: `composeApp/src/androidMain/kotlin/com/yanhao/kmpmusic/feature/components/CoverArtPainter.android.kt`
+- Delete: `composeApp/src/desktopMain/kotlin/com/yanhao/kmpmusic/feature/components/CoverArtPainter.desktop.kt`
+- Delete: `composeApp/src/iosMain/kotlin/com/yanhao/kmpmusic/feature/components/CoverArtPainter.ios.kt`
+
+- [ ] **Step 1: Replace desktop imports**
+
+In each desktop file listed above, replace:
+
+```kotlin
+import com.yanhao.kmpmusic.feature.components.coverArtPainter
+```
+
+with:
+
+```kotlin
+import com.yanhao.kmpmusic.feature.components.CoverArtImage
+```
+
+- [ ] **Step 2: Replace desktop song cover calls**
+
+In `DesktopMusicComponents.kt`, replace the table row song cover with:
+
+```kotlin
+CoverArtImage(
+    coverArt = song.coverArt,
+    coverImageUri = song.coverImageUri,
+    contentDescription = "${song.title} 封面",
+    modifier = Modifier
+        .size(DesktopMusicDimens.TableCoverSize)
+        .clip(RoundedCornerShape(7.dp)),
+    contentScale = ContentScale.Crop,
+)
+```
+
+In `DesktopPlayerDetailScreen.kt`, replace the large player cover with:
+
+```kotlin
+CoverArtImage(
+    coverArt = song.coverArt,
+    coverImageUri = song.coverImageUri,
+    contentDescription = "${song.title} 封面",
+    modifier = Modifier
+        .size(coverSize)
+        .clip(RoundedCornerShape(34.dp)),
+    contentScale = ContentScale.Crop,
+)
+```
+
+For remaining song-cover matches in `DesktopMusicPlayer.kt`, `DesktopLibrarySidebar.kt`, and `DesktopMusicComponents.kt`, replace only the image source expression. Keep the exact `modifier`, `contentDescription`, and `contentScale` from each replaced `Image` call. The resulting call must have this shape:
+
+```kotlin
+CoverArtImage(
+    coverArt = song.coverArt,
+    coverImageUri = song.coverImageUri,
+    contentDescription = "${song.title} 封面",
+    modifier = Modifier
+        .size(DesktopMusicDimens.PlayerCoverSize)
+        .clip(RoundedCornerShape(12.dp)),
+    contentScale = ContentScale.Crop,
+)
+```
+
+If a file uses a different size token than `DesktopMusicDimens.PlayerCoverSize`, keep that file's existing size token in the `modifier`.
+
+- [ ] **Step 3: Replace album and artist cover calls**
+
+For desktop album covers:
+
+```kotlin
+CoverArtImage(
+    coverArt = album.coverArt,
+    coverImageUri = album.coverImageUri,
+    contentDescription = "${album.title} 封面",
+    modifier = Modifier
+        .fillMaxWidth()
+        .aspectRatio(1f)
+        .clip(RoundedCornerShape(12.dp)),
+    contentScale = ContentScale.Crop,
+)
+```
+
+For desktop artist covers:
+
+```kotlin
+CoverArtImage(
+    coverArt = artist.coverArt,
+    coverImageUri = artist.coverImageUri,
+    contentDescription = "${artist.name} 图片",
+    modifier = Modifier
+        .size(DesktopMusicDimens.ArtistAvatarSize)
+        .clip(CircleShape),
+    contentScale = ContentScale.Crop,
+)
+```
+
+If `DesktopMusicDimens.ArtistAvatarSize` is not the token used by the replaced call, keep the existing avatar size from that call while preserving the `CoverArtImage` parameters above.
+
+For static profile art in `DesktopProfilePanel`:
+
+```kotlin
+CoverArtImage(
+    coverArt = coverArt,
+    contentDescription = "账号头像视觉",
+    modifier = Modifier
+        .size(88.dp)
+        .clip(CircleShape),
+    contentScale = ContentScale.Crop,
+)
+```
+
+- [ ] **Step 4: Delete platform painter actual files**
+
+Run:
+
+```bash
+git rm composeApp/src/androidMain/kotlin/com/yanhao/kmpmusic/feature/components/CoverArtPainter.android.kt
+git rm composeApp/src/desktopMain/kotlin/com/yanhao/kmpmusic/feature/components/CoverArtPainter.desktop.kt
+git rm composeApp/src/iosMain/kotlin/com/yanhao/kmpmusic/feature/components/CoverArtPainter.ios.kt
+```
+
+- [ ] **Step 5: Verify old painter API is gone**
+
+Run:
+
+```bash
+rg "coverArtPainter|rememberPlatformCoverArtPainter|decodeAndroidCoverImage|decodeDesktopCoverImage" composeApp/src
+```
+
+Expected: no matches.
+
+- [ ] **Step 6: Compile desktop**
+
+Run:
+
+```bash
+./gradlew :composeApp:compileKotlinDesktop
+```
+
+Expected: PASS.
+
+- [ ] **Step 7: Commit Tasks 2 through 4**
+
+```bash
+git add composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/components/CoverArtPainter.kt composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/screen/PlayerScreen.kt composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/screen/HomeScreen.kt composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/screen/MeScreen.kt composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/screen/DetailScreens.kt composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/components/CommonComponents.kt composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/app/MusicApp.kt composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/desktop/DesktopMusicPlayer.kt composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/desktop/DesktopLibrarySidebar.kt composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/desktop/DesktopMusicComponents.kt composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/desktop/DesktopPlayerDetailScreen.kt
+git add -u composeApp/src/androidMain/kotlin/com/yanhao/kmpmusic/feature/components composeApp/src/desktopMain/kotlin/com/yanhao/kmpmusic/feature/components composeApp/src/iosMain/kotlin/com/yanhao/kmpmusic/feature/components
+git commit -m "使用 Coil 统一封面显示"
+```
+
+## Task 5: Add Coil-Backed Palette Loader
+
+**Files:**
+- Create: `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/components/CoilImageBitmap.kt`
+- Create: `composeApp/src/androidMain/kotlin/com/yanhao/kmpmusic/feature/components/CoilImageBitmap.android.kt`
+- Create: `composeApp/src/desktopMain/kotlin/com/yanhao/kmpmusic/feature/components/CoilImageBitmap.desktop.kt`
+- Create: `composeApp/src/iosMain/kotlin/com/yanhao/kmpmusic/feature/components/CoilImageBitmap.ios.kt`
+- Create: `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/components/CoverPaletteLoader.kt`
+
+- [ ] **Step 1: Add common expect bridge**
+
+Create `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/components/CoilImageBitmap.kt`:
+
+```kotlin
+package com.yanhao.kmpmusic.feature.components
+
+import androidx.compose.ui.graphics.ImageBitmap
+import coil3.Image
+
+/**
+ * 将 Coil 跨平台 Image 转为 Compose ImageBitmap，供现有取色算法读取像素。
+ */
+internal expect fun coilImageToImageBitmap(image: Image): ImageBitmap?
+```
+
+- [ ] **Step 2: Add Android actual bridge**
+
+Create `composeApp/src/androidMain/kotlin/com/yanhao/kmpmusic/feature/components/CoilImageBitmap.android.kt`:
+
+```kotlin
+package com.yanhao.kmpmusic.feature.components
+
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.asImageBitmap
+import coil3.Image
+import coil3.toBitmap
+
+internal actual fun coilImageToImageBitmap(image: Image): ImageBitmap? {
+    return runCatching {
+        image.toBitmap().asImageBitmap()
+    }.getOrNull()
+}
+```
+
+- [ ] **Step 3: Add Desktop actual bridge**
+
+Create `composeApp/src/desktopMain/kotlin/com/yanhao/kmpmusic/feature/components/CoilImageBitmap.desktop.kt`:
+
+```kotlin
+package com.yanhao.kmpmusic.feature.components
+
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.toComposeImageBitmap
+import coil3.Image
+import coil3.toBitmap
+import org.jetbrains.skia.Image as SkiaImage
+
+internal actual fun coilImageToImageBitmap(image: Image): ImageBitmap? {
+    return runCatching {
+        SkiaImage.makeFromBitmap(image.toBitmap()).toComposeImageBitmap()
+    }.getOrNull()
+}
+```
+
+- [ ] **Step 4: Add iOS actual bridge**
+
+Create `composeApp/src/iosMain/kotlin/com/yanhao/kmpmusic/feature/components/CoilImageBitmap.ios.kt`:
+
+```kotlin
+package com.yanhao.kmpmusic.feature.components
+
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.toComposeImageBitmap
+import coil3.Image
+import coil3.toBitmap
+import org.jetbrains.skia.Image as SkiaImage
+
+internal actual fun coilImageToImageBitmap(image: Image): ImageBitmap? {
+    return runCatching {
+        SkiaImage.makeFromBitmap(image.toBitmap()).toComposeImageBitmap()
+    }.getOrNull()
+}
+```
+
+- [ ] **Step 5: Add the palette loader**
+
+Create `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/components/CoverPaletteLoader.kt`:
+
+```kotlin
+package com.yanhao.kmpmusic.feature.components
+
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.graphics.ImageBitmap
+import coil3.PlatformContext
+import coil3.SingletonImageLoader
+import coil3.request.ImageRequest
+import coil3.request.SuccessResult
+import com.yanhao.kmpmusic.core.theme.MiniPlayerPalette
+import com.yanhao.kmpmusic.core.theme.MusicColors
+import com.yanhao.kmpmusic.core.theme.PlayerPagePalette
+import com.yanhao.kmpmusic.core.theme.extractMiniPlayerPalette
+import com.yanhao.kmpmusic.core.theme.extractPlayerPagePalette
+import com.yanhao.kmpmusic.domain.model.CoverArt
+import kmpmusic.composeapp.generated.resources.Res
+
+/**
+ * 迷你播放器 palette 默认值，图片加载或取色失败时使用。
+ */
+fun defaultMiniPlayerPalette(): MiniPlayerPalette {
+    return MiniPlayerPalette(
+        containerColor = MusicColors.Paper.copy(alpha = 0.92f),
+    )
+}
+
+/**
+ * 桌面播放页 palette 默认值，图片加载或取色失败时使用。
+ */
+fun defaultPlayerPagePalette(): PlayerPagePalette {
+    return PlayerPagePalette(
+        backgroundColor = MusicColors.Paper,
+        ambientColor = MusicColors.Accent.copy(alpha = 0.18f),
+    )
+}
+
+/**
+ * 使用与封面显示相同的 Coil 来源顺序提取迷你播放器配色。
+ */
+@Composable
+fun rememberMiniPlayerPalette(
+    coverArt: CoverArt,
+    coverImageUri: String?,
+    platformContext: PlatformContext,
+): MiniPlayerPalette {
+    return rememberCoverPalette(
+        coverArt = coverArt,
+        coverImageUri = coverImageUri,
+        platformContext = platformContext,
+        defaultPalette = defaultMiniPlayerPalette(),
+        extractPalette = ::extractMiniPlayerPalette,
+    )
+}
+
+/**
+ * 使用与封面显示相同的 Coil 来源顺序提取桌面播放页配色。
+ */
+@Composable
+fun rememberPlayerPagePalette(
+    coverArt: CoverArt,
+    coverImageUri: String?,
+    platformContext: PlatformContext,
+): PlayerPagePalette {
+    return rememberCoverPalette(
+        coverArt = coverArt,
+        coverImageUri = coverImageUri,
+        platformContext = platformContext,
+        defaultPalette = defaultPlayerPagePalette(),
+        extractPalette = ::extractPlayerPagePalette,
+    )
+}
+
+@Composable
+private fun <T> rememberCoverPalette(
+    coverArt: CoverArt,
+    coverImageUri: String?,
+    platformContext: PlatformContext,
+    defaultPalette: T,
+    extractPalette: (ImageBitmap) -> T,
+): T {
+    val request: CoverArtImageRequest = remember(coverArt, coverImageUri) {
+        buildCoverArtImageRequest(
+            coverArt = coverArt,
+            coverImageUri = coverImageUri,
+        )
+    }
+    val fallbackModel: String = Res.getUri(request.fallbackResourcePath)
+    val primaryModel: String = if (request.usesExternalCover) request.primaryModel else fallbackModel
+    var palette: T by remember(coverArt, coverImageUri) {
+        mutableStateOf(defaultPalette)
+    }
+    LaunchedEffect(primaryModel, fallbackModel, platformContext) {
+        palette = loadCoverPalette(
+            primaryModel = primaryModel,
+            fallbackModel = fallbackModel,
+            platformContext = platformContext,
+            defaultPalette = defaultPalette,
+            extractPalette = extractPalette,
+        )
+    }
+    return palette
+}
+
+private suspend fun <T> loadCoverPalette(
+    primaryModel: String,
+    fallbackModel: String,
+    platformContext: PlatformContext,
+    defaultPalette: T,
+    extractPalette: (ImageBitmap) -> T,
+): T {
+    return loadPaletteFromModel(
+        model = primaryModel,
+        platformContext = platformContext,
+        extractPalette = extractPalette,
+    ) ?: loadPaletteFromModel(
+        model = fallbackModel,
+        platformContext = platformContext,
+        extractPalette = extractPalette,
+    ) ?: defaultPalette
+}
+
+private suspend fun <T> loadPaletteFromModel(
+    model: String,
+    platformContext: PlatformContext,
+    extractPalette: (ImageBitmap) -> T,
+): T? {
+    val request: ImageRequest = ImageRequest.Builder(platformContext)
+        .data(model)
+        .build()
+    val result = SingletonImageLoader.get(platformContext).execute(request)
+    if (result !is SuccessResult) {
+        return null
+    }
+    val imageBitmap: ImageBitmap = coilImageToImageBitmap(image = result.image) ?: return null
+    return extractPalette(imageBitmap)
+}
+```
+
+- [ ] **Step 6: Compile desktop**
+
+Run:
+
+```bash
+./gradlew :composeApp:compileKotlinDesktop
+```
+
+Expected: PASS.
+
+- [ ] **Step 7: Compile Android**
+
+Run:
+
+```bash
+./gradlew :composeApp:compileDebugKotlinAndroid
+```
+
+Expected: PASS.
+
+- [ ] **Step 8: Commit**
+
+```bash
+git add composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/components/CoilImageBitmap.kt composeApp/src/androidMain/kotlin/com/yanhao/kmpmusic/feature/components/CoilImageBitmap.android.kt composeApp/src/desktopMain/kotlin/com/yanhao/kmpmusic/feature/components/CoilImageBitmap.desktop.kt composeApp/src/iosMain/kotlin/com/yanhao/kmpmusic/feature/components/CoilImageBitmap.ios.kt composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/components/CoverPaletteLoader.kt
+git commit -m "通过 Coil 加载封面取色"
+```
+
+## Task 6: Migrate Mini Player and Desktop Player Palette
+
+**Files:**
+- Modify: `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/app/MusicApp.kt`
+- Modify: `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/desktop/DesktopPlayerDetailScreen.kt`
+
+- [ ] **Step 1: Update mini player palette imports**
+
+In `MusicApp.kt`, remove:
+
+```kotlin
+import androidx.compose.ui.graphics.ImageBitmap
+import com.yanhao.kmpmusic.core.theme.extractMiniPlayerPalette
+import com.yanhao.kmpmusic.feature.components.coverArtResource
+import org.jetbrains.compose.resources.imageResource
+```
+
+Add:
+
+```kotlin
+import coil3.compose.LocalPlatformContext
+import com.yanhao.kmpmusic.feature.components.rememberMiniPlayerPalette
+```
+
+- [ ] **Step 2: Replace mini player palette code**
+
+In `MiniPlayer`, replace:
+
+```kotlin
+val coverImage: ImageBitmap = imageResource(resource = coverArtResource(coverArt = song.coverArt))
+val miniPlayerPalette: MiniPlayerPalette = remember(song.coverArt, coverImage) {
+    extractMiniPlayerPalette(imageBitmap = coverImage)
+}
+```
+
+with:
+
+```kotlin
+val miniPlayerPalette: MiniPlayerPalette = rememberMiniPlayerPalette(
+    coverArt = song.coverArt,
+    coverImageUri = song.coverImageUri,
+    platformContext = LocalPlatformContext.current,
+)
+```
+
+- [ ] **Step 3: Update desktop player palette imports**
+
+In `DesktopPlayerDetailScreen.kt`, remove:
+
+```kotlin
+import androidx.compose.ui.graphics.ImageBitmap
+import com.yanhao.kmpmusic.core.theme.extractPlayerPagePalette
+import com.yanhao.kmpmusic.feature.components.coverArtResource
+import org.jetbrains.compose.resources.imageResource
+```
+
+Add:
+
+```kotlin
+import coil3.compose.LocalPlatformContext
+import com.yanhao.kmpmusic.feature.components.defaultPlayerPagePalette
+import com.yanhao.kmpmusic.feature.components.rememberPlayerPagePalette
+```
+
+- [ ] **Step 4: Replace desktop player palette function**
+
+Replace the existing private `rememberPlayerPagePalette(song: Song?)` function with:
+
+```kotlin
+@Composable
+private fun rememberDesktopPlayerPagePalette(song: Song?): PlayerPagePalette {
+    if (song == null) {
+        return defaultPlayerPagePalette()
+    }
+    return rememberPlayerPagePalette(
+        coverArt = song.coverArt,
+        coverImageUri = song.coverImageUri,
+        platformContext = LocalPlatformContext.current,
+    )
+}
+```
+
+Update the caller near the top of `DesktopPlayerDetailScreen`:
+
+```kotlin
+val palette: PlayerPagePalette = rememberDesktopPlayerPagePalette(song = song)
+```
+
+- [ ] **Step 5: Verify no old resource palette path remains**
+
+Run:
+
+```bash
+rg "imageResource\\(|extractMiniPlayerPalette|extractPlayerPagePalette|coverArtResource\\(" composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/app composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/desktop
+```
+
+Expected: no matches in `feature/app` or `feature/desktop`. Matches in `core/theme/CoverPalette.kt` are valid because that file defines extraction algorithms.
+
+- [ ] **Step 6: Run shared tests**
+
+Run:
+
+```bash
+./gradlew :composeApp:desktopTest
+```
+
+Expected: PASS.
+
+- [ ] **Step 7: Run Android compile**
+
+Run:
+
+```bash
+./gradlew :composeApp:compileDebugKotlinAndroid
+```
+
+Expected: PASS.
+
+- [ ] **Step 8: Commit**
+
+```bash
+git add composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/app/MusicApp.kt composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/desktop/DesktopPlayerDetailScreen.kt
+git commit -m "统一播放器封面取色来源"
+```
+
+## Task 7: Final Validation and Visual Risk Notes
+
+**Files:**
+- Modify: none unless validation exposes a compile or test issue.
+
+- [ ] **Step 1: Run the final old-API scan**
+
+Run:
+
+```bash
+rg "coverArtPainter|rememberPlatformCoverArtPainter|decodeAndroidCoverImage|decodeDesktopCoverImage" composeApp/src
+```
+
+Expected: no matches.
+
+Run:
+
+```bash
+rg "imageResource\\(|coverArtResource\\(" composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/app composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/desktop composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/screen
+```
+
+Expected: no matches. `coverArtResource(...)` may remain inside `feature/components/CoverArtPainter.kt` because it provides the internal placeholder painter for Coil fallback. `AndroidPlaybackMediaMetadataAssets.kt` may keep its resource-to-asset mapping because it feeds Media3 metadata, not Compose UI.
+
+- [ ] **Step 2: Run the required verification commands**
+
+Run:
+
+```bash
+./gradlew :composeApp:compileDebugKotlinAndroid :composeApp:desktopTest
+```
+
+Expected: PASS.
+
+- [ ] **Step 3: Check git status**
+
+Run:
+
+```bash
+git status --short --branch
+```
+
+Expected: clean working tree on the current branch, with local commits ahead of `origin/main`.
+
+- [ ] **Step 4: Record visual verification status in the delivery message**
+
+If no device or desktop screenshot was taken, the final delivery message must include:
+
+```text
+未做真机/桌面截图核对；剩余视觉风险是真实本地封面驱动的 mini player 和 macOS 播放页背景色需要人工确认。
+```
+
+If screenshots were taken, the final delivery message must name the platform and page checked:
+
+```text
+已核对 Android mini player 和 macOS 播放页，真实本地封面下背景色跟随封面变化，封面缺失时回退默认封面。
+```
+
+## Self-Review
+
+- Spec coverage: Tasks 1-4 cover Coil dependency, shared request model, all Compose UI cover display, and removal of platform hand decoding. Tasks 5-6 cover Coil-backed palette loading and migration of Android mini player and macOS desktop player palette. Task 7 covers verification and Media3 boundary scan.
+- Placeholder scan: The plan contains no deferred implementation labels, no unspecified test requests, and no undefined feature tasks.
+- Type consistency: `CoverArtImageRequest`, `buildCoverArtImageRequest`, `coverArtResourcePath`, `CoverArtImage`, `rememberMiniPlayerPalette`, `rememberPlayerPagePalette`, `defaultPlayerPagePalette`, and `coilImageToImageBitmap` are defined before later tasks reference them.
