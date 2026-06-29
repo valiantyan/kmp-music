@@ -11,6 +11,13 @@ import androidx.compose.ui.layout.ContentScale
 import coil3.compose.AsyncImage
 import com.yanhao.kmpmusic.domain.model.CoverArt
 import kmpmusic.composeapp.generated.resources.Res
+import kmpmusic.composeapp.generated.resources.album_best_of_me
+import kmpmusic.composeapp.generated.resources.album_river_year
+import kmpmusic.composeapp.generated.resources.album_time_forest
+import kmpmusic.composeapp.generated.resources.cover_sea_dream
+import kmpmusic.composeapp.generated.resources.cover_summer_waltz
+import kmpmusic.composeapp.generated.resources.hero_local_folder
+import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.ExperimentalResourceApi
 
 /**
@@ -20,6 +27,20 @@ import org.jetbrains.compose.resources.ExperimentalResourceApi
 @OptIn(ExperimentalResourceApi::class)
 internal fun coverArtResourceUri(coverArt: CoverArt): String {
     return Res.getUri(coverArtResourcePath(coverArt = coverArt))
+}
+
+/**
+ * 为迷你播放器旧调色板流程提供同步资源桥接，直到 Task 5 替换该位图读取链路。
+ */
+internal fun miniPlayerPaletteCoverArtResource(coverArt: CoverArt): DrawableResource {
+    return when (coverArt) {
+        CoverArt.AlbumBestOfMe -> Res.drawable.album_best_of_me
+        CoverArt.AlbumRiverYear -> Res.drawable.album_river_year
+        CoverArt.AlbumTimeForest -> Res.drawable.album_time_forest
+        CoverArt.CoverSeaDream -> Res.drawable.cover_sea_dream
+        CoverArt.CoverSummerWaltz -> Res.drawable.cover_summer_waltz
+        CoverArt.HeroLocalMusic -> Res.drawable.hero_local_folder
+    }
 }
 
 /**

@@ -414,7 +414,7 @@ Stop after the compile failure from Step 3. The repository will compile again af
 - Modify: `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/components/CommonComponents.kt`
 - Modify: `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/app/MusicApp.kt`
 
-- [ ] **Step 1: Replace PlayerScreen cover**
+- [x] **Step 1: Replace PlayerScreen cover**
 
 In `PlayerScreen.kt`, replace the `Image` import with no image import if unused, replace the `coverArtPainter` import with:
 
@@ -434,7 +434,7 @@ CoverArtImage(
 )
 ```
 
-- [ ] **Step 2: Replace CommonComponents covers**
+- [x] **Step 2: Replace CommonComponents covers**
 
 In `CommonComponents.kt`, replace:
 
@@ -501,7 +501,7 @@ CoverArtImage(
 )
 ```
 
-- [ ] **Step 3: Replace HomeScreen and MeScreen static covers**
+- [x] **Step 3: Replace HomeScreen and MeScreen static covers**
 
 In `HomeScreen.kt`, replace the `coverArtPainter` import with:
 
@@ -554,7 +554,7 @@ CoverArtImage(
 )
 ```
 
-- [ ] **Step 4: Replace DetailScreens one-line cover lambdas**
+- [x] **Step 4: Replace DetailScreens one-line cover lambdas**
 
 In `DetailScreens.kt`, replace the `coverArtPainter` import with:
 
@@ -590,7 +590,7 @@ cover = {
 }
 ```
 
-- [ ] **Step 5: Replace MiniPlayer image but leave palette for Task 5**
+- [x] **Step 5: Replace MiniPlayer image but leave palette for Task 5**
 
 In `MusicApp.kt`, replace the mini player `androidx.compose.foundation.Image(bitmap = coverImage, ...)` call with:
 
@@ -612,7 +612,7 @@ import com.yanhao.kmpmusic.feature.components.CoverArtImage
 
 Do not remove `coverImage` and `extractMiniPlayerPalette` yet; Task 5 replaces palette logic after the palette loader exists.
 
-- [ ] **Step 6: Verify remaining mobile old calls**
+- [x] **Step 6: Verify remaining mobile old calls**
 
 Run:
 

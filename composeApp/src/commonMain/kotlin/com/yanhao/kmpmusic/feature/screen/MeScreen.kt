@@ -1,6 +1,5 @@
 package com.yanhao.kmpmusic.feature.screen
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -28,9 +27,9 @@ import com.yanhao.kmpmusic.domain.model.CoverArt
 import com.yanhao.kmpmusic.domain.model.LibraryStats
 import com.yanhao.kmpmusic.feature.components.AppHeader
 import com.yanhao.kmpmusic.feature.components.ArtistRow
+import com.yanhao.kmpmusic.feature.components.CoverArtImage
 import com.yanhao.kmpmusic.feature.components.PrimaryPill
 import com.yanhao.kmpmusic.feature.components.SectionTitle
-import com.yanhao.kmpmusic.feature.components.coverArtPainter
 
 /**
  * 我的页收藏摘要最多展示 3 张，完整内容通过“查看”进入，避免窄屏被数据数量挤坏。
@@ -55,8 +54,8 @@ fun MeScreen(
         AppHeader(title = "我的", subtitle = "本地资料与同步状态", onSettings = onSettings)
         Surface(shape = RoundedCornerShape(20.dp), color = MusicColors.Paper, tonalElevation = 1.dp) {
             Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                Image(
-                    painter = coverArtPainter(CoverArt.AlbumTimeForest),
+                CoverArtImage(
+                    coverArt = CoverArt.AlbumTimeForest,
                     contentDescription = "账号头像视觉",
                     modifier = Modifier.size(70.dp).clip(CircleShape),
                     contentScale = ContentScale.Crop,
@@ -79,11 +78,9 @@ fun MeScreen(
                             modifier = Modifier.weight(weight = 1f).clickable { onAlbumOpen(album) },
                             verticalArrangement = Arrangement.spacedBy(7.dp),
                         ) {
-                            Image(
-                                painter = coverArtPainter(
-                                    coverArt = album.coverArt,
-                                    coverImageUri = album.coverImageUri,
-                                ),
+                            CoverArtImage(
+                                coverArt = album.coverArt,
+                                coverImageUri = album.coverImageUri,
                                 contentDescription = "${album.title} 封面",
                                 modifier = Modifier
                                     .fillMaxWidth()

@@ -1,6 +1,5 @@
 package com.yanhao.kmpmusic.feature.screen
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -45,10 +44,10 @@ import com.yanhao.kmpmusic.domain.model.PlaybackStatus
 import com.yanhao.kmpmusic.domain.model.Song
 import com.yanhao.kmpmusic.feature.components.AlbumCard
 import com.yanhao.kmpmusic.feature.components.AppHeader
+import com.yanhao.kmpmusic.feature.components.CoverArtImage
 import com.yanhao.kmpmusic.feature.components.PrimaryPill
 import com.yanhao.kmpmusic.feature.components.SectionTitle
 import com.yanhao.kmpmusic.feature.components.SongRow
-import com.yanhao.kmpmusic.feature.components.coverArtPainter
 
 /**
  * 首页，复刻原型的本地曲库卡、真实最近播放、本地歌曲预览和本地专辑。
@@ -244,8 +243,8 @@ private fun LibraryCard(
                     }
                 }
             }
-            Image(
-                painter = coverArtPainter(CoverArt.HeroLocalMusic),
+            CoverArtImage(
+                coverArt = CoverArt.HeroLocalMusic,
                 contentDescription = "本地音乐库文件夹插画",
                 modifier = Modifier
                     .size(scaledDp(MusicDimens.HeroFolderSize))

@@ -1,6 +1,5 @@
 package com.yanhao.kmpmusic.feature.screen
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -40,7 +39,7 @@ import com.yanhao.kmpmusic.domain.model.PlaybackMode
 import com.yanhao.kmpmusic.domain.model.Song
 import com.yanhao.kmpmusic.feature.app.userMessage
 import com.yanhao.kmpmusic.feature.components.AppHeader
-import com.yanhao.kmpmusic.feature.components.coverArtPainter
+import com.yanhao.kmpmusic.feature.components.CoverArtImage
 
 /**
  * 播放页，提供封面、进度、控制和队列入口。
@@ -70,11 +69,9 @@ fun PlayerScreen(
     }
     Column(verticalArrangement = Arrangement.spacedBy(24.dp)) {
         AppHeader(title = "正在播放", onBack = onBack)
-        Image(
-            painter = coverArtPainter(
-                coverArt = song.coverArt,
-                coverImageUri = song.coverImageUri,
-            ),
+        CoverArtImage(
+            coverArt = song.coverArt,
+            coverImageUri = song.coverImageUri,
             contentDescription = "${song.title} 封面",
             modifier = Modifier.size(328.dp).clip(RoundedCornerShape(30.dp)).align(Alignment.CenterHorizontally),
             contentScale = ContentScale.Crop,

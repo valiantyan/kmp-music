@@ -1,6 +1,5 @@
 package com.yanhao.kmpmusic.feature.screen
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -23,10 +22,10 @@ import com.yanhao.kmpmusic.domain.model.PlaybackStatus
 import com.yanhao.kmpmusic.domain.model.Song
 import com.yanhao.kmpmusic.feature.components.AlbumCard
 import com.yanhao.kmpmusic.feature.components.AppHeader
+import com.yanhao.kmpmusic.feature.components.CoverArtImage
 import com.yanhao.kmpmusic.feature.components.PrimaryPill
 import com.yanhao.kmpmusic.feature.components.SectionTitle
 import com.yanhao.kmpmusic.feature.components.SongRow
-import com.yanhao.kmpmusic.feature.components.coverArtPainter
 
 /**
  * 专辑详情页。
@@ -51,7 +50,15 @@ fun AlbumDetailScreen(
             title = album.title,
             subtitle = "${album.artist} · ${albumSongs.size} 首",
             tag = "${album.year} · ${album.mood}",
-            cover = { Image(painter = coverArtPainter(coverArt = album.coverArt, coverImageUri = album.coverImageUri), contentDescription = "${album.title} 专辑封面", modifier = Modifier.size(126.dp).clip(RoundedCornerShape(18.dp)), contentScale = ContentScale.Crop) },
+            cover = {
+                CoverArtImage(
+                    coverArt = album.coverArt,
+                    coverImageUri = album.coverImageUri,
+                    contentDescription = "${album.title} 专辑封面",
+                    modifier = Modifier.size(126.dp).clip(RoundedCornerShape(18.dp)),
+                    contentScale = ContentScale.Crop,
+                )
+            },
         )
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             PrimaryPill(
@@ -109,7 +116,15 @@ fun ArtistDetailScreen(
             title = artist.name,
             subtitle = "${artist.songCount} 首 · 本地收藏",
             tag = artist.tag,
-            cover = { Image(painter = coverArtPainter(coverArt = artist.coverArt, coverImageUri = artist.coverImageUri), contentDescription = "${artist.name} 图片", modifier = Modifier.size(126.dp).clip(CircleShape), contentScale = ContentScale.Crop) },
+            cover = {
+                CoverArtImage(
+                    coverArt = artist.coverArt,
+                    coverImageUri = artist.coverImageUri,
+                    contentDescription = "${artist.name} 图片",
+                    modifier = Modifier.size(126.dp).clip(CircleShape),
+                    contentScale = ContentScale.Crop,
+                )
+            },
         )
         SectionTitle(title = "热门歌曲")
         Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {

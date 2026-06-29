@@ -1,6 +1,5 @@
 package com.yanhao.kmpmusic.feature.components
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -241,11 +240,9 @@ fun SongRow(
             horizontalArrangement = Arrangement.spacedBy(scaledDp(if (dense) 12.dp else 15.dp)),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Image(
-                painter = coverArtPainter(
-                    coverArt = song.coverArt,
-                    coverImageUri = song.coverImageUri,
-                ),
+            CoverArtImage(
+                coverArt = song.coverArt,
+                coverImageUri = song.coverImageUri,
                 contentDescription = "${song.title} 封面",
                 modifier = Modifier
                     .size(coverSize)
@@ -370,11 +367,9 @@ fun AlbumCard(
     Column(
         modifier = modifier.clickable { onOpen(album) },
     ) {
-        Image(
-            painter = coverArtPainter(
-                coverArt = album.coverArt,
-                coverImageUri = album.coverImageUri,
-            ),
+        CoverArtImage(
+            coverArt = album.coverArt,
+            coverImageUri = album.coverImageUri,
             contentDescription = "${album.title} 专辑封面",
             modifier = Modifier
                 .fillMaxWidth()
@@ -425,11 +420,9 @@ fun ArtistRow(
         horizontalArrangement = Arrangement.spacedBy(13.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Image(
-            painter = coverArtPainter(
-                coverArt = artist.coverArt,
-                coverImageUri = artist.coverImageUri,
-            ),
+        CoverArtImage(
+            coverArt = artist.coverArt,
+            coverImageUri = artist.coverImageUri,
             contentDescription = "${artist.name} 图片",
             modifier = Modifier.size(scaledDp(58.dp)).clip(CircleShape),
             contentScale = ContentScale.Crop,

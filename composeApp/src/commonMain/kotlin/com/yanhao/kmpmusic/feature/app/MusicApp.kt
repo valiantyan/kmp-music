@@ -83,9 +83,9 @@ import com.yanhao.kmpmusic.core.theme.scaledDp
 import com.yanhao.kmpmusic.core.theme.scaledSp
 import com.yanhao.kmpmusic.domain.model.LocalMusicScanRequest
 import com.yanhao.kmpmusic.domain.model.Song
+import com.yanhao.kmpmusic.feature.components.CoverArtImage
 import com.yanhao.kmpmusic.feature.components.SongRow
-import com.yanhao.kmpmusic.feature.components.coverArtResource
-import com.yanhao.kmpmusic.feature.components.coverArtPainter
+import com.yanhao.kmpmusic.feature.components.miniPlayerPaletteCoverArtResource
 import com.yanhao.kmpmusic.feature.screen.AlbumDetailScreen
 import com.yanhao.kmpmusic.feature.screen.ArtistDetailScreen
 import com.yanhao.kmpmusic.feature.screen.FavoritesScreen
@@ -566,7 +566,9 @@ private fun MiniPlayer(
     onQueue: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val coverImage: ImageBitmap = imageResource(resource = coverArtResource(coverArt = song.coverArt))
+    val coverImage: ImageBitmap = imageResource(
+        resource = miniPlayerPaletteCoverArtResource(coverArt = song.coverArt),
+    )
     val miniPlayerPalette: MiniPlayerPalette = remember(song.coverArt, coverImage) {
         extractMiniPlayerPalette(imageBitmap = coverImage)
     }
@@ -605,8 +607,9 @@ private fun MiniPlayer(
                     horizontalArrangement = Arrangement.spacedBy(scaledDp(11.dp)),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    androidx.compose.foundation.Image(
-                        bitmap = coverImage,
+                    CoverArtImage(
+                        coverArt = song.coverArt,
+                        coverImageUri = song.coverImageUri,
                         contentDescription = "${song.title} 封面",
                         modifier = Modifier.size(scaledDp(45.dp)).clip(RoundedCornerShape(scaledDp(8.dp))),
                         contentScale = ContentScale.Crop,
