@@ -28,6 +28,8 @@ import kotlinx.coroutines.withContext
 class DesktopFolderMusicScanner : LocalMusicScanner {
     // 真实封面提取集中在 scanner 边界，UI 只消费平台无关 URI。
     private val artworkExtractor: DesktopEmbeddedArtworkExtractor = DesktopEmbeddedArtworkExtractor()
+    // 音频标签读取集中在 scanner 边界，保证桌面端与 Android 输出同一组元数据字段。
+    private val metadataReader: DesktopAudioMetadataReader = DesktopAudioMetadataReader()
 
     /** 弹出文件夹选择器并把真实文件扫描结果写入统一曲库链路。 */
     override suspend fun scan(request: LocalMusicScanRequest): LocalMusicScanResult {
@@ -138,15 +140,16 @@ class DesktopFolderMusicScanner : LocalMusicScanner {
             return
         }
         val attributes: BasicFileAttributes = Files.readAttributes(path, BasicFileAttributes::class.java)
+        val audioMetadata: DesktopAudioMetadata = metadataReader.readMetadata(audioPath = path)
         discovered += MusicFileMetadata(
             sourceId = sourceId,
             sourceKind = LocalMusicSourceKind.DesktopFolder,
             localUri = path.toUri().toString(),
             fileName = fileName,
-            title = LocalAudioFileRules.titleFromFileName(fileName = fileName),
-            artist = null,
-            album = path.parent?.fileName?.toString(),
-            durationMs = null,
+            title = audioMetadata.title ?: LocalAudioFileRules.titleFromFileName(fileName = fileName),
+            artist = audioMetadata.artist,
+            album = audioMetadata.album ?: path.parent?.fileName?.toString(),
+            durationMs = audioMetadata.durationMs,
             mimeType = audioType.mimeType,
             sizeBytes = attributes.size(),
             modifiedAt = attributes.lastModifiedTime().toMillis(),

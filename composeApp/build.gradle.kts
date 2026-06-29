@@ -85,6 +85,7 @@ kotlin {
             implementation(libs.kotlinx.coroutines.swing)
             implementation(libs.kotlinx.serialization.core)
             implementation(libs.ktor.client.java)
+            implementation(libs.jaudiotagger)
             implementation(libs.vlcj)
         }
         iosX64Main.dependencies {
