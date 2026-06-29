@@ -63,7 +63,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
@@ -78,14 +77,13 @@ import com.yanhao.kmpmusic.core.theme.KmpMusicTheme
 import com.yanhao.kmpmusic.core.theme.LocalMusicScale
 import com.yanhao.kmpmusic.core.theme.MusicColors
 import com.yanhao.kmpmusic.core.theme.MusicDimens
-import com.yanhao.kmpmusic.core.theme.extractMiniPlayerPalette
 import com.yanhao.kmpmusic.core.theme.scaledDp
 import com.yanhao.kmpmusic.core.theme.scaledSp
 import com.yanhao.kmpmusic.domain.model.LocalMusicScanRequest
 import com.yanhao.kmpmusic.domain.model.Song
 import com.yanhao.kmpmusic.feature.components.CoverArtImage
 import com.yanhao.kmpmusic.feature.components.SongRow
-import com.yanhao.kmpmusic.feature.components.miniPlayerPaletteCoverArtResource
+import com.yanhao.kmpmusic.feature.components.rememberMiniPlayerPalette
 import com.yanhao.kmpmusic.feature.screen.AlbumDetailScreen
 import com.yanhao.kmpmusic.feature.screen.ArtistDetailScreen
 import com.yanhao.kmpmusic.feature.screen.FavoritesScreen
@@ -98,7 +96,6 @@ import com.yanhao.kmpmusic.feature.screen.PlayerScreen
 import com.yanhao.kmpmusic.feature.screen.SearchScreen
 import com.yanhao.kmpmusic.feature.screen.SettingsScreen
 import kotlinx.coroutines.launch
-import org.jetbrains.compose.resources.imageResource
 
 /**
  * 普通底部 chrome 切换时长(300ms)，用于一级页和仅 mini player 页面之间的轻量移动。
@@ -566,12 +563,10 @@ private fun MiniPlayer(
     onQueue: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val coverImage: ImageBitmap = imageResource(
-        resource = miniPlayerPaletteCoverArtResource(coverArt = song.coverArt),
+    val miniPlayerPalette: MiniPlayerPalette = rememberMiniPlayerPalette(
+        coverArt = song.coverArt,
+        coverImageUri = song.coverImageUri,
     )
-    val miniPlayerPalette: MiniPlayerPalette = remember(song.coverArt, coverImage) {
-        extractMiniPlayerPalette(imageBitmap = coverImage)
-    }
     val containerColor: Color by animateColorAsState(
         targetValue = miniPlayerPalette.containerColor,
         animationSpec = tween(durationMillis = 260),

@@ -44,7 +44,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.layout.ContentScale
@@ -53,12 +52,11 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.yanhao.kmpmusic.core.theme.PlayerPagePalette
-import com.yanhao.kmpmusic.core.theme.extractPlayerPagePalette
 import com.yanhao.kmpmusic.domain.model.PlaybackMode
 import com.yanhao.kmpmusic.domain.model.Song
 import com.yanhao.kmpmusic.feature.components.CoverArtImage
-import com.yanhao.kmpmusic.feature.components.miniPlayerPaletteCoverArtResource
-import org.jetbrains.compose.resources.imageResource
+import com.yanhao.kmpmusic.feature.components.defaultPlayerPagePalette
+import com.yanhao.kmpmusic.feature.components.rememberPlayerPagePalette
 
 /**
  * 桌面沉浸式播放页，进入后接管整个窗口内容区，避免与底部播放器重复呈现控制。
@@ -82,7 +80,7 @@ fun DesktopPlayerDetailScreen(
     modifier: Modifier = Modifier,
 ) {
     var volume: Float by remember { mutableStateOf(value = 0.68f) }
-    val palette: PlayerPagePalette = rememberPlayerPagePalette(song = song)
+    val palette: PlayerPagePalette = rememberDesktopPlayerPagePalette(song = song)
     LaunchedEffect(Unit) {
         onVolumeChange(volume)
     }
@@ -145,21 +143,16 @@ fun DesktopPlayerDetailScreen(
     }
 }
 
-// 当前歌曲封面驱动整页背景，空态回退到桌面默认纸色。
+// 当前歌曲封面驱动整页背景，空态通过共享默认 palette 保持移动端与桌面回退一致。
 @Composable
-private fun rememberPlayerPagePalette(song: Song?): PlayerPagePalette {
+private fun rememberDesktopPlayerPagePalette(song: Song?): PlayerPagePalette {
     if (song == null) {
-        return PlayerPagePalette(
-            backgroundColor = DesktopMusicColors.Paper,
-            ambientColor = DesktopMusicColors.Accent,
-        )
+        return defaultPlayerPagePalette()
     }
-    val coverImage: ImageBitmap = imageResource(
-        resource = miniPlayerPaletteCoverArtResource(coverArt = song.coverArt),
+    return rememberPlayerPagePalette(
+        coverArt = song.coverArt,
+        coverImageUri = song.coverImageUri,
     )
-    return remember(song.coverArt, coverImage) {
-        extractPlayerPagePalette(imageBitmap = coverImage)
-    }
 }
 
 // 顶栏避开 macOS traffic lights，只保留页面返回和标题。

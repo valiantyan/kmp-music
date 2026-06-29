@@ -1038,7 +1038,7 @@ git commit -m "通过 Coil 加载封面取色"
 - Modify: `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/app/MusicApp.kt`
 - Modify: `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/desktop/DesktopPlayerDetailScreen.kt`
 
-- [ ] **Step 1: Update mini player palette imports**
+- [x] **Step 1: Update mini player palette imports**
 
 In `MusicApp.kt`, remove:
 
@@ -1055,7 +1055,7 @@ Add:
 import com.yanhao.kmpmusic.feature.components.rememberMiniPlayerPalette
 ```
 
-- [ ] **Step 2: Replace mini player palette code**
+- [x] **Step 2: Replace mini player palette code**
 
 In `MiniPlayer`, replace:
 
@@ -1075,7 +1075,7 @@ val miniPlayerPalette: MiniPlayerPalette = rememberMiniPlayerPalette(
 )
 ```
 
-- [ ] **Step 3: Update desktop player palette imports**
+- [x] **Step 3: Update desktop player palette imports**
 
 In `DesktopPlayerDetailScreen.kt`, remove:
 
@@ -1093,7 +1093,7 @@ import com.yanhao.kmpmusic.feature.components.defaultPlayerPagePalette
 import com.yanhao.kmpmusic.feature.components.rememberPlayerPagePalette
 ```
 
-- [ ] **Step 4: Replace desktop player palette function**
+- [x] **Step 4: Replace desktop player palette function**
 
 Replace the existing private `rememberPlayerPagePalette(song: Song?)` function with:
 
@@ -1116,7 +1116,7 @@ Update the caller near the top of `DesktopPlayerDetailScreen`:
 val palette: PlayerPagePalette = rememberDesktopPlayerPagePalette(song = song)
 ```
 
-- [ ] **Step 5: Verify no old resource palette path remains**
+- [x] **Step 5: Verify no old resource palette path remains**
 
 Run:
 
@@ -1126,7 +1126,7 @@ rg "imageResource\\(|extractMiniPlayerPalette|extractPlayerPagePalette|coverArtR
 
 Expected: no matches in `feature/app` or `feature/desktop`. Matches in `core/theme/CoverPalette.kt` are valid because that file defines extraction algorithms.
 
-- [ ] **Step 6: Run shared tests**
+- [x] **Step 6: Run shared tests**
 
 Run:
 
@@ -1136,7 +1136,7 @@ Run:
 
 Expected: PASS.
 
-- [ ] **Step 7: Run Android compile**
+- [x] **Step 7: Run Android compile**
 
 Run:
 
@@ -1146,7 +1146,7 @@ Run:
 
 Expected: PASS.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/app/MusicApp.kt composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/desktop/DesktopPlayerDetailScreen.kt
