@@ -117,6 +117,67 @@ App 侧仍负责把 artwork 数据写入 Media3 metadata。当前 `AndroidPlayba
 - 本地扫描阶段的 embedded artwork 提取与缓存写入。
 - 纯业务测试中不涉及 Compose UI 渲染的封面枚举。
 
+## 举一反三问题
+
+后续实现、评审或排查时，以下问题必须能从本文档找到答案：
+
+- 问：为什么不能只把 `coverArtPainter` 的平台实现替换成 Coil？
+  答：只替换显示链路不能解决 mini player 和 macOS 播放页取色仍来自默认封面的问题；本设计要求显示和取色同源。
+- 问：真实本地封面加载失败时谁负责 fallback？
+  答：组件层封面门面负责，不由各页面分别处理。规则是 `coverImageUri` 优先，失败后使用 `CoverArt` resource URI。
+- 问：页面能否直接调用 Coil 的 `AsyncImage`？
+  答：不能。页面只使用共享封面门面，避免 Coil 请求构建、fallback 和错误处理分散。
+- 问：取色能否继续使用 `imageResource(coverArtResource(...))`？
+  答：不能用于当前歌曲背景取色，因为它绕过真实扫描封面。取色必须使用同一套 Coil 来源选择规则。
+- 问：Android 通知和锁屏封面是否也必须用 Coil？
+  答：不必须，也不属于 Compose UI 图片加载链路。系统 UI 通过 Media3 metadata 展示 artwork。
+- 问：iOS 当前没有真实扫描封面时是否会受影响？
+  答：不会。没有 `coverImageUri` 时走 `CoverArt` 兜底资源；Coil 接入只统一 UI 加载路径。
+- 问：为什么不顺手把 `coverArt + coverImageUri` 改成 domain `ImageSource`？
+  答：那会牵动领域模型、持久化、扫描合并和测试，超出本次“统一 UI 图片加载与取色”的目标。
+- 问：Windows 是否在本设计覆盖范围内？
+  答：覆盖 Desktop/JVM。Windows 桌面由 Compose Desktop/JVM 目标承载，不需要单独设计一套图片加载链路。
+
+## 边界问题
+
+- UI 边界：所有 Compose UI 图片显示和图片驱动取色都纳入 Coil；非 Compose 系统 UI 不纳入。
+- Domain 边界：不修改 `Song`、`Album`、`Artist` 的封面字段结构，只在 UI/components 层建立轻量请求模型。
+- Data 边界：不修改本地扫描器、embedded artwork 提取器和缓存写入策略；它们继续产出 `coverImageUri`。
+- Playback 边界：不改动播放引擎、队列、播放模式和 Media3 session 行为。
+- Notification 边界：Android Media3 通知/锁屏 artwork 字节链路保持现状，本次只保证不回归。
+- Resource 边界：应用内兜底资源仍来自 `composeResources/drawable`，不从 prototype 目录或平台私有资源另取一套。
+- Failure 边界：图片显示失败只能降级封面显示或取色 palette，不能阻断页面渲染、播放控制或导航。
+- Test 边界：单元测试覆盖请求构建和来源规则；真机/截图验证覆盖视觉取色效果，不要求测试 Coil 内部实现。
+
+## 三轮交叉审核记录
+
+### 第一轮：范围与根因
+
+- 问：设计是否解决了用户提出的“所有图片加载走 Coil”，而不是只改局部页面？
+  答：是。所有 Compose UI 封面显示都经共享门面走 Coil，页面不直接依赖平台解码。
+- 问：设计是否解决了 Android mini player 和 macOS 播放页取色与显示封面不一致的根因？
+  答：是。取色入口和显示入口使用同一套来源选择规则。
+- 问：是否把 Media3 通知/锁屏误纳入 Coil UI 渲染？
+  答：没有。文档明确它是系统 UI metadata 链路，保持现状。
+
+### 第二轮：架构边界
+
+- 问：Coil 依赖是否会泄漏到每个页面？
+  答：不会。页面只调用 `CoverArtImage` 和取色门面，Coil 请求构建集中在 components 层。
+- 问：是否需要大改 domain 图片模型才能完成目标？
+  答：不需要。保留 `coverImageUri + CoverArt`，只在 UI 边界增加请求模型。
+- 问：是否会污染平台扫描、播放或持久化边界？
+  答：不会。本设计不改扫描产物、不改播放引擎、不改数据库模型。
+
+### 第三轮：失败与验证
+
+- 问：本地 URI 失效、权限丢失或图片损坏时页面是否仍可用？
+  答：可用。组件层统一回退到 `CoverArt` 兜底资源，取色失败回退默认 palette。
+- 问：如何确认取色真的来自实际显示封面？
+  答：共享测试覆盖显示请求和取色请求同源；视觉验证检查真实本地封面下 mini player 与 macOS 播放页背景变化。
+- 问：如何确认迁移没有影响 Android 通知/锁屏封面？
+  答：验收标准要求 Media3 通知/锁屏链路保持可用；实现阶段不修改该 metadata artwork 字节链路。
+
 ## 测试计划
 
 新增或更新共享测试：
