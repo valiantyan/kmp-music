@@ -44,6 +44,15 @@ The spec covers one subsystem: Compose UI image loading and cover-driven palette
 - Failure boundary: Task 2 switches failed external loads to Coil fallback resource; Task 5 falls back to default palette after primary and fallback palette loading fail.
 - Test boundary: Task 1 covers source selection and enum mapping; Tasks 6-7 run `desktopTest` and Android compile; Task 7 requires visual verification status in the delivery message.
 
+### Network Image Follow-Up Amendment
+
+The original implementation scope treated network images as a non-goal so Tasks 1-7 could first unify local `file://` covers and Compose resource fallbacks. Real product usage still needs remote album/artist artwork, so Task 8 intentionally expands the scope by adding Coil network support with Ktor 3 while preserving the same component boundary:
+
+- UI pages still do not import Coil APIs directly.
+- `CoverArtImage` and `CoverPaletteLoader` continue to receive only `coverImageUri + CoverArt`.
+- Network image support is enabled through Gradle dependencies, not page-level special cases.
+- The temporary network validation fixture was used for manual macOS verification, then removed so no test URL remains in scanner data, UI, domain, or persistence defaults.
+
 ### Three-Pass Cross Review
 
 Pass 1, requirements closure and root cause:
@@ -89,6 +98,8 @@ Pass 3, failure scenarios and executable validation:
 - Modify desktop UI files that currently call `Image(painter = coverArtPainter(...))`: replace with `CoverArtImage(...)`.
 - Modify `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/app/MusicApp.kt`: mini player image and palette use Coil source.
 - Modify `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/desktop/DesktopPlayerDetailScreen.kt`: desktop player page palette uses Coil source.
+- Modify `gradle/libs.versions.toml`: add Coil Ktor 3 network module and Ktor engines.
+- Modify `composeApp/build.gradle.kts`: add Coil network support to `commonMain` and Ktor engines to platform source sets.
 
 ## Task 1: Add Coil Dependencies and Testable Request Model
 
@@ -1236,8 +1247,164 @@ If screenshots were taken, the final delivery message must name the platform and
 已核对 Android mini player 和 macOS 播放页，真实本地封面下背景色跟随封面变化，封面缺失时回退默认封面。
 ```
 
+## Task 8: Add Coil Network Image Support
+
+**Files:**
+- Modify: `gradle/libs.versions.toml`
+- Modify: `composeApp/build.gradle.kts`
+
+**Validation note:** Network image loading was manually verified on macOS with a temporary scanner fixture. The fixture and test URL are removed before commit; Task 8 keeps only the Coil/Ktor dependency support.
+
+- [x] **Step 1: Add Coil network and Ktor aliases**
+
+Modify `gradle/libs.versions.toml`:
+
+```toml
+[versions]
+agp = "8.13.2"
+coil = "3.5.0"
+composeMultiplatform = "1.7.3"
+kotlin = "2.0.21"
+ktor = "3.3.3"
+kotlinxCoroutines = "1.9.0"
+kotlinxSerialization = "1.8.1"
+androidxCore = "1.17.0"
+androidxAppCompat = "1.7.1"
+ksp = "2.0.21-1.0.28"
+media3 = "1.10.1"
+room3 = "3.0.0-rc01"
+sqlite = "2.6.2"
+vlcj = "4.12.1"
+
+[libraries]
+coil-compose = { module = "io.coil-kt.coil3:coil-compose", version.ref = "coil" }
+coil-compose-core = { module = "io.coil-kt.coil3:coil-compose-core", version.ref = "coil" }
+coil-network-ktor3 = { module = "io.coil-kt.coil3:coil-network-ktor3", version.ref = "coil" }
+ktor-client-android = { module = "io.ktor:ktor-client-android", version.ref = "ktor" }
+ktor-client-darwin = { module = "io.ktor:ktor-client-darwin", version.ref = "ktor" }
+ktor-client-java = { module = "io.ktor:ktor-client-java", version.ref = "ktor" }
+kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
+kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlinxCoroutines" }
+kotlinx-coroutines-swing = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-swing", version.ref = "kotlinxCoroutines" }
+kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "kotlinxCoroutines" }
+kotlinx-serialization-core = { module = "org.jetbrains.kotlinx:kotlinx-serialization-core", version.ref = "kotlinxSerialization" }
+androidx-core = { module = "androidx.core:core", version.ref = "androidxCore" }
+androidx-appcompat = { module = "androidx.appcompat:appcompat", version.ref = "androidxAppCompat" }
+androidx-sqlite-bundled = { module = "androidx.sqlite:sqlite-bundled", version.ref = "sqlite" }
+androidx-room3-runtime = { module = "androidx.room3:room3-runtime", version.ref = "room3" }
+androidx-room3-compiler = { module = "androidx.room3:room3-compiler", version.ref = "room3" }
+androidx-media3-exoplayer = { module = "androidx.media3:media3-exoplayer", version.ref = "media3" }
+androidx-media3-session = { module = "androidx.media3:media3-session", version.ref = "media3" }
+androidx-media3-ui = { module = "androidx.media3:media3-ui", version.ref = "media3" }
+vlcj = { module = "uk.co.caprica:vlcj", version.ref = "vlcj" }
+```
+
+- [x] **Step 2: Add network dependencies to source sets**
+
+Modify `composeApp/build.gradle.kts`:
+
+```kotlin
+commonMain.dependencies {
+    implementation(compose.runtime)
+    implementation(compose.foundation)
+    implementation(compose.material3)
+    implementation(compose.materialIconsExtended)
+    implementation(compose.components.resources)
+    implementation(libs.coil.compose)
+    implementation(libs.coil.compose.core)
+    implementation(libs.coil.network.ktor3)
+    implementation(libs.kotlinx.coroutines.core)
+    implementation(libs.androidx.room3.runtime)
+    implementation(libs.androidx.sqlite.bundled)
+}
+androidMain.dependencies {
+    implementation(compose.preview)
+    implementation("androidx.activity:activity-compose:1.12.2")
+    implementation(libs.androidx.core)
+    implementation(libs.androidx.appcompat)
+    implementation(libs.androidx.media3.exoplayer)
+    implementation(libs.androidx.media3.session)
+    implementation(libs.androidx.media3.ui)
+    implementation(libs.ktor.client.android)
+}
+desktopMain.dependencies {
+    implementation(compose.desktop.currentOs)
+    implementation(libs.kotlinx.coroutines.swing)
+    implementation(libs.kotlinx.serialization.core)
+    implementation(libs.ktor.client.java)
+    implementation(libs.vlcj)
+}
+iosX64Main.dependencies {
+    implementation(libs.ktor.client.darwin)
+}
+iosArm64Main.dependencies {
+    implementation(libs.ktor.client.darwin)
+}
+iosSimulatorArm64Main.dependencies {
+    implementation(libs.ktor.client.darwin)
+}
+```
+
+- [x] **Step 3: Manually verify network loading, then remove temporary scanner fixtures**
+
+macOS runtime verification confirmed that scanned rows can display a network cover through `coverImageUri -> CoverArtImage -> Coil`. After verification, remove all temporary scanner data and restore scanner output to production behavior:
+
+- `FakeLocalMusicScanner` does not emit a hard-coded network cover URL.
+- `DesktopFolderMusicScanner` keeps embedded artwork extraction output and does not override scan results with a test URL.
+
+- [x] **Step 4: Verify the temporary URL is fully removed**
+
+Run:
+
+```bash
+rg "<temporary network image marker>" composeApp/src
+```
+
+Expected: no matches.
+
+- [x] **Step 5: Verify UI still does not import Coil directly**
+
+Run:
+
+```bash
+rg "coil3" composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/app composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/desktop composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/screen
+```
+
+Expected: no matches. Coil imports must remain inside `feature/components`.
+
+- [x] **Step 6: Compile desktop and Android**
+
+Run:
+
+```bash
+./gradlew :composeApp:compileKotlinDesktop :composeApp:compileDebugKotlinAndroid
+```
+
+Expected: PASS.
+
+- [x] **Step 7: Record manual network-image verification status**
+
+If no runtime desktop or Android check was performed, the final delivery message must include:
+
+```text
+未做运行时网络图片截图核对；剩余风险是测试 URL 在当前网络环境下能否稳定访问，以及 Coil/Ktor 在 Android、Desktop、iOS 的运行时网络加载表现需要人工确认。
+```
+
+If runtime verification was performed, the final delivery message must name the platform and page checked:
+
+```text
+已核对 macOS 本地音乐列表，扫描歌曲通过临时网络封面 URL 验证 Coil/Ktor 可正常加载并显示；验证夹具已删除，mini player 和播放页取色仍需按真实数据继续确认。
+```
+
+- [x] **Step 8: Commit**
+
+```bash
+git add gradle/libs.versions.toml composeApp/build.gradle.kts docs/superpowers/specs/2026-06-29-coil-image-loading-design.md docs/superpowers/plans/2026-06-29-coil-image-loading-implementation.md
+git commit -m "支持 Coil 网络封面加载"
+```
+
 ## Self-Review
 
-- Spec coverage: Tasks 1-4 cover Coil dependency, shared request model, all Compose UI cover display, Coil-loaded fallback resources, and removal of platform hand decoding. Tasks 5-6 cover Coil-backed palette loading and migration of Android mini player and macOS desktop player palette. Task 7 covers old API scans, domain/data/playback/resource boundary checks, verification commands, and Media3 boundary preservation.
+- Spec coverage: Tasks 1-4 cover Coil dependency, shared request model, all Compose UI cover display, Coil-loaded fallback resources, and removal of platform hand decoding. Tasks 5-6 cover Coil-backed palette loading and migration of Android mini player and macOS desktop player palette. Task 7 covers old API scans, domain/data/playback/resource boundary checks, verification commands, and Media3 boundary preservation. Task 8 covers network image loading with Coil Ktor 3, runtime verification, and removal of temporary scanner fixtures.
 - Placeholder scan: The plan contains no deferred implementation labels, no unspecified test requests, and no undefined feature tasks.
 - Type consistency: `CoverArtImageRequest`, `buildCoverArtImageRequest`, `coverArtResourcePath`, `CoverArtImage`, `rememberMiniPlayerPalette`, `rememberPlayerPagePalette`, `defaultPlayerPagePalette`, and `coilImageToImageBitmap` are defined before later tasks reference them.

@@ -24,7 +24,7 @@
 
 - 不改造 `Song`、`Album`、`Artist` 等领域模型为新的通用 `ImageSource` 层级。
 - 不把 Android Media3 通知和锁屏 artwork 展示纳入 Compose UI 图片加载约束；系统 UI 仍读取 Media3 metadata。
-- 不新增在线图片、远程音乐封面、云端缓存或图片编辑能力。
+- 不新增云端缓存、图片编辑或远程封面业务模型；Task 8 只补齐 Coil 网络图片加载能力。
 - 不为了 Coil 接入重写本地扫描、embedded artwork 提取、播放或持久化流程。
 - 不修改 `prototypes/kmp-music-hi-fi` 或其他原型目录来解决生产 App 图片加载问题。
 
@@ -33,9 +33,19 @@
 使用 Coil 3 的 Compose Multiplatform 能力。项目依赖集中放在 `gradle/libs.versions.toml` 和 `composeApp/build.gradle.kts`：
 
 - `io.coil-kt.coil3:coil-compose`
-- 如需网络加载，再按平台选择网络模块；本次需求只覆盖本地 URI 和 Compose resources，不把网络图片作为验收前提。
+- `io.coil-kt.coil3:coil-network-ktor3`
+- 使用 Ktor 3 网络模块时，各平台需要对应 Ktor engine：Android 使用 `ktor-client-android`，Desktop/JVM 使用 `ktor-client-java`，iOS 使用 `ktor-client-darwin`。
 
 Coil 官方支持 Android、JVM、iOS、macOS、JavaScript 和 WASM。项目当前目标是 Android、iOS 和 Desktop；Windows 桌面由 Compose Desktop/JVM 目标覆盖。
+
+## Task 8 网络图片补充
+
+原始设计先统一本地扫描封面和 Compose resource 兜底，避免一次改动同时牵动远程封面业务模型。Task 8 在不改变页面调用方式、不新增 domain `ImageSource`、不引入云端缓存的前提下，补齐 Coil 网络图片支持：
+
+- `CoverArtImage` 和取色链路仍只接收 `coverImageUri + CoverArt`。
+- 网络图片能力由 `coil-network-ktor3` 和平台 Ktor engine 提供，页面不直接导入 Coil 或 Ktor API。
+- 网络图片加载已通过临时扫描数据验证；验证夹具完成后必须移除，不进入 UI、domain、持久化默认值或页面逻辑。
+- 网络 URL 加载失败时沿用既有 fallback：回退到 `CoverArt` 资源 URI；取色失败回退默认 palette。
 
 ## 封面来源模型
 
@@ -140,6 +150,10 @@ App 侧仍负责把 artwork 数据写入 Media3 metadata。当前 `AndroidPlayba
   答：那会牵动领域模型、持久化、扫描合并和测试，超出本次“统一 UI 图片加载与取色”的目标。
 - 问：Windows 是否在本设计覆盖范围内？
   答：覆盖 Desktop/JVM。Windows 桌面由 Compose Desktop/JVM 目标承载，不需要单独设计一套图片加载链路。
+- 问：项目以后需要网络封面时是否要让页面直接判断 `http` URL？
+  答：不需要。Task 8 已通过 Coil Ktor 3 网络模块让现有 `coverImageUri` 支持网络 URL，页面仍只调用共享封面门面。
+- 问：测试用网络图片 URL 可以作为默认封面长期保留吗？
+  答：不可以。临时验证完成后必须删除，不能进入 domain、UI、持久化默认值或长期真实扫描策略。
 
 ## 边界问题
 
@@ -149,6 +163,7 @@ App 侧仍负责把 artwork 数据写入 Media3 metadata。当前 `AndroidPlayba
 - Playback 边界：不改动播放引擎、队列、播放模式和 Media3 session 行为。
 - Notification 边界：Android Media3 通知/锁屏 artwork 字节链路保持现状，本次只保证不回归。
 - Resource 边界：应用内兜底资源仍来自 `composeResources/drawable`，不从 prototype 目录或平台私有资源另取一套。
+- Network 边界：Task 8 只增加 Coil/Ktor 网络加载能力，不新增远程封面业务模型、云端缓存或页面级网络逻辑；临时验证夹具不得长期保留。
 - Failure 边界：图片显示失败只能降级封面显示或取色 palette，不能阻断页面渲染、播放控制或导航。
 - Test 边界：单元测试覆盖请求构建和来源规则；真机/截图验证覆盖视觉取色效果，不要求测试 Coil 内部实现。
 

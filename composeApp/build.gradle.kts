@@ -49,6 +49,9 @@ kotlin {
 
     sourceSets {
         val desktopMain by getting
+        val iosX64Main by getting
+        val iosArm64Main by getting
+        val iosSimulatorArm64Main by getting
 
         commonMain.dependencies {
             implementation(compose.runtime)
@@ -58,6 +61,7 @@ kotlin {
             implementation(compose.components.resources)
             implementation(libs.coil.compose)
             implementation(libs.coil.compose.core)
+            implementation(libs.coil.network.ktor3)
             implementation(libs.kotlinx.coroutines.core)
             implementation(libs.androidx.room3.runtime)
             implementation(libs.androidx.sqlite.bundled)
@@ -74,12 +78,23 @@ kotlin {
             implementation(libs.androidx.media3.exoplayer)
             implementation(libs.androidx.media3.session)
             implementation(libs.androidx.media3.ui)
+            implementation(libs.ktor.client.android)
         }
         desktopMain.dependencies {
             implementation(compose.desktop.currentOs)
             implementation(libs.kotlinx.coroutines.swing)
             implementation(libs.kotlinx.serialization.core)
+            implementation(libs.ktor.client.java)
             implementation(libs.vlcj)
+        }
+        iosX64Main.dependencies {
+            implementation(libs.ktor.client.darwin)
+        }
+        iosArm64Main.dependencies {
+            implementation(libs.ktor.client.darwin)
+        }
+        iosSimulatorArm64Main.dependencies {
+            implementation(libs.ktor.client.darwin)
         }
     }
 }
