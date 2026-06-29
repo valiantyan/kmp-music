@@ -11,6 +11,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.SaveableStateHolder
+import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.ui.Modifier
 import com.yanhao.kmpmusic.core.theme.KmpMusicTheme
 import com.yanhao.kmpmusic.domain.model.LocalMusicScanRequest
@@ -36,6 +38,7 @@ fun DesktopMusicApp(
             controller.scanLocalMusic(request = LocalMusicScanRequest.Refresh)
         }
     }
+    val saveableStateHolder: SaveableStateHolder = rememberSaveableStateHolder()
     LaunchedEffect(
         state.navigationState.rootTab,
         state.navigationState.secondaryScreen,
@@ -56,23 +59,25 @@ fun DesktopMusicApp(
                 .fillMaxSize(),
         ) {
             if (state.navigationState.secondaryScreen == SecondaryScreen.Player) {
-                DesktopPlayerDetailScreen(
-                    song = state.currentSong,
-                    queueSongs = state.queueSongs,
-                    isPlaying = state.isPlaying,
-                    playbackPositionMs = state.playbackPositionMs,
-                    playbackDurationMs = state.playbackDurationMs,
-                    playbackMode = state.playbackMode,
-                    onBack = controller::navigateBack,
-                    onToggle = controller::togglePlayback,
-                    onPrev = { controller.moveTrack(direction = -1) },
-                    onNext = { controller.moveTrack(direction = 1) },
-                    onMode = controller::cyclePlaybackMode,
-                    onLike = controller::toggleFavorite,
-                    onSeek = controller::seekTo,
-                    onVolumeChange = controller::setVolume,
-                    modifier = Modifier.fillMaxSize(),
-                )
+                saveableStateHolder.SaveableStateProvider(key = state.navigationState.scrollStateKey) {
+                    DesktopPlayerDetailScreen(
+                        song = state.currentSong,
+                        queueSongs = state.queueSongs,
+                        isPlaying = state.isPlaying,
+                        playbackPositionMs = state.playbackPositionMs,
+                        playbackDurationMs = state.playbackDurationMs,
+                        playbackMode = state.playbackMode,
+                        onBack = controller::navigateBack,
+                        onToggle = controller::togglePlayback,
+                        onPrev = { controller.moveTrack(direction = -1) },
+                        onNext = { controller.moveTrack(direction = 1) },
+                        onMode = controller::cyclePlaybackMode,
+                        onLike = controller::toggleFavorite,
+                        onSeek = controller::seekTo,
+                        onVolumeChange = controller::setVolume,
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                }
                 AppOverlays(state = state, controller = controller)
                 return@Box
             }
@@ -104,15 +109,21 @@ fun DesktopMusicApp(
                             },
                         )
                     }
-                    DesktopWorkspace(
-                        state = state,
-                        controller = controller,
-                        onScanLocalMusic = scanLocalMusic,
+                    Box(
                         modifier = Modifier
                             .weight(1f)
                             .fillMaxHeight()
                             .background(DesktopMusicColors.Paper),
-                    )
+                    ) {
+                        saveableStateHolder.SaveableStateProvider(key = state.navigationState.scrollStateKey) {
+                            DesktopWorkspace(
+                                state = state,
+                                controller = controller,
+                                onScanLocalMusic = scanLocalMusic,
+                                modifier = Modifier.fillMaxSize(),
+                            )
+                        }
+                    }
                 }
                 DesktopBottomPlayer(
                     song = state.currentSong,
