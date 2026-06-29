@@ -1,14 +1,15 @@
 [versions]
 agp = "8.13.2"
 coil = "3.5.0"
-composeMultiplatform = "1.7.3"
-kotlin = "2.0.21"
-ktor = "3.3.3"
-kotlinxCoroutines = "1.9.0"
-kotlinxSerialization = "1.8.1"
-androidxCore = "1.17.0"
+composeMultiplatform = "1.11.1"
+kotlin = "2.4.0"
+ktor = "3.5.1"
+kotlinxCoroutines = "1.11.0"
+kotlinxSerialization = "1.11.0"
+androidxActivity = "1.13.0"
+androidxCore = "1.18.0"
 androidxAppCompat = "1.7.1"
-ksp = "2.0.21-1.0.28"
+ksp = "2.3.9"
 media3 = "1.10.1"
 room3 = "3.0.0-rc01"
 sqlite = "2.6.2"
@@ -27,6 +28,7 @@ kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-c
 kotlinx-coroutines-swing = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-swing", version.ref = "kotlinxCoroutines" }
 kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "kotlinxCoroutines" }
 kotlinx-serialization-core = { module = "org.jetbrains.kotlinx:kotlinx-serialization-core", version.ref = "kotlinxSerialization" }
+androidx-activity-compose = { module = "androidx.activity:activity-compose", version.ref = "androidxActivity" }
 androidx-core = { module = "androidx.core:core", version.ref = "androidxCore" }
 androidx-appcompat = { module = "androidx.appcompat:appcompat", version.ref = "androidxAppCompat" }
 androidx-sqlite-bundled = { module = "androidx.sqlite:sqlite-bundled", version.ref = "sqlite" }

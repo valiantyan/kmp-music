@@ -188,7 +188,7 @@ class VlcjMediaPlayerAdapter(
 private fun setLibVlcPluginPath(pluginDirectory: String): Unit {
     val result: Int = NativeLibrary.getInstance("c")
         .getFunction("setenv")
-        .invokeInt(arrayOf("VLC_PLUGIN_PATH", pluginDirectory, 1))
+        .invokeInt(arrayOf<Any>("VLC_PLUGIN_PATH", pluginDirectory, 1))
     if (result != 0) {
         throw IllegalStateException("无法设置 VLC_PLUGIN_PATH，LibVLC 插件目录不可用。")
     }

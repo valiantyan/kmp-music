@@ -29,7 +29,6 @@ kotlin {
     }
 
     listOf(
-        iosX64(),
         iosArm64(),
         iosSimulatorArm64(),
     ).forEach { iosTarget ->
@@ -49,7 +48,6 @@ kotlin {
 
     sourceSets {
         val desktopMain by getting
-        val iosX64Main by getting
         val iosArm64Main by getting
         val iosSimulatorArm64Main by getting
 
@@ -72,7 +70,7 @@ kotlin {
         }
         androidMain.dependencies {
             implementation(compose.preview)
-            implementation("androidx.activity:activity-compose:1.12.2")
+            implementation(libs.androidx.activity.compose)
             implementation(libs.androidx.core)
             implementation(libs.androidx.appcompat)
             implementation(libs.androidx.media3.exoplayer)
@@ -88,9 +86,6 @@ kotlin {
             implementation(libs.jaudiotagger)
             implementation(libs.vlcj)
         }
-        iosX64Main.dependencies {
-            implementation(libs.ktor.client.darwin)
-        }
         iosArm64Main.dependencies {
             implementation(libs.ktor.client.darwin)
         }
@@ -102,7 +97,6 @@ kotlin {
 
 dependencies {
     add("kspAndroid", libs.androidx.room3.compiler)
-    add("kspIosX64", libs.androidx.room3.compiler)
     add("kspIosArm64", libs.androidx.room3.compiler)
     add("kspIosSimulatorArm64", libs.androidx.room3.compiler)
     add("kspDesktop", libs.androidx.room3.compiler)
@@ -118,10 +112,6 @@ configurations.matching { configuration ->
             because("Room3 schema export requires the newer kotlinx.serialization ABI on the KSP runtime classpath.")
         }
     }
-}
-
-ksp {
-    arg("room.schemaLocation", "$projectDir/schemas")
 }
 
 room3 {
