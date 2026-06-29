@@ -21,7 +21,7 @@ class FakeDesktopMediaPlayerAdapterTest {
             mediaUri = "file:///Users/test/Music/song.mp3",
             generation = 7L,
             startPositionMs = 12_000L,
-            pluginPath = "/Applications/KMP Music.app/Contents/Frameworks/LibVLC/plugins",
+            pluginPath = "/Applications/KMP Music.app/Contents/Resources/LibVLC/plugins",
         )
         adapter.emitPrepared(generation = 7L, durationMs = 180_000L)
         adapter.play(generation = 7L)

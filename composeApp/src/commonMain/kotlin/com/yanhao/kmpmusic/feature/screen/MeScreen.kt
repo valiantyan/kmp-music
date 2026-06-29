@@ -80,7 +80,10 @@ fun MeScreen(
                             verticalArrangement = Arrangement.spacedBy(7.dp),
                         ) {
                             Image(
-                                painter = coverArtPainter(album.coverArt),
+                                painter = coverArtPainter(
+                                    coverArt = album.coverArt,
+                                    coverImageUri = album.coverImageUri,
+                                ),
                                 contentDescription = "${album.title} 封面",
                                 modifier = Modifier
                                     .fillMaxWidth()

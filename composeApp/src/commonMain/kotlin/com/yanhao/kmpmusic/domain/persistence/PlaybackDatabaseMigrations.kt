@@ -40,6 +40,14 @@ object PlaybackDatabaseMigrations {
             )
         }
     }
+
+    /** 从本地歌曲表升级到支持扫描封面 URI。 */
+    val MIGRATION_2_3: Migration = object : Migration(startVersion = 2, endVersion = 3) {
+        /** 新列允许为空，旧扫描记录继续使用应用内封面兜底。 */
+        override suspend fun migrate(connection: SQLiteConnection) {
+            connection.execSql("ALTER TABLE local_song ADD COLUMN coverImageUri TEXT")
+        }
+    }
 }
 
 /** 执行裁剪后的 SQL 文本，避免多行字符串首尾空白影响 SQLite 解析。 */

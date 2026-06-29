@@ -11,7 +11,9 @@ import com.yanhao.kmpmusic.domain.model.MusicFileMetadata
 /**
  * Android MediaStore 游标读取器，隔离平台字段到 common 元数据的映射规则。
  */
-internal class AndroidMediaStoreMetadataReader {
+internal class AndroidMediaStoreMetadataReader(
+    private val artworkExtractor: AndroidEmbeddedArtworkExtractor,
+) {
     /**
      * 读取整份游标并生成扫描元数据列表。
      */
@@ -24,6 +26,7 @@ internal class AndroidMediaStoreMetadataReader {
         val titleColumn: Int = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.TITLE)
         val artistColumn: Int = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ARTIST)
         val albumColumn: Int = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ALBUM)
+        val albumIdColumn: Int = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ALBUM_ID)
         val durationColumn: Int = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DURATION)
         val mimeTypeColumn: Int = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.MIME_TYPE)
         val sizeColumn: Int = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.SIZE)
@@ -37,6 +40,7 @@ internal class AndroidMediaStoreMetadataReader {
                 titleColumn = titleColumn,
                 artistColumn = artistColumn,
                 albumColumn = albumColumn,
+                albumIdColumn = albumIdColumn,
                 durationColumn = durationColumn,
                 mimeTypeColumn = mimeTypeColumn,
                 sizeColumn = sizeColumn,
@@ -54,6 +58,7 @@ internal class AndroidMediaStoreMetadataReader {
         titleColumn: Int,
         artistColumn: Int,
         albumColumn: Int,
+        albumIdColumn: Int,
         durationColumn: Int,
         mimeTypeColumn: Int,
         sizeColumn: Int,
@@ -61,8 +66,9 @@ internal class AndroidMediaStoreMetadataReader {
     ): MusicFileMetadata {
         val mediaId: Long = getLong(idColumn)
         val mediaUri: Uri = ContentUris.withAppendedId(collectionUri, mediaId)
+        val sourceId: String = mediaId.toString()
         return MusicFileMetadata(
-            sourceId = mediaId.toString(),
+            sourceId = sourceId,
             sourceKind = LocalMusicSourceKind.AndroidMediaStore,
             localUri = mediaUri.toString(),
             fileName = getKnownText(columnIndex = nameColumn) ?: "$mediaId.audio",
@@ -76,6 +82,11 @@ internal class AndroidMediaStoreMetadataReader {
                 modifiedSeconds * 1_000L
             },
             coverArt = CoverArt.HeroLocalMusic,
+            coverImageUri = artworkExtractor.extractArtworkUri(
+                mediaUri = mediaUri,
+                sourceId = sourceId,
+                albumId = getPositiveLong(columnIndex = albumIdColumn),
+            ),
         )
     }
 

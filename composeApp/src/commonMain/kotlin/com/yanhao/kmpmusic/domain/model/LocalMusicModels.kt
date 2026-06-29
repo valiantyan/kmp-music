@@ -82,7 +82,8 @@ class LocalMusicScanException(
  * @property mimeType 媒体类型，未知时为空。
  * @property sizeBytes 文件大小字节数，未知时为空。
  * @property modifiedAt 来源修改时间戳，未知时为空。
- * @property coverArt 封面资源标识，真实封面接入前使用应用内封面占位。
+ * @property coverArt 应用内封面兜底资源。
+ * @property coverImageUri 平台扫描器提取出的封面图片 URI，缺失时使用 [coverArt]。
  */
 data class MusicFileMetadata(
     val sourceId: String,
@@ -97,6 +98,7 @@ data class MusicFileMetadata(
     val sizeBytes: Long?,
     val modifiedAt: Long?,
     val coverArt: CoverArt,
+    val coverImageUri: String? = null,
 ) {
     /**
      * 跨平台稳定来源 key，重新扫描后用它合并元数据和用户状态。

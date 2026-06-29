@@ -32,5 +32,39 @@ fun coverArtResource(coverArt: CoverArt): DrawableResource {
  */
 @Composable
 fun coverArtPainter(coverArt: CoverArt): Painter {
+    return coverArtPainter(
+        coverArt = coverArt,
+        coverImageUri = null,
+    )
+}
+
+/**
+ * 优先绘制扫描得到的音频封面，缺失或解码失败时使用应用内兜底封面。
+ */
+@Composable
+fun coverArtPainter(
+    coverArt: CoverArt,
+    coverImageUri: String?,
+): Painter {
+    return rememberPlatformCoverArtPainter(
+        coverImageUri = coverImageUri,
+        fallbackCoverArt = coverArt,
+    )
+}
+
+/**
+ * 由各平台负责解码本地封面 URI，避免 common UI 依赖平台文件或媒体 API。
+ */
+@Composable
+internal expect fun rememberPlatformCoverArtPainter(
+    coverImageUri: String?,
+    fallbackCoverArt: CoverArt,
+): Painter
+
+/**
+ * 应用内兜底资源的 [Painter]，供平台实现复用同一套映射规则。
+ */
+@Composable
+internal fun fallbackCoverArtPainter(coverArt: CoverArt): Painter {
     return painterResource(resource = coverArtResource(coverArt = coverArt))
 }

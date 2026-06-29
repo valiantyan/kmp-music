@@ -15,7 +15,7 @@ class MacosLibVlcRuntimeTest {
     fun resolvesBundleRuntimeBeforeDevelopmentFallback(): Unit {
         val tempDir = Files.createTempDirectory("kmp-music-libvlc-test")
         val appDir = tempDir.resolve("KMP Music.app")
-        val bundled = appDir.resolve("Contents/Frameworks/LibVLC")
+        val bundled = appDir.resolve("Contents/Resources/LibVLC")
         val lib = bundled.resolve("lib")
         val plugins = bundled.resolve("plugins")
         lib.createDirectories()

@@ -1118,6 +1118,7 @@ private fun buildFrequentArtists(
         val recentCount: Int,
         val firstRecentIndex: Int,
         val coverArt: com.yanhao.kmpmusic.domain.model.CoverArt,
+        val coverImageUri: String?,
     )
 
     val artistsByNormalizedName: Map<String, Artist> = artists.associateBy { artist ->
@@ -1133,6 +1134,7 @@ private fun buildFrequentArtists(
                     recentCount = 1,
                     firstRecentIndex = indexedSong.index,
                     coverArt = indexedSong.value.coverArt,
+                    coverImageUri = indexedSong.value.coverImageUri,
                 )
             } else {
                 existing.copy(recentCount = existing.recentCount + 1)
@@ -1155,6 +1157,7 @@ private fun buildFrequentArtists(
                     name = recentArtist.name,
                     songCount = recentArtist.recentCount,
                     coverArt = recentArtist.coverArt,
+                    coverImageUri = recentArtist.coverImageUri,
                     tag = "最近播放",
                 )
         }

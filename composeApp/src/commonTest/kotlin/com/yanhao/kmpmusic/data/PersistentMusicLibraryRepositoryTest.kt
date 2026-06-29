@@ -227,6 +227,64 @@ class PersistentMusicLibraryRepositoryTest {
     }
 
     @Test
+    fun applyScanResultPersistsScannedCoverImageUri(): Unit = runBlocking {
+        val localSongDao: FakeLocalSongDao = FakeLocalSongDao()
+        val repository: PersistentMusicLibraryRepository = PersistentMusicLibraryRepository(
+            localSongDao = localSongDao,
+            favoriteSongDao = FakeFavoriteSongDao(),
+        )
+        val coverImageUri: String = "file:///tmp/persisted-cover.art"
+
+        val snapshot = repository.applyScanResult(
+            request = LocalMusicScanRequest.Source(LocalMusicSourceKind.AndroidMediaStore),
+            scanResult = LocalMusicScanResult(
+                discovered = listOf(
+                    metadata(
+                        sourceId = "covered",
+                        title = "Covered",
+                        modifiedAt = 4L,
+                        coverImageUri = coverImageUri,
+                    ),
+                ),
+                completedAt = 100L,
+            ),
+            likedSongIds = emptySet(),
+        )
+
+        assertEquals(expected = coverImageUri, actual = localSongDao.row("androidMediaStore:covered")?.coverImageUri)
+        assertEquals(expected = coverImageUri, actual = snapshot.songs.single().coverImageUri)
+        assertEquals(expected = coverImageUri, actual = snapshot.albums.single().coverImageUri)
+        assertEquals(expected = coverImageUri, actual = snapshot.artists.single().coverImageUri)
+    }
+
+    @Test
+    fun existingScannedSongWithoutCoverUriUsesLocalMusicPlaceholder(): Unit = runBlocking {
+        val localSongDao: FakeLocalSongDao = FakeLocalSongDao()
+        val repository: PersistentMusicLibraryRepository = PersistentMusicLibraryRepository(
+            localSongDao = localSongDao,
+            favoriteSongDao = FakeFavoriteSongDao(),
+        )
+        localSongDao.upsertSongs(
+            songs = listOf(
+                entity(
+                    id = "desktopFolder:legacy-cover",
+                    sourceKind = LocalMusicSourceKind.DesktopFolder.value,
+                    sourceId = "/Music/legacy-cover.mp3",
+                    title = "旧占位封面的歌",
+                    modifiedAt = 1L,
+                    coverArt = CoverArt.CoverSeaDream,
+                ),
+            ),
+        )
+
+        val snapshot = repository.getSnapshot()
+
+        assertEquals(expected = CoverArt.HeroLocalMusic, actual = snapshot.songs.single().coverArt)
+        assertEquals(expected = CoverArt.HeroLocalMusic, actual = snapshot.albums.single().coverArt)
+        assertEquals(expected = CoverArt.HeroLocalMusic, actual = snapshot.artists.single().coverArt)
+    }
+
+    @Test
     fun refreshWithoutDiscoveredSongsMarksAllExistingSourcesUnavailable(): Unit = runBlocking {
         val localSongDao: FakeLocalSongDao = FakeLocalSongDao()
         val repository: PersistentMusicLibraryRepository = PersistentMusicLibraryRepository(
@@ -319,6 +377,7 @@ class PersistentMusicLibraryRepositoryTest {
         title: String,
         modifiedAt: Long,
         sourceKind: LocalMusicSourceKind = LocalMusicSourceKind.AndroidMediaStore,
+        coverImageUri: String? = null,
     ): MusicFileMetadata {
         return MusicFileMetadata(
             sourceId = sourceId,
@@ -333,6 +392,7 @@ class PersistentMusicLibraryRepositoryTest {
             sizeBytes = 1_000L,
             modifiedAt = modifiedAt,
             coverArt = CoverArt.HeroLocalMusic,
+            coverImageUri = coverImageUri,
         )
     }
 }
@@ -468,6 +528,7 @@ private fun entity(
     modifiedAt: Long,
     artist: String? = "Artist",
     album: String? = "Album",
+    coverArt: CoverArt = CoverArt.HeroLocalMusic,
 ): LocalSongEntity {
     return LocalSongEntity(
         id = id,
@@ -482,7 +543,7 @@ private fun entity(
         mimeType = "audio/mpeg",
         sizeBytes = 1_000L,
         modifiedAt = modifiedAt,
-        coverArt = CoverArt.HeroLocalMusic.name,
+        coverArt = coverArt.name,
         lastScannedAt = modifiedAt,
         isAvailable = true,
     )

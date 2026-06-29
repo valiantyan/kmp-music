@@ -71,7 +71,10 @@ fun PlayerScreen(
     Column(verticalArrangement = Arrangement.spacedBy(24.dp)) {
         AppHeader(title = "正在播放", onBack = onBack)
         Image(
-            painter = coverArtPainter(song.coverArt),
+            painter = coverArtPainter(
+                coverArt = song.coverArt,
+                coverImageUri = song.coverImageUri,
+            ),
             contentDescription = "${song.title} 封面",
             modifier = Modifier.size(328.dp).clip(RoundedCornerShape(30.dp)).align(Alignment.CenterHorizontally),
             contentScale = ContentScale.Crop,

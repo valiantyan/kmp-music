@@ -51,7 +51,7 @@ fun AlbumDetailScreen(
             title = album.title,
             subtitle = "${album.artist} · ${albumSongs.size} 首",
             tag = "${album.year} · ${album.mood}",
-            cover = { Image(painter = coverArtPainter(album.coverArt), contentDescription = "${album.title} 专辑封面", modifier = Modifier.size(126.dp).clip(RoundedCornerShape(18.dp)), contentScale = ContentScale.Crop) },
+            cover = { Image(painter = coverArtPainter(coverArt = album.coverArt, coverImageUri = album.coverImageUri), contentDescription = "${album.title} 专辑封面", modifier = Modifier.size(126.dp).clip(RoundedCornerShape(18.dp)), contentScale = ContentScale.Crop) },
         )
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             PrimaryPill(
@@ -109,7 +109,7 @@ fun ArtistDetailScreen(
             title = artist.name,
             subtitle = "${artist.songCount} 首 · 本地收藏",
             tag = artist.tag,
-            cover = { Image(painter = coverArtPainter(artist.coverArt), contentDescription = "${artist.name} 图片", modifier = Modifier.size(126.dp).clip(CircleShape), contentScale = ContentScale.Crop) },
+            cover = { Image(painter = coverArtPainter(coverArt = artist.coverArt, coverImageUri = artist.coverImageUri), contentDescription = "${artist.name} 图片", modifier = Modifier.size(126.dp).clip(CircleShape), contentScale = ContentScale.Crop) },
         )
         SectionTitle(title = "热门歌曲")
         Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {

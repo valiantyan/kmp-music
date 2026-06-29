@@ -26,6 +26,9 @@ import kotlinx.coroutines.withContext
  * Desktop 平台文件夹扫描器，由用户选择音乐文件夹后递归发现可播放音频。
  */
 class DesktopFolderMusicScanner : LocalMusicScanner {
+    // 真实封面提取集中在 scanner 边界，UI 只消费平台无关 URI。
+    private val artworkExtractor: DesktopEmbeddedArtworkExtractor = DesktopEmbeddedArtworkExtractor()
+
     /** 弹出文件夹选择器并把真实文件扫描结果写入统一曲库链路。 */
     override suspend fun scan(request: LocalMusicScanRequest): LocalMusicScanResult {
         validateRequest(request = request)
@@ -148,6 +151,10 @@ class DesktopFolderMusicScanner : LocalMusicScanner {
             sizeBytes = attributes.size(),
             modifiedAt = attributes.lastModifiedTime().toMillis(),
             coverArt = LocalAudioFileRules.coverForSourceId(sourceId = sourceId),
+            coverImageUri = artworkExtractor.extractArtworkUri(
+                audioPath = path,
+                sourceId = sourceId,
+            ),
         )
     }
 

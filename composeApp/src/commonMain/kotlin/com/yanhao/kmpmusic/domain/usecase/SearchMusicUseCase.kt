@@ -89,6 +89,7 @@ private fun buildAlbums(songs: List<Song>): List<Album> {
             artist = firstSong.artist,
             songCount = albumSongs.size,
             coverArt = firstSong.coverArt,
+            coverImageUri = firstSong.coverImageUri,
             mood = "本地音乐",
             year = "本地",
         )
@@ -104,6 +105,7 @@ private fun buildArtists(songs: List<Song>): List<Artist> {
             name = firstSong.artist,
             songCount = artistSongs.size,
             coverArt = firstSong.coverArt,
+            coverImageUri = firstSong.coverImageUri,
             tag = "本地音乐",
         )
     }.sortedBy { artist -> artist.name.lowercase() }

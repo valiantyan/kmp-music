@@ -227,6 +227,7 @@ class PersistentMusicLibraryRepository(
             sizeBytes = sizeBytes,
             modifiedAt = modifiedAt,
             coverArt = coverArt.name,
+            coverImageUri = coverImageUri,
             lastScannedAt = lastScannedAt,
             isAvailable = true,
         )
@@ -250,8 +251,8 @@ class PersistentMusicLibraryRepository(
             artist = safeArtist,
             album = safeAlbum,
             duration = formatDuration(durationMs = durationMs),
-            coverArt = CoverArt.entries.firstOrNull { cover: CoverArt -> cover.name == coverArt }
-                ?: CoverArt.HeroLocalMusic,
+            coverArt = normalizedCoverArt(coverImageUri = coverImageUri),
+            coverImageUri = coverImageUri,
             isLiked = likedSongIds.contains(element = id),
             lastPlayed = "未播放",
             quality = formatQuality(mimeType = mimeType),
@@ -269,6 +270,15 @@ class PersistentMusicLibraryRepository(
         )
     }
 
+    // 真实扫描歌曲缺少内嵌封面时不能显示伪专辑图，避免误导为扫描结果。
+    private fun LocalSongEntity.normalizedCoverArt(coverImageUri: String?): CoverArt {
+        if (coverImageUri.isNullOrBlank()) {
+            return CoverArt.HeroLocalMusic
+        }
+        return CoverArt.entries.firstOrNull { cover: CoverArt -> cover.name == coverArt }
+            ?: CoverArt.HeroLocalMusic
+    }
+
     /** 按专辑聚合歌曲，保持首页和详情页读取一致的分组规则。 */
     private fun buildAlbums(songs: List<Song>): List<Album> {
         return songs.groupBy { song: Song -> song.album.trim().lowercase() }
@@ -281,6 +291,7 @@ class PersistentMusicLibraryRepository(
                     artist = firstSong.artist,
                     songCount = albumSongs.size,
                     coverArt = firstSong.coverArt,
+                    coverImageUri = firstSong.coverImageUri,
                     mood = "本地音乐",
                     year = "本地",
                 )
@@ -299,6 +310,7 @@ class PersistentMusicLibraryRepository(
                     name = firstSong.artist,
                     songCount = artistSongs.size,
                     coverArt = firstSong.coverArt,
+                    coverImageUri = firstSong.coverImageUri,
                     tag = "本地音乐",
                 )
             }

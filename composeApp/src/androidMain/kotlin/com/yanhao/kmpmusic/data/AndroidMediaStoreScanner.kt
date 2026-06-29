@@ -1,11 +1,13 @@
 package com.yanhao.kmpmusic.data
 
 import android.content.ContentResolver
+import android.content.Context
 import android.database.Cursor
 import android.net.Uri
 import android.os.Build
 import android.provider.MediaStore
 import android.util.Log
+import java.io.File
 import com.yanhao.kmpmusic.AndroidAudioPermissionResult
 import com.yanhao.kmpmusic.domain.model.LocalMusicScanError
 import com.yanhao.kmpmusic.domain.model.LocalMusicScanErrorType
@@ -23,12 +25,20 @@ import kotlinx.coroutines.withContext
  * Android 平台本地音乐扫描器，从 [MediaStore.Audio.Media] 查询用户授权的系统音频索引。
  */
 internal class AndroidMediaStoreScanner(
-    private val contentResolver: ContentResolver,
+    context: Context,
     private val requestAudioPermission: suspend () -> AndroidAudioPermissionResult,
     private val nowMillis: () -> Long = { System.currentTimeMillis() },
 ) : LocalMusicScanner {
+    // 使用 application context 的 resolver 查询 MediaStore，避免持有 Activity。
+    private val contentResolver: ContentResolver = context.contentResolver
+
     // MediaStore 游标到 common 元数据的映射器。
-    private val metadataReader: AndroidMediaStoreMetadataReader = AndroidMediaStoreMetadataReader()
+    private val metadataReader: AndroidMediaStoreMetadataReader = AndroidMediaStoreMetadataReader(
+        artworkExtractor = AndroidEmbeddedArtworkExtractor(
+            context = context,
+            cacheDirectory = context.cacheDir,
+        ),
+    )
 
     /** 执行 Android MediaStore 扫描，并把权限或查询失败映射为 common 错误。 */
     override suspend fun scan(request: LocalMusicScanRequest): LocalMusicScanResult {

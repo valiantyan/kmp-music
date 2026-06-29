@@ -141,10 +141,23 @@ compose.desktop {
     }
 }
 
-val macosLibVlcDownloadDir = layout.buildDirectory.dir("macos-libvlc/download")
+val macosLibVlcDownloadDir = layout.dir(
+    providers
+        .gradleProperty("kmp.music.libvlc.download.dir")
+        .map { path: String -> file(path) }
+        .orElse(
+            providers.provider {
+                gradle.gradleUserHomeDir.resolve("caches/kmp-music/macos-libvlc/download")
+            },
+        ),
+)
+val legacyMacosLibVlcDownloadDir = layout.buildDirectory.dir("macos-libvlc/download")
 val macosLibVlcRuntimeDir = layout.buildDirectory.dir("macos-libvlc/runtime/LibVLC")
 val releaseAppName = "KMP Music.app"
 val releaseAppDir = layout.buildDirectory.dir("compose/binaries/main-release/app/$releaseAppName")
+val macosLibVlcDownloadUrl: String = providers
+    .gradleProperty("kmp.music.libvlc.download.url")
+    .getOrElse("https://download.videolan.org/pub/videolan/vlc/last/macosx/vlc-3.0.23-arm64.dmg")
 
 tasks.register<Exec>("downloadMacosArm64LibVlc") {
     workingDir = projectDir
@@ -152,6 +165,8 @@ tasks.register<Exec>("downloadMacosArm64LibVlc") {
         "bash",
         "$projectDir/src/desktopMain/packaging/macos-libvlc/download-macos-arm64-libvlc.sh",
         macosLibVlcDownloadDir.get().asFile.absolutePath,
+        legacyMacosLibVlcDownloadDir.get().asFile.absolutePath,
+        macosLibVlcDownloadUrl,
     )
 }
 
@@ -166,9 +181,14 @@ tasks.register<Exec>("extractMacosArm64LibVlc") {
     )
 }
 
-// Desktop 开发运行也必须开箱即用，不能依赖开发者额外安装 `/Applications/VLC.app`。
-fun JavaExec.configureDesktopDevelopmentRun(): Unit {
+tasks.register("prepareMacosArm64LibVlc") {
     dependsOn("extractMacosArm64LibVlc")
+    description = "Downloads, verifies, and extracts the macOS arm64 LibVLC runtime for local playback."
+    group = "distribution"
+}
+
+// Desktop 开发运行只复用已准备好的项目内 LibVLC；发布打包任务才强制准备并内置运行时。
+fun JavaExec.configureDesktopDevelopmentRun(): Unit {
     systemProperty(
         "kmp.music.libvlc.runtime.dir",
         macosLibVlcRuntimeDir.get().asFile.absolutePath,
@@ -183,8 +203,12 @@ tasks.matching { task -> task.name == "run" || task.name == "desktopRun" }.confi
 // sign the outer app last. Running packageReleaseDmg before nested signing invalidates release acceptance.
 tasks.register<Copy>("stageMacosArm64LibVlcIntoReleaseApp") {
     dependsOn("extractMacosArm64LibVlc", "createReleaseDistributable")
+    doFirst {
+        delete(releaseAppDir.get().dir("Contents/Frameworks/LibVLC"))
+        delete(releaseAppDir.get().dir("Contents/Resources/LibVLC"))
+    }
     from(macosLibVlcRuntimeDir)
-    into(releaseAppDir.map { directory -> directory.dir("Contents/Frameworks/LibVLC") })
+    into(releaseAppDir.map { directory -> directory.dir("Contents/Resources/LibVLC") })
 }
 
 tasks.register<Exec>("verifyMacosArm64ReleaseApp") {

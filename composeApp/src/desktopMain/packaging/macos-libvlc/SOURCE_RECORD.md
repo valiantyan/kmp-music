@@ -7,7 +7,7 @@ Official download URL: https://download.videolan.org/pub/videolan/vlc/last/macos
 Official SHA-256 URL: https://download.videolan.org/pub/videolan/vlc/last/macosx/vlc-3.0.23-arm64.dmg.sha256
 Expected SHA-256: fc6fac08d87f538517d44aca0c5e7a244b67c8c4cb589bf478363a7315fd5e0d
 Project extraction directory: composeApp/build/macos-libvlc/runtime/LibVLC
-App bundle directory: KMP Music.app/Contents/Frameworks/LibVLC
+App bundle directory: KMP Music.app/Contents/Resources/LibVLC
 
 License obligations:
 

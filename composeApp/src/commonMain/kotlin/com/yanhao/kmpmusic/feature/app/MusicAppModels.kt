@@ -262,6 +262,7 @@ data class MusicAppUiState(
                     artist = firstSong.artist,
                     songCount = albumSongs.size,
                     coverArt = firstSong.coverArt,
+                    coverImageUri = firstSong.coverImageUri,
                     mood = "本地音乐",
                     year = "本地",
                 )
@@ -281,6 +282,7 @@ data class MusicAppUiState(
                     name = firstSong.artist,
                     songCount = artistSongs.size,
                     coverArt = firstSong.coverArt,
+                    coverImageUri = firstSong.coverImageUri,
                     tag = "本地音乐",
                 )
             }
@@ -317,6 +319,7 @@ data class MusicAppUiState(
                     artist = firstSong.artist,
                     songCount = albumSongs.size,
                     coverArt = firstSong.coverArt,
+                    coverImageUri = firstSong.coverImageUri,
                     mood = "本地音乐",
                     year = "本地",
                 )
@@ -334,6 +337,7 @@ data class MusicAppUiState(
                     name = firstSong.artist,
                     songCount = artistSongs.size,
                     coverArt = firstSong.coverArt,
+                    coverImageUri = firstSong.coverImageUri,
                     tag = "本地音乐",
                 )
             }

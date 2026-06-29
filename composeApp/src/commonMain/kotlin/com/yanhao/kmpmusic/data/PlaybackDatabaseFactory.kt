@@ -16,6 +16,7 @@ fun createPlaybackDatabase(builder: RoomDatabase.Builder<PlaybackDatabase>): Pla
     return builder
         .setDriver(BundledSQLiteDriver())
         .addMigrations(PlaybackDatabaseMigrations.MIGRATION_1_2)
+        .addMigrations(PlaybackDatabaseMigrations.MIGRATION_2_3)
         .setQueryCoroutineContext(Dispatchers.IO)
         .build()
 }

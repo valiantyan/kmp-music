@@ -31,7 +31,7 @@ object MacosLibVlcRuntime {
         developmentVlcApp: Path = Path.of("/Applications/VLC.app"),
         allowDevelopmentFallback: Boolean = isDevelopmentRun(),
     ): MacosLibVlcRuntimePath? {
-        val bundledDirectory: Path = appDirectory.resolve("Contents/Frameworks/LibVLC")
+        val bundledDirectory: Path = appDirectory.resolve("Contents/Resources/LibVLC")
         val bundledLibrary: Path = bundledDirectory.resolve("lib")
         val bundledPlugins: Path = bundledDirectory.resolve("plugins")
         if (hasRuntimeDirectories(libraryDirectory = bundledLibrary, pluginDirectory = bundledPlugins)) {

@@ -115,6 +115,59 @@ class MergeLocalMusicScanResultUseCaseTest {
     }
 
     /**
+     * 扫描封面 URI 要随歌曲、专辑和歌手一起聚合，避免 UI 退回应用内占位图。
+     */
+    @Test
+    fun mergeKeepsScannedCoverImageUriAcrossLibraryModels(): Unit {
+        val coverImageUri: String = "file:///tmp/song-cover.art"
+        val snapshot: LibrarySnapshot = useCase(
+            request = MergeLocalMusicScanResultRequest(
+                previousSnapshot = LibrarySnapshot.Empty,
+                scanResult = LocalMusicScanResult(
+                    discovered = listOf(
+                        metadata(
+                            sourceId = "cover",
+                            title = "有封面的歌",
+                            modifiedAt = 60L,
+                            coverImageUri = coverImageUri,
+                        ),
+                    ),
+                    completedAt = 60L,
+                ),
+                likedSongIds = emptySet(),
+            ),
+        )
+
+        assertEquals(expected = coverImageUri, actual = snapshot.songs.single().coverImageUri)
+        assertEquals(expected = coverImageUri, actual = snapshot.albums.single().coverImageUri)
+        assertEquals(expected = coverImageUri, actual = snapshot.artists.single().coverImageUri)
+    }
+
+    @Test
+    fun mergeUsesLocalMusicPlaceholderWhenScannedCoverIsMissing(): Unit {
+        val snapshot: LibrarySnapshot = useCase(
+            request = MergeLocalMusicScanResultRequest(
+                previousSnapshot = LibrarySnapshot.Empty,
+                scanResult = LocalMusicScanResult(
+                    discovered = listOf(
+                        metadata(
+                            sourceId = "missing-cover",
+                            title = "没有内嵌封面的歌",
+                            modifiedAt = 70L,
+                        ),
+                    ),
+                    completedAt = 70L,
+                ),
+                likedSongIds = emptySet(),
+            ),
+        )
+
+        assertEquals(expected = CoverArt.HeroLocalMusic, actual = snapshot.songs.single().coverArt)
+        assertEquals(expected = CoverArt.HeroLocalMusic, actual = snapshot.albums.single().coverArt)
+        assertEquals(expected = CoverArt.HeroLocalMusic, actual = snapshot.artists.single().coverArt)
+    }
+
+    /**
      * 扫描用例必须通过 scanner 和 repository 产出同一份曲库快照。
      */
     @Test
@@ -149,6 +202,7 @@ class MergeLocalMusicScanResultUseCaseTest {
         durationMs: Long? = 225_000L,
         fileName: String = "$sourceId.flac",
         modifiedAt: Long?,
+        coverImageUri: String? = null,
     ): MusicFileMetadata {
         return MusicFileMetadata(
             sourceId = sourceId,
@@ -163,6 +217,7 @@ class MergeLocalMusicScanResultUseCaseTest {
             sizeBytes = 24_000_000L,
             modifiedAt = modifiedAt,
             coverArt = CoverArt.CoverSeaDream,
+            coverImageUri = coverImageUri,
         )
     }
 }

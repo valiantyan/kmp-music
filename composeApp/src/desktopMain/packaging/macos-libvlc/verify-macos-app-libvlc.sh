@@ -2,7 +2,7 @@
 set -euo pipefail
 
 app_path="$1"
-libvlc_dir="${app_path}/Contents/Frameworks/LibVLC"
+libvlc_dir="${app_path}/Contents/Resources/LibVLC"
 
 if [[ ! -d "${libvlc_dir}/lib" || ! -d "${libvlc_dir}/plugins" ]]; then
   echo "LibVLC runtime is missing from ${libvlc_dir}"

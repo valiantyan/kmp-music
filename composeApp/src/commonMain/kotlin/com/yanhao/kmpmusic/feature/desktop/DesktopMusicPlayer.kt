@@ -160,7 +160,10 @@ private fun DesktopPlayerTrack(
                 onClick = onOpen,
             ) {
                 Image(
-                    painter = coverArtPainter(song.coverArt),
+                    painter = coverArtPainter(
+                        coverArt = song.coverArt,
+                        coverImageUri = song.coverImageUri,
+                    ),
                     contentDescription = "${song.title} 封面",
                     modifier = Modifier
                         .size(58.dp)

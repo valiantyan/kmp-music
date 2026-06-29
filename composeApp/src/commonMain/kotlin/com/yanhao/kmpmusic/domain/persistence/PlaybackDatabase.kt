@@ -82,6 +82,7 @@ data class LocalSongEntity(
     val sizeBytes: Long?,
     val modifiedAt: Long?,
     val coverArt: String,
+    val coverImageUri: String? = null,
     val lastScannedAt: Long,
     val isAvailable: Boolean,
 )
@@ -259,7 +260,7 @@ interface LocalSongDao {
         FavoriteSongEntity::class,
         LocalSongEntity::class,
     ],
-    version = 2,
+    version = 3,
 )
 @ConstructedBy(PlaybackDatabaseConstructor::class)
 abstract class PlaybackDatabase : RoomDatabase() {

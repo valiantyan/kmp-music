@@ -9,6 +9,7 @@ package com.yanhao.kmpmusic.domain.model
  * @property album 所属专辑名称。
  * @property duration 展示用时长。
  * @property coverArt 原型或扫描封面资源标识。
+ * @property coverImageUri 扫描音频提取出的封面图片 URI，缺失时使用 [coverArt]。
  * @property isLiked 当前收藏状态。
  * @property lastPlayed 最近播放文案。
  * @property quality 本地音质标签。
@@ -29,6 +30,7 @@ data class Song(
     val album: String,
     val duration: String,
     val coverArt: CoverArt,
+    val coverImageUri: String? = null,
     val isLiked: Boolean,
     val lastPlayed: String,
     val quality: String,

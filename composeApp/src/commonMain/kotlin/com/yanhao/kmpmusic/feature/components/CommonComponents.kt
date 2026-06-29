@@ -242,7 +242,10 @@ fun SongRow(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Image(
-                painter = coverArtPainter(song.coverArt),
+                painter = coverArtPainter(
+                    coverArt = song.coverArt,
+                    coverImageUri = song.coverImageUri,
+                ),
                 contentDescription = "${song.title} 封面",
                 modifier = Modifier
                     .size(coverSize)
@@ -368,7 +371,10 @@ fun AlbumCard(
         modifier = modifier.clickable { onOpen(album) },
     ) {
         Image(
-            painter = coverArtPainter(album.coverArt),
+            painter = coverArtPainter(
+                coverArt = album.coverArt,
+                coverImageUri = album.coverImageUri,
+            ),
             contentDescription = "${album.title} 专辑封面",
             modifier = Modifier
                 .fillMaxWidth()
@@ -420,7 +426,10 @@ fun ArtistRow(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Image(
-            painter = coverArtPainter(artist.coverArt),
+            painter = coverArtPainter(
+                coverArt = artist.coverArt,
+                coverImageUri = artist.coverImageUri,
+            ),
             contentDescription = "${artist.name} 图片",
             modifier = Modifier.size(scaledDp(58.dp)).clip(CircleShape),
             contentScale = ContentScale.Crop,

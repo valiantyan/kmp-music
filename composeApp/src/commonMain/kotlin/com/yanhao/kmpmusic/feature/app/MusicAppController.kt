@@ -727,6 +727,7 @@ class MusicAppController(
                     artist = firstSong.artist,
                     songCount = albumSongs.size,
                     coverArt = firstSong.coverArt,
+                    coverImageUri = firstSong.coverImageUri,
                     mood = "本地音乐",
                     year = "本地",
                 )
@@ -745,6 +746,7 @@ class MusicAppController(
                     name = firstSong.artist,
                     songCount = artistSongs.size,
                     coverArt = firstSong.coverArt,
+                    coverImageUri = firstSong.coverImageUri,
                     tag = "本地音乐",
                 )
             }

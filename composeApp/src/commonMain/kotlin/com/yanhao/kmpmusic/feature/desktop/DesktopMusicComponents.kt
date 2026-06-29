@@ -743,7 +743,10 @@ private fun DesktopSongTableRow(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Image(
-                painter = coverArtPainter(song.coverArt),
+                painter = coverArtPainter(
+                    coverArt = song.coverArt,
+                    coverImageUri = song.coverImageUri,
+                ),
                 contentDescription = "${song.title} 封面",
                 modifier = Modifier
                     .size(DesktopMusicDimens.TableCoverSize)
@@ -953,7 +956,10 @@ fun DesktopAlbumCard(
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Image(
-                painter = coverArtPainter(album.coverArt),
+                painter = coverArtPainter(
+                    coverArt = album.coverArt,
+                    coverImageUri = album.coverImageUri,
+                ),
                 contentDescription = "${album.title} 封面",
                 modifier = Modifier
                     .fillMaxWidth()
@@ -1150,7 +1156,10 @@ fun DesktopArtistStrip(
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     Image(
-                        painter = coverArtPainter(artist.coverArt),
+                        painter = coverArtPainter(
+                            coverArt = artist.coverArt,
+                            coverImageUri = artist.coverImageUri,
+                        ),
                         contentDescription = "${artist.name} 头像",
                         modifier = Modifier
                             .size(56.dp)

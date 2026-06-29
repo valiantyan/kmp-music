@@ -1,8 +1,8 @@
 package com.yanhao.kmpmusic.data
 
+import com.yanhao.kmpmusic.domain.model.CoverArt
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 
 class LocalAudioFileRulesTest {
@@ -32,11 +32,11 @@ class LocalAudioFileRulesTest {
     }
 
     @Test
-    fun coverForSourceIdReturnsStableCover() {
+    fun coverForSourceIdReturnsExplicitLocalMusicPlaceholder() {
         val firstCover = LocalAudioFileRules.coverForSourceId(sourceId = "/Music/song.mp3")
         val secondCover = LocalAudioFileRules.coverForSourceId(sourceId = "/Music/song.mp3")
 
-        assertNotNull(actual = firstCover)
+        assertEquals(expected = CoverArt.HeroLocalMusic, actual = firstCover)
         assertEquals(expected = firstCover, actual = secondCover)
     }
 }

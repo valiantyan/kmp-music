@@ -23,15 +23,6 @@ object LocalAudioFileRules {
         LocalAudioType(extension = "amr", mimeType = "audio/amr"),
     ).associateBy { audioType -> audioType.extension }
 
-    // 扫描歌曲缺少真实封面时使用的占位封面池。
-    private val fallbackCovers: List<CoverArt> = listOf(
-        CoverArt.CoverSeaDream,
-        CoverArt.CoverSummerWaltz,
-        CoverArt.AlbumRiverYear,
-        CoverArt.AlbumBestOfMe,
-        CoverArt.AlbumTimeForest,
-    )
-
     /** 根据文件名判断是否是 P0 支持的音频文件。 */
     fun matchAudioType(fileName: String): LocalAudioType? {
         val extension: String = fileName.substringAfterLast(
@@ -52,10 +43,9 @@ object LocalAudioFileRules {
         )
     }
 
-    /** 为没有内嵌封面的本地文件生成稳定占位封面。 */
+    /** 为没有内嵌封面的本地文件使用明确的本地音乐占位封面。 */
     fun coverForSourceId(sourceId: String): CoverArt {
-        val index: Int = sourceId.hashCode().mod(other = fallbackCovers.size)
-        return fallbackCovers[index]
+        return CoverArt.HeroLocalMusic
     }
 }
 

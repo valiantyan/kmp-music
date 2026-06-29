@@ -56,7 +56,7 @@ class MainActivity : ComponentActivity() {
         musicAppViewModel.attachPlaybackContext(context = applicationContext)
         musicAppViewModel.attachLocalMusicScanner(
             scanner = AndroidMediaStoreScanner(
-                contentResolver = applicationContext.contentResolver,
+                context = applicationContext,
                 requestAudioPermission = audioPermissionRequester::requestAudioPermission,
             ),
         )

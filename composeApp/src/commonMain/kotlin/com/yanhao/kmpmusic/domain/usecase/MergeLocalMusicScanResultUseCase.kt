@@ -2,6 +2,7 @@ package com.yanhao.kmpmusic.domain.usecase
 
 import com.yanhao.kmpmusic.domain.model.Album
 import com.yanhao.kmpmusic.domain.model.Artist
+import com.yanhao.kmpmusic.domain.model.CoverArt
 import com.yanhao.kmpmusic.domain.model.LibrarySnapshot
 import com.yanhao.kmpmusic.domain.model.LibraryStats
 import com.yanhao.kmpmusic.domain.model.LocalMusicLastScanSummary
@@ -95,7 +96,8 @@ class MergeLocalMusicScanResultUseCaseImpl : MergeLocalMusicScanResultUseCase {
             artist = safeArtist,
             album = safeAlbum,
             duration = formatDuration(durationMs = durationMs),
-            coverArt = coverArt,
+            coverArt = normalizedCoverArt(),
+            coverImageUri = coverImageUri,
             isLiked = likedSongIds.contains(element = songId) || previousSong?.isLiked == true,
             lastPlayed = previousSong?.lastPlayed ?: "未播放",
             quality = formatQuality(mimeType = mimeType),
@@ -111,6 +113,14 @@ class MergeLocalMusicScanResultUseCaseImpl : MergeLocalMusicScanResultUseCase {
         )
     }
 
+    // 扫描歌曲没有真实封面时使用明确占位图，不复用看起来像专辑封面的原型资源。
+    private fun MusicFileMetadata.normalizedCoverArt(): CoverArt {
+        if (coverImageUri.isNullOrBlank()) {
+            return CoverArt.HeroLocalMusic
+        }
+        return coverArt
+    }
+
     // 从歌曲按专辑名称聚合首页和详情页共用的专辑模型。
     private fun buildAlbums(songs: List<Song>): List<Album> {
         return songs.groupBy { song -> normalizeKey(value = song.album) }
@@ -123,6 +133,7 @@ class MergeLocalMusicScanResultUseCaseImpl : MergeLocalMusicScanResultUseCase {
                     artist = firstSong.artist,
                     songCount = albumSongs.size,
                     coverArt = firstSong.coverArt,
+                    coverImageUri = firstSong.coverImageUri,
                     mood = "本地音乐",
                     year = "本地",
                 )
@@ -141,6 +152,7 @@ class MergeLocalMusicScanResultUseCaseImpl : MergeLocalMusicScanResultUseCase {
                     name = firstSong.artist,
                     songCount = artistSongs.size,
                     coverArt = firstSong.coverArt,
+                    coverImageUri = firstSong.coverImageUri,
                     tag = "本地音乐",
                 )
             }

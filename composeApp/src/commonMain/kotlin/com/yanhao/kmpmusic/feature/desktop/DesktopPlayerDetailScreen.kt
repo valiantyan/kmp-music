@@ -218,7 +218,10 @@ private fun DesktopPlayerContent(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Image(
-                painter = coverArtPainter(song.coverArt),
+                painter = coverArtPainter(
+                    coverArt = song.coverArt,
+                    coverImageUri = song.coverImageUri,
+                ),
                 contentDescription = "${song.title} 封面",
                 modifier = Modifier
                     .size(coverSize)
