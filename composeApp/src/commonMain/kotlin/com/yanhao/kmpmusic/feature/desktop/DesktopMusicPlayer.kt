@@ -1,7 +1,6 @@
 package com.yanhao.kmpmusic.feature.desktop
 
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -54,7 +53,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.yanhao.kmpmusic.domain.model.PlaybackMode
 import com.yanhao.kmpmusic.domain.model.Song
-import com.yanhao.kmpmusic.feature.components.coverArtPainter
+import com.yanhao.kmpmusic.feature.components.CoverArtImage
 
 /**
  * 桌面端底部播放器，直接复用控制器中的真实播放状态与动作。
@@ -156,11 +155,9 @@ private fun DesktopPlayerTrack(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         if (song != null) {
-            Image(
-                painter = coverArtPainter(
-                    coverArt = song.coverArt,
-                    coverImageUri = song.coverImageUri,
-                ),
+            CoverArtImage(
+                coverArt = song.coverArt,
+                coverImageUri = song.coverImageUri,
                 contentDescription = "${song.title} 封面",
                 modifier = Modifier
                     .size(58.dp)

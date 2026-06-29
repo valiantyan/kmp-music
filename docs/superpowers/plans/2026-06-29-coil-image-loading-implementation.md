@@ -633,7 +633,7 @@ Expected: no matches in `feature/screen`, `feature/components/CommonComponents.k
 - Delete: `composeApp/src/desktopMain/kotlin/com/yanhao/kmpmusic/feature/components/CoverArtPainter.desktop.kt`
 - Delete: `composeApp/src/iosMain/kotlin/com/yanhao/kmpmusic/feature/components/CoverArtPainter.ios.kt`
 
-- [ ] **Step 1: Replace desktop imports**
+- [x] **Step 1: Replace desktop imports**
 
 In each desktop file listed above, replace:
 
@@ -647,7 +647,7 @@ with:
 import com.yanhao.kmpmusic.feature.components.CoverArtImage
 ```
 
-- [ ] **Step 2: Replace desktop song cover calls**
+- [x] **Step 2: Replace desktop song cover calls**
 
 In `DesktopMusicComponents.kt`, replace the table row song cover with:
 
@@ -693,7 +693,7 @@ CoverArtImage(
 
 If a file uses a different size token than `DesktopMusicDimens.PlayerCoverSize`, keep that file's existing size token in the `modifier`.
 
-- [ ] **Step 3: Replace album and artist cover calls**
+- [x] **Step 3: Replace album and artist cover calls**
 
 For desktop album covers:
 
@@ -739,7 +739,7 @@ CoverArtImage(
 )
 ```
 
-- [ ] **Step 4: Delete platform painter actual files**
+- [x] **Step 4: Delete platform painter actual files**
 
 Run:
 
@@ -749,7 +749,7 @@ git rm composeApp/src/desktopMain/kotlin/com/yanhao/kmpmusic/feature/components/
 git rm composeApp/src/iosMain/kotlin/com/yanhao/kmpmusic/feature/components/CoverArtPainter.ios.kt
 ```
 
-- [ ] **Step 5: Verify old painter API is gone**
+- [x] **Step 5: Verify old painter API is gone**
 
 Run:
 
@@ -759,7 +759,7 @@ rg "coverArtPainter|rememberPlatformCoverArtPainter|decodeAndroidCoverImage|deco
 
 Expected: no matches.
 
-- [ ] **Step 6: Compile desktop**
+- [x] **Step 6: Compile desktop**
 
 Run:
 
@@ -769,7 +769,7 @@ Run:
 
 Expected: PASS.
 
-- [ ] **Step 7: Commit Tasks 2 through 4**
+- [x] **Step 7: Commit Tasks 2 through 4**
 
 ```bash
 git add composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/components/CoverArtPainter.kt composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/screen/PlayerScreen.kt composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/screen/HomeScreen.kt composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/screen/MeScreen.kt composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/screen/DetailScreens.kt composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/components/CommonComponents.kt composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/app/MusicApp.kt composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/desktop/DesktopMusicPlayer.kt composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/desktop/DesktopLibrarySidebar.kt composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/desktop/DesktopMusicComponents.kt composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/desktop/DesktopPlayerDetailScreen.kt

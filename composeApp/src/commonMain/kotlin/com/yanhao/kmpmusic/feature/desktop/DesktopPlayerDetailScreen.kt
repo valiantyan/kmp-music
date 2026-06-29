@@ -1,6 +1,5 @@
 package com.yanhao.kmpmusic.feature.desktop
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -57,8 +56,8 @@ import com.yanhao.kmpmusic.core.theme.PlayerPagePalette
 import com.yanhao.kmpmusic.core.theme.extractPlayerPagePalette
 import com.yanhao.kmpmusic.domain.model.PlaybackMode
 import com.yanhao.kmpmusic.domain.model.Song
-import com.yanhao.kmpmusic.feature.components.coverArtResource
-import com.yanhao.kmpmusic.feature.components.coverArtPainter
+import com.yanhao.kmpmusic.feature.components.CoverArtImage
+import com.yanhao.kmpmusic.feature.components.miniPlayerPaletteCoverArtResource
 import org.jetbrains.compose.resources.imageResource
 
 /**
@@ -155,7 +154,9 @@ private fun rememberPlayerPagePalette(song: Song?): PlayerPagePalette {
             ambientColor = DesktopMusicColors.Accent,
         )
     }
-    val coverImage: ImageBitmap = imageResource(resource = coverArtResource(coverArt = song.coverArt))
+    val coverImage: ImageBitmap = imageResource(
+        resource = miniPlayerPaletteCoverArtResource(coverArt = song.coverArt),
+    )
     return remember(song.coverArt, coverImage) {
         extractPlayerPagePalette(imageBitmap = coverImage)
     }
@@ -217,11 +218,9 @@ private fun DesktopPlayerContent(
             horizontalArrangement = Arrangement.spacedBy(72.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Image(
-                painter = coverArtPainter(
-                    coverArt = song.coverArt,
-                    coverImageUri = song.coverImageUri,
-                ),
+            CoverArtImage(
+                coverArt = song.coverArt,
+                coverImageUri = song.coverImageUri,
                 contentDescription = "${song.title} 封面",
                 modifier = Modifier
                     .size(coverSize)

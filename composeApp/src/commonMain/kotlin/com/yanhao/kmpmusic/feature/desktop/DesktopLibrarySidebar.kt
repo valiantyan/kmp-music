@@ -1,6 +1,5 @@
 package com.yanhao.kmpmusic.feature.desktop
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -37,7 +36,7 @@ import androidx.compose.ui.unit.dp
 import com.yanhao.kmpmusic.domain.model.LibraryStats
 import com.yanhao.kmpmusic.domain.model.Song
 import com.yanhao.kmpmusic.feature.app.LocalMusicSection
-import com.yanhao.kmpmusic.feature.components.coverArtPainter
+import com.yanhao.kmpmusic.feature.components.CoverArtImage
 
 private const val RECENT_SIDEBAR_SONG_COUNT = 4
 
@@ -339,11 +338,9 @@ private fun DesktopLibraryRecentSongRow(
         horizontalArrangement = Arrangement.spacedBy(10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Image(
-            painter = coverArtPainter(
-                coverArt = song.coverArt,
-                coverImageUri = song.coverImageUri,
-            ),
+        CoverArtImage(
+            coverArt = song.coverArt,
+            coverImageUri = song.coverImageUri,
             contentDescription = "${song.title} 封面",
             modifier = Modifier
                 .size(38.dp)

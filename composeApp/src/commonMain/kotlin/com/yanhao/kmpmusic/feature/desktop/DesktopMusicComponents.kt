@@ -1,7 +1,6 @@
 package com.yanhao.kmpmusic.feature.desktop
 
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -57,8 +56,8 @@ import com.yanhao.kmpmusic.domain.model.Artist
 import com.yanhao.kmpmusic.domain.model.CoverArt
 import com.yanhao.kmpmusic.domain.model.PlaybackStatus
 import com.yanhao.kmpmusic.domain.model.Song
-import com.yanhao.kmpmusic.feature.components.coverArtPainter
 import com.yanhao.kmpmusic.feature.app.RootTab
+import com.yanhao.kmpmusic.feature.components.CoverArtImage
 
 enum class DesktopRailDestination {
     Home,
@@ -742,11 +741,9 @@ private fun DesktopSongTableRow(
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Image(
-                painter = coverArtPainter(
-                    coverArt = song.coverArt,
-                    coverImageUri = song.coverImageUri,
-                ),
+            CoverArtImage(
+                coverArt = song.coverArt,
+                coverImageUri = song.coverImageUri,
                 contentDescription = "${song.title} 封面",
                 modifier = Modifier
                     .size(DesktopMusicDimens.TableCoverSize)
@@ -955,11 +952,9 @@ fun DesktopAlbumCard(
             modifier = Modifier.padding(14.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Image(
-                painter = coverArtPainter(
-                    coverArt = album.coverArt,
-                    coverImageUri = album.coverImageUri,
-                ),
+            CoverArtImage(
+                coverArt = album.coverArt,
+                coverImageUri = album.coverImageUri,
                 contentDescription = "${album.title} 封面",
                 modifier = Modifier
                     .fillMaxWidth()
@@ -1013,8 +1008,8 @@ fun DesktopProfilePanel(
             horizontalArrangement = Arrangement.spacedBy(18.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Image(
-                painter = coverArtPainter(coverArt),
+            CoverArtImage(
+                coverArt = coverArt,
                 contentDescription = "账号头像视觉",
                 modifier = Modifier
                     .size(88.dp)
@@ -1155,12 +1150,10 @@ fun DesktopArtistStrip(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    Image(
-                        painter = coverArtPainter(
-                            coverArt = artist.coverArt,
-                            coverImageUri = artist.coverImageUri,
-                        ),
-                        contentDescription = "${artist.name} 头像",
+                    CoverArtImage(
+                        coverArt = artist.coverArt,
+                        coverImageUri = artist.coverImageUri,
+                        contentDescription = "${artist.name} 图片",
                         modifier = Modifier
                             .size(56.dp)
                             .clip(CircleShape),
