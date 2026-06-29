@@ -55,6 +55,8 @@ kotlin {
             implementation(compose.material3)
             implementation(compose.materialIconsExtended)
             implementation(compose.components.resources)
+            implementation(libs.coil.compose)
+            implementation(libs.coil.compose.core)
             implementation(libs.kotlinx.coroutines.core)
             implementation(libs.androidx.room3.runtime)
             implementation(libs.androidx.sqlite.bundled)
