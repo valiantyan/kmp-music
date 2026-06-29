@@ -78,7 +78,13 @@ fun PlayerScreen(
         )
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
             Column(modifier = Modifier.weight(weight = 1f)) {
-                Text(text = song.title, fontSize = 26.sp, fontWeight = FontWeight.ExtraBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(
+                    text = song.title,
+                    fontSize = 25.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
                 Text(text = "${song.artist} · ${song.album}", color = MusicColors.Muted, fontSize = 15.sp)
             }
             IconButton(onClick = { onLike(song.id) }) {

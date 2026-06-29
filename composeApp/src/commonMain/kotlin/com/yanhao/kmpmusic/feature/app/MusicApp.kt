@@ -617,7 +617,7 @@ private fun MiniPlayer(
                     ) {
                         Text(
                             text = song.title,
-                            fontSize = scaledSp(16.sp),
+                            fontSize = scaledSp(15.sp),
                             lineHeight = scaledSp(19.sp),
                             fontWeight = FontWeight.ExtraBold,
                             maxLines = 1,
@@ -824,7 +824,13 @@ internal fun AppOverlays(
         if (song != null) {
             ModalBottomSheet(onDismissRequest = controller::closeMore) {
                 Column(modifier = Modifier.padding(21.dp), verticalArrangement = Arrangement.spacedBy(18.dp)) {
-                    Text(text = song.title, fontSize = 20.sp, fontWeight = FontWeight.ExtraBold)
+                    Text(
+                        text = song.title,
+                        fontSize = 19.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
                     BottomSheetAction("加入收藏", Icons.Rounded.Favorite) { controller.toggleFavorite(song.id) }
                     BottomSheetAction("查看专辑", Icons.Rounded.LibraryMusic) { controller.openAlbumFromSong(song) }
                     BottomSheetAction("查看歌手", Icons.Rounded.Person) { controller.openArtistFromSong(song) }

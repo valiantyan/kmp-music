@@ -68,12 +68,19 @@ fun DesktopSecondaryScreen(
         )
         SecondaryScreen.Player -> DesktopPlayerDetailScreen(
             song = state.currentSong,
+            queueSongs = state.queueSongs,
             isPlaying = state.isPlaying,
+            playbackPositionMs = state.playbackPositionMs,
+            playbackDurationMs = state.playbackDurationMs,
+            playbackMode = state.playbackMode,
             onBack = controller::navigateBack,
             onToggle = controller::togglePlayback,
             onPrev = { controller.moveTrack(direction = -1) },
             onNext = { controller.moveTrack(direction = 1) },
-            onQueue = controller::openQueue,
+            onMode = controller::cyclePlaybackMode,
+            onLike = controller::toggleFavorite,
+            onSeek = controller::seekTo,
+            onVolumeChange = controller::setVolume,
         )
         SecondaryScreen.AlbumDetail -> DesktopAlbumDetailScreen(
             album = state.selectedAlbum,
@@ -550,39 +557,6 @@ private fun DesktopSearchScreen(
             onCurrentSongToggle = {},
             onMore = onMore,
         )
-    }
-}
-
-/**
- * 播放详情页只暴露桌面版必要控制，真实播放逻辑仍由控制器负责。
- */
-@Composable
-private fun DesktopPlayerDetailScreen(
-    song: Song?,
-    isPlaying: Boolean,
-    onBack: () -> Unit,
-    onToggle: () -> Unit,
-    onPrev: () -> Unit,
-    onNext: () -> Unit,
-    onQueue: () -> Unit,
-) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState()),
-    ) {
-        DesktopPageHeader(
-            title = song?.title ?: "暂无播放",
-            eyebrow = song?.artist ?: "播放一首本地歌曲后会显示详情",
-        ) {
-            DesktopPrimaryButton(text = "返回", onClick = onBack)
-            DesktopPrimaryButton(text = if (isPlaying) "暂停" else "播放", onClick = onToggle)
-            DesktopPrimaryButton(text = "队列", onClick = onQueue)
-        }
-        Row(horizontalArrangement = Arrangement.spacedBy(18.dp)) {
-            DesktopPrimaryButton(text = "上一首", onClick = onPrev)
-            DesktopPrimaryButton(text = "下一首", onClick = onNext)
-        }
     }
 }
 

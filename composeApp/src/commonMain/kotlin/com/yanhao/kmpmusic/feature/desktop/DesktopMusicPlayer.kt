@@ -172,6 +172,7 @@ private fun DesktopPlayerTrack(
                 Text(
                     text = song.title,
                     color = DesktopMusicColors.Ink,
+                    fontSize = DesktopMusicType.Body,
                     fontWeight = FontWeight.Bold,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
@@ -317,7 +318,7 @@ private fun DesktopPlayerControls(
  * 桌面播放器细轨道滑杆，统一承接进度和音量，贴近原型里的轻量控件。
  */
 @Composable
-private fun DesktopThinSlider(
+internal fun DesktopThinSlider(
     value: Float,
     valueRange: ClosedFloatingPointRange<Float>,
     enabled: Boolean,

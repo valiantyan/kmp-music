@@ -264,7 +264,7 @@ fun SongRow(
                 Text(
                     text = song.title,
                     color = activeColor,
-                    fontSize = scaledSp(17.sp),
+                    fontSize = scaledSp(16.sp),
                     lineHeight = scaledSp(20.sp),
                     fontWeight = FontWeight.ExtraBold,
                     maxLines = 1,

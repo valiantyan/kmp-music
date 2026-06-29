@@ -15,9 +15,30 @@ data class MiniPlayerPalette(
 )
 
 /**
+ * 播放详情页从封面提取出的视觉配色。
+ *
+ * @property backgroundColor 页面底色，必须保留足够亮度以承载深色文字。
+ * @property ambientColor 页面氛围色，用于局部渐变强化当前歌曲感。
+ */
+data class PlayerPagePalette(
+    val backgroundColor: Color,
+    val ambientColor: Color,
+)
+
+/**
  * 容器背景中主题纸色的混入比例。
  */
 private const val MINI_PLAYER_CONTAINER_PAPER_WEIGHT = 0.84f
+
+/**
+ * 播放页背景中主题纸色的混入比例。
+ */
+private const val PLAYER_PAGE_BACKGROUND_PAPER_WEIGHT = 0.62f
+
+/**
+ * 播放页氛围色中主题纸色的混入比例。
+ */
+private const val PLAYER_PAGE_AMBIENT_PAPER_WEIGHT = 0.34f
 
 /**
  * 大图取样时单边最多采样的点数，限制真实本地封面读取成本。
@@ -42,12 +63,50 @@ fun extractMiniPlayerPalette(imageBitmap: ImageBitmap): MiniPlayerPalette {
     )
 }
 
+/**
+ * 根据封面图片提取播放详情页配色。
+ *
+ * 播放页比迷你播放器更沉浸，因此保留更高的封面色占比；同时混入纸色保证文字可读。
+ */
+fun extractPlayerPagePalette(imageBitmap: ImageBitmap): PlayerPagePalette {
+    if (imageBitmap.width <= 1 || imageBitmap.height <= 1) {
+        return PlayerPagePalette(
+            backgroundColor = MusicColors.Paper,
+            ambientColor = MusicColors.Accent.copy(alpha = 0.18f),
+        )
+    }
+    val sampledPixels: IntArray = readSampledPixels(imageBitmap = imageBitmap)
+    val seedColor: Color = selectCoverSeedColor(pixels = sampledPixels)
+    return PlayerPagePalette(
+        backgroundColor = createPlayerPageBackgroundColor(seedColor = seedColor),
+        ambientColor = createPlayerPageAmbientColor(seedColor = seedColor),
+    )
+}
+
 // 把封面种子色转成浅色模式下可读的播放器容器色。
 internal fun createMiniPlayerContainerColor(seedColor: Color): Color {
     return blendColors(
         start = seedColor,
         end = MusicColors.Paper,
         endWeight = MINI_PLAYER_CONTAINER_PAPER_WEIGHT,
+    )
+}
+
+// 把封面种子色转成整页底色，既明显取自封面又不压低文字对比度。
+internal fun createPlayerPageBackgroundColor(seedColor: Color): Color {
+    return blendColors(
+        start = seedColor,
+        end = MusicColors.Paper,
+        endWeight = PLAYER_PAGE_BACKGROUND_PAPER_WEIGHT,
+    )
+}
+
+// 页面氛围色保留更多封面原色，用于渐变光晕而不是承载正文。
+internal fun createPlayerPageAmbientColor(seedColor: Color): Color {
+    return blendColors(
+        start = seedColor,
+        end = MusicColors.Paper,
+        endWeight = PLAYER_PAGE_AMBIENT_PAPER_WEIGHT,
     )
 }
 

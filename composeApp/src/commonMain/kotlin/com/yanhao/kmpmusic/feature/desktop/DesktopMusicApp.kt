@@ -40,6 +40,27 @@ fun DesktopMusicApp(
             modifier = Modifier
                 .fillMaxSize(),
         ) {
+            if (state.navigationState.secondaryScreen == SecondaryScreen.Player) {
+                DesktopPlayerDetailScreen(
+                    song = state.currentSong,
+                    queueSongs = state.queueSongs,
+                    isPlaying = state.isPlaying,
+                    playbackPositionMs = state.playbackPositionMs,
+                    playbackDurationMs = state.playbackDurationMs,
+                    playbackMode = state.playbackMode,
+                    onBack = controller::navigateBack,
+                    onToggle = controller::togglePlayback,
+                    onPrev = { controller.moveTrack(direction = -1) },
+                    onNext = { controller.moveTrack(direction = 1) },
+                    onMode = controller::cyclePlaybackMode,
+                    onLike = controller::toggleFavorite,
+                    onSeek = controller::seekTo,
+                    onVolumeChange = controller::setVolume,
+                    modifier = Modifier.fillMaxSize(),
+                )
+                AppOverlays(state = state, controller = controller)
+                return@Box
+            }
             Column(
                 modifier = Modifier
                     .fillMaxSize()

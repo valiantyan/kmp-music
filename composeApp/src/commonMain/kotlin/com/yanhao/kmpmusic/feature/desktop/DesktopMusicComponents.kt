@@ -753,7 +753,7 @@ private fun DesktopSongTableRow(
             Text(
                 text = song.title,
                 color = if (isCurrentSong) DesktopMusicColors.PlayerRed else DesktopMusicColors.Ink,
-                fontSize = DesktopMusicType.TableTitle,
+                fontSize = DesktopMusicType.Body,
                 fontWeight = FontWeight.SemiBold,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,

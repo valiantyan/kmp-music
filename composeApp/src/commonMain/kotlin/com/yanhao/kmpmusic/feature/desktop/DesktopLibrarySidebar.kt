@@ -354,7 +354,7 @@ private fun DesktopLibraryRecentSongRow(
             Text(
                 text = song.title,
                 color = DesktopMusicColors.Ink,
-                fontSize = DesktopMusicType.SidebarBody,
+                fontSize = DesktopMusicType.TableHeader,
                 fontWeight = FontWeight.Bold,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,

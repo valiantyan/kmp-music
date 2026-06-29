@@ -33,6 +33,14 @@ class CoverPaletteTest {
         )
         assertEquals(expected = "#E4ECEF", actual = containerColor.toHexColor())
     }
+
+    @Test
+    fun createPlayerPageBackgroundColorKeepsStrongerCoverTint(): Unit {
+        val backgroundColor: Color = createPlayerPageBackgroundColor(
+            seedColor = Color(red = 107, green = 150, blue = 168),
+        )
+        assertEquals(expected = "#C4D5DD", actual = backgroundColor.toHexColor())
+    }
 }
 
 // 构造重复像素，便于用用户可感知的比例验证取色规则。
