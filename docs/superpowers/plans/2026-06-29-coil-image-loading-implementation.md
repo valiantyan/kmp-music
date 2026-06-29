@@ -14,6 +14,62 @@
 
 The spec covers one subsystem: Compose UI image loading and cover-driven palette extraction. It intentionally excludes Media3 notification artwork, scanning, playback, persistence, and domain model redesign, so this remains one implementation plan.
 
+## Audit Addendum
+
+### Implementation-Stage Q&A
+
+- Question: Does fallback cover rendering also go through Coil, or is a Compose `painterResource` fallback acceptable?
+  Answer: Fallback cover rendering must go through Coil. `CoverArtImage` first attempts `coverImageUri`; on failure it switches the same `AsyncImage` to `Res.getUri(fallbackResourcePath)`. A non-Coil `painterResource` fallback is not acceptable for final image rendering.
+- Question: Do we need a Coil network module for this work?
+  Answer: No. This plan covers local `file://` style scan outputs and Compose resource URIs. Network images are a non-goal and must not add OkHttp/Ktor network modules.
+- Question: Can a page import Coil APIs directly for image display or palette extraction?
+  Answer: No. Pages must not import `AsyncImage`, `ImageRequest`, `ImageLoader`, `SingletonImageLoader`, or `LocalPlatformContext`. Static illustrations use `CoverArtImage`; palette callers use `rememberMiniPlayerPalette` or `rememberPlayerPagePalette` without passing Coil context objects.
+- Question: Should Media3 notification artwork use the new `CoverArtImage` or `ImageLoader` path?
+  Answer: No. Media3 notification and lock-screen artwork remain metadata byte delivery to system UI. The final validation step checks that playback metadata files were not changed.
+- Question: Is it acceptable for palette extraction to use a different source than image display if the colors look better?
+  Answer: No. Palette extraction must use the same `buildCoverArtImageRequest` source order as `CoverArtImage`: external cover first, fallback resource second, default palette only after both fail.
+- Question: What if the external cover URI fails after a song change and the previous song's fallback state is still remembered?
+  Answer: `CoverArtImage` must key its active model by `coverArt` and `coverImageUri`; palette state must also be keyed by the same pair, so song changes reset image and palette loading.
+- Question: Can implementation modify `Song`, scanner outputs, playback queues, or database schemas to make image loading easier?
+  Answer: No. Those are outside the approved scope. The implementation uses the existing `coverImageUri + CoverArt` model and adds only UI/components request helpers.
+
+### Boundary Coverage Matrix
+
+- UI boundary: Tasks 2-4 replace all UI cover display callers with `CoverArtImage`; Task 7 scans for old painter APIs and direct page-level resource loading.
+- Domain boundary: Task 1 creates the request model in `feature/components`, not `domain`; Task 7 checks implementation files do not include domain model edits beyond imports already present.
+- Data boundary: No task modifies `composeApp/src/*/data`; Task 7 checks no data scanner or artwork extractor files changed.
+- Playback boundary: No task modifies playback engines, queues, controller state, or Media3 metadata files; Task 7 checks no playback files changed.
+- Notification boundary: The plan does not touch `AndroidPlaybackMediaMetadataAssets`; Task 7 verifies Media3 metadata artwork files are unchanged.
+- Resource boundary: Task 1 maps only `composeResources/drawable` paths; Task 7 checks no prototype paths or platform-private drawable resources were introduced.
+- Failure boundary: Task 2 switches failed external loads to Coil fallback resource; Task 5 falls back to default palette after primary and fallback palette loading fail.
+- Test boundary: Task 1 covers source selection and enum mapping; Tasks 6-7 run `desktopTest` and Android compile; Task 7 requires visual verification status in the delivery message.
+
+### Three-Pass Cross Review
+
+Pass 1, requirements closure and root cause:
+
+- Question: Does the plan remove the root cause where display and palette used different sources?
+  Conclusion: Yes. Tasks 5-6 route palette extraction through `buildCoverArtImageRequest`, matching `CoverArtImage`.
+- Question: Does every Compose UI image path use Coil, including fallback resources?
+  Conclusion: Required after this audit. Task 2 now switches `AsyncImage` to fallback resource URI instead of rendering `painterResource` as the final error image.
+- Document location changed: Task 2 `CoverArtImage` implementation and this audit addendum.
+
+Pass 2, architecture boundaries and dependency leakage:
+
+- Question: Does Coil leak into pages?
+  Conclusion: No after this audit. Pages call `CoverArtImage` and palette helpers; Coil imports remain inside `feature/components`.
+- Question: Does the plan expand into domain/data/playback to solve UI loading?
+  Conclusion: No. The boundary matrix and Task 7 file-scope checks make that explicit.
+- Document location changed: Boundary Coverage Matrix and Task 7 validation.
+
+Pass 3, failure scenarios and executable validation:
+
+- Question: Can external URI failure be validated mechanically?
+  Conclusion: Runtime failure is hard to unit-test without a Compose/UI harness, but Task 2 implements deterministic fallback switching and Task 7 requires visual or risk reporting. Source-order tests cover the pure rule.
+- Question: Can accidental Media3 notification changes be caught?
+  Conclusion: Yes. Task 7 adds file-scope checks for playback metadata boundaries.
+- Document location changed: Task 7 final validation.
+
 ## File Structure
 
 - Modify `gradle/libs.versions.toml`: add Coil version and library aliases.
@@ -243,14 +299,16 @@ Replace `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/components
 package com.yanhao.kmpmusic.feature.components
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.layout.ContentScale
 import coil3.compose.AsyncImage
 import com.yanhao.kmpmusic.domain.model.CoverArt
 import kmpmusic.composeapp.generated.resources.Res
-import org.jetbrains.compose.resources.painterResource
 
 /**
  * 将 domain 层封面标识映射到 Compose resource URI。
@@ -277,20 +335,28 @@ fun CoverArtImage(
             coverImageUri = coverImageUri,
         )
     }
-    val fallbackPainter: Painter = fallbackCoverArtPainter(coverArt = coverArt)
-    val model: String = if (request.usesExternalCover) {
+    val fallbackModel: String = Res.getUri(request.fallbackResourcePath)
+    val primaryModel: String = if (request.usesExternalCover) {
         request.primaryModel
     } else {
-        Res.getUri(request.fallbackResourcePath)
+        fallbackModel
+    }
+    var activeModel: String by remember(coverArt, coverImageUri) {
+        mutableStateOf(primaryModel)
+    }
+    LaunchedEffect(primaryModel) {
+        activeModel = primaryModel
     }
     AsyncImage(
-        model = model,
+        model = activeModel,
         contentDescription = contentDescription,
         modifier = modifier,
         contentScale = contentScale,
-        placeholder = fallbackPainter,
-        error = fallbackPainter,
-        fallback = fallbackPainter,
+        onError = {
+            if (activeModel != fallbackModel) {
+                activeModel = fallbackModel
+            }
+        },
     )
 }
 
@@ -312,45 +378,17 @@ fun CoverArtImage(
         contentScale = contentScale,
     )
 }
-
-/**
- * 应用内兜底资源的 Painter，仅用于 Coil placeholder/error/fallback。
- */
-@Composable
-internal fun fallbackCoverArtPainter(coverArt: CoverArt): Painter {
-    return painterResource(resource = coverArtResource(coverArt = coverArt))
-}
 ```
 
-- [ ] **Step 2: Keep `coverArtResource` in the same file below the new component**
+- [ ] **Step 2: Verify `CoverArtPainter.kt` no longer exposes painter helpers**
 
-Append this mapping in `CoverArtPainter.kt` below the imports or above `coverArtResourceUri` if it was removed during replacement:
+Run:
 
-```kotlin
-import kmpmusic.composeapp.generated.resources.album_best_of_me
-import kmpmusic.composeapp.generated.resources.album_river_year
-import kmpmusic.composeapp.generated.resources.album_time_forest
-import kmpmusic.composeapp.generated.resources.cover_sea_dream
-import kmpmusic.composeapp.generated.resources.cover_summer_waltz
-import kmpmusic.composeapp.generated.resources.hero_local_folder
-import org.jetbrains.compose.resources.DrawableResource
-
-/**
- * 将 domain 层封面标识映射到 Compose 图片资源。
- */
-fun coverArtResource(coverArt: CoverArt): DrawableResource {
-    return when (coverArt) {
-        CoverArt.AlbumBestOfMe -> Res.drawable.album_best_of_me
-        CoverArt.AlbumRiverYear -> Res.drawable.album_river_year
-        CoverArt.AlbumTimeForest -> Res.drawable.album_time_forest
-        CoverArt.CoverSeaDream -> Res.drawable.cover_sea_dream
-        CoverArt.CoverSummerWaltz -> Res.drawable.cover_summer_waltz
-        CoverArt.HeroLocalMusic -> Res.drawable.hero_local_folder
-    }
-}
+```bash
+rg "painterResource|DrawableResource|coverArtResource\\(|fallbackCoverArtPainter|coverArtPainter\\(" composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/components/CoverArtPainter.kt
 ```
 
-If imports are duplicated after this edit, keep one import for each symbol and run the compiler in the next step.
+Expected: no matches. Fallback rendering is handled by switching `AsyncImage` from the external model to `Res.getUri(request.fallbackResourcePath)`, so the final fallback image is still loaded by Coil.
 
 - [ ] **Step 3: Compile common sources and verify old painter callers now fail**
 
@@ -839,6 +877,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.ImageBitmap
 import coil3.PlatformContext
 import coil3.SingletonImageLoader
+import coil3.compose.LocalPlatformContext
 import coil3.request.ImageRequest
 import coil3.request.SuccessResult
 import com.yanhao.kmpmusic.core.theme.MiniPlayerPalette
@@ -875,12 +914,10 @@ fun defaultPlayerPagePalette(): PlayerPagePalette {
 fun rememberMiniPlayerPalette(
     coverArt: CoverArt,
     coverImageUri: String?,
-    platformContext: PlatformContext,
 ): MiniPlayerPalette {
     return rememberCoverPalette(
         coverArt = coverArt,
         coverImageUri = coverImageUri,
-        platformContext = platformContext,
         defaultPalette = defaultMiniPlayerPalette(),
         extractPalette = ::extractMiniPlayerPalette,
     )
@@ -893,12 +930,10 @@ fun rememberMiniPlayerPalette(
 fun rememberPlayerPagePalette(
     coverArt: CoverArt,
     coverImageUri: String?,
-    platformContext: PlatformContext,
 ): PlayerPagePalette {
     return rememberCoverPalette(
         coverArt = coverArt,
         coverImageUri = coverImageUri,
-        platformContext = platformContext,
         defaultPalette = defaultPlayerPagePalette(),
         extractPalette = ::extractPlayerPagePalette,
     )
@@ -908,10 +943,10 @@ fun rememberPlayerPagePalette(
 private fun <T> rememberCoverPalette(
     coverArt: CoverArt,
     coverImageUri: String?,
-    platformContext: PlatformContext,
     defaultPalette: T,
     extractPalette: (ImageBitmap) -> T,
 ): T {
+    val platformContext: PlatformContext = LocalPlatformContext.current
     val request: CoverArtImageRequest = remember(coverArt, coverImageUri) {
         buildCoverArtImageRequest(
             coverArt = coverArt,
@@ -1017,7 +1052,6 @@ import org.jetbrains.compose.resources.imageResource
 Add:
 
 ```kotlin
-import coil3.compose.LocalPlatformContext
 import com.yanhao.kmpmusic.feature.components.rememberMiniPlayerPalette
 ```
 
@@ -1038,7 +1072,6 @@ with:
 val miniPlayerPalette: MiniPlayerPalette = rememberMiniPlayerPalette(
     coverArt = song.coverArt,
     coverImageUri = song.coverImageUri,
-    platformContext = LocalPlatformContext.current,
 )
 ```
 
@@ -1056,7 +1089,6 @@ import org.jetbrains.compose.resources.imageResource
 Add:
 
 ```kotlin
-import coil3.compose.LocalPlatformContext
 import com.yanhao.kmpmusic.feature.components.defaultPlayerPagePalette
 import com.yanhao.kmpmusic.feature.components.rememberPlayerPagePalette
 ```
@@ -1074,7 +1106,6 @@ private fun rememberDesktopPlayerPagePalette(song: Song?): PlayerPagePalette {
     return rememberPlayerPagePalette(
         coverArt = song.coverArt,
         coverImageUri = song.coverImageUri,
-        platformContext = LocalPlatformContext.current,
     )
 }
 ```
@@ -1143,9 +1174,35 @@ Run:
 rg "imageResource\\(|coverArtResource\\(" composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/app composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/desktop composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/screen
 ```
 
-Expected: no matches. `coverArtResource(...)` may remain inside `feature/components/CoverArtPainter.kt` because it provides the internal placeholder painter for Coil fallback. `AndroidPlaybackMediaMetadataAssets.kt` may keep its resource-to-asset mapping because it feeds Media3 metadata, not Compose UI.
+Expected: no matches. `AndroidPlaybackMediaMetadataAssets.kt` may keep its resource-to-asset mapping because it feeds Media3 metadata, not Compose UI.
 
-- [ ] **Step 2: Run the required verification commands**
+Run:
+
+```bash
+rg "coil3" composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/app composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/desktop composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/screen
+```
+
+Expected: no matches. Coil imports belong in `feature/components` for this implementation.
+
+- [ ] **Step 2: Verify architecture boundaries were not crossed**
+
+Run:
+
+```bash
+git diff --name-only origin/main -- composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/domain composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/data composeApp/src/androidMain/kotlin/com/yanhao/kmpmusic/data composeApp/src/desktopMain/kotlin/com/yanhao/kmpmusic/data composeApp/src/iosMain/kotlin/com/yanhao/kmpmusic/data composeApp/src/androidMain/kotlin/com/yanhao/kmpmusic/playback
+```
+
+Expected: no output. This confirms the implementation did not modify domain models, scanners, artwork extractors, playback engines, Media3 session, or notification metadata files.
+
+Run:
+
+```bash
+git diff --name-only origin/main -- prototypes composeApp/src/androidMain/res composeApp/src/commonMain/composeResources
+```
+
+Expected: no output. This confirms the implementation did not change prototype assets, platform-private resources, or bundled fallback artwork. The only resource mapping change should be Kotlin code in `feature/components`.
+
+- [ ] **Step 3: Run the required verification commands**
 
 Run:
 
@@ -1155,7 +1212,7 @@ Run:
 
 Expected: PASS.
 
-- [ ] **Step 3: Check git status**
+- [ ] **Step 4: Check git status**
 
 Run:
 
@@ -1165,7 +1222,7 @@ git status --short --branch
 
 Expected: clean working tree on the current branch, with local commits ahead of `origin/main`.
 
-- [ ] **Step 4: Record visual verification status in the delivery message**
+- [ ] **Step 5: Record visual verification status in the delivery message**
 
 If no device or desktop screenshot was taken, the final delivery message must include:
 
@@ -1181,6 +1238,6 @@ If screenshots were taken, the final delivery message must name the platform and
 
 ## Self-Review
 
-- Spec coverage: Tasks 1-4 cover Coil dependency, shared request model, all Compose UI cover display, and removal of platform hand decoding. Tasks 5-6 cover Coil-backed palette loading and migration of Android mini player and macOS desktop player palette. Task 7 covers verification and Media3 boundary scan.
+- Spec coverage: Tasks 1-4 cover Coil dependency, shared request model, all Compose UI cover display, Coil-loaded fallback resources, and removal of platform hand decoding. Tasks 5-6 cover Coil-backed palette loading and migration of Android mini player and macOS desktop player palette. Task 7 covers old API scans, domain/data/playback/resource boundary checks, verification commands, and Media3 boundary preservation.
 - Placeholder scan: The plan contains no deferred implementation labels, no unspecified test requests, and no undefined feature tasks.
 - Type consistency: `CoverArtImageRequest`, `buildCoverArtImageRequest`, `coverArtResourcePath`, `CoverArtImage`, `rememberMiniPlayerPalette`, `rememberPlayerPagePalette`, `defaultPlayerPagePalette`, and `coilImageToImageBitmap` are defined before later tasks reference them.
