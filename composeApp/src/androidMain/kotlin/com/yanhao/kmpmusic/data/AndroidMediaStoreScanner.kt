@@ -152,6 +152,7 @@ private val AUDIO_PROJECTION: Array<String> = arrayOf(
     MediaStore.Audio.Media.TITLE,
     MediaStore.Audio.Media.ARTIST,
     MediaStore.Audio.Media.ALBUM,
+    MediaStore.Audio.Media.ALBUM_ID,
     MediaStore.Audio.Media.DURATION,
     MediaStore.Audio.Media.MIME_TYPE,
     MediaStore.Audio.Media.SIZE,
