@@ -205,6 +205,13 @@ data class MusicAppUiState(
     val email: String = "",
     val isMailSent: Boolean = false,
 ) {
+    /**
+     * Desktop 顶部音乐搜索只在内容型一级页出现。
+     */
+    val shouldShowTitlebarMusicSearch: Boolean
+        get() = navigationState.secondaryScreen == null &&
+            (navigationState.rootTab == RootTab.Home || navigationState.rootTab == RootTab.Favorites)
+
     val songs: List<Song>
         get() = localSongs.ifEmpty { homeLocalSongPreview }
 

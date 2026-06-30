@@ -68,6 +68,7 @@ enum class DesktopRailDestination {
 
 @Composable
 fun DesktopTitleBar(
+    showSearch: Boolean,
     onSearch: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -96,33 +97,42 @@ fun DesktopTitleBar(
                 maxLines = 1,
             )
         }
-        Surface(
-            modifier = Modifier
-                .width(520.dp)
-                .height(30.dp)
-                .padding(end = 18.dp),
-            shape = CircleShape,
-            color = Color.White.copy(alpha = 0.84f),
-            border = BorderStroke(width = 1.dp, color = Color(0xFFD7DDE3)),
-            onClick = onSearch,
-        ) {
-            Row(
-                modifier = Modifier.padding(horizontal = 14.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically,
+        if (showSearch) {
+            Surface(
+                modifier = Modifier
+                    .width(520.dp)
+                    .height(30.dp)
+                    .padding(end = 18.dp),
+                shape = CircleShape,
+                color = Color.White.copy(alpha = 0.84f),
+                border = BorderStroke(width = 1.dp, color = Color(0xFFD7DDE3)),
+                onClick = onSearch,
             ) {
-                Icon(
-                    imageVector = Icons.Rounded.Search,
-                    contentDescription = null,
-                    tint = Color(0xFF8A95A3),
-                    modifier = Modifier.size(16.dp),
-                )
-                Text(
-                    text = "搜索歌曲、专辑、歌手",
-                    color = Color(0xFF8A95A3),
-                    fontSize = DesktopMusicType.Body,
-                )
+                Row(
+                    modifier = Modifier.padding(horizontal = 14.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.Search,
+                        contentDescription = null,
+                        tint = Color(0xFF8A95A3),
+                        modifier = Modifier.size(16.dp),
+                    )
+                    Text(
+                        text = "搜索歌曲、专辑、歌手",
+                        color = Color(0xFF8A95A3),
+                        fontSize = DesktopMusicType.Body,
+                    )
+                }
             }
+        } else {
+            Spacer(
+                modifier = Modifier
+                    .width(520.dp)
+                    .height(30.dp)
+                    .padding(end = 18.dp),
+            )
         }
     }
 }

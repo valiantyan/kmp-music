@@ -121,7 +121,7 @@ private fun DesktopLibrarySidebarHeader(onAdd: () -> Unit) {
     }
 }
 
-// 侧栏内搜索入口与顶部全局搜索共用动作，避免产生两套搜索状态。
+// 侧栏搜索暂时保留为本地库筛选入口占位，后续接入局部过滤时不应跳转全局搜索页。
 @Composable
 private fun DesktopLibrarySearch(onClick: () -> Unit) {
     Surface(
@@ -144,7 +144,7 @@ private fun DesktopLibrarySearch(onClick: () -> Unit) {
                 modifier = Modifier.size(17.dp),
             )
             Text(
-                text = "搜索本地库",
+                text = "筛选本地库",
                 color = DesktopMusicColors.MutedStrong,
                 fontSize = DesktopMusicType.SidebarBody,
                 fontWeight = FontWeight.SemiBold,

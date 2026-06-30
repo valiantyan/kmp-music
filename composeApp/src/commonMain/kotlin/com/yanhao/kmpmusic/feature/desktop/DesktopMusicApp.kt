@@ -21,6 +21,7 @@ import com.yanhao.kmpmusic.feature.app.LocalMusicSection
 import com.yanhao.kmpmusic.feature.app.MusicAppController
 import com.yanhao.kmpmusic.feature.app.MusicAppUiState
 import com.yanhao.kmpmusic.feature.app.RootTab
+import com.yanhao.kmpmusic.feature.app.SearchContext
 import com.yanhao.kmpmusic.feature.app.SecondaryScreen
 import kotlinx.coroutines.launch
 
@@ -87,7 +88,16 @@ fun DesktopMusicApp(
                     .background(DesktopMusicColors.WindowBackground),
             ) {
                 DesktopTitleBar(
-                    onSearch = controller::openSearch,
+                    showSearch = state.shouldShowTitlebarMusicSearch,
+                    onSearch = {
+                        val context: SearchContext = when (state.navigationState.rootTab) {
+                            RootTab.Favorites -> SearchContext.Favorites
+                            RootTab.Home,
+                            RootTab.Me,
+                            -> SearchContext.LocalLibrary
+                        }
+                        controller.openSearch(context = context)
+                    },
                 )
                 Row(modifier = Modifier.weight(1f)) {
                     DesktopRail(
@@ -99,7 +109,7 @@ fun DesktopMusicApp(
                         DesktopLibrarySidebar(
                             libraryStats = state.libraryStats,
                             recentSongs = state.recentSongs,
-                            onSearch = controller::openSearch,
+                            onSearch = {},
                             onSection = controller::openLocalMusic,
                             onSongPlay = { song, queueSongs ->
                                 controller.playSong(

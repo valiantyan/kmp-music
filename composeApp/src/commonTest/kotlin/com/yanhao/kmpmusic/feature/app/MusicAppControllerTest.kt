@@ -808,6 +808,38 @@ class MusicAppControllerTest {
     }
 
     /**
+     * 顶部音乐搜索只应在首页和收藏一级页展示。
+     */
+    @Test
+    fun titlebarSearchOnlyShowsOnHomeAndFavoritesRootPages(): Unit {
+        val controller = createController()
+
+        controller.navigateToRoot(tab = RootTab.Home)
+        assertTrue(actual = controller.uiState.shouldShowTitlebarMusicSearch)
+
+        controller.navigateToRoot(tab = RootTab.Favorites)
+        assertTrue(actual = controller.uiState.shouldShowTitlebarMusicSearch)
+
+        controller.navigateToRoot(tab = RootTab.Me)
+        assertFalse(actual = controller.uiState.shouldShowTitlebarMusicSearch)
+
+        controller.navigateToSecondary(screen = SecondaryScreen.Settings)
+        assertFalse(actual = controller.uiState.shouldShowTitlebarMusicSearch)
+    }
+
+    /**
+     * 搜索页自身应隐藏标题栏搜索框，避免两个搜索输入源。
+     */
+    @Test
+    fun searchScreenHidesTitlebarSearch(): Unit {
+        val controller = createController()
+
+        controller.openSearch(context = SearchContext.LocalLibrary)
+
+        assertFalse(actual = controller.uiState.shouldShowTitlebarMusicSearch)
+    }
+
+    /**
      * 搜索入口应按需加载完整曲库，而不是只搜索首页 preview。
      */
     @Test
