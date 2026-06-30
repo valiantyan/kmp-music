@@ -458,6 +458,40 @@ class MusicAppController(
         uiState = uiState.copy(searchScope = scope)
     }
 
+    /** 将当前搜索词写入当前上下文历史。 */
+    fun commitSearchQueryToHistory() {
+        val normalizedQuery: String = uiState.searchQuery.trim()
+        if (normalizedQuery.isBlank()) {
+            return
+        }
+        updateSearchHistory(
+            context = uiState.searchContext,
+            history = moveQueryToHistoryTop(
+                query = normalizedQuery,
+                currentHistory = uiState.searchHistoryFor(context = uiState.searchContext),
+            ),
+        )
+    }
+
+    /** 点击历史词时回填搜索框并刷新该词位置。 */
+    fun selectSearchHistory(query: String) {
+        uiState = uiState.copy(searchQuery = query)
+        commitSearchQueryToHistory()
+    }
+
+    /** 删除当前上下文中的单条搜索历史。 */
+    fun removeSearchHistoryItem(context: SearchContext, query: String) {
+        updateSearchHistory(
+            context = context,
+            history = uiState.searchHistoryFor(context = context).filterNot { item -> item == query },
+        )
+    }
+
+    /** 清空指定上下文的搜索历史。 */
+    fun clearSearchHistory(context: SearchContext = uiState.searchContext) {
+        updateSearchHistory(context = context, history = emptyList())
+    }
+
     /** 执行搜索，供 UI 渲染派生结果。 */
     fun search(): com.yanhao.kmpmusic.domain.usecase.SearchResult {
         val sourceSongs: List<Song> = when (uiState.searchContext) {
@@ -475,6 +509,20 @@ class MusicAppController(
             scope = uiState.searchScope,
             allSongs = sourceSongs,
         )
+    }
+
+    /** 将命中的历史词提到最前，并限制保留数量。 */
+    private fun moveQueryToHistoryTop(query: String, currentHistory: List<String>): List<String> {
+        return (listOf(query) + currentHistory.filterNot { item -> item == query })
+            .take(n = 10)
+    }
+
+    /** 按搜索上下文写回对应历史，避免不同入口共用同一份运行时状态。 */
+    private fun updateSearchHistory(context: SearchContext, history: List<String>) {
+        uiState = when (context) {
+            SearchContext.LocalLibrary -> uiState.copy(localLibrarySearchHistory = history)
+            SearchContext.Favorites -> uiState.copy(favoritesSearchHistory = history)
+        }
     }
 
     /** 设置主题模式。 */

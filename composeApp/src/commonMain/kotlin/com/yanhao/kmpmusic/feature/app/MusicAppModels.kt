@@ -195,6 +195,8 @@ data class MusicAppUiState(
     val searchQuery: String = "",
     val searchScope: SearchScope = SearchScope.All,
     val searchContext: SearchContext = SearchContext.LocalLibrary,
+    val localLibrarySearchHistory: List<String> = emptyList(),
+    val favoritesSearchHistory: List<String> = emptyList(),
     val themeMode: ThemeMode = ThemeMode.Light,
     val isQueueOpen: Boolean = false,
     val moreSongId: String? = null,
@@ -218,6 +220,16 @@ data class MusicAppUiState(
     val detailSongs: List<Song>
         get() = (localSongs + homeLocalSongPreview + favoriteSongs + queueSongsSnapshot)
             .distinctBy { song -> song.id }
+
+    /**
+     * 当前搜索上下文对应的历史记录。
+     */
+    fun searchHistoryFor(context: SearchContext = searchContext): List<String> {
+        return when (context) {
+            SearchContext.LocalLibrary -> localLibrarySearchHistory
+            SearchContext.Favorites -> favoritesSearchHistory
+        }
+    }
 
     val detailAlbums: List<Album>
         get() = (localAlbums + buildAlbumsFromSongs(songs = detailSongs)).distinctBy { album -> album.id }

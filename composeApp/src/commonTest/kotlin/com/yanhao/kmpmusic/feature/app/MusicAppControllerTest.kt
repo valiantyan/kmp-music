@@ -827,6 +827,73 @@ class MusicAppControllerTest {
     }
 
     /**
+     * 搜索历史应按上下文隔离，避免收藏页出现本地库历史。
+     */
+    @Test
+    fun searchHistoryIsIsolatedByContext(): Unit {
+        val controller = createController()
+
+        controller.openSearch(context = SearchContext.LocalLibrary)
+        controller.setSearchQuery(query = "城市")
+        controller.commitSearchQueryToHistory()
+
+        controller.openSearch(context = SearchContext.Favorites)
+        controller.setSearchQuery(query = "周杰伦")
+        controller.commitSearchQueryToHistory()
+
+        assertEquals(
+            expected = listOf("城市"),
+            actual = controller.uiState.searchHistoryFor(context = SearchContext.LocalLibrary),
+        )
+        assertEquals(
+            expected = listOf("周杰伦"),
+            actual = controller.uiState.searchHistoryFor(context = SearchContext.Favorites),
+        )
+    }
+
+    /**
+     * 搜索历史应去重并把最新搜索放到最前面。
+     */
+    @Test
+    fun searchHistoryDeduplicatesAndMovesLatestFirst(): Unit {
+        val controller = createController()
+
+        controller.openSearch(context = SearchContext.LocalLibrary)
+        listOf("城市", "周杰伦", "城市").forEach { query ->
+            controller.setSearchQuery(query = query)
+            controller.commitSearchQueryToHistory()
+        }
+
+        assertEquals(
+            expected = listOf("城市", "周杰伦"),
+            actual = controller.uiState.searchHistoryFor(context = SearchContext.LocalLibrary),
+        )
+    }
+
+    /**
+     * 清空历史只影响当前搜索上下文。
+     */
+    @Test
+    fun clearSearchHistoryOnlyClearsCurrentContext(): Unit {
+        val controller = createController()
+
+        controller.openSearch(context = SearchContext.LocalLibrary)
+        controller.setSearchQuery(query = "城市")
+        controller.commitSearchQueryToHistory()
+        controller.openSearch(context = SearchContext.Favorites)
+        controller.setSearchQuery(query = "周杰伦")
+        controller.commitSearchQueryToHistory()
+
+        controller.clearSearchHistory(context = SearchContext.Favorites)
+
+        assertEquals(
+            expected = listOf("城市"),
+            actual = controller.uiState.searchHistoryFor(context = SearchContext.LocalLibrary),
+        )
+        assertTrue(actual = controller.uiState.searchHistoryFor(context = SearchContext.Favorites).isEmpty())
+    }
+
+    /**
      * 我的页统计应来自同一份曲库快照。
      */
     @Test
