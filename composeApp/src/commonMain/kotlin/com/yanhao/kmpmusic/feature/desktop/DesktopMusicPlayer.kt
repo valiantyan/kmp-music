@@ -36,11 +36,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -65,6 +60,7 @@ fun DesktopBottomPlayer(
     playbackPositionMs: Long,
     playbackDurationMs: Long?,
     playbackMode: PlaybackMode,
+    volume: Float,
     onOpen: () -> Unit,
     onToggle: () -> Unit,
     onPrev: () -> Unit,
@@ -76,10 +72,6 @@ fun DesktopBottomPlayer(
     onQueue: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    var volume: Float by remember { mutableStateOf(value = 0.68f) }
-    LaunchedEffect(Unit) {
-        onVolumeChange(volume)
-    }
     Row(
         modifier = modifier
             .fillMaxWidth()
@@ -121,10 +113,7 @@ fun DesktopBottomPlayer(
                 value = volume,
                 valueRange = 0f..1f,
                 enabled = true,
-                onValueChange = { nextVolume: Float ->
-                    volume = nextVolume
-                    onVolumeChange(nextVolume)
-                },
+                onValueChange = onVolumeChange,
                 modifier = Modifier.width(92.dp),
             )
             IconButton(onClick = onQueue) {

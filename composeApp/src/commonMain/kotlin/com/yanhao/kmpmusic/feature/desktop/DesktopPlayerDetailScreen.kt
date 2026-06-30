@@ -34,11 +34,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -69,6 +65,7 @@ fun DesktopPlayerDetailScreen(
     playbackPositionMs: Long,
     playbackDurationMs: Long?,
     playbackMode: PlaybackMode,
+    volume: Float,
     onBack: () -> Unit,
     onToggle: () -> Unit,
     onPrev: () -> Unit,
@@ -79,11 +76,7 @@ fun DesktopPlayerDetailScreen(
     onVolumeChange: (Float) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    var volume: Float by remember { mutableStateOf(value = 0.68f) }
     val palette: PlayerPagePalette = rememberDesktopPlayerPagePalette(song = song)
-    LaunchedEffect(Unit) {
-        onVolumeChange(volume)
-    }
     Box(
         modifier = modifier
             .background(palette.backgroundColor)
@@ -133,10 +126,7 @@ fun DesktopPlayerDetailScreen(
                     onMode = onMode,
                     onLike = onLike,
                     onSeek = onSeek,
-                    onVolumeChange = { nextVolume: Float ->
-                        volume = nextVolume
-                        onVolumeChange(nextVolume)
-                    },
+                    onVolumeChange = onVolumeChange,
                 )
             }
         }

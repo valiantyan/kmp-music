@@ -108,6 +108,7 @@ fun DesktopSecondaryScreen(
             playbackPositionMs = state.playbackPositionMs,
             playbackDurationMs = state.playbackDurationMs,
             playbackMode = state.playbackMode,
+            volume = state.playbackVolume,
             onBack = controller::navigateBack,
             onToggle = controller::togglePlayback,
             onPrev = { controller.moveTrack(direction = -1) },

@@ -3,6 +3,7 @@ package com.yanhao.kmpmusic.feature.app
 import com.yanhao.kmpmusic.data.InMemoryFavoritesRepository
 import com.yanhao.kmpmusic.data.InMemoryMusicLibraryRepository
 import com.yanhao.kmpmusic.data.InMemoryPlaybackRepository
+import com.yanhao.kmpmusic.data.FakeAudioPlayerEngine
 import com.yanhao.kmpmusic.domain.model.Album
 import com.yanhao.kmpmusic.domain.model.Artist
 import com.yanhao.kmpmusic.domain.model.PlaybackSnapshot
@@ -29,6 +30,7 @@ import com.yanhao.kmpmusic.domain.repository.FavoritesRepository
 import com.yanhao.kmpmusic.domain.repository.LocalMusicScanner
 import com.yanhao.kmpmusic.domain.repository.MusicLibraryRepository
 import com.yanhao.kmpmusic.domain.repository.SearchHistoryRepository
+import com.yanhao.kmpmusic.domain.playback.AudioPlayerEngine
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -297,6 +299,46 @@ class MusicAppControllerTest {
 
         assertEquals(expected = targetSong.id, actual = controller.uiState.currentSongId)
         assertFalse(controller.uiState.isPlaying)
+    }
+
+    /**
+     * 桌面底部播放器和播放详情页必须读取同一份音量状态，避免页面切换后控件值分叉。
+     */
+    @Test
+    fun playerScreenAndBottomPlayerReadSamePlaybackVolume(): Unit {
+        val audioPlayerEngine = FakeAudioPlayerEngine()
+        val controller = createController(audioPlayerEngine = audioPlayerEngine)
+
+        controller.setVolume(volume = 0.24f)
+        controller.openPlayer()
+
+        assertEquals(expected = 0.24f, actual = controller.uiState.playbackVolume)
+        assertEquals(expected = 0.24f, actual = audioPlayerEngine.volume)
+
+        controller.setVolume(volume = 0.82f)
+        controller.navigateBack()
+
+        assertEquals(expected = 0.82f, actual = controller.uiState.playbackVolume)
+        assertEquals(expected = 0.82f, actual = audioPlayerEngine.volume)
+    }
+
+    /**
+     * 共享音量入口负责归一化，避免不同平台实现重复处理越界 UI 输入。
+     */
+    @Test
+    fun setVolumeCoercesSharedUiStateAndEngineVolume(): Unit {
+        val audioPlayerEngine = FakeAudioPlayerEngine()
+        val controller = createController(audioPlayerEngine = audioPlayerEngine)
+
+        controller.setVolume(volume = 1.4f)
+
+        assertEquals(expected = 1f, actual = controller.uiState.playbackVolume)
+        assertEquals(expected = 1f, actual = audioPlayerEngine.volume)
+
+        controller.setVolume(volume = -0.2f)
+
+        assertEquals(expected = 0f, actual = controller.uiState.playbackVolume)
+        assertEquals(expected = 0f, actual = audioPlayerEngine.volume)
     }
 
     /**
@@ -1181,6 +1223,7 @@ private fun createController(
     musicLibraryRepository: MusicLibraryRepository = InMemoryMusicLibraryRepository(),
     localMusicScanner: LocalMusicScanner = FakeControllerLocalMusicScanner,
     playbackRepository: InMemoryPlaybackRepository = InMemoryPlaybackRepository(),
+    audioPlayerEngine: AudioPlayerEngine = FakeAudioPlayerEngine(),
     playbackSnapshotStore: InMemoryPlaybackSnapshotStore = InMemoryPlaybackSnapshotStore(),
     favoritesRepository: FavoritesRepository? = null,
     searchHistoryRepository: SearchHistoryRepository = FakeSearchHistoryRepository(),
@@ -1192,6 +1235,7 @@ private fun createController(
         musicLibraryRepository = musicLibraryRepository,
         localMusicScanner = localMusicScanner,
         playbackRepository = playbackRepository,
+        audioPlayerEngine = audioPlayerEngine,
         playbackSnapshotStore = playbackSnapshotStore,
         injectedFavoritesRepository = favoritesRepository,
         searchHistoryRepository = searchHistoryRepository,

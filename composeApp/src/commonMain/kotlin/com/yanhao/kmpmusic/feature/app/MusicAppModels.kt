@@ -15,6 +15,11 @@ import com.yanhao.kmpmusic.domain.model.Song
 import com.yanhao.kmpmusic.domain.model.ThemeMode
 
 /**
+ * 桌面播放器默认音量(68%)，沿用现有控件初始值并交给全局状态托管。
+ */
+private const val DEFAULT_PLAYBACK_VOLUME = 0.68f
+
+/**
  * 根导航 Tab。
  */
 enum class RootTab {
@@ -174,6 +179,7 @@ data class MusicAppUiState(
     val playbackPositionMs: Long = 0L,
     val playbackDurationMs: Long? = null,
     val playbackMode: PlaybackMode = PlaybackMode.LoopAll,
+    val playbackVolume: Float = DEFAULT_PLAYBACK_VOLUME,
     val playbackError: PlaybackError? = null,
     val queueSongIds: List<String>,
     val libraryStats: LibraryStats = LibraryStats(),

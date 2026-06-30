@@ -377,9 +377,11 @@ class MusicAppController(
         playbackCoordinator.cyclePlaybackMode()
     }
 
-    /** 调整播放器音量，具体平台由 [PlaybackCoordinator] 下发到播放引擎。 */
+    /** 调整共享播放器音量，所有页面读取同一份状态后再由 [PlaybackCoordinator] 下发到播放引擎。 */
     fun setVolume(volume: Float) {
-        playbackCoordinator.setVolume(volume = volume)
+        val safeVolume: Float = volume.coerceIn(minimumValue = 0f, maximumValue = 1f)
+        uiState = uiState.copy(playbackVolume = safeVolume)
+        playbackCoordinator.setVolume(volume = safeVolume)
     }
 
     /**
