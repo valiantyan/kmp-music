@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Person
@@ -659,7 +660,7 @@ private fun DesktopSearchScopeTabs(
 }
 
 /**
- * 空查询时优先展示当前上下文下的最近搜索，帮助用户延续同一路径下的检索任务。
+ * 历史词条既要支持整词回填，也要允许单独删除，避免用户只能整体清空。
  */
 @Composable
 private fun DesktopSearchHistorySection(
@@ -678,7 +679,9 @@ private fun DesktopSearchHistorySection(
         onAction = onHistoryClear,
     )
     Row(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .horizontalScroll(rememberScrollState()),
         horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         history.forEach { item: String ->
@@ -765,20 +768,30 @@ private fun DesktopSearchResultsSection(
     onAlbumOpen: (Album) -> Unit,
     onArtistOpen: (Artist) -> Unit,
 ) {
-    val hasResults: Boolean =
-        result.songs.isNotEmpty() || result.albums.isNotEmpty() || result.artists.isNotEmpty()
+    val showSongs: Boolean = scope == SearchScope.All || scope == SearchScope.Songs
+    val showAlbums: Boolean = scope == SearchScope.All || scope == SearchScope.Albums
+    val showArtists: Boolean = scope == SearchScope.All || scope == SearchScope.Artists
+    val scopedSongCount: Int = if (showSongs) result.songs.size else 0
+    val scopedAlbumCount: Int = if (showAlbums) result.albums.size else 0
+    val scopedArtistCount: Int = if (showArtists) result.artists.size else 0
+    val hasResults: Boolean = scopedSongCount > 0 || scopedAlbumCount > 0 || scopedArtistCount > 0
     if (!hasResults) {
         DesktopSectionEmptyMessage(message = "没有找到“$query”相关内容，请尝试搜索歌曲名、专辑名或歌手名。")
         return
     }
     Text(
-        text = "找到 ${result.songs.size} 首歌曲、${result.albums.size} 张专辑、${result.artists.size} 位歌手",
+        text = when (scope) {
+            SearchScope.All -> "找到 ${result.songs.size} 首歌曲、${result.albums.size} 张专辑、${result.artists.size} 位歌手"
+            SearchScope.Songs -> "找到 ${result.songs.size} 首歌曲"
+            SearchScope.Albums -> "找到 ${result.albums.size} 张专辑"
+            SearchScope.Artists -> "找到 ${result.artists.size} 位歌手"
+        },
         color = DesktopMusicColors.Muted,
         fontSize = DesktopMusicType.Eyebrow,
         fontWeight = FontWeight.SemiBold,
     )
     Spacer(modifier = Modifier.height(18.dp))
-    if (scope == SearchScope.All || scope == SearchScope.Songs) {
+    if (showSongs) {
         DesktopSongTable(
             songs = result.songs,
             currentSongId = currentSongId,
@@ -790,7 +803,7 @@ private fun DesktopSearchResultsSection(
             onMore = onMore,
         )
     }
-    if ((scope == SearchScope.All || scope == SearchScope.Albums) && result.albums.isNotEmpty()) {
+    if (showAlbums && result.albums.isNotEmpty()) {
         Spacer(modifier = Modifier.height(24.dp))
         DesktopSectionHeader(title = "匹配专辑")
         Spacer(modifier = Modifier.height(14.dp))
@@ -799,7 +812,7 @@ private fun DesktopSearchResultsSection(
             onAlbumOpen = onAlbumOpen,
         )
     }
-    if ((scope == SearchScope.All || scope == SearchScope.Artists) && result.artists.isNotEmpty()) {
+    if (showArtists && result.artists.isNotEmpty()) {
         Spacer(modifier = Modifier.height(24.dp))
         DesktopSectionHeader(title = "匹配歌手")
         Spacer(modifier = Modifier.height(14.dp))
