@@ -2304,7 +2304,7 @@ git commit -m "拆分应用控制器测试职责"
 **Files:**
 - Modify: `docs/superpowers/specs/2026-06-30-codebase-architecture-optimization-design.md` only if implementation reveals a documented boundary that must be sharpened.
 
-- [ ] **Step 1: Run shared logic tests**
+- [x] **Step 1: Run shared logic tests**
 
 Run:
 
@@ -2314,7 +2314,7 @@ Run:
 
 Expected: PASS.
 
-- [ ] **Step 2: Run Android common compile**
+- [x] **Step 2: Run Android common compile**
 
 Run:
 
@@ -2324,7 +2324,7 @@ Run:
 
 Expected: PASS.
 
-- [ ] **Step 3: Verify no collaborator owns Compose mutable state**
+- [x] **Step 3: Verify no collaborator owns Compose mutable state**
 
 Run:
 
@@ -2334,7 +2334,7 @@ rg -n "mutableStateOf|var uiState|MutableState" composeApp/src/commonMain/kotlin
 
 Expected: no matches.
 
-- [ ] **Step 4: Verify UI still calls only the facade**
+- [x] **Step 4: Verify UI still calls only the facade**
 
 Run:
 
@@ -2344,7 +2344,7 @@ rg -n "NavigationStateController|SearchSessionController|LibraryStateSynchronize
 
 Expected: no matches.
 
-- [ ] **Step 5: Verify controller still exposes expected public methods**
+- [x] **Step 5: Verify controller still exposes expected public methods**
 
 Run:
 
@@ -2354,7 +2354,7 @@ rg -n "fun (navigateToSecondary|navigateToRoot|navigateBack|handleSystemBack|sca
 
 Expected: matches for all listed public methods.
 
-- [ ] **Step 6: Inspect git status**
+- [x] **Step 6: Inspect git status**
 
 Run:
 
@@ -2364,7 +2364,7 @@ git status --short --branch
 
 Expected: only intentional source, test, and documentation changes are present.
 
-- [ ] **Step 7: Commit verification fixes if any source changes were needed**
+- [x] **Step 7: Commit verification fixes if any source changes were needed**
 
 If Step 1 or Step 2 required source/test fixes, commit them:
 
