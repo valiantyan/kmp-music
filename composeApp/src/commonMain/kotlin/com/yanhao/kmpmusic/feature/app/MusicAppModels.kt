@@ -13,6 +13,7 @@ import com.yanhao.kmpmusic.domain.model.SearchContext
 import com.yanhao.kmpmusic.domain.model.SearchScope
 import com.yanhao.kmpmusic.domain.model.Song
 import com.yanhao.kmpmusic.domain.model.ThemeMode
+import com.yanhao.kmpmusic.feature.app.library.MusicLibraryProjector
 
 /**
  * 桌面播放器默认音量(68%)，沿用现有控件初始值并交给全局状态托管。
@@ -225,8 +226,12 @@ data class MusicAppUiState(
         get() = homeLocalSongPreview
 
     val detailSongs: List<Song>
-        get() = (localSongs + homeLocalSongPreview + favoriteSongs + queueSongsSnapshot)
-            .distinctBy { song -> song.id }
+        get() = MusicLibraryProjector.buildDetailSongs(
+            queueSongsSnapshot = queueSongsSnapshot,
+            localSongs = localSongs,
+            homeLocalSongPreview = homeLocalSongPreview,
+            favoriteSongs = favoriteSongs,
+        )
 
     /**
      * 当前搜索上下文对应的历史记录。
@@ -239,10 +244,12 @@ data class MusicAppUiState(
     }
 
     val detailAlbums: List<Album>
-        get() = (localAlbums + buildAlbumsFromSongs(songs = detailSongs)).distinctBy { album -> album.id }
+        get() = (localAlbums + MusicLibraryProjector.buildAlbums(songs = detailSongs))
+            .distinctBy { album -> album.id }
 
     val detailArtists: List<Artist>
-        get() = (localArtists + buildArtistsFromSongs(songs = detailSongs)).distinctBy { artist -> artist.id }
+        get() = (localArtists + MusicLibraryProjector.buildArtists(songs = detailSongs))
+            .distinctBy { artist -> artist.id }
 
     /**
      * 兼容现有 UI 对播放开关的布尔读取，直到页面逐步迁移到显式播放状态。
@@ -280,41 +287,13 @@ data class MusicAppUiState(
      * 收藏专辑列表，直接由收藏歌曲投影，避免依赖全量本地曲库是否已加载。
      */
     val favoriteAlbums: List<Album>
-        get() = favoriteSongs.groupBy { song -> song.album.trim().lowercase() }
-            .values
-            .map { albumSongs ->
-                val firstSong: Song = albumSongs.first()
-                Album(
-                    id = "album:${firstSong.album.trim().lowercase()}",
-                    title = firstSong.album,
-                    artist = firstSong.artist,
-                    songCount = albumSongs.size,
-                    coverArt = firstSong.coverArt,
-                    coverImageUri = firstSong.coverImageUri,
-                    mood = "本地音乐",
-                    year = "本地",
-                )
-            }
-            .sortedBy { album -> album.title.lowercase() }
+        get() = MusicLibraryProjector.buildAlbums(songs = favoriteSongs)
 
     /**
      * 收藏歌手列表，直接由收藏歌曲投影，避免依赖全量本地曲库是否已加载。
      */
     val favoriteArtists: List<Artist>
-        get() = favoriteSongs.groupBy { song -> song.artist.trim().lowercase() }
-            .values
-            .map { artistSongs ->
-                val firstSong: Song = artistSongs.first()
-                Artist(
-                    id = "artist:${firstSong.artist.trim().lowercase()}",
-                    name = firstSong.artist,
-                    songCount = artistSongs.size,
-                    coverArt = firstSong.coverArt,
-                    coverImageUri = firstSong.coverImageUri,
-                    tag = "本地音乐",
-                )
-            }
-            .sortedBy { artist -> artist.name.lowercase() }
+        get() = MusicLibraryProjector.buildArtists(songs = favoriteSongs)
 
     /**
      * 系统返回键是否应由 App 内部消费。
@@ -335,40 +314,4 @@ data class MusicAppUiState(
      * 当前歌手详情对象，曲库为空或歌手缺失时为 null。
      */
     val selectedArtist: Artist? = detailArtists.firstOrNull { artist -> artist.id == selectedArtistId }
-
-    private fun buildAlbumsFromSongs(songs: List<Song>): List<Album> {
-        return songs.groupBy { song -> song.album.trim().lowercase() }
-            .values
-            .map { albumSongs ->
-                val firstSong: Song = albumSongs.first()
-                Album(
-                    id = "album:${firstSong.album.trim().lowercase()}",
-                    title = firstSong.album,
-                    artist = firstSong.artist,
-                    songCount = albumSongs.size,
-                    coverArt = firstSong.coverArt,
-                    coverImageUri = firstSong.coverImageUri,
-                    mood = "本地音乐",
-                    year = "本地",
-                )
-            }
-            .sortedBy { album -> album.title.lowercase() }
-    }
-
-    private fun buildArtistsFromSongs(songs: List<Song>): List<Artist> {
-        return songs.groupBy { song -> song.artist.trim().lowercase() }
-            .values
-            .map { artistSongs ->
-                val firstSong: Song = artistSongs.first()
-                Artist(
-                    id = "artist:${firstSong.artist.trim().lowercase()}",
-                    name = firstSong.artist,
-                    songCount = artistSongs.size,
-                    coverArt = firstSong.coverArt,
-                    coverImageUri = firstSong.coverImageUri,
-                    tag = "本地音乐",
-                )
-            }
-            .sortedBy { artist -> artist.name.lowercase() }
-    }
 }

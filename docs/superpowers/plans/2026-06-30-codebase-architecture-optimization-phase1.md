@@ -79,7 +79,7 @@ Use one commit per task. Each task must leave the project compiling and its targ
 - Modify: `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/app/MusicAppModels.kt`
 - Modify: `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/app/MusicAppController.kt`
 
-- [ ] **Step 1: Write the failing projector tests**
+- [x] **Step 1: Write the failing projector tests**
 
 Create `composeApp/src/commonTest/kotlin/com/yanhao/kmpmusic/feature/app/library/MusicLibraryProjectorTest.kt`:
 
@@ -165,7 +165,7 @@ class MusicLibraryProjectorTest {
 }
 ```
 
-- [ ] **Step 2: Run the projector test and verify it fails**
+- [x] **Step 2: Run the projector test and verify it fails**
 
 Run:
 
@@ -175,7 +175,7 @@ Run:
 
 Expected: FAIL with an unresolved reference to `MusicLibraryProjector`.
 
-- [ ] **Step 3: Add `MusicLibraryProjector`**
+- [x] **Step 3: Add `MusicLibraryProjector`**
 
 Create `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/app/library/MusicLibraryProjector.kt`:
 
@@ -238,7 +238,7 @@ object MusicLibraryProjector {
 }
 ```
 
-- [ ] **Step 4: Replace duplicate projection in `MusicAppModels.kt`**
+- [x] **Step 4: Replace duplicate projection in `MusicAppModels.kt`**
 
 Modify `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/app/MusicAppModels.kt`:
 
@@ -274,7 +274,7 @@ Replace the existing `detailSongs`, `detailAlbums`, `detailArtists`, `favoriteAl
 
 Delete the private `buildAlbumsFromSongs` and `buildArtistsFromSongs` functions from `MusicAppUiState`.
 
-- [ ] **Step 5: Replace duplicate projection in `MusicAppController.kt`**
+- [x] **Step 5: Replace duplicate projection in `MusicAppController.kt`**
 
 Modify `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/app/MusicAppController.kt`:
 
@@ -316,7 +316,7 @@ localArtists = MusicLibraryProjector.buildArtists(songs = songsWithLikes)
 
 Delete the private `buildAlbums` and `buildArtists` functions from `MusicAppController`.
 
-- [ ] **Step 6: Run focused and facade tests**
+- [x] **Step 6: Run focused and facade tests**
 
 Run:
 
@@ -326,7 +326,7 @@ Run:
 
 Expected: PASS.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/app/library/MusicLibraryProjector.kt composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/app/MusicAppModels.kt composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/app/MusicAppController.kt composeApp/src/commonTest/kotlin/com/yanhao/kmpmusic/feature/app/library/MusicLibraryProjectorTest.kt

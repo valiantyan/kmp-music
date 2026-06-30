@@ -43,6 +43,7 @@ import com.yanhao.kmpmusic.domain.usecase.ScanLocalMusicUseCaseImpl
 import com.yanhao.kmpmusic.domain.usecase.ToggleFavoriteUseCase
 import com.yanhao.kmpmusic.domain.usecase.ToggleFavoriteUseCaseImpl
 import com.yanhao.kmpmusic.domain.usecase.buildSearchResult
+import com.yanhao.kmpmusic.feature.app.library.MusicLibraryProjector
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Job
@@ -782,8 +783,16 @@ class MusicAppController(
         uiState = uiState.copy(
             homeLocalSongPreview = previewWithLikes,
             localSongs = fullSongsWithLikes,
-            localAlbums = if (shouldRefreshFullLibrary) buildAlbums(songs = fullSongsWithLikes) else uiState.localAlbums,
-            localArtists = if (shouldRefreshFullLibrary) buildArtists(songs = fullSongsWithLikes) else uiState.localArtists,
+            localAlbums = if (shouldRefreshFullLibrary) {
+                MusicLibraryProjector.buildAlbums(songs = fullSongsWithLikes)
+            } else {
+                uiState.localAlbums
+            },
+            localArtists = if (shouldRefreshFullLibrary) {
+                MusicLibraryProjector.buildArtists(songs = fullSongsWithLikes)
+            } else {
+                uiState.localArtists
+            },
             libraryStats = musicLibraryRepository.getLibraryStats(),
             localMusicSources = snapshot.sources,
             localMusicProblems = snapshot.problems,
@@ -837,8 +846,8 @@ class MusicAppController(
         }
         uiState = uiState.copy(
             localSongs = songsWithLikes,
-            localAlbums = buildAlbums(songs = songsWithLikes),
-            localArtists = buildArtists(songs = songsWithLikes),
+            localAlbums = MusicLibraryProjector.buildAlbums(songs = songsWithLikes),
+            localArtists = MusicLibraryProjector.buildArtists(songs = songsWithLikes),
             favoriteSongs = buildFavoriteSongs(
                 likedSongIds = likedSongIds,
                 preferredSongs = uiState.homeLocalSongPreview + songsWithLikes + uiState.queueSongsSnapshot + uiState.favoriteSongs,
@@ -876,43 +885,5 @@ class MusicAppController(
         ).map { song ->
             song.copy(isLiked = true)
         }
-    }
-
-    /** 复用持久化仓库的专辑分组规则，确保首页、二级页和统计口径一致。 */
-    private fun buildAlbums(songs: List<Song>): List<Album> {
-        return songs.groupBy { song: Song -> song.album.trim().lowercase() }
-            .values
-            .map { albumSongs: List<Song> ->
-                val firstSong: Song = albumSongs.first()
-                Album(
-                    id = "album:${firstSong.album.trim().lowercase()}",
-                    title = firstSong.album,
-                    artist = firstSong.artist,
-                    songCount = albumSongs.size,
-                    coverArt = firstSong.coverArt,
-                    coverImageUri = firstSong.coverImageUri,
-                    mood = "本地音乐",
-                    year = "本地",
-                )
-            }
-            .sortedBy { album: Album -> album.title.lowercase() }
-    }
-
-    /** 复用持久化仓库的歌手分组规则，避免不同入口读到不同聚合结果。 */
-    private fun buildArtists(songs: List<Song>): List<Artist> {
-        return songs.groupBy { song: Song -> song.artist.trim().lowercase() }
-            .values
-            .map { artistSongs: List<Song> ->
-                val firstSong: Song = artistSongs.first()
-                Artist(
-                    id = "artist:${firstSong.artist.trim().lowercase()}",
-                    name = firstSong.artist,
-                    songCount = artistSongs.size,
-                    coverArt = firstSong.coverArt,
-                    coverImageUri = firstSong.coverImageUri,
-                    tag = "本地音乐",
-                )
-            }
-            .sortedBy { artist: Artist -> artist.name.lowercase() }
     }
 }
