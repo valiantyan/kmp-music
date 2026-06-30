@@ -41,7 +41,7 @@ internal class AndroidPlaybackMediaNotificationProvider(
         }
         if (playerCommands.contains(Player.COMMAND_PLAY_PAUSE)) {
             orderedButtons.add(
-                AndroidPlaybackMediaButtons.createPlayPauseButton(isPlaying = showPauseButton),
+                AndroidPlaybackMediaButtons.createPlayPauseButton(shouldShowPauseButton = showPauseButton),
             )
         }
         if (playerCommands.hasNextCommand()) {

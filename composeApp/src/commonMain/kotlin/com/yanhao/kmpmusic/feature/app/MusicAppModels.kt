@@ -252,10 +252,16 @@ data class MusicAppUiState(
             .distinctBy { artist -> artist.id }
 
     /**
-     * 兼容现有 UI 对播放开关的布尔读取，直到页面逐步迁移到显式播放状态。
+     * 当前是否处于真实播放态，只用于业务判断，不能用来决定按钮图标。
      */
     val isPlaying: Boolean
         get() = playbackStatus == PlaybackStatus.Playing
+
+    /**
+     * UI 是否应显示暂停入口，启动和缓冲阶段也保持暂停按钮避免误导用户。
+     */
+    val shouldShowPauseControl: Boolean
+        get() = playbackStatus.shouldShowPauseControl
 
     /**
      * 当前仍有播放上下文时，平台层不能把暂态 [PlaybackStatus.Idle] 当成清空队列信号。

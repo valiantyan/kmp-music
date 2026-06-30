@@ -84,8 +84,8 @@ class DesktopVlcjAudioPlayerEngine(
     // 当前媒体代号，每次切歌/停止/释放都会递增以屏蔽旧回调。
     private var generation: Long = 0L
 
-    // 媒体未 ready 前是否应在 ready 后自动开始播放。
-    private var pendingPlay: Boolean = false
+    // 记录最近一次明确播放控制意图，用来过滤 vlcj 在换媒体期间产生的杂散状态回调。
+    private var playbackControlIntent: PlaybackControlIntent = PlaybackControlIntent.None
 
     // 当前代尚未兑现的 seek 请求，遵循 latest-wins 规则。
     private var pendingSeekMs: Long? = null
@@ -250,7 +250,7 @@ class DesktopVlcjAudioPlayerEngine(
     private suspend fun handleSetQueue(command: EngineCommand.SetQueue) {
         try {
             queue = command.items
-            pendingPlay = false
+            playbackControlIntent = PlaybackControlIntent.None
             pendingSeekMs = null
             isPrepared = false
             stopProgressPolling()
@@ -281,17 +281,16 @@ class DesktopVlcjAudioPlayerEngine(
         if (currentIndex !in queue.indices) {
             return
         }
+        playbackControlIntent = PlaybackControlIntent.Play
         if (!isPrepared) {
-            pendingPlay = true
             return
         }
-        pendingPlay = false
         adapter.play(generation = generation)
     }
 
     /** 暂停优先级高于之前的待播放意图，确保最终状态以最后一次命令为准。 */
     private suspend fun handlePause() {
-        pendingPlay = false
+        playbackControlIntent = PlaybackControlIntent.Pause
         if (!isPrepared || currentIndex !in queue.indices) {
             return
         }
@@ -330,7 +329,7 @@ class DesktopVlcjAudioPlayerEngine(
             return
         }
         currentIndex = index
-        pendingPlay = false
+        playbackControlIntent = PlaybackControlIntent.None
         pendingSeekMs = 0L
         prepareCurrentMedia(startPositionMs = 0L)
     }
@@ -339,7 +338,7 @@ class DesktopVlcjAudioPlayerEngine(
     private suspend fun handleStop() {
         val activeGeneration: Long = generation
         nextGeneration()
-        pendingPlay = false
+        playbackControlIntent = PlaybackControlIntent.None
         pendingSeekMs = null
         isPrepared = false
         stopProgressPolling()
@@ -356,7 +355,7 @@ class DesktopVlcjAudioPlayerEngine(
     /** 释放时彻底屏蔽后续事件，并停止所有后台轮询。 */
     private suspend fun handleRelease() {
         nextGeneration()
-        pendingPlay = false
+        playbackControlIntent = PlaybackControlIntent.None
         pendingSeekMs = null
         isPrepared = false
         isReleased = true
@@ -385,7 +384,7 @@ class DesktopVlcjAudioPlayerEngine(
         }
     }
 
-    /** 准备完成后兑现待 seek 与待播放意图，否则显式停在暂停态。 */
+    /** 准备完成后兑现待 seek 与待播放控制意图；没有控制意图时等待下一条命令。 */
     private suspend fun handlePrepared(event: DesktopMediaPlayerEvent.Prepared) {
         if (currentIndex !in queue.indices) {
             return
@@ -404,16 +403,22 @@ class DesktopVlcjAudioPlayerEngine(
                 ),
             )
         }
-        if (pendingPlay) {
-            pendingPlay = false
-            adapter.play(generation = generation)
-            return
+        when (playbackControlIntent) {
+            PlaybackControlIntent.Play -> {
+                adapter.play(generation = generation)
+            }
+            PlaybackControlIntent.Pause -> {
+                adapter.pause(generation = generation)
+            }
+            PlaybackControlIntent.None -> Unit
         }
-        adapter.pause(generation = generation)
     }
 
     /** 播放开始后启动轮询，并把当前 position/duration 同步给协调器。 */
     private suspend fun handlePlaying(event: DesktopMediaPlayerEvent.Playing) {
+        if (playbackControlIntent == PlaybackControlIntent.Pause) {
+            return
+        }
         startProgressPolling()
         eventChannel.send(
             element = PlaybackEngineEvent.StatusChanged(
@@ -426,6 +431,9 @@ class DesktopVlcjAudioPlayerEngine(
 
     /** 暂停时立即停止轮询，避免暂停态继续上报进度噪音。 */
     private suspend fun handlePaused(event: DesktopMediaPlayerEvent.Paused) {
+        if (playbackControlIntent != PlaybackControlIntent.Pause) {
+            return
+        }
         stopProgressPolling()
         eventChannel.send(
             element = PlaybackEngineEvent.StatusChanged(
@@ -446,7 +454,7 @@ class DesktopVlcjAudioPlayerEngine(
     private suspend fun handleFailed(event: DesktopMediaPlayerEvent.Failed) {
         stopProgressPolling()
         nextGeneration()
-        pendingPlay = false
+        playbackControlIntent = PlaybackControlIntent.None
         pendingSeekMs = null
         isPrepared = false
         eventChannel.send(element = PlaybackEngineEvent.Failed(error = event.error))
@@ -566,6 +574,15 @@ internal class DesktopVlcjAudioPlayerEngineTestHooks(
 ) {
     // 在 [setQueue] 真正入队前执行，测试可借此把命令卡在最危险的竞态窗口。
     val beforeSetQueueCommandEnqueue: suspend () -> Unit = beforeSetQueueCommandEnqueue
+}
+
+/**
+ * 最近一次上层播放控制意图，用来区分真实暂停和底层换媒体噪音。
+ */
+private enum class PlaybackControlIntent {
+    None,
+    Play,
+    Pause,
 }
 
 /**

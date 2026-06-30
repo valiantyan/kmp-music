@@ -43,7 +43,7 @@ class AndroidPlaybackRuntime(
             return
         }
         serviceConnector.refreshMediaButtonPreferences(
-            isPlaying = uiState.isPlaying,
+            shouldShowPauseButton = uiState.shouldShowPauseControl,
             isFavorite = uiState.likedSongIds.contains(element = song.id),
             playbackMode = uiState.playbackMode,
             playbackStatus = uiState.playbackStatus,

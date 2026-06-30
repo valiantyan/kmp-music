@@ -292,7 +292,7 @@ class MusicAppControllerTest {
 
         assertEquals(expected = SecondaryScreen.Player, actual = controller.uiState.navigationState.secondaryScreen)
         assertEquals(expected = targetSong.id, actual = controller.uiState.currentSongId)
-        assertTrue(controller.uiState.isPlaying)
+        assertTrue(controller.uiState.shouldShowPauseControl)
 
         controller.togglePlayback()
 
@@ -352,7 +352,7 @@ class MusicAppControllerTest {
         }
         controller.playSong(song = targetSong)
         assertEquals(targetSong.id, controller.uiState.currentSongId)
-        assertTrue(controller.uiState.isPlaying)
+        assertTrue(controller.uiState.shouldShowPauseControl)
         assertTrue(controller.uiState.queueSongIds.contains(targetSong.id))
     }
 
@@ -444,7 +444,7 @@ class MusicAppControllerTest {
         val originalSongId: String? = controller.uiState.currentSongId
         controller.moveTrack(direction = 1)
         assertNotEquals(originalSongId, controller.uiState.currentSongId)
-        assertTrue(controller.uiState.isPlaying)
+        assertTrue(controller.uiState.shouldShowPauseControl)
     }
 
     /**

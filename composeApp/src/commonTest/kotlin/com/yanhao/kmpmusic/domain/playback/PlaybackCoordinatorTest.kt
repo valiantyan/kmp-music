@@ -4,6 +4,7 @@ import com.yanhao.kmpmusic.data.FakeAudioPlayerEngine
 import com.yanhao.kmpmusic.data.InMemoryPlaybackRepository
 import com.yanhao.kmpmusic.domain.model.CoverArt
 import com.yanhao.kmpmusic.domain.model.LocalMusicSourceKind
+import com.yanhao.kmpmusic.domain.model.PlayableMedia
 import com.yanhao.kmpmusic.domain.model.PlaybackError
 import com.yanhao.kmpmusic.domain.model.PlaybackErrorType
 import com.yanhao.kmpmusic.domain.model.PlaybackMode
@@ -355,6 +356,45 @@ class PlaybackCoordinatorTest {
     }
 
     /**
+     * 启动中状态的 toggle 应继续播放命令，不能把刚点击的歌曲反向暂停。
+     */
+    @Test
+    fun toggleWhileLoadingRequestsPlayInsteadOfPause(): Unit = runTest {
+        val repository = InMemoryPlaybackRepository()
+        val engine = FakeAudioPlayerEngine()
+        val coordinator = PlaybackCoordinator(
+            playbackRepository = repository,
+            audioPlayerEngine = engine,
+            snapshotWriteScope = backgroundScope,
+        )
+        val songs = buildSongs(count = 1)
+        engine.setQueue(
+            items = songs.map { song -> song.toPlayableMediaForTest() },
+            startIndex = 0,
+            startPositionMs = 0L,
+        )
+        repository.saveQueueState(
+            state = QueueState(
+                songIds = listOf(songs[0].id),
+                currentIndex = 0,
+            ),
+        )
+        repository.savePlaybackState(
+            state = PlaybackState(
+                currentSongId = songs[0].id,
+                status = PlaybackStatus.Loading,
+                durationMs = songs[0].durationMs,
+            ),
+        )
+        coordinator.start(scope = backgroundScope)
+
+        coordinator.togglePlayback()
+        advanceUntilIdle()
+
+        assertEquals(expected = PlaybackStatus.Playing, actual = repository.getPlaybackState().status)
+    }
+
+    /**
      * 首个进度事件也必须进入 5 秒节流窗口，不能因为初始时间戳溢出而永久跳过。
      */
     @Test
@@ -674,6 +714,20 @@ class PlaybackCoordinatorTest {
                 mimeType = "audio/mpeg",
             )
         }
+    }
+
+    // 测试中直接预热 fake 引擎时复用生产映射所需的最小媒体信息。
+    private fun Song.toPlayableMediaForTest(): PlayableMedia {
+        return PlayableMedia(
+            songId = id,
+            title = title,
+            artist = artist,
+            album = album,
+            durationMs = durationMs,
+            localUri = localUri,
+            coverArt = coverArt,
+            mimeType = mimeType,
+        )
     }
 
     /**

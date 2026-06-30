@@ -474,8 +474,9 @@ class PlaybackCoordinator(
 
     /** 根据引擎进度事件更新运行时进度。 */
     private fun updateProgress(event: PlaybackEngineEvent.ProgressChanged) {
+        val playbackState: PlaybackState = playbackRepository.getPlaybackState()
         playbackRepository.savePlaybackState(
-            state = playbackRepository.getPlaybackState().copy(
+            state = playbackState.copy(
                 positionMs = event.positionMs,
                 durationMs = event.durationMs,
             ),

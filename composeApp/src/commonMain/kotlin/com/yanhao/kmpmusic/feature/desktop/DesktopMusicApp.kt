@@ -64,7 +64,7 @@ fun DesktopMusicApp(
                     DesktopPlayerDetailScreen(
                         song = state.currentSong,
                         queueSongs = state.queueSongs,
-                        isPlaying = state.isPlaying,
+                        isPlaying = state.shouldShowPauseControl,
                         playbackPositionMs = state.playbackPositionMs,
                         playbackDurationMs = state.playbackDurationMs,
                         playbackMode = state.playbackMode,
@@ -138,7 +138,7 @@ fun DesktopMusicApp(
                 }
                 DesktopBottomPlayer(
                     song = state.currentSong,
-                    isPlaying = state.isPlaying,
+                    isPlaying = state.shouldShowPauseControl,
                     playbackPositionMs = state.playbackPositionMs,
                     playbackDurationMs = state.playbackDurationMs,
                     playbackMode = state.playbackMode,

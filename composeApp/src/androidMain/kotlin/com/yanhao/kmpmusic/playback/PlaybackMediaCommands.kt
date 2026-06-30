@@ -26,9 +26,9 @@ private const val CUSTOM_ACTION_CYCLE_MODE: String = "com.yanhao.kmpmusic.playba
 private const val CUSTOM_ACTION_UPDATE_BUTTONS: String = "com.yanhao.kmpmusic.playback.UPDATE_BUTTONS"
 
 /**
- * 按钮刷新命令参数：当前是否正在播放。
+ * 按钮刷新命令参数：当前是否应显示暂停按钮。
  */
-private const val ARG_IS_PLAYING: String = "is_playing"
+private const val ARG_SHOULD_SHOW_PAUSE_BUTTON: String = "should_show_pause_button"
 
 /**
  * 按钮刷新命令参数：当前歌曲是否已收藏。
@@ -120,7 +120,7 @@ internal object AndroidPlaybackMediaButtons {
     /** 把 shared 按钮状态编码到 [Bundle]，避免平台层直接引用 UI state。 */
     fun createUpdateButtonsArgs(state: MediaButtonState): Bundle {
         return Bundle().apply {
-            putBoolean(ARG_IS_PLAYING, state.isPlaying)
+            putBoolean(ARG_SHOULD_SHOW_PAUSE_BUTTON, state.shouldShowPauseButton)
             putBoolean(ARG_IS_FAVORITE, state.isFavorite)
             putString(ARG_PLAYBACK_MODE, state.playbackMode.name)
             putString(ARG_PLAYBACK_STATUS, state.playbackStatus.name)
@@ -141,7 +141,7 @@ internal object AndroidPlaybackMediaButtons {
             }
             ?: return null
         return MediaButtonState(
-            isPlaying = args.getBoolean(ARG_IS_PLAYING),
+            shouldShowPauseButton = args.getBoolean(ARG_SHOULD_SHOW_PAUSE_BUTTON),
             isFavorite = args.getBoolean(ARG_IS_FAVORITE),
             playbackMode = playbackMode,
             playbackStatus = playbackStatus,
@@ -156,14 +156,14 @@ internal object AndroidPlaybackMediaButtons {
 
     /** 按系统 slot 语义声明媒体通知按钮偏好，最终位置由 System UI 决定。 */
     fun mediaButtonPreferences(
-        isPlaying: Boolean,
+        shouldShowPauseButton: Boolean,
         isFavorite: Boolean,
         playbackMode: PlaybackMode,
     ): List<CommandButton> {
         return listOf(
             createFavoriteButton(isFavorite = isFavorite),
             createPreviousButton(),
-            createPlayPauseButton(isPlaying = isPlaying),
+            createPlayPauseButton(shouldShowPauseButton = shouldShowPauseButton),
             createNextButton(),
             createPlaybackModeButton(playbackMode = playbackMode),
         )
@@ -207,16 +207,16 @@ internal object AndroidPlaybackMediaButtons {
     }
 
     /** 创建播放/暂停按钮，图标随 shared 播放状态刷新。 */
-    fun createPlayPauseButton(isPlaying: Boolean): CommandButton {
+    fun createPlayPauseButton(shouldShowPauseButton: Boolean): CommandButton {
         return CommandButton.Builder(
-            if (isPlaying) {
+            if (shouldShowPauseButton) {
                 CommandButton.ICON_PAUSE
             } else {
                 CommandButton.ICON_PLAY
             },
         )
             .setPlayerCommand(Player.COMMAND_PLAY_PAUSE)
-            .setDisplayName(if (isPlaying) "暂停" else "播放")
+            .setDisplayName(if (shouldShowPauseButton) "暂停" else "播放")
             .setSlots(CommandButton.SLOT_CENTRAL)
             .build()
     }

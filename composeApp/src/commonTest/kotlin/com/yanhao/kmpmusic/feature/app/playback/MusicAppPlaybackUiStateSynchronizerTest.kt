@@ -95,6 +95,23 @@ class MusicAppPlaybackUiStateSynchronizerTest {
         assertFalse(actual = state.hasActivePlaybackSession)
     }
 
+    @Test
+    fun loadingAndBufferingExposePauseControlWithoutChangingPlayingState(): Unit {
+        val loadingState: MusicAppUiState = testState().copy(
+            currentSongId = "song-1",
+            playbackStatus = PlaybackStatus.Loading,
+            queueSongIds = listOf("song-1"),
+        )
+        val bufferingState: MusicAppUiState = loadingState.copy(
+            playbackStatus = PlaybackStatus.Buffering,
+        )
+
+        assertFalse(actual = loadingState.isPlaying)
+        assertFalse(actual = bufferingState.isPlaying)
+        assertTrue(actual = loadingState.shouldShowPauseControl)
+        assertTrue(actual = bufferingState.shouldShowPauseControl)
+    }
+
     private fun testState(): MusicAppUiState {
         return MusicAppUiState(
             likedSongIds = emptySet(),

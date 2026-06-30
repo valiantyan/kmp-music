@@ -19,11 +19,21 @@ class PlaybackModelsTest {
             currentSongId = "song-1",
             status = PlaybackStatus.Playing,
         )
+        val loading: PlaybackState = PlaybackState(
+            currentSongId = "song-1",
+            status = PlaybackStatus.Loading,
+        )
+        val buffering: PlaybackState = PlaybackState(
+            currentSongId = "song-1",
+            status = PlaybackStatus.Buffering,
+        )
         val paused: PlaybackState = PlaybackState(
             currentSongId = "song-1",
             status = PlaybackStatus.Paused,
         )
         assertTrue(actual = playing.isPlaying)
+        assertFalse(actual = loading.isPlaying)
+        assertFalse(actual = buffering.isPlaying)
         assertFalse(actual = paused.isPlaying)
     }
 
