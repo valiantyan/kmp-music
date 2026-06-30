@@ -8,6 +8,7 @@ import com.yanhao.kmpmusic.data.FakeLocalMusicScanner
 import com.yanhao.kmpmusic.data.InMemoryFavoritesRepository
 import com.yanhao.kmpmusic.data.InMemoryMusicLibraryRepository
 import com.yanhao.kmpmusic.data.InMemoryPlaybackRepository
+import com.yanhao.kmpmusic.data.InMemorySearchHistoryRepository
 import com.yanhao.kmpmusic.data.InMemoryUserPreferencesRepository
 import com.yanhao.kmpmusic.domain.model.Album
 import com.yanhao.kmpmusic.domain.model.Artist
@@ -22,6 +23,7 @@ import com.yanhao.kmpmusic.domain.model.LocalMusicScanErrorType
 import com.yanhao.kmpmusic.domain.model.PlaybackState
 import com.yanhao.kmpmusic.domain.model.PlaybackStatus
 import com.yanhao.kmpmusic.domain.model.QueueState
+import com.yanhao.kmpmusic.domain.model.SearchContext
 import com.yanhao.kmpmusic.domain.model.SearchScope
 import com.yanhao.kmpmusic.domain.model.Song
 import com.yanhao.kmpmusic.domain.model.ThemeMode
@@ -33,6 +35,7 @@ import com.yanhao.kmpmusic.domain.repository.FavoritesRepository
 import com.yanhao.kmpmusic.domain.repository.LocalMusicScanner
 import com.yanhao.kmpmusic.domain.repository.MusicLibraryRepository
 import com.yanhao.kmpmusic.domain.repository.PlaybackRepository
+import com.yanhao.kmpmusic.domain.repository.SearchHistoryRepository
 import com.yanhao.kmpmusic.domain.repository.UserPreferencesRepository
 import com.yanhao.kmpmusic.domain.usecase.ScanLocalMusicUseCase
 import com.yanhao.kmpmusic.domain.usecase.ScanLocalMusicUseCaseImpl
@@ -54,6 +57,7 @@ class MusicAppController(
     private val playbackSnapshotStore: PlaybackSnapshotStore = InMemoryPlaybackSnapshotStore(),
     private val injectedFavoritesRepository: FavoritesRepository? = null,
     private val userPreferencesRepository: UserPreferencesRepository = InMemoryUserPreferencesRepository(),
+    private val searchHistoryRepository: SearchHistoryRepository = InMemorySearchHistoryRepository(),
     private val permissionSettingsOpener: PermissionSettingsOpener = PermissionSettingsOpener {},
     private val controllerScope: CoroutineScope,
     private val nowMillis: () -> Long = { 0L },
@@ -117,6 +121,7 @@ class MusicAppController(
 
     /** 进入二级页面并隐藏主 Tab。 */
     fun navigateToSecondary(screen: SecondaryScreen) {
+        commitActiveSearchQueryToHistoryIfNeeded()
         uiState = uiState.copy(
             navigationState = uiState.navigationState.copy(
                 secondaryScreen = screen,
@@ -130,6 +135,7 @@ class MusicAppController(
 
     /** 切换一级 Tab。 */
     fun navigateToRoot(tab: RootTab) {
+        commitActiveSearchQueryToHistoryIfNeeded()
         uiState = uiState.copy(
             navigationState = NavigationState(
                 rootTab = tab,
@@ -142,6 +148,7 @@ class MusicAppController(
 
     /** 从二级页面返回上一个一级页面。 */
     fun navigateBack() {
+        commitActiveSearchQueryToHistoryIfNeeded()
         uiState = uiState.copy(
             navigationState = uiState.navigationState.copy(
                 rootTab = uiState.navigationState.previousRootTab,
@@ -273,6 +280,7 @@ class MusicAppController(
 
     /** 播放歌曲但留在当前页面，未显式传列表时优先复用当前队列上下文。 */
     fun playSong(song: Song, queueSongs: List<Song> = emptyList()) {
+        commitActiveSearchQueryToHistoryIfNeeded()
         val resolvedQueueSongs: List<Song> = resolvePlaybackQueueSongs(
             song = song,
             queueSongs = queueSongs,
@@ -413,6 +421,7 @@ class MusicAppController(
 
     /** 打开专辑详情。 */
     fun openAlbum(album: Album) {
+        commitActiveSearchQueryToHistoryIfNeeded()
         loadLocalMusicLibrary()
         uiState = uiState.copy(selectedAlbumId = album.id)
         navigateToSecondary(screen = SecondaryScreen.AlbumDetail)
@@ -420,6 +429,7 @@ class MusicAppController(
 
     /** 打开歌手详情。 */
     fun openArtist(artist: Artist) {
+        commitActiveSearchQueryToHistoryIfNeeded()
         loadLocalMusicLibrary()
         uiState = uiState.copy(selectedArtistId = artist.id)
         navigateToSecondary(screen = SecondaryScreen.ArtistDetail)
@@ -494,20 +504,10 @@ class MusicAppController(
 
     /** 执行搜索，供 UI 渲染派生结果。 */
     fun search(): com.yanhao.kmpmusic.domain.usecase.SearchResult {
-        val sourceSongs: List<Song> = when (uiState.searchContext) {
-            SearchContext.LocalLibrary -> {
-                if (uiState.localSongs.isNotEmpty()) {
-                    uiState.localSongs
-                } else {
-                    musicLibraryRepository.getAllAvailableSongs()
-                }
-            }
-            SearchContext.Favorites -> uiState.favoriteSongs
-        }
         return buildSearchResult(
             query = uiState.searchQuery,
             scope = uiState.searchScope,
-            allSongs = sourceSongs,
+            allSongs = searchSourceSongs(),
         )
     }
 
@@ -519,9 +519,35 @@ class MusicAppController(
 
     /** 按搜索上下文写回对应历史，避免不同入口共用同一份运行时状态。 */
     private fun updateSearchHistory(context: SearchContext, history: List<String>) {
+        searchHistoryRepository.saveSearchHistory(
+            context = context,
+            history = history,
+        )
         uiState = when (context) {
             SearchContext.LocalLibrary -> uiState.copy(localLibrarySearchHistory = history)
             SearchContext.Favorites -> uiState.copy(favoritesSearchHistory = history)
+        }
+    }
+
+    // 离开搜索页前集中提交非空搜索词，避免各平台 UI 分别维护历史写入规则。
+    private fun commitActiveSearchQueryToHistoryIfNeeded() {
+        if (uiState.navigationState.secondaryScreen !is SecondaryScreen.Search) {
+            return
+        }
+        commitSearchQueryToHistory()
+    }
+
+    // 按搜索上下文选择共享数据源，保证 UI 只消费派生结果。
+    private fun searchSourceSongs(): List<Song> {
+        return when (uiState.searchContext) {
+            SearchContext.LocalLibrary -> {
+                if (uiState.localSongs.isNotEmpty()) {
+                    uiState.localSongs
+                } else {
+                    musicLibraryRepository.getAllAvailableSongs()
+                }
+            }
+            SearchContext.Favorites -> uiState.favoriteSongs
         }
     }
 
@@ -623,6 +649,12 @@ class MusicAppController(
             scanState = initialScanState,
             recentSongs = buildRecentSongs(songs = previewWithLikes),
             themeMode = userPreferencesRepository.getThemeMode(),
+            localLibrarySearchHistory = searchHistoryRepository.getSearchHistory(
+                context = SearchContext.LocalLibrary,
+            ),
+            favoritesSearchHistory = searchHistoryRepository.getSearchHistory(
+                context = SearchContext.Favorites,
+            ),
         )
     }
 

@@ -48,6 +48,24 @@ object PlaybackDatabaseMigrations {
             connection.execSql("ALTER TABLE local_song ADD COLUMN coverImageUri TEXT")
         }
     }
+
+    /** 从本地歌曲封面版本升级到支持搜索历史持久化。 */
+    val MIGRATION_3_4: Migration = object : Migration(startVersion = 3, endVersion = 4) {
+        /** 创建按上下文隔离的搜索历史表。 */
+        override suspend fun migrate(connection: SQLiteConnection) {
+            connection.execSql(
+                """
+                CREATE TABLE IF NOT EXISTS search_history (
+                    context TEXT NOT NULL,
+                    query TEXT NOT NULL,
+                    position INTEGER NOT NULL,
+                    updatedAt INTEGER NOT NULL,
+                    PRIMARY KEY(context, query)
+                )
+                """,
+            )
+        }
+    }
 }
 
 /** 执行裁剪后的 SQL 文本，避免多行字符串首尾空白影响 SQLite 解析。 */

@@ -21,12 +21,14 @@ import com.yanhao.kmpmusic.domain.model.LocalMusicScanResult
 import com.yanhao.kmpmusic.domain.model.LocalMusicScanState
 import com.yanhao.kmpmusic.domain.model.LocalMusicSourceKind
 import com.yanhao.kmpmusic.domain.model.MusicFileMetadata
+import com.yanhao.kmpmusic.domain.model.SearchContext
 import com.yanhao.kmpmusic.domain.model.SearchScope
 import com.yanhao.kmpmusic.domain.model.Song
 import com.yanhao.kmpmusic.domain.persistence.InMemoryPlaybackSnapshotStore
 import com.yanhao.kmpmusic.domain.repository.FavoritesRepository
 import com.yanhao.kmpmusic.domain.repository.LocalMusicScanner
 import com.yanhao.kmpmusic.domain.repository.MusicLibraryRepository
+import com.yanhao.kmpmusic.domain.repository.SearchHistoryRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -884,6 +886,49 @@ class MusicAppControllerTest {
     }
 
     /**
+     * 有命中的搜索词在离开搜索页时应自动写入历史，避免各平台 UI 自己补提交逻辑。
+     */
+    @Test
+    fun searchQueryWithResultsCommitsToHistoryWhenLeavingSearch(): Unit = runBlocking {
+        val controller = createController()
+        controller.scanLocalMusic(request = LocalMusicScanRequest.Refresh)
+
+        controller.openSearch(context = SearchContext.LocalLibrary)
+        controller.setSearchQuery(query = "One Summer")
+        assertTrue(actual = controller.search().songs.isNotEmpty())
+
+        controller.navigateBack()
+        controller.openSearch(context = SearchContext.LocalLibrary)
+
+        assertEquals(
+            expected = listOf("One Summer"),
+            actual = controller.uiState.searchHistoryFor(context = SearchContext.LocalLibrary),
+        )
+    }
+
+    /**
+     * 搜索历史应由共享仓库恢复，保证不同平台入口复用同一套历史数据规则。
+     */
+    @Test
+    fun searchHistoryRestoresFromRepositoryAcrossControllerInstances(): Unit = runBlocking {
+        val searchHistoryRepository = FakeSearchHistoryRepository()
+        val firstController = createController(searchHistoryRepository = searchHistoryRepository)
+        firstController.scanLocalMusic(request = LocalMusicScanRequest.Refresh)
+
+        firstController.openSearch(context = SearchContext.LocalLibrary)
+        firstController.setSearchQuery(query = "One Summer")
+        firstController.navigateBack()
+
+        val restoredController = createController(searchHistoryRepository = searchHistoryRepository)
+
+        assertEquals(
+            expected = listOf("One Summer"),
+            actual = restoredController.uiState.searchHistoryFor(context = SearchContext.LocalLibrary),
+        )
+        assertTrue(actual = restoredController.uiState.searchHistoryFor(context = SearchContext.Favorites).isEmpty())
+    }
+
+    /**
      * 搜索历史应去重并把最新搜索放到最前面。
      */
     @Test
@@ -1062,6 +1107,7 @@ private fun createController(
     playbackRepository: InMemoryPlaybackRepository = InMemoryPlaybackRepository(),
     playbackSnapshotStore: InMemoryPlaybackSnapshotStore = InMemoryPlaybackSnapshotStore(),
     favoritesRepository: FavoritesRepository? = null,
+    searchHistoryRepository: SearchHistoryRepository = FakeSearchHistoryRepository(),
     permissionSettingsOpener: PermissionSettingsOpener = PermissionSettingsOpener {},
     controllerScope: CoroutineScope = testControllerScope(),
 ): MusicAppController {
@@ -1071,9 +1117,25 @@ private fun createController(
         playbackRepository = playbackRepository,
         playbackSnapshotStore = playbackSnapshotStore,
         injectedFavoritesRepository = favoritesRepository,
+        searchHistoryRepository = searchHistoryRepository,
         permissionSettingsOpener = permissionSettingsOpener,
         controllerScope = controllerScope,
     )
+}
+
+private class FakeSearchHistoryRepository : SearchHistoryRepository {
+    // 测试用内存表，按上下文隔离搜索词。
+    private val histories: MutableMap<SearchContext, List<String>> = mutableMapOf()
+
+    /** 读取指定上下文的历史。 */
+    override fun getSearchHistory(context: SearchContext): List<String> {
+        return histories[context].orEmpty()
+    }
+
+    /** 保存指定上下文的历史。 */
+    override fun saveSearchHistory(context: SearchContext, history: List<String>) {
+        histories[context] = history
+    }
 }
 
 private fun testControllerScope(): CoroutineScope {

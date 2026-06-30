@@ -3,6 +3,7 @@ package com.yanhao.kmpmusic
 import android.content.Context
 import com.yanhao.kmpmusic.data.PersistentFavoritesRepository
 import com.yanhao.kmpmusic.data.PersistentMusicLibraryRepository
+import com.yanhao.kmpmusic.data.PersistentSearchHistoryRepository
 import com.yanhao.kmpmusic.data.createAndroidPlaybackDatabase
 import com.yanhao.kmpmusic.domain.model.LocalMusicScanError
 import com.yanhao.kmpmusic.domain.model.LocalMusicScanErrorType
@@ -94,6 +95,10 @@ object AndroidPlaybackSession {
                     favoriteSongDao = favoriteSongDao,
                 ),
                 injectedFavoritesRepository = favoritesRepository,
+                searchHistoryRepository = PersistentSearchHistoryRepository(
+                    searchHistoryDao = playbackDatabase.searchHistoryDao(),
+                    nowMillis = { System.currentTimeMillis() },
+                ),
                 permissionSettingsOpener = permissionSettingsOpener,
                 controllerScope = playbackScope,
                 nowMillis = { System.currentTimeMillis() },

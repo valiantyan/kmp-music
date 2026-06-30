@@ -16,12 +16,12 @@ import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.ui.Modifier
 import com.yanhao.kmpmusic.core.theme.KmpMusicTheme
 import com.yanhao.kmpmusic.domain.model.LocalMusicScanRequest
+import com.yanhao.kmpmusic.domain.model.SearchContext
 import com.yanhao.kmpmusic.feature.app.AppOverlays
 import com.yanhao.kmpmusic.feature.app.LocalMusicSection
 import com.yanhao.kmpmusic.feature.app.MusicAppController
 import com.yanhao.kmpmusic.feature.app.MusicAppUiState
 import com.yanhao.kmpmusic.feature.app.RootTab
-import com.yanhao.kmpmusic.feature.app.SearchContext
 import com.yanhao.kmpmusic.feature.app.SecondaryScreen
 import kotlinx.coroutines.launch
 

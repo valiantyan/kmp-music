@@ -36,6 +36,7 @@ import com.yanhao.kmpmusic.domain.model.LibraryStats
 import com.yanhao.kmpmusic.domain.model.LocalMusicProblem
 import com.yanhao.kmpmusic.domain.model.LocalMusicSourceSummary
 import com.yanhao.kmpmusic.domain.model.PlaybackStatus
+import com.yanhao.kmpmusic.domain.model.SearchContext
 import com.yanhao.kmpmusic.domain.model.SearchScope
 import com.yanhao.kmpmusic.domain.model.Song
 import com.yanhao.kmpmusic.domain.model.ThemeMode
@@ -44,7 +45,6 @@ import com.yanhao.kmpmusic.feature.app.FavoriteSection
 import com.yanhao.kmpmusic.feature.app.LocalMusicSection
 import com.yanhao.kmpmusic.feature.app.MusicAppController
 import com.yanhao.kmpmusic.feature.app.MusicAppUiState
-import com.yanhao.kmpmusic.feature.app.SearchContext
 import com.yanhao.kmpmusic.feature.app.SecondaryScreen
 
 private const val HOME_ALBUM_PREVIEW_COUNT = 4

@@ -9,6 +9,7 @@ import com.yanhao.kmpmusic.domain.model.LocalMusicSourceSummary
 import com.yanhao.kmpmusic.domain.model.PlaybackError
 import com.yanhao.kmpmusic.domain.model.PlaybackMode
 import com.yanhao.kmpmusic.domain.model.PlaybackStatus
+import com.yanhao.kmpmusic.domain.model.SearchContext
 import com.yanhao.kmpmusic.domain.model.SearchScope
 import com.yanhao.kmpmusic.domain.model.Song
 import com.yanhao.kmpmusic.domain.model.ThemeMode
@@ -39,14 +40,6 @@ enum class LocalMusicSection {
     Albums,
     Artists,
     Sources,
-}
-
-/**
- * 搜索页的数据上下文。
- */
-enum class SearchContext {
-    LocalLibrary,
-    Favorites,
 }
 
 /**

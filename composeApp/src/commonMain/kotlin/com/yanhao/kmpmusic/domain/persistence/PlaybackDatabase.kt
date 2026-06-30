@@ -88,6 +88,22 @@ data class LocalSongEntity(
 )
 
 /**
+ * 搜索历史记录，按入口上下文与排序位置保存最近搜索词。
+ *
+ * @property context 搜索入口上下文名称。
+ * @property query 用户提交的搜索词。
+ * @property position 在最近搜索列表中的位置，越小越靠前。
+ * @property updatedAt 最近一次保存时间。
+ */
+@Entity(tableName = "search_history", primaryKeys = ["context", "query"])
+data class SearchHistoryEntity(
+    val context: String,
+    val query: String,
+    val position: Int,
+    val updatedAt: Long,
+)
+
+/**
  * 播放快照读写接口。
  */
 @Dao
@@ -251,6 +267,30 @@ interface LocalSongDao {
 }
 
 /**
+ * 搜索历史读写接口。
+ */
+@Dao
+interface SearchHistoryDao {
+    /**
+     * 按最近顺序读取指定上下文的搜索历史。
+     */
+    @Query("SELECT * FROM search_history WHERE context = :context ORDER BY position ASC, updatedAt DESC")
+    suspend fun getHistory(context: String): List<SearchHistoryEntity>
+
+    /**
+     * 批量覆盖写入搜索历史。
+     */
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(history: List<SearchHistoryEntity>)
+
+    /**
+     * 清空指定上下文的旧搜索历史。
+     */
+    @Query("DELETE FROM search_history WHERE context = :context")
+    suspend fun clearHistory(context: String)
+}
+
+/**
  * 播放相关本地数据库，统一收纳播放快照、收藏与本地歌曲元数据。
  */
 @Database(
@@ -259,8 +299,9 @@ interface LocalSongDao {
         PlaybackQueueItemEntity::class,
         FavoriteSongEntity::class,
         LocalSongEntity::class,
+        SearchHistoryEntity::class,
     ],
-    version = 3,
+    version = 4,
 )
 @ConstructedBy(PlaybackDatabaseConstructor::class)
 abstract class PlaybackDatabase : RoomDatabase() {
@@ -275,6 +316,9 @@ abstract class PlaybackDatabase : RoomDatabase() {
 
     /** 暴露本地歌曲 DAO。 */
     abstract fun localSongDao(): LocalSongDao
+
+    /** 暴露搜索历史 DAO。 */
+    abstract fun searchHistoryDao(): SearchHistoryDao
 }
 
 /**
