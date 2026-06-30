@@ -957,7 +957,7 @@ git commit -m "重构搜索会话状态控制"
 - Create: `composeApp/src/commonTest/kotlin/com/yanhao/kmpmusic/feature/app/library/MusicAppLibraryStateSynchronizerTest.kt`
 - Modify: `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/app/MusicAppController.kt`
 
-- [ ] **Step 1: Write focused library synchronizer tests**
+- [x] **Step 1: Write focused library synchronizer tests**
 
 Create `composeApp/src/commonTest/kotlin/com/yanhao/kmpmusic/feature/app/library/MusicAppLibraryStateSynchronizerTest.kt`:
 
@@ -1170,7 +1170,7 @@ private class FakeMusicLibraryRepository(
 }
 ```
 
-- [ ] **Step 2: Run library tests and verify they fail**
+- [x] **Step 2: Run library tests and verify they fail**
 
 Run:
 
@@ -1180,7 +1180,7 @@ Run:
 
 Expected: FAIL with an unresolved reference to `LibraryStateSynchronizer`.
 
-- [ ] **Step 3: Add `LibraryStateSynchronizer`**
+- [x] **Step 3: Add `LibraryStateSynchronizer`**
 
 Create `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/app/library/LibraryStateSynchronizer.kt`:
 
@@ -1332,7 +1332,7 @@ class LibraryStateSynchronizer(
 }
 ```
 
-- [ ] **Step 4: Wire library synchronizer into `MusicAppController`**
+- [x] **Step 4: Wire library synchronizer into `MusicAppController`**
 
 Add a property after `favoritesRepository` is initialized. Because `favoritesRepository` is assigned in `init`, use `lateinit`:
 
@@ -1380,7 +1380,7 @@ fun loadLocalMusicLibrary() {
 
 Keep `resolveAvailableSongsByIds`, `preferredKnownSongs`, and `buildFavoriteSongs` in `MusicAppController` until Task 6 and Task 5 move their remaining call sites.
 
-- [ ] **Step 5: Run library and affected facade tests**
+- [x] **Step 5: Run library and affected facade tests**
 
 Run:
 
@@ -1390,7 +1390,7 @@ Run:
 
 Expected: PASS.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/app/library/LibraryStateSynchronizer.kt composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/app/MusicAppController.kt composeApp/src/commonTest/kotlin/com/yanhao/kmpmusic/feature/app/library/MusicAppLibraryStateSynchronizerTest.kt

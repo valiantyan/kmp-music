@@ -2,81 +2,47 @@
 
 ## What I implemented
 
-- Added `shouldShowTitlebarMusicSearch` to `MusicAppUiState` so desktop titlebar visibility is derived from shared navigation state instead of scattered UI checks.
-- Added controller-level tests covering:
-  - titlebar search visible only on Home/Favorites root pages
-  - search screen hides titlebar search
-- Updated `DesktopTitleBar` to accept `showSearch` and preserve layout width with a placeholder spacer when hidden.
-- Updated desktop titlebar search routing to open:
-  - `SearchContext.LocalLibrary` from `Home`
-  - `SearchContext.Favorites` from `Favorites`
-  - `SearchContext.LocalLibrary` fallback for other root tabs
-- Updated desktop library sidebar search to stop routing to global search and remain a local filter placeholder.
-- Updated sidebar copy/comment semantics from global search to local filter semantics:
-  - `搜索本地库` -> `筛选本地库`
+- Added `LibraryStateSynchronizer` for library scan state, snapshot synchronization, full-library loading, recent playback visible list rebuilding, favorite entity completion, and permission gate state.
+- Wired `MusicAppController` to delegate library snapshot sync, initial scan state, permission confirmation checks, and on-demand local library loading to the synchronizer while keeping `MusicAppController` as the UI state owner.
+- Added focused `MusicAppLibraryStateSynchronizerTest` coverage for cold-start scan state, permanent permission denial, snapshot refresh, recent playback reconstruction, and no-op loading when local songs are already loaded.
+- Updated Task 4 checkboxes in `docs/superpowers/plans/2026-06-30-codebase-architecture-optimization-phase1.md`.
+- Cleaned up extracted-code imports and used a constructor-initialized `val` for the synchronizer to avoid a new Kotlin `lateinit` warning.
 
 ## What I tested and test results
 
-1. Focused desktop tests for Task 4 visibility rules
-   - Result: PASS after implementation
-2. Android shared compile
-   - Result: PASS
-
-## TDD Evidence
-
-### RED command/output summary
-
-Command:
+RED:
 
 ```bash
-./gradlew :composeApp:desktopTest --tests "com.yanhao.kmpmusic.feature.app.MusicAppControllerTest.titlebarSearchOnlyShowsOnHomeAndFavoritesRootPages" --tests "com.yanhao.kmpmusic.feature.app.MusicAppControllerTest.searchScreenHidesTitlebarSearch"
+./gradlew :composeApp:desktopTest --tests "com.yanhao.kmpmusic.feature.app.library.MusicAppLibraryStateSynchronizerTest"
 ```
 
-Summary:
+Expected failure was the missing `LibraryStateSynchronizer` reference before the production class existed.
 
-- Build failed in `:composeApp:compileTestKotlinDesktop`
-- Cause: unresolved reference `shouldShowTitlebarMusicSearch` in `MusicAppControllerTest.kt`
-
-### GREEN command/output summary
-
-Command:
+GREEN:
 
 ```bash
-./gradlew :composeApp:desktopTest --tests "com.yanhao.kmpmusic.feature.app.MusicAppControllerTest.titlebarSearchOnlyShowsOnHomeAndFavoritesRootPages" --tests "com.yanhao.kmpmusic.feature.app.MusicAppControllerTest.searchScreenHidesTitlebarSearch"
+./gradlew :composeApp:desktopTest --tests "com.yanhao.kmpmusic.feature.app.library.MusicAppLibraryStateSynchronizerTest" --tests "com.yanhao.kmpmusic.feature.app.MusicAppControllerTest.coldStartWithPersistedSongsShowsDoneStateWithoutFullLibraryLoad" --tests "com.yanhao.kmpmusic.feature.app.MusicAppControllerTest.scanPermissionPermanentlyDeniedRequiresUserConfirmationBeforeSettings" --tests "com.yanhao.kmpmusic.feature.app.MusicAppControllerTest.localMusicPageLoadsFullSongsOnDemand"
 ```
 
-Summary:
+Result: `BUILD SUCCESSFUL`.
 
-- `BUILD SUCCESSFUL`
-- Focused tests passed
-
-Additional verification:
-
-```bash
-./gradlew :composeApp:compileDebugKotlinAndroid
-```
-
-Summary:
-
-- `BUILD SUCCESSFUL`
-- Android/common compile remained healthy
+Notes: Gradle still reports existing deprecated Kotlin MPP property warnings and two pre-existing `PlaybackCoordinator.kt` Elvis warnings.
 
 ## Files changed
 
-- `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/app/MusicAppModels.kt`
-- `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/desktop/DesktopMusicApp.kt`
-- `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/desktop/DesktopMusicComponents.kt`
-- `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/desktop/DesktopLibrarySidebar.kt`
-- `composeApp/src/commonTest/kotlin/com/yanhao/kmpmusic/feature/app/MusicAppControllerTest.kt`
-- `.superpowers/sdd/task-4-report.md`
+- `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/app/library/LibraryStateSynchronizer.kt`
+- `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/app/MusicAppController.kt`
+- `composeApp/src/commonTest/kotlin/com/yanhao/kmpmusic/feature/app/library/MusicAppLibraryStateSynchronizerTest.kt`
+- `docs/superpowers/plans/2026-06-30-codebase-architecture-optimization-phase1.md`
 
 ## Self-review findings
 
-- Visibility rule is now centralized in shared UI state, which avoids patching desktop-only route checks in multiple composables.
-- Titlebar routing now follows active root tab explicitly, which matches Tasks 1-3 contextual search model.
-- Sidebar search no longer opens the global search page, preserving Task 5 space for future local filtering behavior.
-- Layout stability is preserved when titlebar search is hidden by keeping the same width with a spacer.
+- The synchronizer does not own Compose mutable state; it returns updated immutable `MusicAppUiState`.
+- The full-library refresh gate remains unchanged: refresh only when local songs are already loaded or the Local Music secondary screen is active.
+- Recent songs still derive from playback history, not scan result order.
+- Playback restore remains sequenced by the facade after state synchronization.
+- The test helper now asserts against the repository instance actually injected into the synchronizer.
 
-## Any issues or concerns
+## Concerns
 
-- Existing Gradle output still contains unrelated warnings about deprecated Kotlin/AGP properties and two `PlaybackCoordinator.kt` Elvis warnings; they were pre-existing and did not block this task.
+- None for Task 4. Existing controller helper duplication remains intentionally in place for Task 5 and Task 6 follow-up extraction.
