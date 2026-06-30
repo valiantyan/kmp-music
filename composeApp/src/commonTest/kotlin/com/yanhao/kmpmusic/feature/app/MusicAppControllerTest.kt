@@ -35,6 +35,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -709,6 +710,7 @@ class MusicAppControllerTest {
         val controller = createController()
         controller.scanLocalMusic(request = LocalMusicScanRequest.Refresh)
         controller.setSearchQuery(query = "旅行团")
+        controller.commitSearchQueryToHistory()
         controller.setSearchScope(scope = SearchScope.Songs)
         val result = controller.search()
         assertTrue(result.songs.isNotEmpty())
@@ -724,6 +726,7 @@ class MusicAppControllerTest {
         val controller = createController()
         controller.scanLocalMusic(request = LocalMusicScanRequest.Refresh)
         controller.setSearchQuery(query = "One Summer")
+        controller.commitSearchQueryToHistory()
         controller.setSearchScope(scope = SearchScope.Songs)
         assertEquals(
             expected = listOf("One Summer's Day"),
@@ -740,6 +743,7 @@ class MusicAppControllerTest {
         controller.scanLocalMusic(request = LocalMusicScanRequest.Refresh)
         controller.openSearch(context = SearchContext.LocalLibrary)
         controller.setSearchQuery(query = "One Summer")
+        controller.commitSearchQueryToHistory()
         controller.setSearchScope(scope = SearchScope.Songs)
 
         assertEquals(
@@ -761,6 +765,7 @@ class MusicAppControllerTest {
 
         controller.openSearch(context = SearchContext.Favorites)
         controller.setSearchQuery(query = "One Summer")
+        controller.commitSearchQueryToHistory()
         controller.setSearchScope(scope = SearchScope.Songs)
 
         assertEquals(
@@ -769,6 +774,7 @@ class MusicAppControllerTest {
         )
 
         controller.setSearchQuery(query = "The Best of Me")
+        controller.commitSearchQueryToHistory()
 
         assertTrue(actual = controller.search().songs.isEmpty())
     }
@@ -851,6 +857,7 @@ class MusicAppControllerTest {
 
         controller.openSearch(context = SearchContext.LocalLibrary)
         controller.setSearchQuery(query = "Seed 8")
+        controller.commitSearchQueryToHistory()
         controller.setSearchScope(scope = SearchScope.Songs)
 
         assertEquals(
@@ -858,6 +865,31 @@ class MusicAppControllerTest {
             actual = controller.search().songs.map { song -> song.title },
         )
         assertEquals(expected = 1, actual = repository.fullLibraryReads)
+    }
+
+    /**
+     * 搜索输入每次变化都会重新派生结果，但不能因此反复读取持久层完整曲库。
+     */
+    @Test
+    fun repeatedSearchQueryChangesReuseLoadedLocalSongs(): Unit = runTest {
+        val repository = SeededMusicLibraryRepository(seedCount = 8)
+        val controller = createController(
+            musicLibraryRepository = repository,
+            controllerScope = backgroundScope,
+        )
+
+        controller.openSearch(context = SearchContext.LocalLibrary)
+        controller.setSearchScope(scope = SearchScope.Songs)
+        listOf("a", "as", "asf", "asfa", "asfasfasdffsadfasdf").forEach { query: String ->
+            controller.setSearchQuery(query = query)
+            controller.search()
+        }
+
+        assertEquals(expected = 1, actual = repository.fullLibraryReads)
+        assertEquals(expected = 8, actual = controller.search().songs.size)
+        advanceTimeBy(delayTimeMillis = 301L)
+        advanceUntilIdle()
+        assertTrue(actual = controller.search().songs.isEmpty())
     }
 
     /**
@@ -886,22 +918,66 @@ class MusicAppControllerTest {
     }
 
     /**
-     * 有命中的搜索词在离开搜索页时应自动写入历史，避免各平台 UI 自己补提交逻辑。
+     * 非空搜索词在离开搜索页时应自动写入历史，避免各平台 UI 自己补提交逻辑。
      */
     @Test
-    fun searchQueryWithResultsCommitsToHistoryWhenLeavingSearch(): Unit = runBlocking {
+    fun nonBlankSearchQueryCommitsToHistoryWhenLeavingSearch(): Unit = runBlocking {
         val controller = createController()
         controller.scanLocalMusic(request = LocalMusicScanRequest.Refresh)
 
         controller.openSearch(context = SearchContext.LocalLibrary)
         controller.setSearchQuery(query = "One Summer")
-        assertTrue(actual = controller.search().songs.isNotEmpty())
 
         controller.navigateBack()
         controller.openSearch(context = SearchContext.LocalLibrary)
 
         assertEquals(
             expected = listOf("One Summer"),
+            actual = controller.uiState.searchHistoryFor(context = SearchContext.LocalLibrary),
+        )
+    }
+
+    /**
+     * 搜索行为记录不依赖结果命中，用户搜过的无结果关键词也应能回到历史里。
+     */
+    @Test
+    fun searchQueryWithoutResultsCommitsToHistoryWhenLeavingSearch(): Unit = runBlocking {
+        val controller = createController()
+        controller.scanLocalMusic(request = LocalMusicScanRequest.Refresh)
+
+        controller.openSearch(context = SearchContext.LocalLibrary)
+        controller.setSearchQuery(query = "绝对不存在的搜索词")
+        controller.commitSearchQueryToHistory()
+        assertTrue(actual = controller.search().songs.isEmpty())
+        assertTrue(actual = controller.search().albums.isEmpty())
+        assertTrue(actual = controller.search().artists.isEmpty())
+
+        controller.navigateBack()
+        controller.openSearch(context = SearchContext.LocalLibrary)
+
+        assertEquals(
+            expected = listOf("绝对不存在的搜索词"),
+            actual = controller.uiState.searchHistoryFor(context = SearchContext.LocalLibrary),
+        )
+    }
+
+    /**
+     * 清空搜索框会直接回到最近搜索空态，旧搜索词必须在覆盖前写入历史。
+     */
+    @Test
+    fun clearingSearchQueryCommitsPreviousQueryToHistory(): Unit = runBlocking {
+        val controller = createController()
+        controller.scanLocalMusic(request = LocalMusicScanRequest.Refresh)
+
+        controller.openSearch(context = SearchContext.LocalLibrary)
+        controller.setSearchQuery(query = "心")
+        controller.commitSearchQueryToHistory()
+        controller.setSearchQuery(query = "山")
+
+        controller.setSearchQuery(query = "")
+
+        assertEquals(
+            expected = listOf("山", "心"),
             actual = controller.uiState.searchHistoryFor(context = SearchContext.LocalLibrary),
         )
     }
@@ -1110,6 +1186,7 @@ private fun createController(
     searchHistoryRepository: SearchHistoryRepository = FakeSearchHistoryRepository(),
     permissionSettingsOpener: PermissionSettingsOpener = PermissionSettingsOpener {},
     controllerScope: CoroutineScope = testControllerScope(),
+    searchQueryDebounceMillis: Long = 300L,
 ): MusicAppController {
     return MusicAppController(
         musicLibraryRepository = musicLibraryRepository,
@@ -1120,6 +1197,7 @@ private fun createController(
         searchHistoryRepository = searchHistoryRepository,
         permissionSettingsOpener = permissionSettingsOpener,
         controllerScope = controllerScope,
+        searchQueryDebounceMillis = searchQueryDebounceMillis,
     )
 }
 

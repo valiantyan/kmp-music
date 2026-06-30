@@ -95,8 +95,8 @@ object AndroidPlaybackSession {
                     favoriteSongDao = favoriteSongDao,
                 ),
                 injectedFavoritesRepository = favoritesRepository,
-                searchHistoryRepository = PersistentSearchHistoryRepository(
-                    searchHistoryDao = playbackDatabase.searchHistoryDao(),
+                searchHistoryRepository = PersistentSearchHistoryRepository.create(
+                    playbackDatabase = playbackDatabase,
                     nowMillis = { System.currentTimeMillis() },
                 ),
                 permissionSettingsOpener = permissionSettingsOpener,

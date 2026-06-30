@@ -44,7 +44,11 @@ import com.yanhao.kmpmusic.domain.usecase.ToggleFavoriteUseCaseImpl
 import com.yanhao.kmpmusic.domain.usecase.buildSearchResult
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+
+private const val DEFAULT_SEARCH_QUERY_DEBOUNCE_MILLIS = 300L
 
 /**
  * App 状态控制器，替代原型中的 React `useState` 集群。
@@ -61,6 +65,7 @@ class MusicAppController(
     private val permissionSettingsOpener: PermissionSettingsOpener = PermissionSettingsOpener {},
     private val controllerScope: CoroutineScope,
     private val nowMillis: () -> Long = { 0L },
+    private val searchQueryDebounceMillis: Long = DEFAULT_SEARCH_QUERY_DEBOUNCE_MILLIS,
 ) {
     // 收藏仓库需要依赖初始歌曲，所以在控制器中初始化。
     private val favoritesRepository: FavoritesRepository
@@ -87,6 +92,9 @@ class MusicAppController(
 
     // 冷启动恢复请求在曲库尚未准备好时先挂起，等扫描结果到位后再真正执行。
     private var isPlaybackRestorePending: Boolean = false
+
+    // 搜索输入节流任务，避免连续输入时每个字符都触发结果计算。
+    private var searchQueryDebounceJob: Job? = null
 
     /**
      * Compose 可观察 UI 状态。
@@ -270,9 +278,11 @@ class MusicAppController(
         if (context == SearchContext.LocalLibrary) {
             loadLocalMusicLibrary()
         }
+        syncActiveSearchQueryImmediately(query = "")
         uiState = uiState.copy(
             searchContext = context,
             searchQuery = "",
+            activeSearchQuery = "",
             searchScope = SearchScope.All,
         )
         navigateToSecondary(screen = SecondaryScreen.Search(context = context))
@@ -458,9 +468,20 @@ class MusicAppController(
         uiState = uiState.copy(favoriteSection = section)
     }
 
-    /** 更新搜索关键词。 */
+    /** 更新搜索关键词，清空输入前先保留用户刚刚搜索过的非空词。 */
     fun setSearchQuery(query: String) {
+        val previousQuery: String = uiState.searchQuery
+        if (shouldCommitSearchQueryBeforeClearing(previousQuery = previousQuery, nextQuery = query)) {
+            commitSearchQueryToHistory(
+                query = previousQuery,
+                context = uiState.searchContext,
+            )
+            syncActiveSearchQueryImmediately(query = "")
+            uiState = uiState.copy(searchQuery = query)
+            return
+        }
         uiState = uiState.copy(searchQuery = query)
+        scheduleActiveSearchQuerySync(query = query)
     }
 
     /** 更新搜索范围。 */
@@ -470,21 +491,38 @@ class MusicAppController(
 
     /** 将当前搜索词写入当前上下文历史。 */
     fun commitSearchQueryToHistory() {
-        val normalizedQuery: String = uiState.searchQuery.trim()
+        syncActiveSearchQueryImmediately(query = uiState.searchQuery)
+        commitSearchQueryToHistory(
+            query = uiState.searchQuery,
+            context = uiState.searchContext,
+        )
+    }
+
+    // 清空搜索框会切到历史空态，必须在旧 query 被覆盖前把它记入最近搜索。
+    private fun shouldCommitSearchQueryBeforeClearing(previousQuery: String, nextQuery: String): Boolean {
+        return uiState.navigationState.secondaryScreen is SecondaryScreen.Search &&
+            previousQuery.trim().isNotBlank() &&
+            nextQuery.isBlank()
+    }
+
+    // 支持在覆盖 UI 输入前提交指定 query，避免清空输入时丢失旧搜索词。
+    private fun commitSearchQueryToHistory(query: String, context: SearchContext) {
+        val normalizedQuery: String = query.trim()
         if (normalizedQuery.isBlank()) {
             return
         }
         updateSearchHistory(
-            context = uiState.searchContext,
+            context = context,
             history = moveQueryToHistoryTop(
                 query = normalizedQuery,
-                currentHistory = uiState.searchHistoryFor(context = uiState.searchContext),
+                currentHistory = uiState.searchHistoryFor(context = context),
             ),
         )
     }
 
     /** 点击历史词时回填搜索框并刷新该词位置。 */
     fun selectSearchHistory(query: String) {
+        syncActiveSearchQueryImmediately(query = query)
         uiState = uiState.copy(searchQuery = query)
         commitSearchQueryToHistory()
     }
@@ -505,10 +543,30 @@ class MusicAppController(
     /** 执行搜索，供 UI 渲染派生结果。 */
     fun search(): com.yanhao.kmpmusic.domain.usecase.SearchResult {
         return buildSearchResult(
-            query = uiState.searchQuery,
+            query = uiState.activeSearchQuery,
             scope = uiState.searchScope,
             allSongs = searchSourceSongs(),
         )
+    }
+
+    // 输入节流结束后才更新真正参与搜索的 query，降低连续输入时的过滤和重组频率。
+    private fun scheduleActiveSearchQuerySync(query: String) {
+        searchQueryDebounceJob?.cancel()
+        if (query.isBlank()) {
+            syncActiveSearchQueryImmediately(query = query)
+            return
+        }
+        searchQueryDebounceJob = controllerScope.launch {
+            delay(timeMillis = searchQueryDebounceMillis)
+            uiState = uiState.copy(activeSearchQuery = query)
+        }
+    }
+
+    // 显式提交、清空和历史点击必须立刻同步，不能等待节流窗口。
+    private fun syncActiveSearchQueryImmediately(query: String) {
+        searchQueryDebounceJob?.cancel()
+        searchQueryDebounceJob = null
+        uiState = uiState.copy(activeSearchQuery = query)
     }
 
     /** 将命中的历史词提到最前，并限制保留数量。 */

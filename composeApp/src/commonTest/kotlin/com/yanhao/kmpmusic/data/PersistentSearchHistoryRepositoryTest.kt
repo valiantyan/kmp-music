@@ -72,6 +72,34 @@ class PersistentSearchHistoryRepositoryTest {
         )
     }
 
+    /**
+     * 覆盖保存会先删再写，必须走事务边界避免写入中断后丢掉旧历史。
+     */
+    @Test
+    fun saveSearchHistoryRunsInsideWriteTransaction(): Unit = runTest {
+        val dao: FakeSearchHistoryDao = FakeSearchHistoryDao()
+        var transactionCount: Int = 0
+        val repository: SearchHistoryRepository = PersistentSearchHistoryRepository(
+            searchHistoryDao = dao,
+            runInWriteTransaction = { block: suspend () -> Unit ->
+                transactionCount += 1
+                block()
+            },
+            nowMillis = { 789L },
+        )
+
+        repository.saveSearchHistory(
+            context = SearchContext.LocalLibrary,
+            history = listOf("不存在的搜索词"),
+        )
+
+        assertEquals(expected = 1, actual = transactionCount)
+        assertEquals(
+            expected = listOf("不存在的搜索词"),
+            actual = repository.getSearchHistory(context = SearchContext.LocalLibrary),
+        )
+    }
+
     private class FakeSearchHistoryDao : SearchHistoryDao {
         // 用上下文和搜索词模拟数据库主键。
         private val rows: LinkedHashMap<Pair<String, String>, SearchHistoryEntity> = linkedMapOf()

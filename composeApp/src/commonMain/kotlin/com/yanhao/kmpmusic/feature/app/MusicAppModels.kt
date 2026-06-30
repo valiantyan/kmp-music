@@ -186,6 +186,7 @@ data class MusicAppUiState(
     val selectedAlbumId: String = "river-year",
     val selectedArtistId: String = "trip",
     val searchQuery: String = "",
+    val activeSearchQuery: String = "",
     val searchScope: SearchScope = SearchScope.All,
     val searchContext: SearchContext = SearchContext.LocalLibrary,
     val localLibrarySearchHistory: List<String> = emptyList(),

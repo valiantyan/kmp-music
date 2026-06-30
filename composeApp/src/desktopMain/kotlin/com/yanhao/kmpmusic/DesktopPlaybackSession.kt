@@ -55,8 +55,8 @@ internal fun createDesktopPlaybackController(
             favoriteSongDao = favoriteSongDao,
         ),
         injectedFavoritesRepository = favoritesRepository,
-        searchHistoryRepository = PersistentSearchHistoryRepository(
-            searchHistoryDao = playbackDatabase.searchHistoryDao(),
+        searchHistoryRepository = PersistentSearchHistoryRepository.create(
+            playbackDatabase = playbackDatabase,
             nowMillis = nowMillis,
         ),
         controllerScope = controllerScope,
