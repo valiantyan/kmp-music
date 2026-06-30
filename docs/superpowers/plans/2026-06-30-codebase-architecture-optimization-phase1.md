@@ -1629,7 +1629,7 @@ git commit -m "重构收藏状态同步"
 - Create: `composeApp/src/commonTest/kotlin/com/yanhao/kmpmusic/feature/app/playback/MusicAppPlaybackRestoreOrchestratorTest.kt`
 - Modify: `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/app/MusicAppController.kt`
 
-- [ ] **Step 1: Write playback UI synchronizer tests**
+- [x] **Step 1: Write playback UI synchronizer tests**
 
 Create `composeApp/src/commonTest/kotlin/com/yanhao/kmpmusic/feature/app/playback/MusicAppPlaybackUiStateSynchronizerTest.kt`:
 
@@ -1703,7 +1703,7 @@ class MusicAppPlaybackUiStateSynchronizerTest {
 }
 ```
 
-- [ ] **Step 2: Write playback restore tests**
+- [x] **Step 2: Write playback restore tests**
 
 Create `composeApp/src/commonTest/kotlin/com/yanhao/kmpmusic/feature/app/playback/MusicAppPlaybackRestoreOrchestratorTest.kt`:
 
@@ -1798,7 +1798,7 @@ class MusicAppPlaybackRestoreOrchestratorTest {
 }
 ```
 
-- [ ] **Step 3: Run playback tests and verify they fail**
+- [x] **Step 3: Run playback tests and verify they fail**
 
 Run:
 
@@ -1808,7 +1808,7 @@ Run:
 
 Expected: FAIL with unresolved references to `PlaybackUiStateSynchronizer` and `PlaybackRestoreOrchestrator`.
 
-- [ ] **Step 4: Add playback UI synchronizer**
+- [x] **Step 4: Add playback UI synchronizer**
 
 Create `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/app/playback/PlaybackUiStateSynchronizer.kt`:
 
@@ -1844,7 +1844,7 @@ class PlaybackUiStateSynchronizer(
 }
 ```
 
-- [ ] **Step 5: Add playback restore orchestrator**
+- [x] **Step 5: Add playback restore orchestrator**
 
 Create `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/app/playback/PlaybackRestoreOrchestrator.kt`:
 
@@ -1886,7 +1886,7 @@ class PlaybackRestoreOrchestrator(
 }
 ```
 
-- [ ] **Step 6: Wire playback collaborators into `MusicAppController`**
+- [x] **Step 6: Wire playback collaborators into `MusicAppController`**
 
 Add properties:
 
@@ -1949,7 +1949,7 @@ private fun preferredKnownSongs(): List<Song> {
 
 Delete `resolveAvailableSongsByIds` and `buildFavoriteSongs` from `MusicAppController` after all call sites use collaborators.
 
-- [ ] **Step 7: Run playback and restore tests**
+- [x] **Step 7: Run playback and restore tests**
 
 Run:
 
@@ -1959,7 +1959,7 @@ Run:
 
 Expected: PASS.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/app/playback/PlaybackUiStateSynchronizer.kt composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/app/playback/PlaybackRestoreOrchestrator.kt composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/app/MusicAppController.kt composeApp/src/commonTest/kotlin/com/yanhao/kmpmusic/feature/app/playback/MusicAppPlaybackUiStateSynchronizerTest.kt composeApp/src/commonTest/kotlin/com/yanhao/kmpmusic/feature/app/playback/MusicAppPlaybackRestoreOrchestratorTest.kt

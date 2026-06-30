@@ -43,7 +43,10 @@ import com.yanhao.kmpmusic.domain.usecase.ToggleFavoriteUseCaseImpl
 import com.yanhao.kmpmusic.domain.usecase.buildSearchResult
 import com.yanhao.kmpmusic.feature.app.favorites.FavoriteStateSynchronizer
 import com.yanhao.kmpmusic.feature.app.library.LibraryStateSynchronizer
+import com.yanhao.kmpmusic.feature.app.library.MusicLibraryProjector
 import com.yanhao.kmpmusic.feature.app.navigation.NavigationStateController
+import com.yanhao.kmpmusic.feature.app.playback.PlaybackRestoreOrchestrator
+import com.yanhao.kmpmusic.feature.app.playback.PlaybackUiStateSynchronizer
 import com.yanhao.kmpmusic.feature.app.search.SearchSessionController
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
@@ -80,6 +83,12 @@ class MusicAppController(
     // 收藏状态同步器统一收藏切换后的列表投影，facade 只保留入口与状态发布。
     private val favoriteStateSynchronizer: FavoriteStateSynchronizer
 
+    // 播放状态投影由专用同步器统一负责，facade 只保留状态所有权与观察者发布。
+    private val playbackUiStateSynchronizer: PlaybackUiStateSynchronizer
+
+    // 冷启动恢复由编排器统一管理依赖顺序，避免 facade 混杂实体解析与恢复时序。
+    private val playbackRestoreOrchestrator: PlaybackRestoreOrchestrator
+
     // 本地扫描用例。
     private val scanLocalMusicUseCase: ScanLocalMusicUseCase = ScanLocalMusicUseCaseImpl(
         localMusicScanner = localMusicScanner,
@@ -113,15 +122,22 @@ class MusicAppController(
     /**
      * Compose 可观察 UI 状态。
      */
-    var uiState: MusicAppUiState by mutableStateOf(createInitialState())
+    var uiState: MusicAppUiState by mutableStateOf(
+        MusicAppUiState(
+            likedSongIds = emptySet(),
+            currentSongId = null,
+            playbackStatus = PlaybackStatus.Idle,
+            queueSongIds = emptyList(),
+        ),
+    )
         private set
 
     init {
-        playbackCoordinator.start(scope = controllerScope) {
-            syncPlaybackState(playbackState = playbackRepository.getPlaybackState())
-        }
+        val initialHomePreview: List<Song> = musicLibraryRepository.getHomePreview(limit = 6)
+        val initialLikedSongIds: Set<String> = injectedFavoritesRepository?.getLikedSongIds()
+            ?: initialHomePreview.filter { song: Song -> song.isLiked }.map { song: Song -> song.id }.toSet()
         favoritesRepository = injectedFavoritesRepository ?: InMemoryFavoritesRepository(
-            initialLikedSongIds = uiState.likedSongIds,
+            initialLikedSongIds = initialLikedSongIds,
         )
         toggleFavoriteUseCase = ToggleFavoriteUseCaseImpl(
             favoritesRepository = favoritesRepository,
@@ -141,6 +157,22 @@ class MusicAppController(
                 )
             },
         )
+        playbackUiStateSynchronizer = PlaybackUiStateSynchronizer(
+            playbackRepository = playbackRepository,
+            recentSongsBuilder = libraryStateSynchronizer::buildRecentSongs,
+        )
+        playbackRestoreOrchestrator = PlaybackRestoreOrchestrator(
+            playbackSnapshotStore = playbackSnapshotStore,
+            availableSongsResolver = libraryStateSynchronizer::resolveAvailableSongsByIds,
+            restoreSnapshot = playbackCoordinator::restoreSnapshot,
+        )
+        uiState = createInitialState(
+            homePreview = initialHomePreview,
+            initialLikedSongIds = initialLikedSongIds,
+        )
+        playbackCoordinator.start(scope = controllerScope) {
+            syncPlaybackState(playbackState = playbackRepository.getPlaybackState())
+        }
     }
 
     /**
@@ -239,24 +271,12 @@ class MusicAppController(
      * 按可用曲库恢复持久化播放快照，并始终以暂停态回填共享 UI。
      */
     suspend fun restorePlaybackSnapshot() {
-        val savedQueueSongIds: List<String> = playbackSnapshotStore.getSavedQueueSongIds()
-        if (savedQueueSongIds.isEmpty()) {
-            isPlaybackRestorePending = false
-            return
-        }
-        val availableSongs: List<Song> = resolveAvailableSongsByIds(
-            songIds = savedQueueSongIds,
+        val result: PlaybackRestoreOrchestrator.Result = playbackRestoreOrchestrator.restore(
+            state = uiState,
             preferredSongs = preferredKnownSongs(),
         )
-        if (availableSongs.isEmpty()) {
-            isPlaybackRestorePending = true
-            return
-        }
-        uiState = uiState.copy(queueSongsSnapshot = availableSongs)
-        isPlaybackRestorePending = false
-        playbackCoordinator.restoreSnapshot(
-            availableSongs = availableSongs,
-        )
+        uiState = uiState.copy(queueSongsSnapshot = result.state.queueSongsSnapshot)
+        isPlaybackRestorePending = result.isPending
     }
 
     /** 打开权限设置确认框，由用户选择是否离开 App 进入系统设置。 */
@@ -615,13 +635,13 @@ class MusicAppController(
     }
 
     // 创建初始状态，保证仓库初始化顺序集中。
-    private fun createInitialState(): MusicAppUiState {
-        val homePreview: List<Song> = musicLibraryRepository.getHomePreview(limit = 6)
+    private fun createInitialState(
+        homePreview: List<Song>,
+        initialLikedSongIds: Set<String>,
+    ): MusicAppUiState {
         val stats: LibraryStats = musicLibraryRepository.getLibraryStats()
         val playbackState: PlaybackState = playbackRepository.getPlaybackState()
         val queueState: QueueState = playbackRepository.getQueueState()
-        val initialLikedSongIds: Set<String> = injectedFavoritesRepository?.getLikedSongIds()
-            ?: homePreview.filter { song -> song.isLiked }.map { song -> song.id }.toSet()
         val previewWithLikes = homePreview.map { song ->
             song.copy(isLiked = initialLikedSongIds.contains(song.id) || song.isLiked)
         }
@@ -631,7 +651,7 @@ class MusicAppController(
             localSongs = emptyList(),
             localAlbums = emptyList(),
             localArtists = emptyList(),
-            favoriteSongs = buildFavoriteSongs(
+            favoriteSongs = libraryStateSynchronizer.buildFavoriteSongs(
                 likedSongIds = initialLikedSongIds,
                 preferredSongs = previewWithLikes,
             ),
@@ -646,7 +666,27 @@ class MusicAppController(
             queueSongIds = queueState.songIds,
             libraryStats = stats,
             scanState = initialScanState,
-            recentSongs = buildRecentSongs(songs = previewWithLikes),
+            recentSongs = libraryStateSynchronizer.buildRecentSongs(
+                state = MusicAppUiState(
+                    homeLocalSongPreview = previewWithLikes,
+                    localSongs = emptyList(),
+                    localAlbums = emptyList(),
+                    localArtists = emptyList(),
+                    favoriteSongs = emptyList(),
+                    queueSongsSnapshot = emptyList(),
+                    likedSongIds = initialLikedSongIds,
+                    currentSongId = playbackState.currentSongId,
+                    playbackStatus = playbackState.status,
+                    playbackPositionMs = playbackState.positionMs,
+                    playbackDurationMs = playbackState.durationMs,
+                    playbackMode = queueState.playbackMode,
+                    playbackError = playbackState.error,
+                    queueSongIds = queueState.songIds,
+                    libraryStats = stats,
+                    scanState = initialScanState,
+                ),
+                extraSongs = previewWithLikes,
+            ),
             themeMode = userPreferencesRepository.getThemeMode(),
             localLibrarySearchHistory = searchHistoryRepository.getSearchHistory(
                 context = SearchContext.LocalLibrary,
@@ -669,16 +709,9 @@ class MusicAppController(
 
     // 同步播放仓库和 UI 状态，避免多个入口各自写状态。
     private fun syncPlaybackState(playbackState: PlaybackState) {
-        val queueState: QueueState = playbackRepository.getQueueState()
-        uiState = uiState.copy(
-            currentSongId = playbackState.currentSongId,
-            playbackStatus = playbackState.status,
-            playbackPositionMs = playbackState.positionMs,
-            playbackDurationMs = playbackState.durationMs,
-            playbackMode = queueState.playbackMode,
-            playbackError = playbackState.error,
-            queueSongIds = queueState.songIds,
-            recentSongs = buildRecentSongs(songs = knownSongsForRecentPlayback()),
+        uiState = playbackUiStateSynchronizer.syncPlaybackState(
+            state = uiState,
+            playbackState = playbackState,
         )
         publishPlaybackUiState()
     }
@@ -690,22 +723,6 @@ class MusicAppController(
             snapshot = snapshot,
         )
         restorePlaybackSnapshotIfPending()
-    }
-
-    // 最近播放只读取播放历史，不从扫描结果自动生成。
-    private fun buildRecentSongs(songs: List<Song>): List<Song> {
-        val songsById: Map<String, Song> = songs.distinctBy { song -> song.id }.associateBy { song -> song.id }
-        return playbackRepository.getPlaybackHistory().songIds
-            .mapNotNull { songId: String -> songsById[songId] }
-    }
-
-    // 最近播放要覆盖当前队列和完整曲库，避免播放非首页预览歌曲后无法反查实体。
-    private fun knownSongsForRecentPlayback(extraSongs: List<Song> = emptyList()): List<Song> {
-        return extraSongs +
-            uiState.queueSongsSnapshot +
-            uiState.localSongs +
-            uiState.homeLocalSongPreview +
-            uiState.favoriteSongs
     }
 
     // 只有启动期显式请求过恢复时，扫描成功后才续上真正的快照恢复，避免平时扫描打断当前播放。
@@ -727,32 +744,13 @@ class MusicAppController(
         }
     }
 
-    // 收藏和冷启动恢复都需要按 id 补齐歌曲实体，优先复用当前已知对象，缺口再向仓库按需查询。
-    private fun resolveAvailableSongsByIds(songIds: List<String>, preferredSongs: List<Song>): List<Song> {
-        if (songIds.isEmpty()) {
-            return emptyList()
-        }
-        val preferredById: Map<String, Song> = preferredSongs.associateBy { song -> song.id }
-        val fetchedSongs: List<Song> = musicLibraryRepository.getAvailableSongsByIds(songIds = songIds)
-        val fetchedSongIds: Set<String> = fetchedSongs.map { song -> song.id }.toSet()
-        return (fetchedSongs.map { song -> preferredById[song.id] ?: song } +
-            preferredSongs.filter { song -> songIds.contains(song.id) && !fetchedSongIds.contains(song.id) })
-            .distinctBy { song -> song.id }
-    }
-
     // 当前状态里已经拿到的歌曲优先参与收藏/恢复，避免重复构造不同实例。
     private fun preferredKnownSongs(): List<Song> {
-        return (uiState.queueSongsSnapshot + uiState.localSongs + uiState.homeLocalSongPreview + uiState.favoriteSongs)
-            .distinctBy { song -> song.id }
-    }
-
-    // 收藏页的实体来源独立于 localSongs 是否已加载，保证首页 preview 拆分后语义仍然稳定。
-    private fun buildFavoriteSongs(likedSongIds: Set<String>, preferredSongs: List<Song>): List<Song> {
-        return resolveAvailableSongsByIds(
-            songIds = likedSongIds.toList(),
-            preferredSongs = preferredSongs,
-        ).map { song ->
-            song.copy(isLiked = true)
-        }
+        return MusicLibraryProjector.buildDetailSongs(
+            queueSongsSnapshot = uiState.queueSongsSnapshot,
+            localSongs = uiState.localSongs,
+            homeLocalSongPreview = uiState.homeLocalSongPreview,
+            favoriteSongs = uiState.favoriteSongs,
+        )
     }
 }

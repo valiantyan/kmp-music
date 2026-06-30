@@ -1,114 +1,70 @@
-# Task 6 Report: Final Verification And Worktree Hygiene
+# Task 6 Report: Extract Playback UI Sync And Restore Orchestration
 
-## Result
+## What I implemented
 
-- Status: `DONE`
-- Task brief: `/Users/yanhao/Desktop/demo/kmp-music/.superpowers/sdd/task-6-brief.md`
-- Scope: final verification and plan status hygiene only
+- Added `PlaybackUiStateSynchronizer` to project `PlaybackState` plus repository `QueueState` into `MusicAppUiState`.
+- Added `PlaybackRestoreOrchestrator` to coordinate saved queue ids, available song resolution, pending restore state, and the call into playback restoration.
+- Wired `MusicAppController` to delegate playback UI sync and snapshot restore orchestration while keeping the facade as the only Compose `mutableStateOf` owner.
+- Replaced controller-local preferred song collection with `MusicLibraryProjector.buildDetailSongs`.
+- Removed controller-local `buildRecentSongs`, `knownSongsForRecentPlayback`, `resolveAvailableSongsByIds`, and `buildFavoriteSongs` after their call sites moved to collaborators.
+- Added focused playback UI and restore orchestrator tests.
+- Updated Task 6 checkboxes in `docs/superpowers/plans/2026-06-30-codebase-architecture-optimization-phase1.md`.
 
-## Files Changed
-
-- `/Users/yanhao/Desktop/demo/kmp-music/docs/superpowers/plans/2026-06-30-playback-abstraction-audit-implementation.md`
-- `/Users/yanhao/Desktop/demo/kmp-music/.superpowers/sdd/task-6-report.md`
-
-## Verification Commands
-
-### 1. Whitespace validation
+## RED test evidence
 
 Command:
 
 ```bash
-git diff --check
+./gradlew :composeApp:desktopTest --tests "com.yanhao.kmpmusic.feature.app.playback.MusicAppPlaybackUiStateSynchronizerTest" --tests "com.yanhao.kmpmusic.feature.app.playback.MusicAppPlaybackRestoreOrchestratorTest"
 ```
 
-Outcome:
-
-- PASS
-- No output
-
-### 2. Focused playback tests
-
-Command:
-
-```bash
-./gradlew :composeApp:desktopTest --tests "com.yanhao.kmpmusic.domain.playback.PlaybackModelsTest"
-./gradlew :composeApp:desktopTest --tests "com.yanhao.kmpmusic.playback.DesktopVlcjAudioPlayerEngineTest"
-```
-
-Outcome:
-
-- PASS
-- `PlaybackModelsTest` passed
-- `DesktopVlcjAudioPlayerEngineTest` passed
-- Only existing Gradle deprecation warnings were emitted
-
-### 3. Required project verification
-
-Command:
-
-```bash
-./gradlew :composeApp:compileDebugKotlinAndroid :composeApp:desktopTest
-```
-
-Outcome:
-
-- PASS
-- Android compile passed
-- Desktop test suite passed
-- Only existing Gradle deprecation warnings were emitted
-
-### 4. Final git status
-
-Command:
-
-```bash
-git status --short --branch
-```
-
-Outcome:
+Relevant failure before production classes existed:
 
 ```text
-## codex/playback-abstraction-audit-implementation
- M .superpowers/sdd/task-2-report.md
- M .superpowers/sdd/task-4-report.md
- M docs/superpowers/plans/2026-06-30-playback-abstraction-audit-implementation.md
-?? .superpowers/sdd/task-6-report.md
-?? docs/superpowers/specs/2026-06-29-desktop-contextual-search-design.md
+Unresolved reference 'PlaybackUiStateSynchronizer'
+Unresolved reference 'PlaybackRestoreOrchestrator'
 ```
 
-Interpretation:
+Result: RED confirmed with the expected missing collaborator references.
 
-- The expected pre-existing edits remain present.
-- The Task 6 plan file is now updated with checked boxes.
-- The task report file is intentionally untracked until the owner decides whether to keep or commit it.
-- The unrelated spec file remains untracked, as expected.
+## GREEN test evidence
 
-## Self-Review
+Command:
 
-- Verification matched the brief exactly and all required commands passed.
-- I did not touch production Kotlin because Task 6 is verification-only.
-- I updated only the Task 6 status markers in the owned plan file.
+```bash
+./gradlew :composeApp:desktopTest --tests "com.yanhao.kmpmusic.feature.app.playback.MusicAppPlaybackUiStateSynchronizerTest" --tests "com.yanhao.kmpmusic.feature.app.playback.MusicAppPlaybackRestoreOrchestratorTest" --tests "com.yanhao.kmpmusic.feature.app.MusicAppControllerTest.restorePlaybackSnapshotAllowsResume" --tests "com.yanhao.kmpmusic.feature.app.MusicAppControllerTest.restorePlaybackSnapshotDoesNotAutoScanWhenLibraryIsEmpty" --tests "com.yanhao.kmpmusic.feature.app.MusicAppControllerTest.restorePlaybackSnapshotRestoresSavedSongOutsidePreviewWithoutFullLibraryLoad"
+```
+
+Relevant output:
+
+```text
+BUILD SUCCESSFUL in 6s
+```
+
+Notes:
+
+- The command emitted existing Gradle MPP deprecation warnings.
+- The command emitted the existing `PlaybackCoordinator.kt` Elvis-operator warnings.
+- A first GREEN attempt exposed that writing `uiState = result.state` after `playbackCoordinator.restoreSnapshot` would overwrite the coordinator callback's restored playback fields. The final implementation merges only `queueSongsSnapshot` from the orchestrator result so pause status, current song, and restored position remain intact.
+
+## Files changed
+
+- `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/app/playback/PlaybackUiStateSynchronizer.kt`
+- `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/app/playback/PlaybackRestoreOrchestrator.kt`
+- `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/app/MusicAppController.kt`
+- `composeApp/src/commonTest/kotlin/com/yanhao/kmpmusic/feature/app/playback/MusicAppPlaybackUiStateSynchronizerTest.kt`
+- `composeApp/src/commonTest/kotlin/com/yanhao/kmpmusic/feature/app/playback/MusicAppPlaybackRestoreOrchestratorTest.kt`
+- `docs/superpowers/plans/2026-06-30-codebase-architecture-optimization-phase1.md`
+- `.superpowers/sdd/task-6-report.md`
+
+## Self-review findings
+
+- `PlaybackUiStateSynchronizer` and `PlaybackRestoreOrchestrator` do not own Compose mutable state; they return immutable results.
+- `MusicAppController` remains the public facade and still publishes playback UI state after sync.
+- Snapshot restore still does not auto-scan when saved songs are unavailable; it marks restore as pending.
+- Snapshot restore still allows resume from restored paused position.
+- Controller helper deletion follows the task boundary: favorite and available-song resolution now live behind existing collaborators.
 
 ## Concerns
 
-- No functional concerns from verification.
-- The working tree still contains pre-existing unrelated edits and an untracked spec file, but I left them untouched by design.
-
-## Fix Section
-
-- Corrected the earlier hygiene note that treated `.superpowers/sdd/task-6-report.md` as untracked. `git ls-files` confirmed it is tracked, so the final status must describe the real tracked changes instead of implying a new file.
-- Kept the fix scoped to Task 6 reporting and plan hygiene. I did not touch `.superpowers/sdd/task-2-report.md`, `.superpowers/sdd/task-4-report.md`, or `docs/superpowers/specs/2026-06-29-desktop-contextual-search-design.md`.
-
-### Commands And Output Summary
-
-Command:
-
-```bash
-git diff --check
-git status --short --branch
-```
-
-Outcome:
-
-- `git diff --check`: PASS, no whitespace issues.
-- `git status --short --branch`: still shows the pre-existing unrelated Task 2 and Task 4 report edits plus the known untracked spec file. The Task 6 report is now accounted for as a tracked change rather than an avoidable new untracked file.
+- The plan's example assigns `uiState = result.state` in `restorePlaybackSnapshot`; preserving existing behavior requires merging only the orchestrator-owned queue snapshot because `restoreSnapshot` synchronously publishes playback fields through the controller callback before the method returns.
