@@ -7,14 +7,26 @@ import com.yanhao.kmpmusic.domain.model.PlaybackStatus
 import kotlinx.coroutines.flow.Flow
 
 /**
- * 平台音频引擎契约，供 common 层协调真实播放。
+ * common 层和平台播放器之间的播放接口。
+ *
+ * 调用方只能通过队列、播放模式、音量和播放命令表达产品语义；真实解码、
+ * 媒体会话、原生库加载和平台权限都属于平台 adapter 的实现细节。
+ * 播放事实必须通过 [events] 回流 common 层，避免 UI、平台层和 repository
+ * 同时成为播放状态真相源。
  */
 interface AudioPlayerEngine {
-    /** 引擎主动上报的状态事件流。 */
+    /**
+     * 平台播放器主动上报的真实播放事件。
+     *
+     * [PlaybackCoordinator] 订阅该事件流后统一更新队列、进度、错误和快照。
+     */
     val events: Flow<PlaybackEngineEvent>
 
     /**
      * 用新的媒体队列替换当前引擎状态。
+     *
+     * [items] 已经由 common 层整理好 metadata 和 [com.yanhao.kmpmusic.domain.model.AudioSource]；
+     * 平台实现只负责把媒体项映射为 Media3、vlcj、AVPlayer 或其他平台播放器可消费的对象。
      *
      * @param items 新的可播放媒体列表。
      * @param startIndex 首次激活的队列下标。
