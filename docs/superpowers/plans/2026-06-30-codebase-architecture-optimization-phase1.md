@@ -1975,7 +1975,7 @@ git commit -m "重构播放 UI 同步与快照恢复"
 - Create: `composeApp/src/commonTest/kotlin/com/yanhao/kmpmusic/feature/app/session/LoginAndDialogStateControllerTest.kt`
 - Modify: `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/app/MusicAppController.kt`
 
-- [ ] **Step 1: Write session controller tests**
+- [x] **Step 1: Write session controller tests**
 
 Create `composeApp/src/commonTest/kotlin/com/yanhao/kmpmusic/feature/app/session/LoginAndDialogStateControllerTest.kt`:
 
@@ -2036,7 +2036,7 @@ class LoginAndDialogStateControllerTest {
 }
 ```
 
-- [ ] **Step 2: Run session tests and verify they fail**
+- [x] **Step 2: Run session tests and verify they fail**
 
 Run:
 
@@ -2046,7 +2046,7 @@ Run:
 
 Expected: FAIL with an unresolved reference to `LoginAndDialogStateController`.
 
-- [ ] **Step 3: Add session controller**
+- [x] **Step 3: Add session controller**
 
 Create `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/app/session/LoginAndDialogStateController.kt`:
 
@@ -2100,7 +2100,7 @@ object LoginAndDialogStateController {
 }
 ```
 
-- [ ] **Step 4: Wire lightweight session methods**
+- [x] **Step 4: Wire lightweight session methods**
 
 Modify `MusicAppController`:
 
@@ -2150,7 +2150,7 @@ fun sendLoginMail() {
 
 Do not move permission settings methods into this controller.
 
-- [ ] **Step 5: Run session and facade tests**
+- [x] **Step 5: Run session and facade tests**
 
 Run:
 
@@ -2160,7 +2160,7 @@ Run:
 
 Expected: PASS.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/app/session/LoginAndDialogStateController.kt composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/app/MusicAppController.kt composeApp/src/commonTest/kotlin/com/yanhao/kmpmusic/feature/app/session/LoginAndDialogStateControllerTest.kt

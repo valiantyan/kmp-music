@@ -48,6 +48,7 @@ import com.yanhao.kmpmusic.feature.app.navigation.NavigationStateController
 import com.yanhao.kmpmusic.feature.app.playback.PlaybackRestoreOrchestrator
 import com.yanhao.kmpmusic.feature.app.playback.PlaybackUiStateSynchronizer
 import com.yanhao.kmpmusic.feature.app.search.SearchSessionController
+import com.yanhao.kmpmusic.feature.app.session.LoginAndDialogStateController
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.launch
@@ -578,12 +579,12 @@ class MusicAppController(
 
     /** 打开队列弹层。 */
     fun openQueue() {
-        uiState = uiState.copy(isQueueOpen = true)
+        uiState = LoginAndDialogStateController.openQueue(state = uiState)
     }
 
     /** 关闭队列弹层。 */
     fun closeQueue() {
-        uiState = uiState.copy(isQueueOpen = false)
+        uiState = LoginAndDialogStateController.closeQueue(state = uiState)
     }
 
     /** 从队列移除歌曲，至少保留一首。 */
@@ -598,40 +599,43 @@ class MusicAppController(
 
     /** 打开更多操作弹层。 */
     fun openMore(song: Song) {
-        uiState = uiState.copy(moreSongId = song.id)
+        uiState = LoginAndDialogStateController.openMore(
+            state = uiState,
+            songId = song.id,
+        )
     }
 
     /** 关闭更多操作弹层。 */
     fun closeMore() {
-        uiState = uiState.copy(moreSongId = null)
+        uiState = LoginAndDialogStateController.closeMore(state = uiState)
     }
 
     /** 打开清理缓存确认。 */
     fun openClearCacheDialog() {
-        uiState = uiState.copy(isClearCacheDialogOpen = true)
+        uiState = LoginAndDialogStateController.openClearCacheDialog(state = uiState)
     }
 
     /** 关闭清理缓存确认。 */
     fun closeClearCacheDialog() {
-        uiState = uiState.copy(isClearCacheDialogOpen = false)
+        uiState = LoginAndDialogStateController.closeClearCacheDialog(state = uiState)
     }
 
     /** 确认清理缓存。 */
     fun confirmClearCache() {
-        uiState = uiState.copy(isClearCacheDialogOpen = false)
+        uiState = LoginAndDialogStateController.confirmClearCache(state = uiState)
     }
 
     /** 更新登录邮箱。 */
     fun setEmail(email: String) {
-        uiState = uiState.copy(email = email)
+        uiState = LoginAndDialogStateController.setEmail(
+            state = uiState,
+            email = email,
+        )
     }
 
     /** 模拟发送登录邮件。 */
     fun sendLoginMail() {
-        if (!uiState.email.contains("@")) {
-            return
-        }
-        uiState = uiState.copy(isMailSent = true)
+        uiState = LoginAndDialogStateController.sendLoginMail(state = uiState)
     }
 
     // 创建初始状态，保证仓库初始化顺序集中。
