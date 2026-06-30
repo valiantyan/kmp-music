@@ -1089,7 +1089,7 @@ git commit -m "实现桌面上下文搜索页面"
 - Verify: `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/desktop/DesktopMusicComponents.kt`
 - Verify: `composeApp/src/commonTest/kotlin/com/yanhao/kmpmusic/feature/app/MusicAppControllerTest.kt`
 
-- [ ] **Step 1: Run full relevant verification**
+- [x] **Step 1: Run full relevant verification**
 
 Run:
 
@@ -1099,7 +1099,7 @@ Run:
 
 Expected: both tasks pass.
 
-- [ ] **Step 2: Run source checks for stale Search object usage**
+- [x] **Step 2: Run source checks for stale Search object usage**
 
 Run:
 
@@ -1109,7 +1109,7 @@ rg -n "SecondaryScreen\\.Search(?!\\()" composeApp/src/commonMain/kotlin compose
 
 Expected: no results. Every Search route should be `SecondaryScreen.Search(context = ...)` or a type check `is SecondaryScreen.Search`.
 
-- [ ] **Step 3: Run source checks for accidental sidebar search routing**
+- [x] **Step 3: Run source checks for accidental sidebar search routing**
 
 Run:
 
