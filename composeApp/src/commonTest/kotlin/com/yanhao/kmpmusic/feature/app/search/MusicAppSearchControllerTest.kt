@@ -107,6 +107,76 @@ class MusicAppSearchControllerTest {
         assertEquals(expected = listOf("river"), actual = state.favoritesSearchHistory)
     }
 
+    @Test
+    fun selectSearchHistoryRestoresQueryAndMovesItToTop(): Unit = runTest {
+        val controller = SearchSessionController(
+            searchHistoryRepository = FakeSearchHistoryRepository(),
+            controllerScope = this,
+            debounceMillis = 300L,
+            publishStateUpdate = { _ -> },
+        )
+        val state = testState().copy(
+            searchContext = SearchContext.LocalLibrary,
+            localLibrarySearchHistory = listOf("sea", "river"),
+        )
+
+        val nextState = controller.selectSearchHistory(
+            state = state,
+            query = "river",
+        )
+
+        assertEquals(expected = "river", actual = nextState.searchQuery)
+        assertEquals(expected = "river", actual = nextState.activeSearchQuery)
+        assertEquals(expected = listOf("river", "sea"), actual = nextState.localLibrarySearchHistory)
+    }
+
+    @Test
+    fun removeSearchHistoryItemOnlyDeletesRequestedEntryInContext(): Unit = runTest {
+        val controller = SearchSessionController(
+            searchHistoryRepository = FakeSearchHistoryRepository(),
+            controllerScope = this,
+            debounceMillis = 300L,
+            publishStateUpdate = { _ -> },
+        )
+        val state = testState().copy(
+            searchContext = SearchContext.LocalLibrary,
+            localLibrarySearchHistory = listOf("river", "sea"),
+            favoritesSearchHistory = listOf("jazz"),
+        )
+
+        val nextState = controller.removeSearchHistoryItem(
+            state = state,
+            context = SearchContext.LocalLibrary,
+            query = "river",
+        )
+
+        assertEquals(expected = listOf("sea"), actual = nextState.localLibrarySearchHistory)
+        assertEquals(expected = listOf("jazz"), actual = nextState.favoritesSearchHistory)
+    }
+
+    @Test
+    fun clearSearchHistoryOnlyClearsRequestedContext(): Unit = runTest {
+        val controller = SearchSessionController(
+            searchHistoryRepository = FakeSearchHistoryRepository(),
+            controllerScope = this,
+            debounceMillis = 300L,
+            publishStateUpdate = { _ -> },
+        )
+        val state = testState().copy(
+            localLibrarySearchHistory = listOf("river"),
+            favoritesSearchHistory = listOf("jazz"),
+        )
+
+        val nextState = controller.clearSearchHistory(
+            state = state,
+            context = SearchContext.Favorites,
+        )
+
+        assertEquals(expected = listOf("river"), actual = nextState.localLibrarySearchHistory)
+        assertEquals(expected = emptyList(), actual = nextState.favoritesSearchHistory)
+    }
+
+    /** 为搜索控制器测试构造最小 [MusicAppUiState]。 */
     private fun testState(): MusicAppUiState {
         return MusicAppUiState(
             likedSongIds = emptySet(),
@@ -118,12 +188,15 @@ class MusicAppSearchControllerTest {
 }
 
 private class FakeSearchHistoryRepository : SearchHistoryRepository {
+    // 按搜索上下文保存历史，便于断言仓库与 UI state 同步。
     private val histories: MutableMap<SearchContext, List<String>> = mutableMapOf()
 
+    /** 读取指定上下文的搜索历史。 */
     override fun getSearchHistory(context: SearchContext): List<String> {
         return histories[context].orEmpty()
     }
 
+    /** 持久化指定上下文的搜索历史。 */
     override fun saveSearchHistory(context: SearchContext, history: List<String>) {
         histories[context] = history
     }

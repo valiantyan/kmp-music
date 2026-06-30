@@ -986,6 +986,22 @@ class MusicAppControllerTest {
     }
 
     /**
+     * facade 层设置搜索词后，active query 应通过防抖发布回 [uiState]，证明提取后的 reducer 仍接在公开边界上。
+     */
+    @Test
+    fun debouncedSearchQueryPublishesActiveQueryThroughFacade(): Unit = runTest {
+        val controller = createController(controllerScope = backgroundScope)
+
+        controller.openSearch(context = SearchContext.LocalLibrary)
+        controller.setSearchQuery(query = "river")
+
+        assertEquals(expected = "", actual = controller.uiState.activeSearchQuery)
+        advanceTimeBy(delayTimeMillis = 301L)
+        advanceUntilIdle()
+        assertEquals(expected = "river", actual = controller.uiState.activeSearchQuery)
+    }
+
+    /**
      * 搜索历史应按上下文隔离，避免收藏页出现本地库历史。
      */
     @Test

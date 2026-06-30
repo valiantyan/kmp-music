@@ -57,3 +57,26 @@
 
 - No functional concerns from this task.
 - The targeted test run still shows pre-existing unrelated compiler warnings in other files, but no new warnings remain in the added search controller test.
+
+## Review fix follow-up
+
+### What I fixed
+
+- Added a task-scoped facade assertion in `MusicAppControllerTest` to prove `setSearchQuery()` still publishes debounced `activeSearchQuery` updates back through `MusicAppController.uiState` after the extraction.
+- Added focused `MusicAppSearchControllerTest` coverage for migrated `selectSearchHistory`, `removeSearchHistoryItem`, and `clearSearchHistory` behavior without changing production code.
+
+### Files changed in follow-up
+
+- `composeApp/src/commonTest/kotlin/com/yanhao/kmpmusic/feature/app/MusicAppControllerTest.kt`
+- `composeApp/src/commonTest/kotlin/com/yanhao/kmpmusic/feature/app/search/MusicAppSearchControllerTest.kt`
+- `.superpowers/sdd/task-3-report.md`
+
+### Follow-up tests run and results
+
+- Command:
+  ```bash
+  ./gradlew :composeApp:desktopTest --tests "com.yanhao.kmpmusic.feature.app.search.MusicAppSearchControllerTest" --tests "com.yanhao.kmpmusic.feature.app.MusicAppControllerTest.debouncedSearchQueryPublishesActiveQueryThroughFacade" --tests "com.yanhao.kmpmusic.feature.app.MusicAppControllerTest.searchHistoryIsIsolatedByContext" --tests "com.yanhao.kmpmusic.feature.app.MusicAppControllerTest.nonBlankSearchQueryCommitsToHistoryWhenLeavingSearch"
+  ```
+- Result:
+  - `BUILD SUCCESSFUL in 3s`
+  - No production changes were required for the added assertions to pass.
