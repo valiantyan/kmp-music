@@ -22,6 +22,33 @@ import kotlin.test.assertFalse
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class DesktopVlcjAudioPlayerEngineTest {
+    /** 验证桌面引擎通过播放来源抽象读取 URI，而不是在平台层重新解释 scanner 字符串。 */
+    @Test
+    fun setQueuePreparesAdapterWithAudioSourceUri(): Unit = runTest {
+        val adapter = FakeDesktopMediaPlayerAdapter()
+        val engine = testEngine(adapter = adapter)
+
+        engine.setQueue(
+            items = listOf(
+                media(
+                    songId = "song-content-uri",
+                    uri = "content://media/external/audio/media/42",
+                    durationMs = 180_000L,
+                ),
+            ),
+            startIndex = 0,
+            startPositionMs = 4_000L,
+        )
+        advanceUntilIdle()
+
+        assertEquals(
+            expected = "prepare:song-content-uri:content://media/external/audio/media/42:1:4000",
+            actual = adapter.commands.single(),
+        )
+        engine.release()
+        advanceUntilIdle()
+    }
+
     /** 验证高频 seek 只保留当前代最新进度，避免旧命令回放污染 UI。 */
     @Test
     fun twentySeeksKeepOnlyLatestProgress(): Unit = runTest {

@@ -4,6 +4,7 @@ import android.content.Context
 import android.net.Uri
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
+import com.yanhao.kmpmusic.domain.model.AudioSource
 import com.yanhao.kmpmusic.domain.model.PlayableMedia
 
 /**
@@ -22,10 +23,17 @@ internal object AndroidPlayableMediaMapper {
     // 把单个 common 媒体项映射成 Media3 播放器可消费的媒体项。
     private fun PlayableMedia.toMediaItem(context: Context): MediaItem {
         return MediaItem.Builder()
-            .setUri(Uri.parse(localUri))
+            .setUri(Uri.parse(playbackUri()))
             .setMediaId(songId)
             .setMediaMetadata(toMediaMetadata(context = context))
             .build()
+    }
+
+    // phase 1 只支持本地播放来源；网络来源进入模型时必须在这里显式扩展。
+    private fun PlayableMedia.playbackUri(): String {
+        return when (val source: AudioSource = audioSource) {
+            is AudioSource.Local -> source.uri
+        }
     }
 
     // 系统媒体通知只消费 Media3 metadata，不能依赖应用自绘布局填充文案和封面。

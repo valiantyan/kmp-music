@@ -1,5 +1,6 @@
 package com.yanhao.kmpmusic.playback
 
+import com.yanhao.kmpmusic.domain.model.AudioSource
 import com.yanhao.kmpmusic.domain.model.PlayableMedia
 import com.yanhao.kmpmusic.domain.model.PlaybackError
 import com.yanhao.kmpmusic.domain.model.PlaybackErrorType
@@ -486,11 +487,18 @@ class DesktopVlcjAudioPlayerEngine(
         )
         adapter.prepare(
             songId = media.songId,
-            mediaUri = media.localUri,
+            mediaUri = media.playbackUri(),
             generation = activeGeneration,
             startPositionMs = startPositionMs,
             pluginPath = libVlcPluginPath,
         )
+    }
+
+    // phase 1 只支持本地播放来源；网络来源进入模型时必须在桌面适配层显式处理。
+    private fun PlayableMedia.playbackUri(): String {
+        return when (val source: AudioSource = audioSource) {
+            is AudioSource.Local -> source.uri
+        }
     }
 
     /** 启动单个协程轮询，把真实时间上的进度采样折返到串行命令循环。 */
