@@ -6,6 +6,8 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Box
@@ -48,6 +50,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -332,6 +335,7 @@ fun DesktopTextInput(
     placeholder: String,
     modifier: Modifier = Modifier,
     leadingIcon: ImageVector? = null,
+    onSubmit: () -> Unit = {},
 ) {
     val interactionSource: MutableInteractionSource = MutableInteractionSource()
     BasicTextField(
@@ -339,6 +343,8 @@ fun DesktopTextInput(
         onValueChange = onValueChange,
         modifier = modifier,
         singleLine = true,
+        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+        keyboardActions = KeyboardActions(onSearch = { onSubmit() }),
         textStyle = androidx.compose.ui.text.TextStyle(
             color = DesktopMusicColors.Ink,
             fontSize = DesktopMusicType.Eyebrow,
@@ -388,7 +394,7 @@ fun DesktopTextInput(
 @Composable
 fun DesktopSecondaryButton(
     text: String,
-    icon: ImageVector,
+    icon: ImageVector? = null,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -404,12 +410,14 @@ fun DesktopSecondaryButton(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = DesktopMusicColors.Ink,
-                modifier = Modifier.size(16.dp),
-            )
+            if (icon != null) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = DesktopMusicColors.Ink,
+                    modifier = Modifier.size(16.dp),
+                )
+            }
             Text(
                 text = text,
                 color = DesktopMusicColors.Ink,

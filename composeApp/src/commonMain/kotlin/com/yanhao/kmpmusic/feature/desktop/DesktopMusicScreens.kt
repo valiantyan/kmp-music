@@ -6,13 +6,16 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material.icons.rounded.Search
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -20,6 +23,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.graphics.Color
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -29,12 +35,15 @@ import com.yanhao.kmpmusic.domain.model.LibraryStats
 import com.yanhao.kmpmusic.domain.model.LocalMusicProblem
 import com.yanhao.kmpmusic.domain.model.LocalMusicSourceSummary
 import com.yanhao.kmpmusic.domain.model.PlaybackStatus
+import com.yanhao.kmpmusic.domain.model.SearchScope
 import com.yanhao.kmpmusic.domain.model.Song
 import com.yanhao.kmpmusic.domain.model.ThemeMode
+import com.yanhao.kmpmusic.domain.usecase.SearchResult
 import com.yanhao.kmpmusic.feature.app.FavoriteSection
 import com.yanhao.kmpmusic.feature.app.LocalMusicSection
 import com.yanhao.kmpmusic.feature.app.MusicAppController
 import com.yanhao.kmpmusic.feature.app.MusicAppUiState
+import com.yanhao.kmpmusic.feature.app.SearchContext
 import com.yanhao.kmpmusic.feature.app.SecondaryScreen
 
 private const val HOME_ALBUM_PREVIEW_COUNT = 4
@@ -51,21 +60,46 @@ fun DesktopSecondaryScreen(
     onScanLocalMusic: () -> Unit,
 ) {
     when (state.navigationState.secondaryScreen) {
-        is SecondaryScreen.Search -> DesktopSearchScreen(
-            query = state.searchQuery,
-            resultSongs = controller.search().songs,
-            currentSongId = state.currentSongId,
-            currentPlaybackStatus = state.playbackStatus,
-            onQuery = controller::setSearchQuery,
-            onBack = controller::navigateBack,
-            onSongPlay = { song: Song, queueSongs: List<Song> ->
-                controller.playSong(
-                    song = song,
-                    queueSongs = queueSongs,
-                )
-            },
-            onMore = controller::openMore,
-        )
+        is SecondaryScreen.Search -> {
+            val searchResult: SearchResult = controller.search()
+            DesktopSearchScreen(
+                context = state.searchContext,
+                query = state.searchQuery,
+                scope = state.searchScope,
+                result = searchResult,
+                history = state.searchHistoryFor(),
+                currentSongId = state.currentSongId,
+                currentPlaybackStatus = state.playbackStatus,
+                onQuery = controller::setSearchQuery,
+                onScope = controller::setSearchScope,
+                onBack = controller::navigateBack,
+                onCommitSearch = controller::commitSearchQueryToHistory,
+                onHistoryClick = controller::selectSearchHistory,
+                onHistoryRemove = { query: String ->
+                    controller.removeSearchHistoryItem(
+                        context = state.searchContext,
+                        query = query,
+                    )
+                },
+                onHistoryClear = { controller.clearSearchHistory(context = state.searchContext) },
+                onSongPlay = { song: Song, queueSongs: List<Song> ->
+                    controller.commitSearchQueryToHistory()
+                    controller.playSong(
+                        song = song,
+                        queueSongs = queueSongs,
+                    )
+                },
+                onMore = controller::openMore,
+                onAlbumOpen = { album: Album ->
+                    controller.commitSearchQueryToHistory()
+                    controller.openAlbum(album = album)
+                },
+                onArtistOpen = { artist: Artist ->
+                    controller.commitSearchQueryToHistory()
+                    controller.openArtist(artist = artist)
+                },
+            )
+        }
         SecondaryScreen.Player -> DesktopPlayerDetailScreen(
             song = state.currentSong,
             queueSongs = state.queueSongs,
@@ -510,24 +544,38 @@ fun DesktopMeRootScreen(
 }
 
 /**
- * 搜索页补齐桌面可编辑输入，让标题栏搜索入口和二级页结果使用同一查询状态。
+ * 搜索页根据入口上下文展示独立的历史、范围和派生结果，避免首页与收藏搜索串味。
  */
 @Composable
 private fun DesktopSearchScreen(
+    context: SearchContext,
     query: String,
-    resultSongs: List<Song>,
+    scope: SearchScope,
+    result: SearchResult,
+    history: List<String>,
     currentSongId: String?,
     currentPlaybackStatus: PlaybackStatus,
     onQuery: (String) -> Unit,
+    onScope: (SearchScope) -> Unit,
     onBack: () -> Unit,
+    onCommitSearch: () -> Unit,
+    onHistoryClick: (String) -> Unit,
+    onHistoryRemove: (String) -> Unit,
+    onHistoryClear: () -> Unit,
     onSongPlay: (Song, List<Song>) -> Unit,
     onMore: (Song) -> Unit,
+    onAlbumOpen: (Album) -> Unit,
+    onArtistOpen: (Artist) -> Unit,
 ) {
-    val eyebrow: String = if (query.isBlank()) {
-        "搜索歌曲、专辑、歌手"
-    } else {
-        "搜索结果：$query"
+    val backLabel: String = when (context) {
+        SearchContext.LocalLibrary -> "← 本地音乐"
+        SearchContext.Favorites -> "← 收藏"
     }
+    val subtitle: String = when (context) {
+        SearchContext.LocalLibrary -> "在本地音乐中搜索歌曲、专辑、歌手"
+        SearchContext.Favorites -> "在收藏中搜索歌曲、专辑、歌手"
+    }
+    val isEmptyQuery: Boolean = query.isBlank()
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -535,9 +583,12 @@ private fun DesktopSearchScreen(
     ) {
         DesktopPageHeader(
             title = "搜索",
-            eyebrow = eyebrow,
+            eyebrow = subtitle,
         ) {
-            DesktopPrimaryButton(text = "返回", onClick = onBack)
+            DesktopSecondaryButton(
+                text = backLabel,
+                onClick = onBack,
+            )
         }
         DesktopTextInput(
             value = query,
@@ -545,10 +596,191 @@ private fun DesktopSearchScreen(
             placeholder = "搜索歌曲、专辑、歌手",
             modifier = Modifier.fillMaxWidth(),
             leadingIcon = Icons.Rounded.Search,
+            onSubmit = onCommitSearch,
         )
         Spacer(modifier = Modifier.height(18.dp))
+        DesktopSearchScopeTabs(
+            selectedScope = scope,
+            onScope = onScope,
+        )
+        Spacer(modifier = Modifier.height(24.dp))
+        if (isEmptyQuery) {
+            DesktopSearchHistorySection(
+                history = history,
+                onHistoryClick = onHistoryClick,
+                onHistoryRemove = onHistoryRemove,
+                onHistoryClear = onHistoryClear,
+            )
+            Spacer(modifier = Modifier.height(44.dp))
+            DesktopSectionEmptyMessage(message = "输入关键词后显示匹配歌曲、专辑和歌手")
+            return
+        }
+        DesktopSearchResultsSection(
+            query = query,
+            scope = scope,
+            result = result,
+            currentSongId = currentSongId,
+            currentPlaybackStatus = currentPlaybackStatus,
+            onSongPlay = onSongPlay,
+            onMore = onMore,
+            onAlbumOpen = onAlbumOpen,
+            onArtistOpen = onArtistOpen,
+        )
+    }
+}
+
+/**
+ * 搜索范围切换必须显式绑定 [SearchScope]，避免 UI 文案顺序与业务枚举脱节。
+ */
+@Composable
+private fun DesktopSearchScopeTabs(
+    selectedScope: SearchScope,
+    onScope: (SearchScope) -> Unit,
+) {
+    DesktopSegmentedControl(
+        labels = listOf("全部", "歌曲", "专辑", "歌手"),
+        selectedIndex = when (selectedScope) {
+            SearchScope.All -> 0
+            SearchScope.Songs -> 1
+            SearchScope.Albums -> 2
+            SearchScope.Artists -> 3
+        },
+        onSelect = { index: Int ->
+            onScope(
+                when (index) {
+                    0 -> SearchScope.All
+                    1 -> SearchScope.Songs
+                    2 -> SearchScope.Albums
+                    else -> SearchScope.Artists
+                },
+            )
+        },
+    )
+}
+
+/**
+ * 空查询时优先展示当前上下文下的最近搜索，帮助用户延续同一路径下的检索任务。
+ */
+@Composable
+private fun DesktopSearchHistorySection(
+    history: List<String>,
+    onHistoryClick: (String) -> Unit,
+    onHistoryRemove: (String) -> Unit,
+    onHistoryClear: () -> Unit,
+) {
+    if (history.isEmpty()) {
+        DesktopSectionEmptyMessage(message = "暂无最近搜索")
+        return
+    }
+    DesktopSectionHeader(
+        title = "最近搜索",
+        actionLabel = "清空",
+        onAction = onHistoryClear,
+    )
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        history.forEach { item: String ->
+            DesktopSearchHistoryChip(
+                text = item,
+                onClick = { onHistoryClick(item) },
+                onRemove = { onHistoryRemove(item) },
+            )
+        }
+    }
+}
+
+/**
+ * 历史词条既要支持整词回填，也要允许单独删除，避免用户只能整体清空。
+ */
+@Composable
+private fun DesktopSearchHistoryChip(
+    text: String,
+    onClick: () -> Unit,
+    onRemove: () -> Unit,
+) {
+    Surface(
+        shape = RoundedCornerShape(12.dp),
+        color = Color.White.copy(alpha = 0.78f),
+        border = BorderStroke(width = 1.dp, color = DesktopMusicColors.Line),
+        onClick = onClick,
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = text,
+                color = DesktopMusicColors.MutedStrong,
+                fontSize = DesktopMusicType.Body,
+                fontWeight = FontWeight.SemiBold,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            DesktopTinyTextButton(
+                text = "×",
+                onClick = onRemove,
+            )
+        }
+    }
+}
+
+/**
+ * 小尺寸文本按钮专供历史标签删除，避免引入与主命令同级的视觉重量。
+ */
+@Composable
+private fun DesktopTinyTextButton(
+    text: String,
+    onClick: () -> Unit,
+) {
+    Surface(
+        shape = RoundedCornerShape(8.dp),
+        color = Color.Transparent,
+        onClick = onClick,
+    ) {
+        Text(
+            text = text,
+            color = DesktopMusicColors.Muted,
+            fontSize = DesktopMusicType.Body,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp),
+        )
+    }
+}
+
+/**
+ * 搜索结果区按范围保留歌曲、专辑、歌手三种结构，避免所有命中都被压扁成歌曲表格。
+ */
+@Composable
+private fun DesktopSearchResultsSection(
+    query: String,
+    scope: SearchScope,
+    result: SearchResult,
+    currentSongId: String?,
+    currentPlaybackStatus: PlaybackStatus,
+    onSongPlay: (Song, List<Song>) -> Unit,
+    onMore: (Song) -> Unit,
+    onAlbumOpen: (Album) -> Unit,
+    onArtistOpen: (Artist) -> Unit,
+) {
+    val hasResults: Boolean =
+        result.songs.isNotEmpty() || result.albums.isNotEmpty() || result.artists.isNotEmpty()
+    if (!hasResults) {
+        DesktopSectionEmptyMessage(message = "没有找到“$query”相关内容，请尝试搜索歌曲名、专辑名或歌手名。")
+        return
+    }
+    Text(
+        text = "找到 ${result.songs.size} 首歌曲、${result.albums.size} 张专辑、${result.artists.size} 位歌手",
+        color = DesktopMusicColors.Muted,
+        fontSize = DesktopMusicType.Eyebrow,
+        fontWeight = FontWeight.SemiBold,
+    )
+    Spacer(modifier = Modifier.height(18.dp))
+    if (scope == SearchScope.All || scope == SearchScope.Songs) {
         DesktopSongTable(
-            songs = resultSongs,
+            songs = result.songs,
             currentSongId = currentSongId,
             currentPlaybackStatus = currentPlaybackStatus,
             showFavoriteColumn = false,
@@ -556,6 +788,24 @@ private fun DesktopSearchScreen(
             onSongPlay = onSongPlay,
             onCurrentSongToggle = {},
             onMore = onMore,
+        )
+    }
+    if ((scope == SearchScope.All || scope == SearchScope.Albums) && result.albums.isNotEmpty()) {
+        Spacer(modifier = Modifier.height(24.dp))
+        DesktopSectionHeader(title = "匹配专辑")
+        Spacer(modifier = Modifier.height(14.dp))
+        DesktopAlbumGrid(
+            albums = result.albums,
+            onAlbumOpen = onAlbumOpen,
+        )
+    }
+    if ((scope == SearchScope.All || scope == SearchScope.Artists) && result.artists.isNotEmpty()) {
+        Spacer(modifier = Modifier.height(24.dp))
+        DesktopSectionHeader(title = "匹配歌手")
+        Spacer(modifier = Modifier.height(14.dp))
+        DesktopArtistStrip(
+            artists = result.artists,
+            onArtistOpen = onArtistOpen,
         )
     }
 }
