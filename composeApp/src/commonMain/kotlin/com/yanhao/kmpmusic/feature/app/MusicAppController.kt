@@ -45,10 +45,9 @@ import com.yanhao.kmpmusic.domain.usecase.ToggleFavoriteUseCaseImpl
 import com.yanhao.kmpmusic.domain.usecase.buildSearchResult
 import com.yanhao.kmpmusic.feature.app.library.MusicLibraryProjector
 import com.yanhao.kmpmusic.feature.app.navigation.NavigationStateController
+import com.yanhao.kmpmusic.feature.app.search.SearchSessionController
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 private const val DEFAULT_SEARCH_QUERY_DEBOUNCE_MILLIS = 300L
@@ -96,8 +95,15 @@ class MusicAppController(
     // 冷启动恢复请求在曲库尚未准备好时先挂起，等扫描结果到位后再真正执行。
     private var isPlaybackRestorePending: Boolean = false
 
-    // 搜索输入节流任务，避免连续输入时每个字符都触发结果计算。
-    private var searchQueryDebounceJob: Job? = null
+    // 搜索会话子控制器负责搜索输入态、防抖和历史 reducer。
+    private val searchSessionController: SearchSessionController = SearchSessionController(
+        searchHistoryRepository = searchHistoryRepository,
+        controllerScope = controllerScope,
+        debounceMillis = searchQueryDebounceMillis,
+        publishStateUpdate = { reducer: (MusicAppUiState) -> MusicAppUiState ->
+            uiState = reducer(uiState)
+        },
+    )
 
     /**
      * Compose 可观察 UI 状态。
@@ -267,12 +273,9 @@ class MusicAppController(
         if (context == SearchContext.LocalLibrary) {
             loadLocalMusicLibrary()
         }
-        syncActiveSearchQueryImmediately(query = "")
-        uiState = uiState.copy(
-            searchContext = context,
-            searchQuery = "",
-            activeSearchQuery = "",
-            searchScope = SearchScope.All,
+        uiState = searchSessionController.openSearch(
+            state = uiState,
+            context = context,
         )
         navigateToSecondary(screen = SecondaryScreen.Search(context = context))
     }
@@ -461,74 +464,48 @@ class MusicAppController(
 
     /** 更新搜索关键词，清空输入前先保留用户刚刚搜索过的非空词。 */
     fun setSearchQuery(query: String) {
-        val previousQuery: String = uiState.searchQuery
-        if (shouldCommitSearchQueryBeforeClearing(previousQuery = previousQuery, nextQuery = query)) {
-            commitSearchQueryToHistory(
-                query = previousQuery,
-                context = uiState.searchContext,
-            )
-            syncActiveSearchQueryImmediately(query = "")
-            uiState = uiState.copy(searchQuery = query)
-            return
-        }
-        uiState = uiState.copy(searchQuery = query)
-        scheduleActiveSearchQuerySync(query = query)
+        uiState = searchSessionController.setSearchQuery(
+            state = uiState,
+            query = query,
+        )
     }
 
     /** 更新搜索范围。 */
     fun setSearchScope(scope: SearchScope) {
-        uiState = uiState.copy(searchScope = scope)
+        uiState = searchSessionController.setSearchScope(
+            state = uiState,
+            scope = scope,
+        )
     }
 
     /** 将当前搜索词写入当前上下文历史。 */
     fun commitSearchQueryToHistory() {
-        syncActiveSearchQueryImmediately(query = uiState.searchQuery)
-        commitSearchQueryToHistory(
-            query = uiState.searchQuery,
-            context = uiState.searchContext,
-        )
-    }
-
-    // 清空搜索框会切到历史空态，必须在旧 query 被覆盖前把它记入最近搜索。
-    private fun shouldCommitSearchQueryBeforeClearing(previousQuery: String, nextQuery: String): Boolean {
-        return uiState.navigationState.secondaryScreen is SecondaryScreen.Search &&
-            previousQuery.trim().isNotBlank() &&
-            nextQuery.isBlank()
-    }
-
-    // 支持在覆盖 UI 输入前提交指定 query，避免清空输入时丢失旧搜索词。
-    private fun commitSearchQueryToHistory(query: String, context: SearchContext) {
-        val normalizedQuery: String = query.trim()
-        if (normalizedQuery.isBlank()) {
-            return
-        }
-        updateSearchHistory(
-            context = context,
-            history = moveQueryToHistoryTop(
-                query = normalizedQuery,
-                currentHistory = uiState.searchHistoryFor(context = context),
-            ),
-        )
+        uiState = searchSessionController.commitSearchQueryToHistory(state = uiState)
     }
 
     /** 点击历史词时回填搜索框并刷新该词位置。 */
     fun selectSearchHistory(query: String) {
-        syncActiveSearchQueryImmediately(query = query)
-        uiState = uiState.copy(searchQuery = query)
-        commitSearchQueryToHistory()
+        uiState = searchSessionController.selectSearchHistory(
+            state = uiState,
+            query = query,
+        )
     }
 
     /** 删除当前上下文中的单条搜索历史。 */
     fun removeSearchHistoryItem(context: SearchContext, query: String) {
-        updateSearchHistory(
+        uiState = searchSessionController.removeSearchHistoryItem(
+            state = uiState,
             context = context,
-            history = uiState.searchHistoryFor(context = context).filterNot { item -> item == query },
+            query = query,
         )
     }
 
     /** 清空指定上下文的搜索历史。 */
     fun clearSearchHistory(context: SearchContext = uiState.searchContext) {
-        updateSearchHistory(context = context, history = emptyList())
+        uiState = searchSessionController.clearSearchHistory(
+            state = uiState,
+            context = context,
+        )
     }
 
     /** 清空真实最近播放历史，并立即同步当前页面列表。 */
@@ -546,50 +523,9 @@ class MusicAppController(
         )
     }
 
-    // 输入节流结束后才更新真正参与搜索的 query，降低连续输入时的过滤和重组频率。
-    private fun scheduleActiveSearchQuerySync(query: String) {
-        searchQueryDebounceJob?.cancel()
-        if (query.isBlank()) {
-            syncActiveSearchQueryImmediately(query = query)
-            return
-        }
-        searchQueryDebounceJob = controllerScope.launch {
-            delay(timeMillis = searchQueryDebounceMillis)
-            uiState = uiState.copy(activeSearchQuery = query)
-        }
-    }
-
-    // 显式提交、清空和历史点击必须立刻同步，不能等待节流窗口。
-    private fun syncActiveSearchQueryImmediately(query: String) {
-        searchQueryDebounceJob?.cancel()
-        searchQueryDebounceJob = null
-        uiState = uiState.copy(activeSearchQuery = query)
-    }
-
-    /** 将命中的历史词提到最前，并限制保留数量。 */
-    private fun moveQueryToHistoryTop(query: String, currentHistory: List<String>): List<String> {
-        return (listOf(query) + currentHistory.filterNot { item -> item == query })
-            .take(n = 10)
-    }
-
-    /** 按搜索上下文写回对应历史，避免不同入口共用同一份运行时状态。 */
-    private fun updateSearchHistory(context: SearchContext, history: List<String>) {
-        searchHistoryRepository.saveSearchHistory(
-            context = context,
-            history = history,
-        )
-        uiState = when (context) {
-            SearchContext.LocalLibrary -> uiState.copy(localLibrarySearchHistory = history)
-            SearchContext.Favorites -> uiState.copy(favoritesSearchHistory = history)
-        }
-    }
-
     // 离开搜索页前集中提交非空搜索词，避免各平台 UI 分别维护历史写入规则。
     private fun commitActiveSearchQueryToHistoryIfNeeded() {
-        if (uiState.navigationState.secondaryScreen !is SecondaryScreen.Search) {
-            return
-        }
-        commitSearchQueryToHistory()
+        uiState = searchSessionController.commitActiveSearchQueryToHistoryIfNeeded(state = uiState)
     }
 
     // 按搜索上下文选择共享数据源，保证 UI 只消费派生结果。

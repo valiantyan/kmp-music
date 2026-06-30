@@ -563,7 +563,7 @@ git commit -m "重构应用导航状态控制"
 - Modify: `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/app/MusicAppController.kt`
 - Modify: `composeApp/src/commonTest/kotlin/com/yanhao/kmpmusic/feature/app/MusicAppControllerTest.kt`
 
-- [ ] **Step 1: Write focused search tests**
+- [x] **Step 1: Write focused search tests**
 
 Create `composeApp/src/commonTest/kotlin/com/yanhao/kmpmusic/feature/app/search/MusicAppSearchControllerTest.kt`:
 
@@ -698,7 +698,7 @@ private class FakeSearchHistoryRepository : SearchHistoryRepository {
 }
 ```
 
-- [ ] **Step 2: Run search tests and verify they fail**
+- [x] **Step 2: Run search tests and verify they fail**
 
 Run:
 
@@ -708,7 +708,7 @@ Run:
 
 Expected: FAIL with an unresolved reference to `SearchSessionController`.
 
-- [ ] **Step 3: Add `SearchSessionController`**
+- [x] **Step 3: Add `SearchSessionController`**
 
 Create `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/app/search/SearchSessionController.kt`:
 
@@ -867,7 +867,7 @@ class SearchSessionController(
 }
 ```
 
-- [ ] **Step 4: Wire `MusicAppController` search methods**
+- [x] **Step 4: Wire `MusicAppController` search methods**
 
 Add a property in `MusicAppController`:
 
@@ -931,7 +931,7 @@ navigateToSecondary(screen = SecondaryScreen.Search(context = context))
 
 Delete `searchQueryDebounceJob` and these private search helpers from `MusicAppController`: `scheduleActiveSearchQuerySync`, `syncActiveSearchQueryImmediately`, `moveQueryToHistoryTop`, `updateSearchHistory`, and the overloaded private `commitSearchQueryToHistory(query, context)`.
 
-- [ ] **Step 5: Run search tests**
+- [x] **Step 5: Run search tests**
 
 Run:
 
@@ -941,7 +941,7 @@ Run:
 
 Expected: PASS.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/app/search/SearchSessionController.kt composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/app/MusicAppController.kt composeApp/src/commonTest/kotlin/com/yanhao/kmpmusic/feature/app/search/MusicAppSearchControllerTest.kt composeApp/src/commonTest/kotlin/com/yanhao/kmpmusic/feature/app/MusicAppControllerTest.kt
