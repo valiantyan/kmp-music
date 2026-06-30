@@ -730,6 +730,48 @@ class MusicAppControllerTest {
     }
 
     /**
+     * 首页搜索应搜索完整本地曲库，不受收藏集合限制。
+     */
+    @Test
+    fun localLibrarySearchReturnsNonFavoriteLocalSongs(): Unit = runBlocking {
+        val controller = createController()
+        controller.scanLocalMusic(request = LocalMusicScanRequest.Refresh)
+        controller.openSearch(context = SearchContext.LocalLibrary)
+        controller.setSearchQuery(query = "One Summer")
+        controller.setSearchScope(scope = SearchScope.Songs)
+
+        assertEquals(
+            expected = listOf("One Summer's Day"),
+            actual = controller.search().songs.map { song -> song.title },
+        )
+    }
+
+    /**
+     * 收藏搜索只返回已收藏歌曲，不应返回本地曲库全部内容。
+     */
+    @Test
+    fun favoritesSearchOnlyReturnsFavoriteSongs(): Unit = runBlocking {
+        val controller = createController()
+        controller.scanLocalMusic(request = LocalMusicScanRequest.Refresh)
+        controller.openSearch(context = SearchContext.LocalLibrary)
+        val favoriteSong: Song = controller.uiState.localSongs.first { song -> song.title == "One Summer's Day" }
+        controller.toggleFavorite(songId = favoriteSong.id)
+
+        controller.openSearch(context = SearchContext.Favorites)
+        controller.setSearchQuery(query = "One Summer")
+        controller.setSearchScope(scope = SearchScope.Songs)
+
+        assertEquals(
+            expected = listOf("One Summer's Day"),
+            actual = controller.search().songs.map { song -> song.title },
+        )
+
+        controller.setSearchQuery(query = "The Best of Me")
+
+        assertTrue(actual = controller.search().songs.isEmpty())
+    }
+
+    /**
      * 首页顶部搜索应进入本地曲库搜索上下文。
      */
     @Test

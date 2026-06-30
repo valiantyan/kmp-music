@@ -36,8 +36,6 @@ import com.yanhao.kmpmusic.domain.repository.PlaybackRepository
 import com.yanhao.kmpmusic.domain.repository.UserPreferencesRepository
 import com.yanhao.kmpmusic.domain.usecase.ScanLocalMusicUseCase
 import com.yanhao.kmpmusic.domain.usecase.ScanLocalMusicUseCaseImpl
-import com.yanhao.kmpmusic.domain.usecase.SearchMusicUseCase
-import com.yanhao.kmpmusic.domain.usecase.SearchMusicUseCaseImpl
 import com.yanhao.kmpmusic.domain.usecase.ToggleFavoriteUseCase
 import com.yanhao.kmpmusic.domain.usecase.ToggleFavoriteUseCaseImpl
 import com.yanhao.kmpmusic.domain.usecase.buildSearchResult
@@ -60,11 +58,6 @@ class MusicAppController(
     private val controllerScope: CoroutineScope,
     private val nowMillis: () -> Long = { 0L },
 ) {
-    // 搜索用例。
-    private val searchMusicUseCase: SearchMusicUseCase = SearchMusicUseCaseImpl(
-        musicLibraryRepository = musicLibraryRepository,
-    )
-
     // 收藏仓库需要依赖初始歌曲，所以在控制器中初始化。
     private val favoritesRepository: FavoritesRepository
 
@@ -467,16 +460,20 @@ class MusicAppController(
 
     /** 执行搜索，供 UI 渲染派生结果。 */
     fun search(): com.yanhao.kmpmusic.domain.usecase.SearchResult {
-        if (uiState.localSongs.isNotEmpty()) {
-            return buildSearchResult(
-                query = uiState.searchQuery,
-                scope = uiState.searchScope,
-                allSongs = uiState.localSongs,
-            )
+        val sourceSongs: List<Song> = when (uiState.searchContext) {
+            SearchContext.LocalLibrary -> {
+                if (uiState.localSongs.isNotEmpty()) {
+                    uiState.localSongs
+                } else {
+                    musicLibraryRepository.getAllAvailableSongs()
+                }
+            }
+            SearchContext.Favorites -> uiState.favoriteSongs
         }
-        return searchMusicUseCase(
+        return buildSearchResult(
             query = uiState.searchQuery,
             scope = uiState.searchScope,
+            allSongs = sourceSongs,
         )
     }
 

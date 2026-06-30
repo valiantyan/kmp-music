@@ -43,7 +43,7 @@ class SearchMusicUseCaseImpl(
 }
 
 /** 基于完整歌曲列表生成搜索结果，供控制器复用已加载曲库时避免重复读取仓库。 */
-internal fun buildSearchResult(
+fun buildSearchResult(
     query: String,
     scope: SearchScope,
     allSongs: List<Song>,
