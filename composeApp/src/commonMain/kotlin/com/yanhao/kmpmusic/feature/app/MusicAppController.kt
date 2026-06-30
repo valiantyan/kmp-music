@@ -41,6 +41,7 @@ import com.yanhao.kmpmusic.domain.usecase.ScanLocalMusicUseCaseImpl
 import com.yanhao.kmpmusic.domain.usecase.ToggleFavoriteUseCase
 import com.yanhao.kmpmusic.domain.usecase.ToggleFavoriteUseCaseImpl
 import com.yanhao.kmpmusic.domain.usecase.buildSearchResult
+import com.yanhao.kmpmusic.feature.app.favorites.FavoriteStateSynchronizer
 import com.yanhao.kmpmusic.feature.app.library.LibraryStateSynchronizer
 import com.yanhao.kmpmusic.feature.app.navigation.NavigationStateController
 import com.yanhao.kmpmusic.feature.app.search.SearchSessionController
@@ -75,6 +76,9 @@ class MusicAppController(
 
     // 曲库状态同步器承接扫描、加载和共享列表推导，facade 只保留状态所有权与时序控制。
     private val libraryStateSynchronizer: LibraryStateSynchronizer
+
+    // 收藏状态同步器统一收藏切换后的列表投影，facade 只保留入口与状态发布。
+    private val favoriteStateSynchronizer: FavoriteStateSynchronizer
 
     // 本地扫描用例。
     private val scanLocalMusicUseCase: ScanLocalMusicUseCase = ScanLocalMusicUseCaseImpl(
@@ -126,6 +130,16 @@ class MusicAppController(
             musicLibraryRepository = musicLibraryRepository,
             favoritesRepository = favoritesRepository,
             playbackRepository = playbackRepository,
+        )
+        favoriteStateSynchronizer = FavoriteStateSynchronizer(
+            toggleFavoriteUseCase = toggleFavoriteUseCase,
+            favoriteSongsResolver = libraryStateSynchronizer::buildFavoriteSongs,
+            recentSongsBuilder = { state: MusicAppUiState, songs: List<Song> ->
+                libraryStateSynchronizer.buildRecentSongs(
+                    state = state,
+                    extraSongs = songs,
+                )
+            },
         )
     }
 
@@ -404,21 +418,9 @@ class MusicAppController(
 
     /** 切换收藏并同步歌曲状态。 */
     fun toggleFavorite(songId: String) {
-        val likedSongIds: Set<String> = toggleFavoriteUseCase(songId = songId)
-        fun Song.withFavorite(): Song = copy(isLiked = likedSongIds.contains(id))
-        val homePreview = uiState.homeLocalSongPreview.map { song -> song.withFavorite() }
-        val localSongs = uiState.localSongs.map { song -> song.withFavorite() }
-        val queueSnapshot = uiState.queueSongsSnapshot.map { song -> song.withFavorite() }
-        uiState = uiState.copy(
-            likedSongIds = likedSongIds,
-            homeLocalSongPreview = homePreview,
-            localSongs = localSongs,
-            favoriteSongs = buildFavoriteSongs(
-                likedSongIds = likedSongIds,
-                preferredSongs = homePreview + localSongs + queueSnapshot + uiState.favoriteSongs,
-            ),
-            queueSongsSnapshot = queueSnapshot,
-            recentSongs = buildRecentSongs(songs = localSongs.ifEmpty { homePreview }),
+        uiState = favoriteStateSynchronizer.toggleFavorite(
+            state = uiState,
+            songId = songId,
         )
         publishPlaybackUiState()
     }

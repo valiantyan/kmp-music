@@ -1406,7 +1406,7 @@ git commit -m "重构曲库状态同步"
 - Create: `composeApp/src/commonTest/kotlin/com/yanhao/kmpmusic/feature/app/favorites/MusicAppFavoriteStateSynchronizerTest.kt`
 - Modify: `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/app/MusicAppController.kt`
 
-- [ ] **Step 1: Write focused favorite synchronization tests**
+- [x] **Step 1: Write focused favorite synchronization tests**
 
 Create `composeApp/src/commonTest/kotlin/com/yanhao/kmpmusic/feature/app/favorites/MusicAppFavoriteStateSynchronizerTest.kt`:
 
@@ -1510,7 +1510,7 @@ class MusicAppFavoriteStateSynchronizerTest {
 }
 ```
 
-- [ ] **Step 2: Run favorite tests and verify they fail**
+- [x] **Step 2: Run favorite tests and verify they fail**
 
 Run:
 
@@ -1520,7 +1520,7 @@ Run:
 
 Expected: FAIL with an unresolved reference to `FavoriteStateSynchronizer`.
 
-- [ ] **Step 3: Add favorite synchronizer**
+- [x] **Step 3: Add favorite synchronizer**
 
 Create `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/app/favorites/FavoriteStateSynchronizer.kt`:
 
@@ -1566,7 +1566,7 @@ class FavoriteStateSynchronizer(
 }
 ```
 
-- [ ] **Step 4: Wire `MusicAppController.toggleFavorite`**
+- [x] **Step 4: Wire `MusicAppController.toggleFavorite`**
 
 Add a property:
 
@@ -1601,7 +1601,7 @@ fun toggleFavorite(songId: String) {
 }
 ```
 
-- [ ] **Step 5: Run favorite tests**
+- [x] **Step 5: Run favorite tests**
 
 Run:
 
@@ -1611,7 +1611,7 @@ Run:
 
 Expected: PASS.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/app/favorites/FavoriteStateSynchronizer.kt composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/app/MusicAppController.kt composeApp/src/commonTest/kotlin/com/yanhao/kmpmusic/feature/app/favorites/MusicAppFavoriteStateSynchronizerTest.kt
