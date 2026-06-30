@@ -26,7 +26,7 @@ interface AudioPlayerEngine {
      * 用新的媒体队列替换当前引擎状态。
      *
      * [items] 已经由 common 层整理好 metadata 和 [com.yanhao.kmpmusic.domain.model.AudioSource]；
-     * 平台实现只负责把媒体项映射为 Media3、vlcj、AVPlayer 或其他平台播放器可消费的对象。
+     * 平台实现只负责把媒体项映射为对应平台播放器可消费的对象。
      *
      * @param items 新的可播放媒体列表。
      * @param startIndex 首次激活的队列下标。

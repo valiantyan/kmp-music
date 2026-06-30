@@ -457,7 +457,7 @@ class PlaybackCoordinator(
         )
     }
 
-    /** 外部 MediaController 切歌时，同步维护 common 层随机历史和剩余集合。 */
+    /** 外部平台控制器切歌时，同步维护 common 层随机历史和剩余集合。 */
     private fun buildQueueStateForEngineTransition(queueState: QueueState, targetIndex: Int): QueueState {
         if (targetIndex !in queueState.songIds.indices) {
             return queueState
