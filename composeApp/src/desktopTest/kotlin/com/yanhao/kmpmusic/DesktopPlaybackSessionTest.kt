@@ -86,7 +86,7 @@ class DesktopPlaybackSessionTest {
         runtime.ensurePlaybackSnapshotRestoreRequested()
         runtime.ensurePlaybackSnapshotRestoreRequested()
         withTimeout(timeMillis = 2_000L) {
-            while (controller.uiState.currentSongId != expectedSong.id) {
+            while (audioEngine.setQueueCalls < 1) {
                 delay(timeMillis = 10L)
             }
         }

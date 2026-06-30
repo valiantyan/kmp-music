@@ -47,6 +47,20 @@ data class PlaybackQueueItemEntity(
 )
 
 /**
+ * 最近播放历史中的单条歌曲记录。
+ *
+ * @property position 最近播放顺序，0 表示最新。
+ * @property songId 播放过的歌曲标识。
+ * @property updatedAt 本次历史覆盖保存时间。
+ */
+@Entity(tableName = "playback_history_item", primaryKeys = ["position"])
+data class PlaybackHistoryItemEntity(
+    val position: Int,
+    val songId: String,
+    val updatedAt: Long,
+)
+
+/**
  * 收藏歌曲记录，供后续 favorites 持久化任务复用同一数据库。
  *
  * @property songId 被收藏的歌曲标识。
@@ -153,6 +167,30 @@ interface PlaybackQueueDao {
     /** 清空旧队列，避免残留历史顺序。 */
     @Query("DELETE FROM playback_queue_item")
     suspend fun clearQueue()
+}
+
+/**
+ * 最近播放历史读写接口。
+ */
+@Dao
+interface PlaybackHistoryDao {
+    /**
+     * 按最近播放顺序读取历史歌曲标识。
+     */
+    @Query("SELECT * FROM playback_history_item ORDER BY position ASC")
+    suspend fun getHistoryItems(): List<PlaybackHistoryItemEntity>
+
+    /**
+     * 批量写入完整最近播放历史。
+     */
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(items: List<PlaybackHistoryItemEntity>)
+
+    /**
+     * 覆盖保存前清空旧历史，避免残留已被挤出的歌曲。
+     */
+    @Query("DELETE FROM playback_history_item")
+    suspend fun clearHistory()
 }
 
 /**
@@ -297,11 +335,12 @@ interface SearchHistoryDao {
     entities = [
         PlaybackSnapshotEntity::class,
         PlaybackQueueItemEntity::class,
+        PlaybackHistoryItemEntity::class,
         FavoriteSongEntity::class,
         LocalSongEntity::class,
         SearchHistoryEntity::class,
     ],
-    version = 4,
+    version = 5,
 )
 @ConstructedBy(PlaybackDatabaseConstructor::class)
 abstract class PlaybackDatabase : RoomDatabase() {
@@ -310,6 +349,9 @@ abstract class PlaybackDatabase : RoomDatabase() {
 
     /** 暴露播放队列 DAO。 */
     abstract fun playbackQueueDao(): PlaybackQueueDao
+
+    /** 暴露最近播放历史 DAO。 */
+    abstract fun playbackHistoryDao(): PlaybackHistoryDao
 
     /** 暴露收藏歌曲 DAO。 */
     abstract fun favoriteSongDao(): FavoriteSongDao

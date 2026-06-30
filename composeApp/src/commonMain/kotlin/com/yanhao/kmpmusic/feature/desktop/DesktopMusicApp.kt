@@ -117,6 +117,7 @@ fun DesktopMusicApp(
                                     queueSongs = queueSongs,
                                 )
                             },
+                            onRecentClear = controller::clearRecentPlaybackHistory,
                         )
                     }
                     Box(

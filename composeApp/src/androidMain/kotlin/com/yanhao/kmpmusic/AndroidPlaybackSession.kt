@@ -3,6 +3,7 @@ package com.yanhao.kmpmusic
 import android.content.Context
 import com.yanhao.kmpmusic.data.PersistentFavoritesRepository
 import com.yanhao.kmpmusic.data.PersistentMusicLibraryRepository
+import com.yanhao.kmpmusic.data.PersistentPlaybackRepository
 import com.yanhao.kmpmusic.data.PersistentSearchHistoryRepository
 import com.yanhao.kmpmusic.data.createAndroidPlaybackDatabase
 import com.yanhao.kmpmusic.domain.model.LocalMusicScanError
@@ -86,6 +87,10 @@ object AndroidPlaybackSession {
             controllerHolder = MusicAppController(
                 localMusicScanner = localMusicScanner,
                 audioPlayerEngine = playbackServiceConnector,
+                playbackRepository = PersistentPlaybackRepository.create(
+                    playbackDatabase = playbackDatabase,
+                    nowMillis = { System.currentTimeMillis() },
+                ),
                 playbackSnapshotStore = RoomPlaybackSnapshotStore(
                     database = playbackDatabase,
                     nowMillis = { System.currentTimeMillis() },

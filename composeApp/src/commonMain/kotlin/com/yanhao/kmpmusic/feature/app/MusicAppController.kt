@@ -20,6 +20,7 @@ import com.yanhao.kmpmusic.domain.model.LocalMusicScanException
 import com.yanhao.kmpmusic.domain.model.LocalMusicScanRequest
 import com.yanhao.kmpmusic.domain.model.LocalMusicScanState
 import com.yanhao.kmpmusic.domain.model.LocalMusicScanErrorType
+import com.yanhao.kmpmusic.domain.model.PlaybackHistory
 import com.yanhao.kmpmusic.domain.model.PlaybackState
 import com.yanhao.kmpmusic.domain.model.PlaybackStatus
 import com.yanhao.kmpmusic.domain.model.QueueState
@@ -542,6 +543,12 @@ class MusicAppController(
         updateSearchHistory(context = context, history = emptyList())
     }
 
+    /** 清空真实最近播放历史，并立即同步当前页面列表。 */
+    fun clearRecentPlaybackHistory() {
+        playbackRepository.savePlaybackHistory(history = PlaybackHistory())
+        uiState = uiState.copy(recentSongs = emptyList())
+    }
+
     /** 执行搜索，供 UI 渲染派生结果。 */
     fun search(): com.yanhao.kmpmusic.domain.usecase.SearchResult {
         return buildSearchResult(
@@ -752,7 +759,7 @@ class MusicAppController(
             playbackMode = queueState.playbackMode,
             playbackError = playbackState.error,
             queueSongIds = queueState.songIds,
-            recentSongs = buildRecentSongs(songs = uiState.localSongs.ifEmpty { uiState.homeLocalSongPreview }),
+            recentSongs = buildRecentSongs(songs = knownSongsForRecentPlayback()),
         )
         publishPlaybackUiState()
     }
@@ -782,7 +789,9 @@ class MusicAppController(
             localMusicProblems = snapshot.problems,
             scanState = snapshot.scanState,
             likedSongIds = likedSongIds + previewWithLikes.filter { song -> song.isLiked }.map { song -> song.id },
-            recentSongs = buildRecentSongs(songs = fullSongsWithLikes.ifEmpty { previewWithLikes }),
+            recentSongs = buildRecentSongs(
+                songs = knownSongsForRecentPlayback(extraSongs = fullSongsWithLikes + previewWithLikes),
+            ),
             favoriteSongs = buildFavoriteSongs(
                 likedSongIds = likedSongIds,
                 preferredSongs = previewWithLikes + fullSongsWithLikes + uiState.queueSongsSnapshot + uiState.favoriteSongs,
@@ -793,9 +802,18 @@ class MusicAppController(
 
     // 最近播放只读取播放历史，不从扫描结果自动生成。
     private fun buildRecentSongs(songs: List<Song>): List<Song> {
+        val songsById: Map<String, Song> = songs.distinctBy { song -> song.id }.associateBy { song -> song.id }
         return playbackRepository.getPlaybackHistory().songIds
-            .mapNotNull { songId -> songs.firstOrNull { song -> song.id == songId } }
-            .take(n = 2)
+            .mapNotNull { songId: String -> songsById[songId] }
+    }
+
+    // 最近播放要覆盖当前队列和完整曲库，避免播放非首页预览歌曲后无法反查实体。
+    private fun knownSongsForRecentPlayback(extraSongs: List<Song> = emptyList()): List<Song> {
+        return extraSongs +
+            uiState.queueSongsSnapshot +
+            uiState.localSongs +
+            uiState.homeLocalSongPreview +
+            uiState.favoriteSongs
     }
 
     // 只有启动期显式请求过恢复时，扫描成功后才续上真正的快照恢复，避免平时扫描打断当前播放。
@@ -826,6 +844,7 @@ class MusicAppController(
                 preferredSongs = uiState.homeLocalSongPreview + songsWithLikes + uiState.queueSongsSnapshot + uiState.favoriteSongs,
             ),
             likedSongIds = likedSongIds + songsWithLikes.filter { song -> song.isLiked }.map { song -> song.id },
+            recentSongs = buildRecentSongs(songs = knownSongsForRecentPlayback(extraSongs = songsWithLikes)),
         )
         restorePlaybackSnapshotIfPending()
     }

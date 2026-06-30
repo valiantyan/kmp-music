@@ -3,6 +3,7 @@ package com.yanhao.kmpmusic
 import com.yanhao.kmpmusic.data.DesktopFolderMusicScanner
 import com.yanhao.kmpmusic.data.PersistentFavoritesRepository
 import com.yanhao.kmpmusic.data.PersistentMusicLibraryRepository
+import com.yanhao.kmpmusic.data.PersistentPlaybackRepository
 import com.yanhao.kmpmusic.data.PersistentSearchHistoryRepository
 import com.yanhao.kmpmusic.data.createDesktopPlaybackDatabase
 import com.yanhao.kmpmusic.domain.persistence.PlaybackDatabase
@@ -46,6 +47,10 @@ internal fun createDesktopPlaybackController(
     return MusicAppController(
         localMusicScanner = localMusicScanner,
         audioPlayerEngine = audioPlayerEngine,
+        playbackRepository = PersistentPlaybackRepository.create(
+            playbackDatabase = playbackDatabase,
+            nowMillis = nowMillis,
+        ),
         playbackSnapshotStore = RoomPlaybackSnapshotStore(
             database = playbackDatabase,
             nowMillis = nowMillis,

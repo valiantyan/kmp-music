@@ -66,6 +66,22 @@ object PlaybackDatabaseMigrations {
             )
         }
     }
+
+    /** 从搜索历史版本升级到支持真实最近播放历史持久化。 */
+    val MIGRATION_4_5: Migration = object : Migration(startVersion = 4, endVersion = 5) {
+        /** 创建按播放顺序保存的最近播放历史表。 */
+        override suspend fun migrate(connection: SQLiteConnection) {
+            connection.execSql(
+                """
+                CREATE TABLE IF NOT EXISTS playback_history_item (
+                    position INTEGER NOT NULL PRIMARY KEY,
+                    songId TEXT NOT NULL,
+                    updatedAt INTEGER NOT NULL
+                )
+                """,
+            )
+        }
+    }
 }
 
 /** 执行裁剪后的 SQL 文本，避免多行字符串首尾空白影响 SQLite 解析。 */

@@ -13,7 +13,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Folder
 import androidx.compose.material.icons.rounded.History
@@ -34,10 +36,8 @@ import com.yanhao.kmpmusic.domain.model.Song
 import com.yanhao.kmpmusic.feature.app.LocalMusicSection
 import com.yanhao.kmpmusic.feature.components.CoverArtImage
 
-private const val RECENT_SIDEBAR_SONG_COUNT = 4
-
 /**
- * 桌面首页左侧资料库侧栏，承接效果图中的本地音乐库入口和最近播放摘要。
+ * 桌面首页左侧资料库侧栏，承接效果图中的本地音乐库入口和完整最近播放列表。
  */
 @Composable
 fun DesktopLibrarySidebar(
@@ -45,6 +45,7 @@ fun DesktopLibrarySidebar(
     recentSongs: List<Song>,
     onSection: (LocalMusicSection) -> Unit,
     onSongPlay: (Song, List<Song>) -> Unit,
+    onRecentClear: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -62,10 +63,11 @@ fun DesktopLibrarySidebar(
         )
         Spacer(modifier = Modifier.height(30.dp))
         DesktopLibraryRecentSongs(
-            songs = recentSongs.take(n = RECENT_SIDEBAR_SONG_COUNT),
+            songs = recentSongs,
             onSongPlay = onSongPlay,
+            onRecentClear = onRecentClear,
+            modifier = Modifier.weight(1f),
         )
-        Spacer(modifier = Modifier.weight(1f))
     }
 }
 
@@ -203,8 +205,13 @@ private fun DesktopLibraryStatRow(
 private fun DesktopLibraryRecentSongs(
     songs: List<Song>,
     onSongPlay: (Song, List<Song>) -> Unit,
+    onRecentClear: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+    Column(
+        modifier = modifier,
+        verticalArrangement = Arrangement.spacedBy(14.dp),
+    ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -218,6 +225,7 @@ private fun DesktopLibraryRecentSongs(
             )
             Text(
                 text = "清空",
+                modifier = Modifier.clickable(onClick = onRecentClear),
                 color = DesktopMusicColors.AccentDeep,
                 fontSize = DesktopMusicType.SidebarBody,
                 fontWeight = FontWeight.Bold,
@@ -231,11 +239,19 @@ private fun DesktopLibraryRecentSongs(
             )
             return
         }
-        songs.forEach { song: Song ->
-            DesktopLibraryRecentSongRow(
-                song = song,
-                onClick = { onSongPlay(song, songs) },
-            )
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f)
+                .verticalScroll(state = rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(14.dp),
+        ) {
+            songs.forEach { song: Song ->
+                DesktopLibraryRecentSongRow(
+                    song = song,
+                    onClick = { onSongPlay(song, songs) },
+                )
+            }
         }
     }
 }

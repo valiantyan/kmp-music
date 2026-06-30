@@ -249,6 +249,57 @@ class MusicAppControllerTest {
     }
 
     /**
+     * 播放不在首页预览中的歌曲时，最近播放也必须通过当前队列反查到歌曲实体。
+     */
+    @Test
+    fun playSongOutsideHomePreviewAddsRecentPlayback(): Unit = runBlocking {
+        val repository = SeededMusicLibraryRepository(seedCount = 8)
+        val controller = createController(musicLibraryRepository = repository)
+        val targetSong: Song = repository.getAllAvailableSongs().first { song -> song.id == "seed:1" }
+        assertFalse(controller.uiState.homeLocalSongPreview.any { song -> song.id == targetSong.id })
+        assertTrue(controller.uiState.localSongs.isEmpty())
+        controller.playSong(song = targetSong)
+        assertEquals(
+            expected = listOf(targetSong.id),
+            actual = controller.uiState.recentSongs.map { song -> song.id },
+        )
+    }
+
+    /**
+     * 最近播放应按历史保留全部可解析歌曲，具体页面再决定展示数量。
+     */
+    @Test
+    fun recentPlaybackKeepsAllPlayedSongs(): Unit = runBlocking {
+        val controller = createController()
+        controller.scanLocalMusic(request = LocalMusicScanRequest.Refresh)
+        val playedSongs: List<Song> = controller.uiState.homeLocalSongPreview.take(n = 3)
+        playedSongs.forEach { song: Song ->
+            controller.playSong(song = song)
+        }
+        assertEquals(
+            expected = playedSongs.reversed().map { song -> song.id },
+            actual = controller.uiState.recentSongs.map { song -> song.id },
+        )
+    }
+
+    /**
+     * 清空最近播放必须同时清空 UI 状态和底层播放历史，避免刷新后旧记录又回来。
+     */
+    @Test
+    fun clearRecentPlaybackHistoryRemovesVisibleAndStoredHistory(): Unit = runBlocking {
+        val playbackRepository = InMemoryPlaybackRepository()
+        val controller = createController(playbackRepository = playbackRepository)
+        controller.scanLocalMusic(request = LocalMusicScanRequest.Refresh)
+        val playedSongs: List<Song> = controller.uiState.homeLocalSongPreview.take(n = 2)
+        playedSongs.forEach { song: Song ->
+            controller.playSong(song = song)
+        }
+        controller.clearRecentPlaybackHistory()
+        assertTrue(controller.uiState.recentSongs.isEmpty())
+        assertTrue(playbackRepository.getPlaybackHistory().songIds.isEmpty())
+    }
+
+    /**
      * 二级页面应隐藏主导航，并保留返回前的根 Tab。
      */
     @Test
