@@ -2175,7 +2175,7 @@ git commit -m "重构轻量会话状态控制"
 - Modify: `composeApp/src/commonTest/kotlin/com/yanhao/kmpmusic/feature/app/MusicAppControllerTest.kt`
 - Modify focused test files created in Tasks 1-7 only when moving exact tests into better homes.
 
-- [ ] **Step 1: Keep facade acceptance tests in `MusicAppControllerTest`**
+- [x] **Step 1: Keep facade acceptance tests in `MusicAppControllerTest`**
 
 Keep these tests in `composeApp/src/commonTest/kotlin/com/yanhao/kmpmusic/feature/app/MusicAppControllerTest.kt`:
 
@@ -2228,7 +2228,7 @@ systemBackClosesPermissionSettingsDialog
 systemBackClosesOverlayBeforeSecondaryScreen
 ```
 
-- [ ] **Step 2: Delete projector-only facade tests after Task 1 coverage passes**
+- [x] **Step 2: Delete projector-only facade tests after Task 1 coverage passes**
 
 Delete these tests from `MusicAppControllerTest` because `MusicLibraryProjectorTest` and library synchronizer tests now cover their pure projection rules:
 
@@ -2242,7 +2242,7 @@ coldStartWithPersistedSongsShowsDoneStateWithoutFullLibraryLoad
 
 Keep `favoriteSongsRemainAvailableBeforeFullLibraryLoads` in the facade file because it verifies lazy library loading, favorites, and detail availability together.
 
-- [ ] **Step 3: Delete search-history unit tests after Task 3 coverage passes**
+- [x] **Step 3: Delete search-history unit tests after Task 3 coverage passes**
 
 Delete these tests from `MusicAppControllerTest` because `MusicAppSearchControllerTest` now covers context isolation, clearing behavior, history restore, deduplication, and per-context clearing:
 
@@ -2256,7 +2256,7 @@ clearSearchHistoryOnlyClearsCurrentContext
 
 Keep `nonBlankSearchQueryCommitsToHistoryWhenLeavingSearch` and `searchQueryWithoutResultsCommitsToHistoryWhenLeavingSearch` in the facade file because they verify navigation lifecycle commits through `MusicAppController`.
 
-- [ ] **Step 4: Delete reducer-only navigation/session tests after Tasks 2 and 7 coverage pass**
+- [x] **Step 4: Delete reducer-only navigation/session tests after Tasks 2 and 7 coverage pass**
 
 Delete these tests from `MusicAppControllerTest` because `MusicAppNavigationControllerTest` or `LoginAndDialogStateControllerTest` now cover the reducer-only behavior:
 
@@ -2270,7 +2270,7 @@ emptyIdleStatusHasNoActivePlaybackSession
 
 Keep all system-back tests in the facade file because they coordinate dialogs, more menu, queue, and secondary pages.
 
-- [ ] **Step 5: Run targeted split-test set**
+- [x] **Step 5: Run targeted split-test set**
 
 Run:
 
@@ -2280,7 +2280,7 @@ Run:
 
 Expected: PASS.
 
-- [ ] **Step 6: Confirm file sizes moved in the right direction**
+- [x] **Step 6: Confirm file sizes moved in the right direction**
 
 Run:
 
@@ -2290,7 +2290,7 @@ wc -l composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/app/MusicAppC
 
 Expected: both files have fewer lines than the starting point of 918 and 1527, and `MusicAppController.kt` no longer contains private `buildAlbums`, `buildArtists`, search-history helpers, or favorite state projection loops.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add composeApp/src/commonTest/kotlin/com/yanhao/kmpmusic/feature/app/MusicAppControllerTest.kt composeApp/src/commonTest/kotlin/com/yanhao/kmpmusic/feature/app/library/MusicLibraryProjectorTest.kt composeApp/src/commonTest/kotlin/com/yanhao/kmpmusic/feature/app/navigation/MusicAppNavigationControllerTest.kt composeApp/src/commonTest/kotlin/com/yanhao/kmpmusic/feature/app/search/MusicAppSearchControllerTest.kt composeApp/src/commonTest/kotlin/com/yanhao/kmpmusic/feature/app/library/MusicAppLibraryStateSynchronizerTest.kt composeApp/src/commonTest/kotlin/com/yanhao/kmpmusic/feature/app/favorites/MusicAppFavoriteStateSynchronizerTest.kt composeApp/src/commonTest/kotlin/com/yanhao/kmpmusic/feature/app/playback/MusicAppPlaybackUiStateSynchronizerTest.kt composeApp/src/commonTest/kotlin/com/yanhao/kmpmusic/feature/app/playback/MusicAppPlaybackRestoreOrchestratorTest.kt composeApp/src/commonTest/kotlin/com/yanhao/kmpmusic/feature/app/session/LoginAndDialogStateControllerTest.kt

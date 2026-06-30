@@ -4,14 +4,19 @@ import com.yanhao.kmpmusic.domain.model.PlaybackStatus
 import com.yanhao.kmpmusic.domain.model.SearchContext
 import com.yanhao.kmpmusic.domain.model.SearchScope
 import com.yanhao.kmpmusic.domain.repository.SearchHistoryRepository
+import com.yanhao.kmpmusic.feature.app.MusicAppController
 import com.yanhao.kmpmusic.feature.app.MusicAppUiState
 import com.yanhao.kmpmusic.feature.app.SecondaryScreen
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class MusicAppSearchControllerTest {
@@ -176,6 +181,26 @@ class MusicAppSearchControllerTest {
         assertEquals(expected = emptyList(), actual = nextState.favoritesSearchHistory)
     }
 
+    @Test
+    fun controllerInitializationRestoresSearchHistoryFromSharedRepositoryAcrossInstances(): Unit {
+        val repository = FakeSearchHistoryRepository()
+        val firstController = createController(searchHistoryRepository = repository)
+
+        firstController.openSearch(context = SearchContext.LocalLibrary)
+        firstController.setSearchQuery(query = "One Summer")
+        firstController.navigateBack()
+
+        val restoredController = createController(searchHistoryRepository = repository)
+
+        assertEquals(
+            expected = listOf("One Summer"),
+            actual = restoredController.uiState.searchHistoryFor(context = SearchContext.LocalLibrary),
+        )
+        assertTrue(
+            actual = restoredController.uiState.searchHistoryFor(context = SearchContext.Favorites).isEmpty(),
+        )
+    }
+
     /** 为搜索控制器测试构造最小 [MusicAppUiState]。 */
     private fun testState(): MusicAppUiState {
         return MusicAppUiState(
@@ -183,6 +208,14 @@ class MusicAppSearchControllerTest {
             currentSongId = null,
             playbackStatus = PlaybackStatus.Idle,
             queueSongIds = emptyList(),
+        )
+    }
+
+    /** 通过真实 [MusicAppController] 初始化链路验证搜索历史恢复。 */
+    private fun createController(searchHistoryRepository: SearchHistoryRepository): MusicAppController {
+        return MusicAppController(
+            searchHistoryRepository = searchHistoryRepository,
+            controllerScope = CoroutineScope(SupervisorJob() + Dispatchers.Unconfined),
         )
     }
 }

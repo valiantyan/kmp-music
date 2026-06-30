@@ -14,8 +14,13 @@ import com.yanhao.kmpmusic.domain.model.PlaybackHistory
 import com.yanhao.kmpmusic.domain.model.PlaybackStatus
 import com.yanhao.kmpmusic.domain.model.Song
 import com.yanhao.kmpmusic.domain.repository.MusicLibraryRepository
+import com.yanhao.kmpmusic.feature.app.MusicAppController
 import com.yanhao.kmpmusic.feature.app.MusicAppUiState
+import com.yanhao.kmpmusic.feature.app.LocalMusicSection
 import com.yanhao.kmpmusic.feature.app.SecondaryScreen
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -23,6 +28,78 @@ import kotlin.test.assertIs
 import kotlin.test.assertTrue
 
 class MusicAppLibraryStateSynchronizerTest {
+    @Test
+    fun controllerColdStartUsesHomePreviewWithoutFullLocalSongs(): Unit {
+        val repository = FakeMusicLibraryRepository(
+            homeSongs = (1..8).map { index: Int -> testSong(id = "home-$index", title = "Home $index") },
+            allSongs = (1..8).map { index: Int -> testSong(id = "all-$index", title = "All $index") },
+            stats = LibraryStats(songCount = 8),
+        )
+
+        val controller = createController(repository = repository)
+
+        assertEquals(expected = 1, actual = repository.homePreviewReads)
+        assertEquals(expected = 0, actual = repository.allSongsReadCount)
+        assertEquals(expected = 6, actual = controller.uiState.homeLocalSongPreview.size)
+        assertTrue(actual = controller.uiState.localSongs.isEmpty())
+    }
+
+    @Test
+    fun controllerColdStartWithPersistedSongsBuildsDoneStateWithoutFullLibraryLoad(): Unit {
+        val repository = FakeMusicLibraryRepository(
+            homeSongs = (1..8).map { index: Int -> testSong(id = "home-$index", title = "Home $index") },
+            allSongs = (1..8).map { index: Int -> testSong(id = "all-$index", title = "All $index") },
+            stats = LibraryStats(songCount = 8),
+        )
+
+        val controller = createController(repository = repository)
+
+        assertIs<LocalMusicScanState.Done>(value = controller.uiState.scanState)
+        assertEquals(expected = 0, actual = repository.allSongsReadCount)
+        assertEquals(expected = 6, actual = controller.uiState.homeLocalSongPreview.size)
+        assertTrue(actual = controller.uiState.localSongs.isEmpty())
+    }
+
+    @Test
+    fun controllerOpenLocalMusicLoadsFullSongsOnDemand(): Unit {
+        val repository = FakeMusicLibraryRepository(
+            homeSongs = (1..8).map { index: Int -> testSong(id = "home-$index", title = "Home $index") },
+            allSongs = (1..8).map { index: Int -> testSong(id = "all-$index", title = "All $index") },
+            stats = LibraryStats(songCount = 8),
+        )
+        val controller = createController(repository = repository)
+
+        controller.openLocalMusic(section = LocalMusicSection.Songs)
+
+        assertEquals(expected = 1, actual = repository.allSongsReadCount)
+        assertEquals(expected = 8, actual = controller.uiState.localSongs.size)
+    }
+
+    @Test
+    fun controllerPreviewSongsCanOpenDetailsAfterOnDemandLibraryLoad(): Unit {
+        val songs: List<Song> = (1..8).map { index: Int ->
+            testSong(
+                id = "song-$index",
+                title = "Song $index",
+                album = "Album",
+                artist = "Artist",
+            )
+        }
+        val repository = FakeMusicLibraryRepository(
+            homeSongs = songs,
+            allSongs = songs,
+            stats = LibraryStats(songCount = songs.size),
+        )
+        val controller = createController(repository = repository)
+        val previewSong: Song = controller.uiState.homeLocalSongPreview.first()
+
+        controller.openAlbumFromSong(song = previewSong)
+        assertEquals(expected = "album:album", actual = controller.uiState.selectedAlbum?.id)
+        controller.openArtistFromSong(song = previewSong)
+        assertEquals(expected = "artist:artist", actual = controller.uiState.selectedArtist?.id)
+        assertEquals(expected = 1, actual = repository.allSongsReadCount)
+    }
+
     @Test
     fun buildInitialScanStateReflectsPersistedLibraryWithoutLoadingSongs(): Unit {
         val synchronizer: LibraryStateSynchronizer = createSynchronizer(stats = LibraryStats(songCount = 5))
@@ -104,6 +181,47 @@ class MusicAppLibraryStateSynchronizerTest {
     }
 
     @Test
+    fun syncLibrarySnapshotUsesRepositoryStatsAndPreviewAsSourceOfTruth(): Unit {
+        val repository: FakeMusicLibraryRepository = FakeMusicLibraryRepository(
+            homeSongs = listOf(testSong(id = "preview", title = "Preview")),
+            allSongs = listOf(testSong(id = "full", title = "Full")),
+            stats = LibraryStats(songCount = 8, albumCount = 4, artistCount = 4),
+        )
+        val synchronizer: LibraryStateSynchronizer = createSynchronizer(
+            repository = repository,
+            stats = repository.getLibraryStats(),
+        )
+
+        val nextState: MusicAppUiState = synchronizer.syncLibrarySnapshot(
+            state = testState(),
+            snapshot = LibrarySnapshot(
+                songs = emptyList(),
+                albums = emptyList(),
+                artists = emptyList(),
+                stats = LibraryStats(songCount = 1, albumCount = 1, artistCount = 1),
+                sources = emptyList(),
+                scanState = LocalMusicScanState.Done(
+                    summary = LocalMusicLastScanSummary(
+                        addedCount = 1,
+                        updatedCount = 0,
+                        removedCount = 0,
+                        problemCount = 0,
+                        completedAt = 0L,
+                    ),
+                ),
+                lastScanSummary = null,
+                problems = emptyList(),
+            ),
+        )
+
+        assertEquals(expected = listOf("preview"), actual = nextState.homeLocalSongPreview.map { song: Song -> song.id })
+        assertEquals(
+            expected = LibraryStats(songCount = 8, albumCount = 4, artistCount = 4),
+            actual = nextState.libraryStats,
+        )
+    }
+
+    @Test
     fun loadLocalMusicLibraryBuildsRecentSongsFromPlaybackHistory(): Unit {
         val playbackRepository: InMemoryPlaybackRepository = InMemoryPlaybackRepository()
         playbackRepository.savePlaybackHistory(
@@ -168,6 +286,13 @@ class MusicAppLibraryStateSynchronizerTest {
         )
     }
 
+    private fun createController(repository: FakeMusicLibraryRepository): MusicAppController {
+        return MusicAppController(
+            musicLibraryRepository = repository,
+            controllerScope = CoroutineScope(SupervisorJob() + Dispatchers.Unconfined),
+        )
+    }
+
     private fun testState(): MusicAppUiState {
         return MusicAppUiState(
             likedSongIds = emptySet(),
@@ -177,12 +302,18 @@ class MusicAppLibraryStateSynchronizerTest {
         )
     }
 
-    private fun testSong(id: String, title: String, isLiked: Boolean = false): Song {
+    private fun testSong(
+        id: String,
+        title: String,
+        isLiked: Boolean = false,
+        album: String = "Album",
+        artist: String = "Artist",
+    ): Song {
         return Song(
             id = id,
             title = title,
-            artist = "Artist",
-            album = "Album",
+            artist = artist,
+            album = album,
             duration = "03:00",
             coverArt = CoverArt.HeroLocalMusic,
             isLiked = isLiked,
@@ -205,6 +336,12 @@ private class FakeMusicLibraryRepository(
     // 记录是否命中过完整曲库读取，确保按需加载约束没有退化。
     var allSongsRead: Boolean = false
         private set
+    var allSongsReadCount: Int = 0
+        private set
+    var homePreviewReads: Int = 0
+        private set
+    var songsByIdsReads: Int = 0
+        private set
 
     /** 提供与真实仓库一致的快照结构，便于同步器测试直接消费。 */
     override fun getSnapshot(): LibrarySnapshot {
@@ -222,17 +359,20 @@ private class FakeMusicLibraryRepository(
 
     /** 首页预览只暴露受限数量，模拟真实冷启动策略。 */
     override fun getHomePreview(limit: Int): List<Song> {
+        homePreviewReads += 1
         return homeSongs.take(n = limit)
     }
 
     /** 只有显式请求完整曲库时才标记读取，用于验证按需加载。 */
     override fun getAllAvailableSongs(): List<Song> {
         allSongsRead = true
+        allSongsReadCount += 1
         return allSongs
     }
 
     /** 收藏和恢复快照按 id 回查歌曲实体时复用同一批测试数据。 */
     override fun getAvailableSongsByIds(songIds: List<String>): List<Song> {
+        songsByIdsReads += 1
         return allSongs.filter { song: Song -> songIds.contains(element = song.id) }
     }
 

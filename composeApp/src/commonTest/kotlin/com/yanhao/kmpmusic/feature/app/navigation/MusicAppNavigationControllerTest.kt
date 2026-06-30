@@ -4,6 +4,8 @@ import com.yanhao.kmpmusic.domain.model.CoverArt
 import com.yanhao.kmpmusic.domain.model.PlaybackStatus
 import com.yanhao.kmpmusic.domain.model.SearchContext
 import com.yanhao.kmpmusic.domain.model.Song
+import com.yanhao.kmpmusic.feature.app.AppChromeMode
+import com.yanhao.kmpmusic.feature.app.BottomChromePlacement
 import com.yanhao.kmpmusic.feature.app.MusicAppUiState
 import com.yanhao.kmpmusic.feature.app.NavigationState
 import com.yanhao.kmpmusic.feature.app.RootTab
@@ -12,6 +14,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 /**
  * [NavigationStateController] 的纯 reducer 测试，确保 facade 委托后行为保持稳定。
@@ -82,6 +85,49 @@ class MusicAppNavigationControllerTest {
         assertEquals(expected = RootTab.Me, actual = nextState.navigationState.rootTab)
         assertNull(actual = nextState.navigationState.secondaryScreen)
         assertEquals(expected = 3, actual = nextState.navigationState.secondaryEntryId)
+    }
+
+    /**
+     * 页面 chrome 策略应由导航状态纯派生，避免 facade 层重复维护同一规则。
+     */
+    @Test
+    fun navigationStateProvidesChromeMode(): Unit {
+        val topLevelState: NavigationState = NavigationState()
+        assertEquals(expected = AppChromeMode.TopLevel, actual = topLevelState.chromeMode)
+        assertTrue(actual = topLevelState.chromeMode.showsBottomNavigation)
+        assertEquals(
+            expected = BottomChromePlacement.TopLevel,
+            actual = topLevelState.chromeMode.bottomChromePlacement,
+        )
+
+        val secondaryState: NavigationState = NavigationState(
+            secondaryScreen = SecondaryScreen.AlbumDetail,
+        )
+        assertEquals(expected = AppChromeMode.SecondaryWithMiniPlayer, actual = secondaryState.chromeMode)
+        assertFalse(actual = secondaryState.chromeMode.showsBottomNavigation)
+        assertEquals(
+            expected = BottomChromePlacement.MiniPlayerOnly,
+            actual = secondaryState.chromeMode.bottomChromePlacement,
+        )
+
+        val fullscreenPlayerState: NavigationState = NavigationState(
+            secondaryScreen = SecondaryScreen.Player,
+        )
+        assertEquals(expected = AppChromeMode.SecondaryFullscreen, actual = fullscreenPlayerState.chromeMode)
+        assertFalse(actual = fullscreenPlayerState.chromeMode.showsBottomNavigation)
+        assertEquals(
+            expected = BottomChromePlacement.Hidden,
+            actual = fullscreenPlayerState.chromeMode.bottomChromePlacement,
+        )
+
+        val fullscreenSettingsState: NavigationState = NavigationState(
+            secondaryScreen = SecondaryScreen.Settings,
+        )
+        assertEquals(expected = AppChromeMode.SecondaryFullscreen, actual = fullscreenSettingsState.chromeMode)
+        assertEquals(
+            expected = BottomChromePlacement.Hidden,
+            actual = fullscreenSettingsState.chromeMode.bottomChromePlacement,
+        )
     }
 
     /** 构造只包含导航测试所需最小字段的 [MusicAppUiState]。 */
