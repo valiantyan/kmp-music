@@ -44,6 +44,7 @@ import com.yanhao.kmpmusic.domain.usecase.ToggleFavoriteUseCase
 import com.yanhao.kmpmusic.domain.usecase.ToggleFavoriteUseCaseImpl
 import com.yanhao.kmpmusic.domain.usecase.buildSearchResult
 import com.yanhao.kmpmusic.feature.app.library.MusicLibraryProjector
+import com.yanhao.kmpmusic.feature.app.navigation.NavigationStateController
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Job
@@ -132,39 +133,25 @@ class MusicAppController(
     /** 进入二级页面并隐藏主 Tab。 */
     fun navigateToSecondary(screen: SecondaryScreen) {
         commitActiveSearchQueryToHistoryIfNeeded()
-        uiState = uiState.copy(
-            navigationState = uiState.navigationState.copy(
-                secondaryScreen = screen,
-                previousRootTab = uiState.navigationState.rootTab,
-                secondaryEntryId = uiState.navigationState.secondaryEntryId + 1,
-            ),
-            isQueueOpen = false,
-            moreSongId = null,
+        uiState = NavigationStateController.navigateToSecondary(
+            state = uiState,
+            screen = screen,
         )
     }
 
     /** 切换一级 Tab。 */
     fun navigateToRoot(tab: RootTab) {
         commitActiveSearchQueryToHistoryIfNeeded()
-        uiState = uiState.copy(
-            navigationState = NavigationState(
-                rootTab = tab,
-                previousRootTab = tab,
-            ),
-            isQueueOpen = false,
-            moreSongId = null,
+        uiState = NavigationStateController.navigateToRoot(
+            state = uiState,
+            tab = tab,
         )
     }
 
     /** 从二级页面返回上一个一级页面。 */
     fun navigateBack() {
         commitActiveSearchQueryToHistoryIfNeeded()
-        uiState = uiState.copy(
-            navigationState = uiState.navigationState.copy(
-                rootTab = uiState.navigationState.previousRootTab,
-                secondaryScreen = null,
-            ),
-        )
+        uiState = NavigationStateController.navigateBack(state = uiState)
     }
 
     /**

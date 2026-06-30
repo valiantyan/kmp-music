@@ -1,60 +1,69 @@
-# Task 2 Report: Context-Specific Search Results
+# Task 2 Report: Extract NavigationStateController
 
 ## What I implemented
 
-- 在 `MusicAppController.search()` 中按 `uiState.searchContext` 选择搜索源：
-  - `SearchContext.LocalLibrary` 优先使用已加载的 `uiState.localSongs`，否则回退到 `musicLibraryRepository.getAllAvailableSongs()`
-  - `SearchContext.Favorites` 只使用 `uiState.favoriteSongs`
-- 将 `SearchMusicUseCase.kt` 中的 `buildSearchResult(...)` 从 `internal` 调整为公开函数，供控制器跨包复用同一套搜索聚合规则
-- 在 `MusicAppControllerTest.kt` 中新增本地曲库搜索与收藏搜索的上下文隔离测试，并保留现有 `searchScopeLimitsResultTypes` 作为回归覆盖
-- 移除了控制器中已不再使用的 `searchMusicUseCase` 注入路径，避免留下双搜索实现入口
+- 新增 `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/app/navigation/NavigationStateController.kt`
+  - 抽出 `navigateToSecondary(...)`
+  - 抽出 `navigateToRoot(...)`
+  - 抽出 `navigateBack(...)`
+- 新增 `composeApp/src/commonTest/kotlin/com/yanhao/kmpmusic/feature/app/navigation/MusicAppNavigationControllerTest.kt`
+  - 覆盖进入二级页时保存 `previousRootTab`、自增 `secondaryEntryId`、关闭 queue / more
+  - 覆盖切换一级 Tab 时清空二级路由并重置 `previousRootTab`
+  - 覆盖返回一级页时保留 `secondaryEntryId`
+- 修改 `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/app/MusicAppController.kt`
+  - 保持 `MusicAppController` 作为唯一 public facade 和 Compose mutable state owner
+  - 将 `navigateToSecondary(...)`、`navigateToRoot(...)`、`navigateBack()` 改为委托给 `NavigationStateController`
+  - 保持 `handleSystemBack()` 原有关闭顺序不变
+- 更新 `docs/superpowers/plans/2026-06-30-codebase-architecture-optimization-phase1.md` 中 Task 2 的步骤勾选
 
-## What I tested and test results
+## Tests run and results
 
-- RED 验证命令：
-  - `./gradlew :composeApp:desktopTest --tests "com.yanhao.kmpmusic.feature.app.MusicAppControllerTest.localLibrarySearchReturnsNonFavoriteLocalSongs" --tests "com.yanhao.kmpmusic.feature.app.MusicAppControllerTest.favoritesSearchOnlyReturnsFavoriteSongs"`
-  - 结果：失败，`favoritesSearchOnlyReturnsFavoriteSongs` 断言失败，说明收藏搜索仍错误命中了完整本地曲库
-- GREEN 验证命令：
-  - `./gradlew :composeApp:desktopTest --tests "com.yanhao.kmpmusic.feature.app.MusicAppControllerTest.localLibrarySearchReturnsNonFavoriteLocalSongs" --tests "com.yanhao.kmpmusic.feature.app.MusicAppControllerTest.favoritesSearchOnlyReturnsFavoriteSongs" --tests "com.yanhao.kmpmusic.feature.app.MusicAppControllerTest.searchScopeLimitsResultTypes"`
-  - 结果：全部通过，3 条目标测试通过
+- RED:
+  - `./gradlew :composeApp:desktopTest --tests "com.yanhao.kmpmusic.feature.app.navigation.MusicAppNavigationControllerTest"`
+  - 结果：失败，`NavigationStateController` unresolved reference；同时当前仓库里的 `Song` / `CoverArt` 模型与 brief 样例有差异，测试夹具需要补齐现有必填字段
+- GREEN:
+  - `./gradlew :composeApp:desktopTest --tests "com.yanhao.kmpmusic.feature.app.navigation.MusicAppNavigationControllerTest" --tests "com.yanhao.kmpmusic.feature.app.MusicAppControllerTest.rootNavigationClearsSecondaryScreen" --tests "com.yanhao.kmpmusic.feature.app.MusicAppControllerTest.systemBackClosesOverlayBeforeSecondaryScreen"`
+  - 结果：通过，目标 3 组测试全部成功
 
 ## TDD Evidence
 
 ### RED command/output summary
 
 - 命令：
-  - `./gradlew :composeApp:desktopTest --tests "com.yanhao.kmpmusic.feature.app.MusicAppControllerTest.localLibrarySearchReturnsNonFavoriteLocalSongs" --tests "com.yanhao.kmpmusic.feature.app.MusicAppControllerTest.favoritesSearchOnlyReturnsFavoriteSongs"`
+  - `./gradlew :composeApp:desktopTest --tests "com.yanhao.kmpmusic.feature.app.navigation.MusicAppNavigationControllerTest"`
 - 摘要：
-  - `2 tests completed, 1 failed`
-  - 失败用例：`MusicAppControllerTest[desktop] > favoritesSearchOnlyReturnsFavoriteSongs[desktop] FAILED`
-  - 失败原因：收藏搜索仍使用完整本地曲库作为结果源，未按 `searchContext` 隔离
+  - `:composeApp:compileTestKotlinDesktop FAILED`
+  - 关键失败：`Unresolved reference 'NavigationStateController'`
+  - 同次编译还暴露出当前 `Song` 构造函数缺少 `coverArt`、`isLiked`、`lastPlayed`、`quality`、`lyric`、`trackNumber` 等必填参数，说明需要让测试夹具适配现有模型
 
 ### GREEN command/output summary
 
 - 命令：
-  - `./gradlew :composeApp:desktopTest --tests "com.yanhao.kmpmusic.feature.app.MusicAppControllerTest.localLibrarySearchReturnsNonFavoriteLocalSongs" --tests "com.yanhao.kmpmusic.feature.app.MusicAppControllerTest.favoritesSearchOnlyReturnsFavoriteSongs" --tests "com.yanhao.kmpmusic.feature.app.MusicAppControllerTest.searchScopeLimitsResultTypes"`
+  - `./gradlew :composeApp:desktopTest --tests "com.yanhao.kmpmusic.feature.app.navigation.MusicAppNavigationControllerTest" --tests "com.yanhao.kmpmusic.feature.app.MusicAppControllerTest.rootNavigationClearsSecondaryScreen" --tests "com.yanhao.kmpmusic.feature.app.MusicAppControllerTest.systemBackClosesOverlayBeforeSecondaryScreen"`
 - 摘要：
   - `BUILD SUCCESSFUL`
-  - 3 条目标测试均通过
+  - 新增导航 reducer 测试通过
+  - facade 回归测试 `rootNavigationClearsSecondaryScreen` 与 `systemBackClosesOverlayBeforeSecondaryScreen` 通过
 
 ## Files changed
 
-- `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/domain/usecase/SearchMusicUseCase.kt`
+- `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/app/navigation/NavigationStateController.kt`
+- `composeApp/src/commonTest/kotlin/com/yanhao/kmpmusic/feature/app/navigation/MusicAppNavigationControllerTest.kt`
 - `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/app/MusicAppController.kt`
-- `composeApp/src/commonTest/kotlin/com/yanhao/kmpmusic/feature/app/MusicAppControllerTest.kt`
+- `docs/superpowers/plans/2026-06-30-codebase-architecture-optimization-phase1.md`
 - `.superpowers/sdd/task-2-report.md`
 
 ## Self-review findings
 
-- 搜索结果聚合规则仍只保留一份，控制器与用例共用 `buildSearchResult(...)`，避免不同入口出现结果口径分叉
-- `LocalLibrary` 场景保留“已加载列表优先、仓库兜底”的既有性能语义，没有强行改变扫描与完整曲库加载的边界
-- `Favorites` 场景直接以 `uiState.favoriteSongs` 为唯一搜索源，满足入口隔离要求，也不会误把未收藏本地歌曲带入结果
-- 已清理控制器里的废弃搜索用例引用，避免未来维护时误以为存在第二条有效搜索路径
+- 抽取后的 `NavigationStateController` 保持纯函数形态，只接收 `MusicAppUiState` 并返回新状态，没有引入 Compose 状态或仓库依赖
+- `MusicAppController` 仍然保留搜索 history commit 与系统返回编排，职责边界和 brief 要求一致
+- 导航 reducer 保留了 `secondaryEntryId` 的累加与回退保留语义，因此不会破坏现有滚动 key 稳定性
+- 新测试覆盖了 queue / more 清理规则，避免以后把导航副作用悄悄散回 facade
 
-## Any issues or concerns
+## Concerns, if any
 
-- 目标测试通过，但 Gradle 输出里仍有与本任务无关的既有 warning：
+- 无功能性阻塞
+- Gradle 仍输出与本任务无关的既有 warning：
   - Kotlin MPP/AGP deprecated property 警告
   - `PlaybackCoordinator.kt` 中 Elvis operator 警告
-  - 其他测试文件中的轻量 warning
-- 本次未修改 `docs/superpowers` 下的 plan/spec 文件，符合任务约束
+  - 现有测试文件中的轻量 warning

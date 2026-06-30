@@ -342,7 +342,7 @@ git commit -m "重构曲库专辑歌手投影"
 - Create: `composeApp/src/commonTest/kotlin/com/yanhao/kmpmusic/feature/app/navigation/MusicAppNavigationControllerTest.kt`
 - Modify: `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/app/MusicAppController.kt`
 
-- [ ] **Step 1: Write failing navigation reducer tests**
+- [x] **Step 1: Write failing navigation reducer tests**
 
 Create `composeApp/src/commonTest/kotlin/com/yanhao/kmpmusic/feature/app/navigation/MusicAppNavigationControllerTest.kt`:
 
@@ -441,7 +441,7 @@ class MusicAppNavigationControllerTest {
 }
 ```
 
-- [ ] **Step 2: Run navigation tests and verify they fail**
+- [x] **Step 2: Run navigation tests and verify they fail**
 
 Run:
 
@@ -451,7 +451,7 @@ Run:
 
 Expected: FAIL with an unresolved reference to `NavigationStateController`.
 
-- [ ] **Step 3: Add navigation reducer**
+- [x] **Step 3: Add navigation reducer**
 
 Create `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/app/navigation/NavigationStateController.kt`:
 
@@ -501,7 +501,7 @@ object NavigationStateController {
 }
 ```
 
-- [ ] **Step 4: Wire public navigation methods through the reducer**
+- [x] **Step 4: Wire public navigation methods through the reducer**
 
 Modify `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/app/MusicAppController.kt`:
 
@@ -536,7 +536,7 @@ fun navigateBack() {
 
 Do not change `handleSystemBack()` yet; it still coordinates dialog, menu, queue, and navigation closing order through existing public methods.
 
-- [ ] **Step 5: Run focused and facade navigation tests**
+- [x] **Step 5: Run focused and facade navigation tests**
 
 Run:
 
@@ -546,7 +546,7 @@ Run:
 
 Expected: PASS.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/app/navigation/NavigationStateController.kt composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/app/MusicAppController.kt composeApp/src/commonTest/kotlin/com/yanhao/kmpmusic/feature/app/navigation/MusicAppNavigationControllerTest.kt
