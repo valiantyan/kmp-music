@@ -70,11 +70,12 @@ KMP Music 当前已经具备本地曲库、播放、收藏、搜索、导航、A
 | --- | --- | --- |
 | `NavigationStateController` | `feature/app/navigation` | 一级/二级导航、返回键消费顺序、进入页面时关闭队列和更多菜单。 |
 | `SearchSessionController` | `feature/app/search` | 搜索输入、active query 节流、搜索历史隔离、离开搜索页前提交历史。 |
-| `LibraryStateSynchronizer` | `feature/app/library` | 扫描结果同步、完整曲库按需加载、最近播放可见列表、收藏实体补齐。 |
+| `LibraryStateSynchronizer` | `feature/app/library` | 扫描结果同步、完整曲库按需加载、最近播放可见列表、收藏实体补齐、扫描权限门控状态。 |
 | `MusicLibraryProjector` | `feature/app/library` | 纯逻辑，把歌曲聚合成专辑、歌手、收藏专辑、收藏歌手。 |
 | `FavoriteStateSynchronizer` | `feature/app/favorites` | 切换收藏后同步首页预览、全量曲库、队列快照、收藏列表和播放 UI。 |
 | `PlaybackUiStateSynchronizer` | `feature/app/playback` | 把 `PlaybackState` 和 `QueueState` 同步到 `MusicAppUiState`，不接管播放业务语义。 |
-| `LoginAndDialogStateController` | `feature/app/session` | 邮箱、登录邮件状态、清缓存弹窗、权限设置弹窗等非核心业务状态。 |
+| `PlaybackRestoreOrchestrator` | `feature/app/playback` | 编排持久化播放快照恢复、缺失歌曲实体解析、曲库未就绪时的挂起恢复。 |
+| `LoginAndDialogStateController` | `feature/app/session` | 邮箱、登录邮件状态、清缓存弹窗等非核心业务状态；不负责扫描权限弹窗。 |
 
 第一阶段完成后，`MusicAppController` 应主要负责：
 
@@ -172,17 +173,23 @@ UI / Android session / Desktop session
 
 曲库协作者负责从 `MusicLibraryRepository`、扫描快照和当前已知歌曲中形成 UI 所需列表。专辑和歌手聚合统一交给 `MusicLibraryProjector`，避免 controller 和 `MusicAppUiState` 重复实现。
 
+扫描权限门控属于曲库扫描流程，不属于普通弹窗 session。永久拒绝权限后的确认框、用户确认后进入 `WaitingForPermission`、调用 `PermissionSettingsOpener` 这组行为必须由 `MusicAppController` 编排曲库协作者和权限打开适配器完成，不能下沉到登录/清缓存协作者里。
+
+`MusicLibraryProjector` 第一阶段优先作为纯投影器复用在 controller、协作者和 `MusicAppUiState` 派生 getter 中；不要求立即把 `detailAlbums`、`detailArtists`、`favoriteAlbums`、`favoriteArtists` 全部物化为可变 UI state。只有当物化能减少重复查询或明确降低重组成本时，才在后续阶段调整状态形态。
+
 ### 收藏
 
-收藏协作者负责在切换收藏后同步所有列表里的 `isLiked` 状态，并重建收藏页歌曲列表。它不执行播放命令，也不修改导航。
+收藏协作者负责在切换收藏后同步所有列表里的 `isLiked` 状态，并重建收藏页歌曲列表。它还必须保持最近播放可见列表、当前播放歌曲和队列快照中的收藏态一致。它不执行播放命令，也不修改导航。
 
 ### 播放 UI 同步
 
-播放 UI 同步协作者只把 `PlaybackRepository` / `QueueState` 的状态投影到 `MusicAppUiState`。播放模式、自然结束、失败跳过、随机历史和快照恢复仍由 `PlaybackCoordinator` 负责。
+播放 UI 同步协作者只把 `PlaybackRepository` / `QueueState` 的状态投影到 `MusicAppUiState`。播放模式、自然结束、失败跳过、随机历史仍由 `PlaybackCoordinator` 负责。快照真正恢复到播放仓库和队列的动作仍调用 `PlaybackCoordinator.restoreSnapshot`，但恢复前的可用歌曲解析、空曲库挂起和扫描后续接属于 controller 或 `PlaybackRestoreOrchestrator` 的编排职责。
+
+持久化播放快照恢复不是单纯的播放 UI 同步。恢复流程需要同时读取 `PlaybackSnapshotStore`、按当前已知歌曲和 `MusicLibraryRepository` 补齐队列实体、在曲库为空时挂起恢复、扫描成功或完整曲库加载后续上恢复。第一阶段可以保留在 `MusicAppController` 中编排，也可以抽出 `PlaybackRestoreOrchestrator`；但不能让 `LibraryStateSynchronizer` 和 `PlaybackUiStateSynchronizer` 各自承担半段恢复逻辑。
 
 ### 弹窗和登录
 
-权限设置弹窗、清缓存弹窗、邮箱输入和模拟发送登录邮件可以放进轻量 session 协作者。该协作者不应接触曲库、播放和搜索历史。
+清缓存弹窗、邮箱输入和模拟发送登录邮件可以放进轻量 session 协作者。该协作者不应接触曲库、播放和搜索历史。权限设置弹窗因为会改变扫描状态并调用平台权限设置入口，应留在曲库扫描门控或 `MusicAppController` 编排层。
 
 ## 测试策略
 
@@ -208,14 +215,20 @@ UI / Android session / Desktop session
 | `MusicAppLibraryStateSynchronizerTest` | 扫描快照、按需加载、最近播放可见列表、缺失歌曲解析。 |
 | `MusicAppFavoriteStateSynchronizerTest` | 切换收藏后跨列表同步。 |
 | `MusicAppPlaybackUiStateSynchronizerTest` | 播放状态、队列 id 和 UI 快照同步。 |
+| `MusicAppPlaybackRestoreOrchestratorTest` | 快照歌曲实体解析、空曲库挂起、扫描或完整曲库加载后续接恢复。 |
 | `MusicLibraryProjectorTest` | 歌曲到专辑、歌手、收藏专辑、收藏歌手的纯聚合规则。 |
 
 `MusicAppControllerTest` 不再继续承载所有细节，只保留跨职责验收：
 
 - 扫描成功后能续上挂起的播放快照恢复。
+- 恢复播放快照在曲库为空时不会自动触发扫描，冷启动有持久曲库时也不会提前加载全量歌曲。
 - 播放歌曲后最近播放可见列表同步。
-- 收藏状态在首页、全量列表、收藏页和当前播放 UI 同步。
+- 收藏状态在首页、全量列表、收藏页、最近播放、队列快照和当前播放 UI 同步。
 - 离开搜索页时提交非空搜索词。
+- 搜索页自身隐藏顶部搜索入口，不出现两个搜索输入源。
+- 永久拒绝权限后再次扫描先弹确认框，不重复触发平台扫描；确认后进入权限设置等待态。
+- 队列上下文在歌曲不再来自当前可见列表时仍然保留，移除当前歌曲后 engine 队列和 UI 队列同步。
+- 清缓存只关闭弹窗，不删除收藏、播放历史或本地曲库事实。
 - 系统返回键按弹窗、更多菜单、队列、二级页面顺序消费。
 
 ## 回归防护
