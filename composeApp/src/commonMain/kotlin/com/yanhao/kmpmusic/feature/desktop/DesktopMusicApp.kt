@@ -178,7 +178,6 @@ private fun DesktopWorkspace(
                     start = horizontalPadding,
                     top = DesktopMusicDimens.PagePaddingTop,
                     end = horizontalPadding,
-                    bottom = DesktopMusicDimens.PagePaddingBottom,
                 ),
         ) {
             if (state.navigationState.secondaryScreen == null) {

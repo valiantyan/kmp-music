@@ -37,7 +37,6 @@ object DesktopMusicDimens {
     val LibrarySidebarWidth: Dp = 304.dp
     val PlayerHeight: Dp = 96.dp
     val PagePaddingTop: Dp = 34.dp
-    val PagePaddingBottom: Dp = 30.dp
     val PagePaddingMinHorizontal: Dp = 34.dp
     val PagePaddingMaxHorizontal: Dp = 68.dp
     val RailItemSize: Dp = 64.dp
