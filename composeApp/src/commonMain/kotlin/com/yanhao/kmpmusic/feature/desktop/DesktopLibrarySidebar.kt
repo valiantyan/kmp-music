@@ -13,14 +13,10 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Add
-import androidx.compose.material.icons.rounded.ExpandMore
 import androidx.compose.material.icons.rounded.Folder
 import androidx.compose.material.icons.rounded.History
-import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -47,7 +43,6 @@ private const val RECENT_SIDEBAR_SONG_COUNT = 4
 fun DesktopLibrarySidebar(
     libraryStats: LibraryStats,
     recentSongs: List<Song>,
-    onSearch: () -> Unit,
     onSection: (LocalMusicSection) -> Unit,
     onSongPlay: (Song, List<Song>) -> Unit,
     modifier: Modifier = Modifier,
@@ -59,10 +54,6 @@ fun DesktopLibrarySidebar(
             .background(Color.White.copy(alpha = 0.62f))
             .padding(horizontal = 22.dp, vertical = 28.dp),
     ) {
-        DesktopLibrarySidebarHeader(onAdd = { onSection(LocalMusicSection.Sources) })
-        Spacer(modifier = Modifier.height(20.dp))
-        DesktopLibrarySearch(onClick = onSearch)
-        Spacer(modifier = Modifier.height(18.dp))
         DesktopLibraryTabs(onSection = onSection)
         Spacer(modifier = Modifier.height(28.dp))
         DesktopLibraryDatabaseStats(
@@ -75,81 +66,6 @@ fun DesktopLibrarySidebar(
             onSongPlay = onSongPlay,
         )
         Spacer(modifier = Modifier.weight(1f))
-    }
-}
-
-// 侧栏标题保留下拉语义，后续可扩展为多资料库切换。
-@Composable
-private fun DesktopLibrarySidebarHeader(onAdd: () -> Unit) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(
-                text = "本地音乐库",
-                color = DesktopMusicColors.Ink,
-                fontSize = DesktopMusicType.SidebarTitle,
-                fontWeight = FontWeight.ExtraBold,
-            )
-            Icon(
-                imageVector = Icons.Rounded.ExpandMore,
-                contentDescription = null,
-                tint = DesktopMusicColors.Ink,
-                modifier = Modifier.size(16.dp),
-            )
-        }
-        Surface(
-            modifier = Modifier.size(30.dp),
-            shape = CircleShape,
-            color = Color.Transparent,
-            onClick = onAdd,
-        ) {
-            Box(contentAlignment = Alignment.Center) {
-                Icon(
-                    imageVector = Icons.Rounded.Add,
-                    contentDescription = "添加本地音乐来源",
-                    tint = DesktopMusicColors.MutedStrong,
-                    modifier = Modifier.size(20.dp),
-                )
-            }
-        }
-    }
-}
-
-// 侧栏搜索暂时保留为本地库筛选入口占位，后续接入局部过滤时不应跳转全局搜索页。
-@Composable
-private fun DesktopLibrarySearch(onClick: () -> Unit) {
-    Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(36.dp),
-        shape = RoundedCornerShape(10.dp),
-        color = DesktopMusicColors.Soft,
-        onClick = onClick,
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 12.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Icon(
-                imageVector = Icons.Rounded.Search,
-                contentDescription = null,
-                tint = DesktopMusicColors.MutedStrong,
-                modifier = Modifier.size(17.dp),
-            )
-            Text(
-                text = "筛选本地库",
-                color = DesktopMusicColors.MutedStrong,
-                fontSize = DesktopMusicType.SidebarBody,
-                fontWeight = FontWeight.SemiBold,
-            )
-        }
     }
 }
 

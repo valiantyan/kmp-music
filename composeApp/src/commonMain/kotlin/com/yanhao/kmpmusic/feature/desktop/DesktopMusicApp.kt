@@ -110,7 +110,6 @@ fun DesktopMusicApp(
                         DesktopLibrarySidebar(
                             libraryStats = state.libraryStats,
                             recentSongs = state.recentSongs,
-                            onSearch = {},
                             onSection = controller::openLocalMusic,
                             onSongPlay = { song, queueSongs ->
                                 controller.playSong(
