@@ -42,6 +42,7 @@ Notes: Gradle still reports existing deprecated Kotlin MPP property warnings and
 - Recent songs still derive from playback history, not scan result order.
 - Playback restore remains sequenced by the facade after state synchronization.
 - The test helper now asserts against the repository instance actually injected into the synchronizer.
+- Task 4 reviewer finding fixed: `createSynchronizer()` now mutates `stats` on the same fake repository instance instead of copying it, so the lazy-load assertion observes the exact injected repository.
 
 ## Concerns
 

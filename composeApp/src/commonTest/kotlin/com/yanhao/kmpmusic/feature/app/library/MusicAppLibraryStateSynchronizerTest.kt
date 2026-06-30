@@ -160,8 +160,9 @@ class MusicAppLibraryStateSynchronizerTest {
         stats: LibraryStats = LibraryStats(),
         likedIds: Set<String> = emptySet(),
     ): LibraryStateSynchronizer {
+        repository.stats = stats
         return LibraryStateSynchronizer(
-            musicLibraryRepository = repository.copyWithStats(stats = stats),
+            musicLibraryRepository = repository,
             favoritesRepository = InMemoryFavoritesRepository(initialLikedSongIds = likedIds),
             playbackRepository = playbackRepository,
         )
@@ -199,20 +200,11 @@ class MusicAppLibraryStateSynchronizerTest {
 private class FakeMusicLibraryRepository(
     private val homeSongs: List<Song> = emptyList(),
     private val allSongs: List<Song> = emptyList(),
-    private val stats: LibraryStats = LibraryStats(songCount = allSongs.size),
+    var stats: LibraryStats = LibraryStats(songCount = allSongs.size),
 ) : MusicLibraryRepository {
     // 记录是否命中过完整曲库读取，确保按需加载约束没有退化。
     var allSongsRead: Boolean = false
         private set
-
-    // 为测试覆盖持久层已有歌曲数量场景，返回仅替换统计信息的新仓库副本。
-    fun copyWithStats(stats: LibraryStats): FakeMusicLibraryRepository {
-        return FakeMusicLibraryRepository(
-            homeSongs = homeSongs,
-            allSongs = allSongs,
-            stats = stats,
-        )
-    }
 
     /** 提供与真实仓库一致的快照结构，便于同步器测试直接消费。 */
     override fun getSnapshot(): LibrarySnapshot {
