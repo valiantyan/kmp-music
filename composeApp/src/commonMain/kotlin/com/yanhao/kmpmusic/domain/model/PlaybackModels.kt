@@ -68,6 +68,27 @@ data class PlaybackError(
 )
 
 /**
+ * 平台无关的播放来源。
+ *
+ * phase 1 只承诺本地可播放 URI，例如 Android MediaStore `content://`、
+ * iOS sandbox `file://` 和 Desktop 文件 URI。网络来源需要单独扩展错误、
+ * 缓冲、鉴权和缓存语义后再进入生产模型。
+ */
+sealed interface AudioSource {
+    /** 可交给平台播放器消费的 URI 字符串。 */
+    val uri: String
+
+    /**
+     * 平台 scanner 已确认可访问的本地播放来源。
+     *
+     * @property uri scanner 提供的可播放 URI，不要求是文件系统 path。
+     */
+    data class Local(
+        override val uri: String,
+    ) : AudioSource
+}
+
+/**
  * 可交给播放引擎的媒体项。
  *
  * @property songId 领域层歌曲标识。
@@ -75,7 +96,7 @@ data class PlaybackError(
  * @property artist 媒体歌手名。
  * @property album 媒体专辑名。
  * @property durationMs 媒体总时长，未知时为 null。
- * @property localUri 平台 scanner 提供的可播放 URI。
+ * @property localUri 平台 scanner 提供的本地可播放 URI，可能是 `content://`、`file://` 或平台文件 URI。
  * @property coverArt 当前媒体封面。
  * @property mimeType 平台识别的媒体类型，未知时为 null。
  */
@@ -88,7 +109,13 @@ data class PlayableMedia(
     val localUri: String,
     val coverArt: CoverArt,
     val mimeType: String?,
-)
+) {
+    /**
+     * 当前媒体的播放来源。phase 1 保持从 [localUri] 派生，避免破坏现有队列和快照结构。
+     */
+    val audioSource: AudioSource
+        get() = AudioSource.Local(uri = localUri)
+}
 
 /**
  * 当前播放状态，供迷你播放器和真实引擎协同使用。

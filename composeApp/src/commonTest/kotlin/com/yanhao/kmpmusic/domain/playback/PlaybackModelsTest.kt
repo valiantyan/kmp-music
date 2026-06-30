@@ -1,6 +1,7 @@
 package com.yanhao.kmpmusic.domain.playback
 
 import com.yanhao.kmpmusic.domain.model.CoverArt
+import com.yanhao.kmpmusic.domain.model.AudioSource
 import com.yanhao.kmpmusic.domain.model.PlayableMedia
 import com.yanhao.kmpmusic.domain.model.PlaybackMode
 import com.yanhao.kmpmusic.domain.model.PlaybackState
@@ -59,6 +60,44 @@ class PlaybackModelsTest {
         assertEquals(
             expected = "content://media/external/audio/media/42",
             actual = media.localUri,
+        )
+    }
+
+    @Test
+    fun playableMediaDerivesLocalAudioSourceFromAndroidContentUri(): Unit {
+        val media: PlayableMedia = PlayableMedia(
+            songId = "androidMediaStore:42",
+            title = "设备里的歌",
+            artist = "未知歌手",
+            album = "未知专辑",
+            durationMs = 180_000L,
+            localUri = "content://media/external/audio/media/42",
+            coverArt = CoverArt.HeroLocalMusic,
+            mimeType = "audio/mpeg",
+        )
+
+        assertEquals(
+            expected = AudioSource.Local(uri = "content://media/external/audio/media/42"),
+            actual = media.audioSource,
+        )
+    }
+
+    @Test
+    fun playableMediaDerivesLocalAudioSourceFromDesktopFileUri(): Unit {
+        val media: PlayableMedia = PlayableMedia(
+            songId = "desktop:/Users/tester/Music/song.flac",
+            title = "Desktop Song",
+            artist = "Artist",
+            album = "Album",
+            durationMs = 240_000L,
+            localUri = "file:///Users/tester/Music/song.flac",
+            coverArt = CoverArt.HeroLocalMusic,
+            mimeType = "audio/flac",
+        )
+
+        assertEquals(
+            expected = AudioSource.Local(uri = "file:///Users/tester/Music/song.flac"),
+            actual = media.audioSource,
         )
     }
 }
