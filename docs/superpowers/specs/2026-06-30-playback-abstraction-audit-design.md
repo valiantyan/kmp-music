@@ -40,7 +40,7 @@ MusicAppController
 
 - 审查并确认 Android 与 macOS 是否遵循播放抽象边界。
 - 正式定义 `AudioPlayerEngine`、`PlaybackCoordinator`、平台 engine 和平台播放器的职责。
-- 轻量新增 `AudioSource` 概念，区分本地播放来源和未来网络播放来源。
+- 轻量新增 `AudioSource.Local` 概念，明确 phase 1 只承诺本地可播放来源，并记录未来网络播放来源需要另开设计。
 - 明确 `LocalMusicScanner` 是扫描上游，不属于播放器层。
 - 明确 Android 与 macOS 的必要优化点。
 - 为 iOS 和 Windows 记录未来接入点，但不实现真实播放。
@@ -213,7 +213,7 @@ data class PlayableMedia(
 
 问题是 `localUri` 语义偏窄：Android 可能是 `content://`，Desktop 可能是 `file://` 或文件路径，iOS 未来可能是 sandbox file URL，网络音频未来会是 `https://` 且可能需要 headers。
 
-本轮建议轻量新增 `AudioSource` 概念：
+本轮建议轻量新增 `AudioSource` 概念，但 phase 1 代码只承诺本地可播放来源：
 
 ```kotlin
 sealed interface AudioSource {
@@ -222,13 +222,10 @@ sealed interface AudioSource {
     data class Local(
         override val uri: String,
     ) : AudioSource
-
-    data class Remote(
-        override val uri: String,
-        val headers: Map<String, String> = emptyMap(),
-    ) : AudioSource
 }
 ```
+
+`Remote` 不在本轮代码中落地。网络播放需要 buffering、网络错误、鉴权、缓存和 URL 过期策略；在这些运行时契约明确前，把 `Remote` 放进生产模型会让接口看起来已经支持网络播放，但实际事件和错误模型无法履约。
 
 为什么不合并成一个裸 `Url`：本地资源和网络资源表面上都是 URI 字符串，但运行时契约不同。本地主要失败在权限、文件缺失、格式不支持；网络还会涉及断网、超时、HTTP 错误、鉴权、URL 过期、缓冲、range seek 和缓存。如果只用一个字符串，平台实现就要靠 `startsWith("http")` 猜语义，这是把领域事实藏进字符串格式。
 
@@ -252,7 +249,7 @@ data class PlayableMedia(
 }
 ```
 
-后续当 iOS、Windows 或网络音频接入时，再评估把主字段从 `localUri` 改成 `audioSource`：
+后续只有当出现非本地来源时，例如网络音频、缓存后的 source 切换、签名 URL 刷新，才评估把主字段从 `localUri` 改成 `audioSource`：
 
 ```kotlin
 data class PlayableMedia(
@@ -359,7 +356,7 @@ DesktopPlaybackSession
 
 ## 网络音频演进
 
-未来网络音频不是“另一个本地 path”，而是一个新的运行时契约。`AudioSource.Remote` 只表达来源类型，本轮不实现网络播放。
+未来网络音频不是“另一个本地 path”，而是一个新的运行时契约。网络播放设计可以引入远程播放来源类型，例如带 headers 的远程 URI，但该类型不属于本轮生产代码。
 
 网络播放实施时需要另开设计，至少补充：
 
@@ -419,7 +416,7 @@ DesktopPlaybackSession
 - `AudioPlayerEngine` 被确认为 common 播放抽象，平台 engine 只作为实现。
 - `PlaybackCoordinator` 被确认为播放业务语义唯一协调器。
 - `LocalMusicScanner` 被明确排除在播放器层之外。
-- `AudioSource` 能表达本地与未来网络来源差异，不把二者压成裸字符串 URL。
+- `AudioSource.Local` 能表达 scanner 已确认可访问的本地播放来源，不把 `content://`、`file://` 或平台文件 URI 误收窄成普通 filesystem path。
 - 本轮不要求 Android/macOS 主链路重写。
 - 本轮不实现 iOS、Windows 或网络播放。
 
@@ -428,7 +425,7 @@ DesktopPlaybackSession
 | 风险 | 处理 |
 | --- | --- |
 | 只写文档不改代码，边界仍可能被后续实现误用 | 后续实施计划必须至少补 KDoc 和轻量 `AudioSource`，让边界出现在代码入口。 |
-| 过早引入 `AudioSource.Remote` 让人误以为已支持网络播放 | 明确 `Remote` 只是未来 source 类型，网络播放需要单独设计 buffering、错误、鉴权和缓存。 |
+| 过早引入远程播放来源让人误以为已支持网络播放 | 本轮生产模型只加入 `AudioSource.Local`，网络播放需要单独设计 buffering、错误、鉴权和缓存。 |
 | 大改 `AudioPlayerEngine` 造成 Android/macOS 回归 | 本轮不改主接口，只轻量补 source 语义。 |
 | Windows 复用 Desktop vlcj 时 macOS runtime 命名误导 | 未来 Windows 前先泛化 runtime resolver，而不是复制 engine。 |
 | DI 框架缺失导致后续依赖变复杂 | 当前继续手动 DI；等依赖图真实膨胀后再单独评估 Koin。 |
