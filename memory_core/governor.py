@@ -143,6 +143,25 @@ def process_tool_use(payload: Dict[str, Any], root: Optional[Path] = None) -> Di
 
 def stop_confidence(summary: str) -> float:
     lowered = summary.lower()
+    non_completion_phrases = [
+        "not fixed",
+        "not resolved",
+        "not solved",
+        "unfixed",
+        "unresolved",
+        "still broken",
+        "still failing",
+        "remains open",
+        "未修复",
+        "没修复",
+        "未解决",
+        "没解决",
+        "尚未修复",
+        "尚未解决",
+    ]
+    if any(phrase in lowered for phrase in non_completion_phrases):
+        return 0.58
+
     learning_signals = [
         "root cause",
         "fixed",

@@ -9,7 +9,7 @@ from typing import Callable, List, Tuple
 
 from memory_core.compiler import build_context
 from memory_core.config import load_config
-from memory_core.governor import process_stop, process_tool_use, process_user_prompt
+from memory_core.governor import process_stop, process_tool_use, process_user_prompt, stop_confidence
 from memory_core.healer import heal
 from memory_core.io_utils import read_jsonl
 from memory_core.paths import find_repo_root
@@ -31,11 +31,33 @@ def check(name: str, fn: Callable[[], bool], notes: List[str]) -> bool:
 def _copy_for_runtime_tests(root: Path) -> tempfile.TemporaryDirectory:
     tmp = tempfile.TemporaryDirectory(prefix="memory-os-audit-")
     dst = Path(tmp.name) / "repo"
+    dst.mkdir(parents=True, exist_ok=True)
     shutil.copytree(
-        root,
-        dst,
-        ignore=shutil.ignore_patterns(".git", "__pycache__", "*.pyc", "*.lock", "RED_TEAM_REPORT.md"),
+        root / "memory_core",
+        dst / "memory_core",
+        ignore=shutil.ignore_patterns("__pycache__", "*.pyc"),
     )
+    codex_dir = dst / ".codex"
+    codex_dir.mkdir(exist_ok=True)
+    shutil.copy2(root / ".codex" / "hooks.json", codex_dir / "hooks.json")
+    shutil.copytree(
+        root / ".codex" / "hooks",
+        codex_dir / "hooks",
+        ignore=shutil.ignore_patterns("__pycache__", "*.pyc"),
+    )
+    shutil.copy2(root / "AGENTS.md", dst / "AGENTS.md")
+
+    memory_dir = dst / ".agent-memory"
+    memory_dir.mkdir(exist_ok=True)
+    shutil.copy2(root / ".agent-memory" / "config.json", memory_dir / "config.json")
+    shutil.copy2(root / ".agent-memory" / ".gitignore", memory_dir / ".gitignore")
+    for name in ["working.md", "learning.md", "wiki.md", "preferences.md", "state.json"]:
+        shutil.copy2(root / ".agent-memory" / name, memory_dir / name)
+    for name in ["buffer.jsonl", "memory_items.jsonl", "review_queue.jsonl", "security_events.jsonl", "hook_errors.jsonl"]:
+        (memory_dir / name).write_text("", encoding="utf-8")
+    graph_path = memory_dir / "trust_graph.json"
+    if graph_path.exists():
+        graph_path.unlink()
     return tmp
 
 
@@ -63,6 +85,8 @@ def run_audit(root: Path | None = None, quick: bool = False) -> Tuple[bool, str]
     c("working auto write enabled", lambda: cfg["promotion"].get("working_auto_write") is True)
     c("tool learning active disabled", lambda: cfg["promotion"].get("tool_to_learning_active_allowed") is False)
     c("learning auto write min configured", lambda: float(cfg["promotion"].get("learning_auto_write_min", 0.0)) >= 0.68)
+    c("stop confidence blocks not fixed", lambda: stop_confidence("Turn summary: not fixed yet") == 0.58)
+    c("stop confidence blocks unresolved", lambda: stop_confidence("Turn summary: unresolved issue remains") == 0.58)
     c("secret redaction sk", lambda: "[REDACTED_SECRET]" in redact_secrets("token=sk-abcdefghijklmnopqrstuvwxyz123456"))
     c("secret redaction aws", lambda: "[REDACTED_SECRET]" in redact_secrets("AKIAABCDEFGHIJKLMNOP"))
     c("sensitive path detection", lambda: references_sensitive_path("cat .env", cfg["security"]["sensitive_path_patterns"]))
