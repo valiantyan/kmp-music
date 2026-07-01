@@ -52,6 +52,7 @@ import com.yanhao.kmpmusic.domain.model.Album
 import com.yanhao.kmpmusic.domain.model.Artist
 import com.yanhao.kmpmusic.domain.model.PlaybackStatus
 import com.yanhao.kmpmusic.domain.model.Song
+import com.yanhao.kmpmusic.feature.app.shouldShowPauseControl
 
 /**
  * 页面头部组件，统一一级和二级页面标题节奏。
@@ -335,15 +336,15 @@ fun SongRow(
     }
 }
 
-// 当前歌曲只有真正播放时才显示暂停，暂停和错误态都保留播放入口。
+// 当前歌曲在启动、缓冲和播放中都显示暂停，避免播放后 UI 仍像未播放。
 private fun isSongRowPlaying(
     isCurrentSong: Boolean,
     currentPlaybackStatus: PlaybackStatus?,
 ): Boolean {
-    return isCurrentSong && currentPlaybackStatus == PlaybackStatus.Playing
+    return isCurrentSong && currentPlaybackStatus?.shouldShowPauseControl == true
 }
 
-// 当前歌曲的播放/暂停态复用全局控制器切换，错误态走行级播放用于重试。
+// 当前歌曲的活动/暂停态复用全局控制器切换，错误态走行级播放用于重试。
 private fun canSongRowToggleCurrentPlayback(
     isCurrentSong: Boolean,
     currentPlaybackStatus: PlaybackStatus?,
@@ -352,7 +353,7 @@ private fun canSongRowToggleCurrentPlayback(
     if (!isCurrentSong || onCurrentSongToggle == null) {
         return false
     }
-    return currentPlaybackStatus == PlaybackStatus.Playing || currentPlaybackStatus == PlaybackStatus.Paused
+    return currentPlaybackStatus?.shouldShowPauseControl == true || currentPlaybackStatus == PlaybackStatus.Paused
 }
 
 /**

@@ -26,21 +26,24 @@ class PersistentPlaybackRepository(
     private val runInWriteTransaction: suspend (suspend () -> Unit) -> Unit = { block -> block() },
     private val nowMillis: () -> Long = { currentTimeMillis() },
 ) : PlaybackRepository {
+    // 当前进程内的精确播放状态；冷启动恢复规则只在初始化该值时生效。
+    private var runtimePlaybackState: PlaybackState? = null
+
     /** 读取最近一次播放状态，冷启动时以暂停态恢复，避免自动播放。 */
     override fun getPlaybackState(): PlaybackState = runBlocking {
-        readPlaybackState()
+        getRuntimePlaybackState()
     }
 
     /** 保存当前播放状态，并保留已知队列位置和播放模式。 */
     override fun savePlaybackState(state: PlaybackState) {
         runBlocking {
             val queueState: QueueState = readQueueState()
-            playbackSnapshotDao.saveSnapshot(
-                entity = state.toEntity(
-                    queueState = queueState,
-                    updatedAt = nowMillis(),
-                ),
+            val snapshotEntity: PlaybackSnapshotEntity = state.toEntity(
+                queueState = queueState,
+                updatedAt = nowMillis(),
             )
+            playbackSnapshotDao.saveSnapshot(entity = snapshotEntity)
+            runtimePlaybackState = state
         }
     }
 
@@ -55,7 +58,7 @@ class PersistentPlaybackRepository(
             runInWriteTransaction {
                 playbackQueueDao.clearQueue()
                 playbackQueueDao.insertAll(items = state.toEntities())
-                val playbackState: PlaybackState = readPlaybackState()
+                val playbackState: PlaybackState = getRuntimePlaybackState()
                 playbackSnapshotDao.saveSnapshot(
                     entity = playbackState.toEntity(
                         queueState = state,
@@ -99,8 +102,19 @@ class PersistentPlaybackRepository(
         )
     }
 
-    // 事务内部复用的挂起读取，避免嵌套阻塞调用。
-    private suspend fun readPlaybackState(): PlaybackState {
+    // 读取当前进程运行态，首次读取才按冷启动规则从数据库恢复为暂停态。
+    private suspend fun getRuntimePlaybackState(): PlaybackState {
+        val playbackState: PlaybackState? = runtimePlaybackState
+        if (playbackState != null) {
+            return playbackState
+        }
+        val restoredPlaybackState: PlaybackState = readRestoredPlaybackState()
+        runtimePlaybackState = restoredPlaybackState
+        return restoredPlaybackState
+    }
+
+    // 只供当前进程初始化使用，避免每次读取都把运行中状态压回暂停态。
+    private suspend fun readRestoredPlaybackState(): PlaybackState {
         val snapshot: PlaybackSnapshotEntity = playbackSnapshotDao.getSnapshot() ?: return PlaybackState()
         return PlaybackState(
             currentSongId = snapshot.currentSongId,

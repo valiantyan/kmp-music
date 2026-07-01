@@ -160,6 +160,112 @@ class DesktopVlcjAudioPlayerEngineTest {
             actual = events.filterIsInstance<PlaybackEngineEvent.StatusChanged>().last(),
         )
         assertFalse(actual = adapter.commands.contains(element = "play:1"))
+        assertEquals(
+            expected = "pause:1",
+            actual = adapter.commands.last(),
+        )
+        engine.release()
+        advanceUntilIdle()
+        collectJob.cancel()
+        advanceUntilIdle()
+    }
+
+    /** 验证播放意图晚于 prepared 回调入队时，不会先把媒体压成暂停态。 */
+    @Test
+    fun preparedBeforePlayDoesNotPauseRequestedPlayback(): Unit = runTest {
+        val adapter = FakeDesktopMediaPlayerAdapter()
+        val engine = testEngine(adapter = adapter)
+        val events = mutableListOf<PlaybackEngineEvent>()
+        val collectJob = launch {
+            engine.events.toList(destination = events)
+        }
+
+        engine.setQueue(items = mediaItems(), startIndex = 0, startPositionMs = 0L)
+        adapter.emitPrepared(generation = 1L, durationMs = 180_000L)
+        runCurrent()
+        engine.play()
+        advanceUntilIdle()
+
+        assertEquals(
+            expected = listOf(
+                "prepare:song-1:file:///Users/test/Music/one.mp3:1:0",
+                "play:1",
+            ),
+            actual = adapter.commands,
+        )
+        assertFalse(
+            actual = events.any { event ->
+                event == PlaybackEngineEvent.StatusChanged(
+                    status = PlaybackStatus.Paused,
+                    positionMs = 0L,
+                    durationMs = 180_000L,
+                )
+            },
+        )
+        engine.release()
+        advanceUntilIdle()
+        collectJob.cancel()
+        advanceUntilIdle()
+    }
+
+    /** 验证播放意图下的杂散暂停回调不会把真实播放中的 UI 覆盖成暂停态。 */
+    @Test
+    fun strayPausedCallbackDuringPlaybackDoesNotOverridePlayingState(): Unit = runTest {
+        val adapter = FakeDesktopMediaPlayerAdapter()
+        val engine = testEngine(adapter = adapter)
+        val events = mutableListOf<PlaybackEngineEvent>()
+        val collectJob = launch {
+            engine.events.toList(destination = events)
+        }
+
+        engine.setQueue(items = mediaItems(), startIndex = 0, startPositionMs = 0L)
+        engine.play()
+        adapter.emitPrepared(generation = 1L, durationMs = 180_000L)
+        adapter.emitPlaying(generation = 1L, positionMs = 24_000L, durationMs = 180_000L)
+        adapter.emitPaused(generation = 1L, positionMs = 24_000L, durationMs = 180_000L)
+        runCurrent()
+
+        assertEquals(
+            expected = PlaybackEngineEvent.StatusChanged(
+                status = PlaybackStatus.Playing,
+                positionMs = 24_000L,
+                durationMs = 180_000L,
+            ),
+            actual = events.filterIsInstance<PlaybackEngineEvent.StatusChanged>().last(),
+        )
+        engine.release()
+        advanceUntilIdle()
+        collectJob.cancel()
+        advanceUntilIdle()
+    }
+
+    /** 验证暂停意图下的延迟播放回调不会把 UI 从暂停态反向覆盖成播放态。 */
+    @Test
+    fun delayedPlayingCallbackAfterPauseDoesNotOverridePausedState(): Unit = runTest {
+        val adapter = FakeDesktopMediaPlayerAdapter()
+        val engine = testEngine(adapter = adapter)
+        val events = mutableListOf<PlaybackEngineEvent>()
+        val collectJob = launch {
+            engine.events.toList(destination = events)
+        }
+
+        engine.setQueue(items = mediaItems(), startIndex = 0, startPositionMs = 0L)
+        engine.play()
+        adapter.emitPrepared(generation = 1L, durationMs = 180_000L)
+        adapter.emitPlaying(generation = 1L, positionMs = 20_000L, durationMs = 180_000L)
+        engine.pause()
+        adapter.emitPaused(generation = 1L, positionMs = 20_000L, durationMs = 180_000L)
+        adapter.emitPlaying(generation = 1L, positionMs = 21_000L, durationMs = 180_000L)
+        runCurrent()
+
+        assertEquals(
+            expected = PlaybackEngineEvent.StatusChanged(
+                status = PlaybackStatus.Paused,
+                positionMs = 20_000L,
+                durationMs = 180_000L,
+            ),
+            actual = events.filterIsInstance<PlaybackEngineEvent.StatusChanged>().last(),
+        )
         engine.release()
         advanceUntilIdle()
         collectJob.cancel()

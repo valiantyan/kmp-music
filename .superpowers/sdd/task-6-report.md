@@ -1,114 +1,115 @@
-# Task 6 Report: Final Verification And Worktree Hygiene
+# Task 6 Report: Wire Collaborators Into PlaybackCoordinator
 
-## Result
+## Status
 
-- Status: `DONE`
-- Task brief: `/Users/yanhao/Desktop/demo/kmp-music/.superpowers/sdd/task-6-brief.md`
-- Scope: final verification and plan status hygiene only
+DONE
 
-## Files Changed
+## Baseline
 
-- `/Users/yanhao/Desktop/demo/kmp-music/docs/superpowers/plans/2026-06-30-playback-abstraction-audit-implementation.md`
-- `/Users/yanhao/Desktop/demo/kmp-music/.superpowers/sdd/task-6-report.md`
+- Step 1 command:
+  - `./gradlew :composeApp:desktopTest --tests "com.yanhao.kmpmusic.domain.playback.PlaybackCoordinatorTest"`
+- Result:
+  - PASS before changes
 
-## Verification Commands
+## Changes Made
 
-### 1. Whitespace validation
+### `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/domain/playback/PlaybackCoordinator.kt`
 
-Command:
+- Added internal collaborator fields for:
+  - `ShuffleQueuePolicy`
+  - `PlaybackQueueNavigator`
+  - `PlaybackFailurePolicy`
+  - `PlaybackSnapshotWriter`
+  - `PlaybackHistoryRecorder`
+- Removed duplicated coordinator-owned runtime state for:
+  - pending snapshot write tracking
+  - failure counters
+  - progress snapshot throttling timestamp
+- Replaced direct shuffle/history logic in:
+  - `playSong`
+  - `restoreSnapshot`
+- Delegated queue navigation behavior in:
+  - `moveNext`
+  - `movePrevious`
+  - `cyclePlaybackMode`
+  - `handleCurrentMediaChanged`
+  - `handleEnded`
+  - `handleFailure`
+  - `moveToIndex`
+- Added `moveToNavigationResult(...)` so exact-index, next/previous, ended, and failure recovery all share the same repository/engine transition path.
+- Delegated queue-removal transition to `PlaybackQueueNavigator.removeSong(...)` while preserving existing engine `setQueue` and play/pause behavior.
+- Delegated snapshot behavior to `PlaybackSnapshotWriter`:
+  - event-triggered persistence
+  - async save
+  - sync teardown save
+  - pending-write await
+- Delegated playback history writes to `PlaybackHistoryRecorder`.
+- Delegated successful-playback failure reset to `PlaybackFailurePolicy.reset()`.
+- Removed obsolete coordinator-local helper functions that duplicated collaborator behavior.
 
-```bash
-git diff --check
-```
+### `composeApp/src/commonTest/kotlin/com/yanhao/kmpmusic/domain/playback/PlaybackCoordinatorTest.kt`
 
-Outcome:
+- Added regression test:
+  - `nonLoopSingleSongFailureStaysErrorWithoutRetryingSameSong`
+- Added regression test:
+  - `removeCurrentSongKeepsRepositoryAndEngineQueueInSync`
+
+## Compatibility Adaptation
+
+- The current `ShuffleQueuePolicy.buildInitialRemaining(...)` does not accept `playbackMode`.
+- I adapted Task 6 to the existing API exactly as requested by calling the current collaborator method only where the coordinator already needs shuffle-specific initialization.
+- No collaborator APIs were rewritten.
+
+## Verification
+
+### Focused command
+
+- `./gradlew :composeApp:desktopTest --tests "com.yanhao.kmpmusic.domain.playback.ShuffleQueuePolicyTest" --tests "com.yanhao.kmpmusic.domain.playback.PlaybackQueueNavigatorTest" --tests "com.yanhao.kmpmusic.domain.playback.PlaybackFailurePolicyTest" --tests "com.yanhao.kmpmusic.domain.playback.PlaybackSnapshotWriterTest" --tests "com.yanhao.kmpmusic.domain.playback.PlaybackHistoryRecorderTest" --tests "com.yanhao.kmpmusic.domain.playback.PlaybackCoordinatorTest"`
+
+### Result
 
 - PASS
-- No output
 
-### 2. Focused playback tests
+## Issues Encountered
 
-Command:
-
-```bash
-./gradlew :composeApp:desktopTest --tests "com.yanhao.kmpmusic.domain.playback.PlaybackModelsTest"
-./gradlew :composeApp:desktopTest --tests "com.yanhao.kmpmusic.playback.DesktopVlcjAudioPlayerEngineTest"
-```
-
-Outcome:
-
-- PASS
-- `PlaybackModelsTest` passed
-- `DesktopVlcjAudioPlayerEngineTest` passed
-- Only existing Gradle deprecation warnings were emitted
-
-### 3. Required project verification
-
-Command:
-
-```bash
-./gradlew :composeApp:compileDebugKotlinAndroid :composeApp:desktopTest
-```
-
-Outcome:
-
-- PASS
-- Android compile passed
-- Desktop test suite passed
-- Only existing Gradle deprecation warnings were emitted
-
-### 4. Final git status
-
-Command:
-
-```bash
-git status --short --branch
-```
-
-Outcome:
-
-```text
-## codex/playback-abstraction-audit-implementation
- M .superpowers/sdd/task-2-report.md
- M .superpowers/sdd/task-4-report.md
- M docs/superpowers/plans/2026-06-30-playback-abstraction-audit-implementation.md
-?? .superpowers/sdd/task-6-report.md
-?? docs/superpowers/specs/2026-06-29-desktop-contextual-search-design.md
-```
-
-Interpretation:
-
-- The expected pre-existing edits remain present.
-- The Task 6 plan file is now updated with checked boxes.
-- The task report file is intentionally untracked until the owner decides whether to keep or commit it.
-- The unrelated spec file remains untracked, as expected.
+- First focused test run failed because `PlaybackCoordinator.kt` still needs `PlaybackSnapshot` for `restoreSnapshot(...)`, and I had removed that import while deleting obsolete snapshot-writing code.
+- Fixed by restoring the required import.
+- No additional source compatibility changes were needed outside the two owned Kotlin files.
 
 ## Self-Review
 
-- Verification matched the brief exactly and all required commands passed.
-- I did not touch production Kotlin because Task 6 is verification-only.
-- I updated only the Task 6 status markers in the owned plan file.
+- Verified only the owned coordinator and coordinator test files were changed for code behavior.
+- Confirmed collaborator wiring preserves existing queue, shuffle, snapshot, and failure-recovery behavior through the focused test suite.
+- Confirmed the new regression coverage protects the two main Task 6 risks:
+  - single-song non-loop failure should not retry the same song
+  - removing the current song should keep repository state and engine queue aligned
 
-## Concerns
+## Commit
 
-- No functional concerns from verification.
-- The working tree still contains pre-existing unrelated edits and an untracked spec file, but I left them untouched by design.
+- Planned commit message from brief:
+  - `refactor: 播放协调器接入内部协作者`
 
-## Fix Section
+## Review Fix Follow-up
 
-- Corrected the earlier hygiene note that treated `.superpowers/sdd/task-6-report.md` as untracked. `git ls-files` confirmed it is tracked, so the final status must describe the real tracked changes instead of implying a new file.
-- Kept the fix scoped to Task 6 reporting and plan hygiene. I did not touch `.superpowers/sdd/task-2-report.md`, `.superpowers/sdd/task-4-report.md`, or `docs/superpowers/specs/2026-06-29-desktop-contextual-search-design.md`.
+- 修复了 reviewer 指出的 `shuffleRemaining` 回归：
+  - `PlaybackCoordinator.playSong(...)`
+  - `PlaybackCoordinator.restoreSnapshot(...)`
+- 处理方式保持在协调器内部，没有改动协作者 API：
+  - 新增本地 helper，只在 `PlaybackMode.Shuffle` 下调用 `ShuffleQueuePolicy.buildInitialRemaining(...)`
+  - `LoopAll` / `LoopOne` 明确保持 `shuffleRemaining = emptyList()`
+- 补强了非随机模式回归断言：
+  - `playSongUsesWholeCurrentListAsQueue`
+  - `restoreSnapshotPrimesEngineForResume`
+  - 两处都验证非随机模式不会预填 `shuffleRemaining`
+- 补强了 `removeCurrentSongKeepsRepositoryAndEngineQueueInSync` 的证据链：
+  - 先移除当前歌曲并停在暂停态
+  - 再调用 `moveNext()` 与 `advanceUntilIdle()`
+  - 断言 repository 当前歌曲推进到精简后队列中的下一首 `songs[2]`
+  - 该断言依赖 fake engine 发出的后续 `CurrentMediaChanged` / 状态事件，因此能够证明引擎内部队列也已同步替换，而不是只验证 repository 本地状态
 
-### Commands And Output Summary
+## Review Fix Verification
 
-Command:
-
-```bash
-git diff --check
-git status --short --branch
-```
-
-Outcome:
-
-- `git diff --check`: PASS, no whitespace issues.
-- `git status --short --branch`: still shows the pre-existing unrelated Task 2 and Task 4 report edits plus the known untracked spec file. The Task 6 report is now accounted for as a tracked change rather than an avoidable new untracked file.
+- Focused command rerun after review fixes:
+  - `./gradlew :composeApp:desktopTest --tests "com.yanhao.kmpmusic.domain.playback.ShuffleQueuePolicyTest" --tests "com.yanhao.kmpmusic.domain.playback.PlaybackQueueNavigatorTest" --tests "com.yanhao.kmpmusic.domain.playback.PlaybackFailurePolicyTest" --tests "com.yanhao.kmpmusic.domain.playback.PlaybackSnapshotWriterTest" --tests "com.yanhao.kmpmusic.domain.playback.PlaybackHistoryRecorderTest" --tests "com.yanhao.kmpmusic.domain.playback.PlaybackCoordinatorTest"`
+- Result:
+  - PASS

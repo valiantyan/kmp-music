@@ -175,7 +175,7 @@ fun MusicApp(
                     )
                     BottomChrome(
                         song = state.currentSong,
-                        isPlaying = state.isPlaying,
+                        isPlaying = state.shouldShowPauseControl,
                         playbackPositionMs = state.playbackPositionMs,
                         playbackDurationMs = state.playbackDurationMs,
                         placement = chromeMode.bottomChromePlacement,
@@ -279,7 +279,7 @@ private fun AppContent(
                         SecondaryScreen.Player -> state.currentSong?.let { song ->
                             PlayerScreen(
                                 song = song,
-                                isPlaying = state.isPlaying,
+                                isPlaying = state.shouldShowPauseControl,
                                 playbackPositionMs = state.playbackPositionMs,
                                 playbackDurationMs = state.playbackDurationMs,
                                 playbackMode = state.playbackMode,

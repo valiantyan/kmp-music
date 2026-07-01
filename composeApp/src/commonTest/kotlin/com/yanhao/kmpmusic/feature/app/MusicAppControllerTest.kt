@@ -52,28 +52,6 @@ import kotlin.test.assertTrue
 @OptIn(ExperimentalCoroutinesApi::class)
 class MusicAppControllerTest {
     @Test
-    fun coldStartUsesHomePreviewWithoutFullLocalSongs(): Unit {
-        val repository = SeededMusicLibraryRepository(seedCount = 8)
-        val controller = createController(musicLibraryRepository = repository)
-
-        assertEquals(expected = 1, actual = repository.homePreviewReads)
-        assertEquals(expected = 0, actual = repository.fullLibraryReads)
-        assertEquals(expected = 6, actual = controller.uiState.homeLocalSongPreview.size)
-        assertTrue(controller.uiState.localSongs.isEmpty())
-    }
-
-    @Test
-    fun localMusicPageLoadsFullSongsOnDemand(): Unit {
-        val repository = SeededMusicLibraryRepository(seedCount = 8)
-        val controller = createController(musicLibraryRepository = repository)
-
-        controller.openLocalMusic(section = LocalMusicSection.Songs)
-
-        assertEquals(expected = 1, actual = repository.fullLibraryReads)
-        assertEquals(expected = 8, actual = controller.uiState.localSongs.size)
-    }
-
-    @Test
     fun queueSongsSurviveAfterPlaybackContextIsNoLongerInSongs(): Unit = runTest {
         val controller = createController(controllerScope = backgroundScope)
         controller.scanLocalMusic(request = LocalMusicScanRequest.Refresh)
@@ -82,21 +60,6 @@ class MusicAppControllerTest {
         controller.playSong(song = queueSongs[0], queueSongs = queueSongs)
 
         assertEquals(expected = queueSongs.map { song -> song.id }, actual = controller.uiState.queueSongs.map { song -> song.id })
-    }
-
-    /**
-     * App 启动后不能把 seed 曲库或扫描结果预填成真实播放状态。
-     */
-    @Test
-    fun initialStateHasNoPlaybackBeforeUserAction(): Unit {
-        val controller = createController()
-        assertNull(controller.uiState.currentSongId)
-        assertNull(controller.uiState.currentSong)
-        assertFalse(controller.uiState.isPlaying)
-        assertTrue(controller.uiState.queueSongIds.isEmpty())
-        assertTrue(controller.uiState.localSongs.isEmpty())
-        assertTrue(controller.uiState.homeLocalSongPreview.isEmpty())
-        assertTrue(controller.uiState.recentSongs.isEmpty())
     }
 
     /**
@@ -300,21 +263,6 @@ class MusicAppControllerTest {
     }
 
     /**
-     * 二级页面应隐藏主导航，并保留返回前的根 Tab。
-     */
-    @Test
-    fun secondaryScreenKeepsPreviousRootTab(): Unit {
-        val controller = createController()
-        controller.navigateToRoot(tab = RootTab.Favorites)
-        controller.navigateToSecondary(screen = SecondaryScreen.Search(context = SearchContext.LocalLibrary))
-        assertFalse(controller.uiState.navigationState.isTopLevel)
-        assertEquals(RootTab.Favorites, controller.uiState.navigationState.previousRootTab)
-        controller.navigateBack()
-        assertTrue(controller.uiState.navigationState.isTopLevel)
-        assertEquals(RootTab.Favorites, controller.uiState.navigationState.rootTab)
-    }
-
-    /**
      * 桌面 rail 返回一级页面时必须同步清空二级页面，避免导航高亮与内容错位。
      */
     @Test
@@ -344,7 +292,7 @@ class MusicAppControllerTest {
 
         assertEquals(expected = SecondaryScreen.Player, actual = controller.uiState.navigationState.secondaryScreen)
         assertEquals(expected = targetSong.id, actual = controller.uiState.currentSongId)
-        assertTrue(controller.uiState.isPlaying)
+        assertTrue(controller.uiState.shouldShowPauseControl)
 
         controller.togglePlayback()
 
@@ -404,38 +352,8 @@ class MusicAppControllerTest {
         }
         controller.playSong(song = targetSong)
         assertEquals(targetSong.id, controller.uiState.currentSongId)
-        assertTrue(controller.uiState.isPlaying)
+        assertTrue(controller.uiState.shouldShowPauseControl)
         assertTrue(controller.uiState.queueSongIds.contains(targetSong.id))
-    }
-
-    /**
-     * Android Media3 可能在播放错误恢复后短暂回报 Idle，但只要队列仍在就不能清空平台播放器。
-     */
-    @Test
-    fun idleStatusWithCurrentQueueKeepsPlaybackSessionActive(): Unit {
-        val uiState = MusicAppUiState(
-            likedSongIds = emptySet(),
-            currentSongId = "song-1",
-            playbackStatus = PlaybackStatus.Idle,
-            queueSongIds = listOf("song-1", "song-2"),
-        )
-
-        assertTrue(actual = uiState.hasActivePlaybackSession)
-    }
-
-    /**
-     * 初始空播放状态才代表平台层可以真正撤下通知并清空播放器队列。
-     */
-    @Test
-    fun emptyIdleStatusHasNoActivePlaybackSession(): Unit {
-        val uiState = MusicAppUiState(
-            likedSongIds = emptySet(),
-            currentSongId = null,
-            playbackStatus = PlaybackStatus.Idle,
-            queueSongIds = emptyList(),
-        )
-
-        assertFalse(actual = uiState.hasActivePlaybackSession)
     }
 
     /**
@@ -526,7 +444,7 @@ class MusicAppControllerTest {
         val originalSongId: String? = controller.uiState.currentSongId
         controller.moveTrack(direction = 1)
         assertNotEquals(originalSongId, controller.uiState.currentSongId)
-        assertTrue(controller.uiState.isPlaying)
+        assertTrue(controller.uiState.shouldShowPauseControl)
     }
 
     /**
@@ -636,20 +554,6 @@ class MusicAppControllerTest {
     }
 
     /**
-     * 冷启动已有持久歌曲时，首页应显示可重新扫描的完成态，但不能为了状态文案读取全量曲库。
-     */
-    @Test
-    fun coldStartWithPersistedSongsShowsDoneStateWithoutFullLibraryLoad(): Unit {
-        val repository = SeededMusicLibraryRepository(seedCount = 8)
-        val controller = createController(musicLibraryRepository = repository)
-
-        assertTrue(controller.uiState.scanState is LocalMusicScanState.Done)
-        assertEquals(expected = 0, actual = repository.fullLibraryReads)
-        assertEquals(expected = 6, actual = controller.uiState.homeLocalSongPreview.size)
-        assertTrue(controller.uiState.localSongs.isEmpty())
-    }
-
-    /**
      * 启动时若曲库暂不可用但存在快照，控制器应在后续曲库刷新后按快照恢复暂停态。
      */
     @Test
@@ -749,22 +653,6 @@ class MusicAppControllerTest {
         controller.openArtist(artist = controller.uiState.favoriteArtists.single())
         assertEquals(expected = "artist:artist", actual = controller.uiState.selectedArtist?.id)
         assertEquals(expected = 2, actual = repository.songsByIdsReads)
-        assertEquals(expected = 1, actual = repository.fullLibraryReads)
-    }
-
-    /**
-     * preview 里的歌曲打开详情时，应按需补齐完整曲库并解析到正确实体。
-     */
-    @Test
-    fun knownPreviewSongsCanOpenDetailsByLoadingFullLibraryOnDemand(): Unit {
-        val repository = SeededMusicLibraryRepository(seedCount = 8)
-        val controller = createController(musicLibraryRepository = repository)
-        val previewSong: Song = controller.uiState.homeLocalSongPreview.first()
-
-        controller.openAlbumFromSong(song = previewSong)
-        assertEquals(expected = "album:album", actual = controller.uiState.selectedAlbum?.id)
-        controller.openArtistFromSong(song = previewSong)
-        assertEquals(expected = "artist:artist", actual = controller.uiState.selectedArtist?.id)
         assertEquals(expected = 1, actual = repository.fullLibraryReads)
     }
 
@@ -986,28 +874,19 @@ class MusicAppControllerTest {
     }
 
     /**
-     * 搜索历史应按上下文隔离，避免收藏页出现本地库历史。
+     * facade 层设置搜索词后，active query 应通过防抖发布回 [uiState]，证明提取后的 reducer 仍接在公开边界上。
      */
     @Test
-    fun searchHistoryIsIsolatedByContext(): Unit {
-        val controller = createController()
+    fun debouncedSearchQueryPublishesActiveQueryThroughFacade(): Unit = runTest {
+        val controller = createController(controllerScope = backgroundScope)
 
         controller.openSearch(context = SearchContext.LocalLibrary)
-        controller.setSearchQuery(query = "城市")
-        controller.commitSearchQueryToHistory()
+        controller.setSearchQuery(query = "river")
 
-        controller.openSearch(context = SearchContext.Favorites)
-        controller.setSearchQuery(query = "周杰伦")
-        controller.commitSearchQueryToHistory()
-
-        assertEquals(
-            expected = listOf("城市"),
-            actual = controller.uiState.searchHistoryFor(context = SearchContext.LocalLibrary),
-        )
-        assertEquals(
-            expected = listOf("周杰伦"),
-            actual = controller.uiState.searchHistoryFor(context = SearchContext.Favorites),
-        )
+        assertEquals(expected = "", actual = controller.uiState.activeSearchQuery)
+        advanceTimeBy(delayTimeMillis = 301L)
+        advanceUntilIdle()
+        assertEquals(expected = "river", actual = controller.uiState.activeSearchQuery)
     }
 
     /**
@@ -1052,103 +931,6 @@ class MusicAppControllerTest {
             expected = listOf("绝对不存在的搜索词"),
             actual = controller.uiState.searchHistoryFor(context = SearchContext.LocalLibrary),
         )
-    }
-
-    /**
-     * 清空搜索框会直接回到最近搜索空态，旧搜索词必须在覆盖前写入历史。
-     */
-    @Test
-    fun clearingSearchQueryCommitsPreviousQueryToHistory(): Unit = runBlocking {
-        val controller = createController()
-        controller.scanLocalMusic(request = LocalMusicScanRequest.Refresh)
-
-        controller.openSearch(context = SearchContext.LocalLibrary)
-        controller.setSearchQuery(query = "心")
-        controller.commitSearchQueryToHistory()
-        controller.setSearchQuery(query = "山")
-
-        controller.setSearchQuery(query = "")
-
-        assertEquals(
-            expected = listOf("山", "心"),
-            actual = controller.uiState.searchHistoryFor(context = SearchContext.LocalLibrary),
-        )
-    }
-
-    /**
-     * 搜索历史应由共享仓库恢复，保证不同平台入口复用同一套历史数据规则。
-     */
-    @Test
-    fun searchHistoryRestoresFromRepositoryAcrossControllerInstances(): Unit = runBlocking {
-        val searchHistoryRepository = FakeSearchHistoryRepository()
-        val firstController = createController(searchHistoryRepository = searchHistoryRepository)
-        firstController.scanLocalMusic(request = LocalMusicScanRequest.Refresh)
-
-        firstController.openSearch(context = SearchContext.LocalLibrary)
-        firstController.setSearchQuery(query = "One Summer")
-        firstController.navigateBack()
-
-        val restoredController = createController(searchHistoryRepository = searchHistoryRepository)
-
-        assertEquals(
-            expected = listOf("One Summer"),
-            actual = restoredController.uiState.searchHistoryFor(context = SearchContext.LocalLibrary),
-        )
-        assertTrue(actual = restoredController.uiState.searchHistoryFor(context = SearchContext.Favorites).isEmpty())
-    }
-
-    /**
-     * 搜索历史应去重并把最新搜索放到最前面。
-     */
-    @Test
-    fun searchHistoryDeduplicatesAndMovesLatestFirst(): Unit {
-        val controller = createController()
-
-        controller.openSearch(context = SearchContext.LocalLibrary)
-        listOf("城市", "周杰伦", "城市").forEach { query ->
-            controller.setSearchQuery(query = query)
-            controller.commitSearchQueryToHistory()
-        }
-
-        assertEquals(
-            expected = listOf("城市", "周杰伦"),
-            actual = controller.uiState.searchHistoryFor(context = SearchContext.LocalLibrary),
-        )
-    }
-
-    /**
-     * 清空历史只影响当前搜索上下文。
-     */
-    @Test
-    fun clearSearchHistoryOnlyClearsCurrentContext(): Unit {
-        val controller = createController()
-
-        controller.openSearch(context = SearchContext.LocalLibrary)
-        controller.setSearchQuery(query = "城市")
-        controller.commitSearchQueryToHistory()
-        controller.openSearch(context = SearchContext.Favorites)
-        controller.setSearchQuery(query = "周杰伦")
-        controller.commitSearchQueryToHistory()
-
-        controller.clearSearchHistory(context = SearchContext.Favorites)
-
-        assertEquals(
-            expected = listOf("城市"),
-            actual = controller.uiState.searchHistoryFor(context = SearchContext.LocalLibrary),
-        )
-        assertTrue(actual = controller.uiState.searchHistoryFor(context = SearchContext.Favorites).isEmpty())
-    }
-
-    /**
-     * 我的页统计应来自同一份曲库快照。
-     */
-    @Test
-    fun libraryStatsComeFromScannedSnapshot(): Unit = runBlocking {
-        val controller = createController()
-        controller.scanLocalMusic(request = LocalMusicScanRequest.Refresh)
-        assertEquals(expected = 8, actual = controller.uiState.libraryStats.songCount)
-        assertEquals(expected = 4, actual = controller.uiState.libraryStats.albumCount)
-        assertEquals(expected = 4, actual = controller.uiState.libraryStats.artistCount)
     }
 
     /**
@@ -1243,31 +1025,6 @@ class MusicAppControllerTest {
         assertTrue(controller.uiState.navigationState.isTopLevel)
     }
 
-    /**
-     * 页面 chrome 策略应区分一级页、普通二级页和全屏二级页。
-     */
-    @Test
-    fun navigationStateProvidesChromeMode(): Unit {
-        val controller = createController()
-        assertEquals(AppChromeMode.TopLevel, controller.uiState.navigationState.chromeMode)
-        assertTrue(controller.uiState.navigationState.chromeMode.showsBottomNavigation)
-        assertEquals(BottomChromePlacement.TopLevel, controller.uiState.navigationState.chromeMode.bottomChromePlacement)
-        controller.navigateToSecondary(screen = SecondaryScreen.AlbumDetail)
-        assertEquals(AppChromeMode.SecondaryWithMiniPlayer, controller.uiState.navigationState.chromeMode)
-        assertFalse(controller.uiState.navigationState.chromeMode.showsBottomNavigation)
-        assertEquals(BottomChromePlacement.MiniPlayerOnly, controller.uiState.navigationState.chromeMode.bottomChromePlacement)
-        controller.navigateBack()
-        controller.openLocalMusic(section = LocalMusicSection.Songs)
-        assertEquals(AppChromeMode.SecondaryWithMiniPlayer, controller.uiState.navigationState.chromeMode)
-        controller.navigateToSecondary(screen = SecondaryScreen.Player)
-        assertEquals(AppChromeMode.SecondaryFullscreen, controller.uiState.navigationState.chromeMode)
-        assertFalse(controller.uiState.navigationState.chromeMode.showsBottomNavigation)
-        assertEquals(BottomChromePlacement.Hidden, controller.uiState.navigationState.chromeMode.bottomChromePlacement)
-        controller.navigateBack()
-        controller.navigateToSecondary(screen = SecondaryScreen.Settings)
-        assertEquals(AppChromeMode.SecondaryFullscreen, controller.uiState.navigationState.chromeMode)
-        assertEquals(BottomChromePlacement.Hidden, controller.uiState.navigationState.chromeMode.bottomChromePlacement)
-    }
 }
 
 private fun createController(

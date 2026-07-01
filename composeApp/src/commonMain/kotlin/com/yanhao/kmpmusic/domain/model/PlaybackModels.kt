@@ -134,7 +134,7 @@ data class PlaybackState(
     val error: PlaybackError? = null,
 ) {
     /**
-     * 兼容旧 UI 读取，直到状态消费方完成迁移。
+     * 兼容旧控制层读取，只有真实播放态才能触发暂停切换。
      */
     val isPlaying: Boolean
         get() = status == PlaybackStatus.Playing

@@ -1,82 +1,90 @@
-# Task 4 Report
+# Task 4 Report - Extract PlaybackSnapshotWriter
 
-## What I implemented
+## Status
 
-- Added `shouldShowTitlebarMusicSearch` to `MusicAppUiState` so desktop titlebar visibility is derived from shared navigation state instead of scattered UI checks.
-- Added controller-level tests covering:
-  - titlebar search visible only on Home/Favorites root pages
-  - search screen hides titlebar search
-- Updated `DesktopTitleBar` to accept `showSearch` and preserve layout width with a placeholder spacer when hidden.
-- Updated desktop titlebar search routing to open:
-  - `SearchContext.LocalLibrary` from `Home`
-  - `SearchContext.Favorites` from `Favorites`
-  - `SearchContext.LocalLibrary` fallback for other root tabs
-- Updated desktop library sidebar search to stop routing to global search and remain a local filter placeholder.
-- Updated sidebar copy/comment semantics from global search to local filter semantics:
-  - `搜索本地库` -> `筛选本地库`
+DONE
 
-## What I tested and test results
+## Scope
 
-1. Focused desktop tests for Task 4 visibility rules
-   - Result: PASS after implementation
-2. Android shared compile
-   - Result: PASS
+- Created [PlaybackSnapshotWriter] as a standalone playback-domain collaborator.
+- Added focused tests for snapshot throttling, async write tracking, teardown waiting, and error propagation.
+- Did not modify [PlaybackCoordinator], per task boundary.
 
-## TDD Evidence
+## Files Changed
 
-### RED command/output summary
+- `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/domain/playback/PlaybackSnapshotWriter.kt`
+- `composeApp/src/commonTest/kotlin/com/yanhao/kmpmusic/domain/playback/PlaybackSnapshotWriterTest.kt`
+
+## TDD Record
+
+### RED
 
 Command:
 
 ```bash
-./gradlew :composeApp:desktopTest --tests "com.yanhao.kmpmusic.feature.app.MusicAppControllerTest.titlebarSearchOnlyShowsOnHomeAndFavoritesRootPages" --tests "com.yanhao.kmpmusic.feature.app.MusicAppControllerTest.searchScreenHidesTitlebarSearch"
+./gradlew :composeApp:desktopTest --tests "com.yanhao.kmpmusic.domain.playback.PlaybackSnapshotWriterTest"
 ```
 
-Summary:
+Result:
 
-- Build failed in `:composeApp:compileTestKotlinDesktop`
-- Cause: unresolved reference `shouldShowTitlebarMusicSearch` in `MusicAppControllerTest.kt`
+- `:composeApp:compileTestKotlinDesktop FAILED`
+- Unresolved reference `PlaybackSnapshotWriter`
+- Follow-on unresolved references for `saveForEvent`, `saveAsync`, `awaitPendingWrites`, and `saveNowAndAwait`
 
-### GREEN command/output summary
+Key evidence:
+
+```text
+e: .../PlaybackSnapshotWriterTest.kt:33:21 Unresolved reference 'PlaybackSnapshotWriter'.
+e: .../PlaybackSnapshotWriterTest.kt:42:16 Unresolved reference 'saveForEvent'.
+e: .../PlaybackSnapshotWriterTest.kt:117:16 Unresolved reference 'saveAsync'.
+e: .../PlaybackSnapshotWriterTest.kt:121:20 Unresolved reference 'awaitPendingWrites'.
+e: .../PlaybackSnapshotWriterTest.kt:144:20 Unresolved reference 'saveNowAndAwait'.
+```
+
+### GREEN
 
 Command:
 
 ```bash
-./gradlew :composeApp:desktopTest --tests "com.yanhao.kmpmusic.feature.app.MusicAppControllerTest.titlebarSearchOnlyShowsOnHomeAndFavoritesRootPages" --tests "com.yanhao.kmpmusic.feature.app.MusicAppControllerTest.searchScreenHidesTitlebarSearch"
+./gradlew :composeApp:desktopTest --tests "com.yanhao.kmpmusic.domain.playback.PlaybackSnapshotWriterTest"
 ```
 
-Summary:
+Result:
 
 - `BUILD SUCCESSFUL`
-- Focused tests passed
+- Focused test target passed after adding [PlaybackSnapshotWriter]
 
-Additional verification:
+## Implementation Notes
 
-```bash
-./gradlew :composeApp:compileDebugKotlinAndroid
-```
+- Extracted snapshot-writing behavior into [PlaybackSnapshotWriter] with `internal` visibility to match neighboring playback collaborators.
+- Preserved the current rules from [PlaybackCoordinator]:
+  - first progress event writes immediately
+  - progress writes are throttled by `snapshotThrottleMs`
+  - non-progress engine events bypass throttling
+  - async writes are tracked in a pending set
+  - teardown can await all pending writes
+  - synchronous teardown save propagates store failures
+- Kept repository access synchronous via [PlaybackRepository], and snapshot persistence behind [PlaybackSnapshotStore].
 
-Summary:
+## Focused Test Coverage Added
 
-- `BUILD SUCCESSFUL`
-- Android/common compile remained healthy
+- `firstProgressEventPersistsSnapshot`
+- `progressEventsInsideThrottleWindowAreSkipped`
+- `nonProgressEventsAreNotThrottled`
+- `awaitPendingWritesWaitsForAsyncSaveCompletion`
+- `saveNowAndAwaitPropagatesSnapshotStoreFailure`
 
-## Files changed
+## Self Review
 
-- `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/app/MusicAppModels.kt`
-- `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/desktop/DesktopMusicApp.kt`
-- `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/desktop/DesktopMusicComponents.kt`
-- `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/desktop/DesktopLibrarySidebar.kt`
-- `composeApp/src/commonTest/kotlin/com/yanhao/kmpmusic/feature/app/MusicAppControllerTest.kt`
-- `.superpowers/sdd/task-4-report.md`
+- Confirmed only the two task-owned files were modified.
+- Confirmed [PlaybackCoordinator] was not changed or wired to the new collaborator.
+- Confirmed the extracted collaborator keeps the existing snapshot rules intact instead of introducing a partial patch.
+- Confirmed the focused desktop test command passes after the extraction.
 
-## Self-review findings
+## Commit
 
-- Visibility rule is now centralized in shared UI state, which avoids patching desktop-only route checks in multiple composables.
-- Titlebar routing now follows active root tab explicitly, which matches Tasks 1-3 contextual search model.
-- Sidebar search no longer opens the global search page, preserving Task 5 space for future local filtering behavior.
-- Layout stability is preserved when titlebar search is hidden by keeping the same width with a spacer.
+- `refactor: 抽出播放快照写入器`
 
-## Any issues or concerns
+## Concerns
 
-- Existing Gradle output still contains unrelated warnings about deprecated Kotlin/AGP properties and two `PlaybackCoordinator.kt` Elvis warnings; they were pre-existing and did not block this task.
+- None for this task scope.

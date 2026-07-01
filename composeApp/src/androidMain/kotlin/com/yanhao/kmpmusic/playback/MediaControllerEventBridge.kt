@@ -162,7 +162,11 @@ internal class MediaControllerEventBridge(
         }
         return when (playbackState) {
             Player.STATE_IDLE -> PlaybackStatus.Idle
-            Player.STATE_BUFFERING -> PlaybackStatus.Buffering
+            Player.STATE_BUFFERING -> if (playWhenReady) {
+                PlaybackStatus.Buffering
+            } else {
+                PlaybackStatus.Paused
+            }
             Player.STATE_READY -> PlaybackStatus.Paused
             Player.STATE_ENDED -> PlaybackStatus.Ended
             else -> PlaybackStatus.Idle

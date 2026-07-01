@@ -67,6 +67,7 @@ import com.yanhao.kmpmusic.domain.model.CoverArt
 import com.yanhao.kmpmusic.domain.model.PlaybackStatus
 import com.yanhao.kmpmusic.domain.model.Song
 import com.yanhao.kmpmusic.feature.app.RootTab
+import com.yanhao.kmpmusic.feature.app.shouldShowPauseControl
 import com.yanhao.kmpmusic.feature.components.CoverArtImage
 
 enum class DesktopRailDestination {
@@ -739,7 +740,7 @@ private fun DesktopSongTableRow(
     onLike: ((String) -> Unit)?,
 ) {
     val isCurrentSongPlaying: Boolean =
-        isCurrentSong && currentPlaybackStatus == PlaybackStatus.Playing
+        isCurrentSong && currentPlaybackStatus.shouldShowPauseControl
     Row(
         modifier = Modifier
             .fillMaxWidth()

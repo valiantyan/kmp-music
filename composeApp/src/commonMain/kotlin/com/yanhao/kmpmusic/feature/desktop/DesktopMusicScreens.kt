@@ -104,7 +104,7 @@ fun DesktopSecondaryScreen(
         SecondaryScreen.Player -> DesktopPlayerDetailScreen(
             song = state.currentSong,
             queueSongs = state.queueSongs,
-            isPlaying = state.isPlaying,
+            isPlaying = state.shouldShowPauseControl,
             playbackPositionMs = state.playbackPositionMs,
             playbackDurationMs = state.playbackDurationMs,
             playbackMode = state.playbackMode,

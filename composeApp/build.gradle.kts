@@ -163,6 +163,7 @@ val macosLibVlcDownloadDir = layout.dir(
 val legacyMacosLibVlcDownloadDir = layout.buildDirectory.dir("macos-libvlc/download")
 val macosLibVlcRuntimeDir = layout.buildDirectory.dir("macos-libvlc/runtime/LibVLC")
 val releaseAppName = "KMP Music.app"
+val mainAppDir = layout.buildDirectory.dir("compose/binaries/main/app/$releaseAppName")
 val releaseAppDir = layout.buildDirectory.dir("compose/binaries/main-release/app/$releaseAppName")
 val macosLibVlcDownloadUrl: String = providers
     .gradleProperty("kmp.music.libvlc.download.url")
@@ -208,6 +209,17 @@ tasks.matching { task -> task.name == "run" || task.name == "desktopRun" }.confi
     (this as? JavaExec)?.configureDesktopDevelopmentRun()
 }
 
+// 常规 macOS 打包也必须内置 LibVLC；否则人工验收的 DMG/App 会落到不可用播放器。
+tasks.register<Copy>("stageMacosArm64LibVlcIntoMainApp") {
+    dependsOn("extractMacosArm64LibVlc", "createDistributable")
+    doFirst {
+        delete(mainAppDir.get().dir("Contents/Frameworks/LibVLC"))
+        delete(mainAppDir.get().dir("Contents/Resources/LibVLC"))
+    }
+    from(macosLibVlcRuntimeDir)
+    into(mainAppDir.map { directory -> directory.dir("Contents/Resources/LibVLC") })
+}
+
 // The release signing/notarization pipeline must sign nested LibVLC code after this task and
 // sign the outer app last. Running packageReleaseDmg before nested signing invalidates release acceptance.
 tasks.register<Copy>("stageMacosArm64LibVlcIntoReleaseApp") {
@@ -232,4 +244,8 @@ tasks.register<Exec>("verifyMacosArm64ReleaseApp") {
 
 tasks.matching { task -> task.name == "packageReleaseDmg" }.configureEach {
     dependsOn("stageMacosArm64LibVlcIntoReleaseApp")
+}
+
+tasks.matching { task -> task.name == "packageDmg" || task.name == "packageDistributionForCurrentOS" }.configureEach {
+    dependsOn("stageMacosArm64LibVlcIntoMainApp")
 }

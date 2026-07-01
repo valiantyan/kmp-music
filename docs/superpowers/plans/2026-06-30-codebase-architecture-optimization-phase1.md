@@ -79,7 +79,7 @@ Use one commit per task. Each task must leave the project compiling and its targ
 - Modify: `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/app/MusicAppModels.kt`
 - Modify: `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/app/MusicAppController.kt`
 
-- [ ] **Step 1: Write the failing projector tests**
+- [x] **Step 1: Write the failing projector tests**
 
 Create `composeApp/src/commonTest/kotlin/com/yanhao/kmpmusic/feature/app/library/MusicLibraryProjectorTest.kt`:
 
@@ -165,7 +165,7 @@ class MusicLibraryProjectorTest {
 }
 ```
 
-- [ ] **Step 2: Run the projector test and verify it fails**
+- [x] **Step 2: Run the projector test and verify it fails**
 
 Run:
 
@@ -175,7 +175,7 @@ Run:
 
 Expected: FAIL with an unresolved reference to `MusicLibraryProjector`.
 
-- [ ] **Step 3: Add `MusicLibraryProjector`**
+- [x] **Step 3: Add `MusicLibraryProjector`**
 
 Create `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/app/library/MusicLibraryProjector.kt`:
 
@@ -238,7 +238,7 @@ object MusicLibraryProjector {
 }
 ```
 
-- [ ] **Step 4: Replace duplicate projection in `MusicAppModels.kt`**
+- [x] **Step 4: Replace duplicate projection in `MusicAppModels.kt`**
 
 Modify `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/app/MusicAppModels.kt`:
 
@@ -274,7 +274,7 @@ Replace the existing `detailSongs`, `detailAlbums`, `detailArtists`, `favoriteAl
 
 Delete the private `buildAlbumsFromSongs` and `buildArtistsFromSongs` functions from `MusicAppUiState`.
 
-- [ ] **Step 5: Replace duplicate projection in `MusicAppController.kt`**
+- [x] **Step 5: Replace duplicate projection in `MusicAppController.kt`**
 
 Modify `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/app/MusicAppController.kt`:
 
@@ -316,7 +316,7 @@ localArtists = MusicLibraryProjector.buildArtists(songs = songsWithLikes)
 
 Delete the private `buildAlbums` and `buildArtists` functions from `MusicAppController`.
 
-- [ ] **Step 6: Run focused and facade tests**
+- [x] **Step 6: Run focused and facade tests**
 
 Run:
 
@@ -326,7 +326,7 @@ Run:
 
 Expected: PASS.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/app/library/MusicLibraryProjector.kt composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/app/MusicAppModels.kt composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/app/MusicAppController.kt composeApp/src/commonTest/kotlin/com/yanhao/kmpmusic/feature/app/library/MusicLibraryProjectorTest.kt
@@ -342,7 +342,7 @@ git commit -m "重构曲库专辑歌手投影"
 - Create: `composeApp/src/commonTest/kotlin/com/yanhao/kmpmusic/feature/app/navigation/MusicAppNavigationControllerTest.kt`
 - Modify: `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/app/MusicAppController.kt`
 
-- [ ] **Step 1: Write failing navigation reducer tests**
+- [x] **Step 1: Write failing navigation reducer tests**
 
 Create `composeApp/src/commonTest/kotlin/com/yanhao/kmpmusic/feature/app/navigation/MusicAppNavigationControllerTest.kt`:
 
@@ -441,7 +441,7 @@ class MusicAppNavigationControllerTest {
 }
 ```
 
-- [ ] **Step 2: Run navigation tests and verify they fail**
+- [x] **Step 2: Run navigation tests and verify they fail**
 
 Run:
 
@@ -451,7 +451,7 @@ Run:
 
 Expected: FAIL with an unresolved reference to `NavigationStateController`.
 
-- [ ] **Step 3: Add navigation reducer**
+- [x] **Step 3: Add navigation reducer**
 
 Create `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/app/navigation/NavigationStateController.kt`:
 
@@ -501,7 +501,7 @@ object NavigationStateController {
 }
 ```
 
-- [ ] **Step 4: Wire public navigation methods through the reducer**
+- [x] **Step 4: Wire public navigation methods through the reducer**
 
 Modify `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/app/MusicAppController.kt`:
 
@@ -536,7 +536,7 @@ fun navigateBack() {
 
 Do not change `handleSystemBack()` yet; it still coordinates dialog, menu, queue, and navigation closing order through existing public methods.
 
-- [ ] **Step 5: Run focused and facade navigation tests**
+- [x] **Step 5: Run focused and facade navigation tests**
 
 Run:
 
@@ -546,7 +546,7 @@ Run:
 
 Expected: PASS.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/app/navigation/NavigationStateController.kt composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/app/MusicAppController.kt composeApp/src/commonTest/kotlin/com/yanhao/kmpmusic/feature/app/navigation/MusicAppNavigationControllerTest.kt
@@ -563,7 +563,7 @@ git commit -m "重构应用导航状态控制"
 - Modify: `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/app/MusicAppController.kt`
 - Modify: `composeApp/src/commonTest/kotlin/com/yanhao/kmpmusic/feature/app/MusicAppControllerTest.kt`
 
-- [ ] **Step 1: Write focused search tests**
+- [x] **Step 1: Write focused search tests**
 
 Create `composeApp/src/commonTest/kotlin/com/yanhao/kmpmusic/feature/app/search/MusicAppSearchControllerTest.kt`:
 
@@ -698,7 +698,7 @@ private class FakeSearchHistoryRepository : SearchHistoryRepository {
 }
 ```
 
-- [ ] **Step 2: Run search tests and verify they fail**
+- [x] **Step 2: Run search tests and verify they fail**
 
 Run:
 
@@ -708,7 +708,7 @@ Run:
 
 Expected: FAIL with an unresolved reference to `SearchSessionController`.
 
-- [ ] **Step 3: Add `SearchSessionController`**
+- [x] **Step 3: Add `SearchSessionController`**
 
 Create `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/app/search/SearchSessionController.kt`:
 
@@ -867,7 +867,7 @@ class SearchSessionController(
 }
 ```
 
-- [ ] **Step 4: Wire `MusicAppController` search methods**
+- [x] **Step 4: Wire `MusicAppController` search methods**
 
 Add a property in `MusicAppController`:
 
@@ -931,7 +931,7 @@ navigateToSecondary(screen = SecondaryScreen.Search(context = context))
 
 Delete `searchQueryDebounceJob` and these private search helpers from `MusicAppController`: `scheduleActiveSearchQuerySync`, `syncActiveSearchQueryImmediately`, `moveQueryToHistoryTop`, `updateSearchHistory`, and the overloaded private `commitSearchQueryToHistory(query, context)`.
 
-- [ ] **Step 5: Run search tests**
+- [x] **Step 5: Run search tests**
 
 Run:
 
@@ -941,7 +941,7 @@ Run:
 
 Expected: PASS.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/app/search/SearchSessionController.kt composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/app/MusicAppController.kt composeApp/src/commonTest/kotlin/com/yanhao/kmpmusic/feature/app/search/MusicAppSearchControllerTest.kt composeApp/src/commonTest/kotlin/com/yanhao/kmpmusic/feature/app/MusicAppControllerTest.kt
@@ -957,7 +957,7 @@ git commit -m "重构搜索会话状态控制"
 - Create: `composeApp/src/commonTest/kotlin/com/yanhao/kmpmusic/feature/app/library/MusicAppLibraryStateSynchronizerTest.kt`
 - Modify: `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/app/MusicAppController.kt`
 
-- [ ] **Step 1: Write focused library synchronizer tests**
+- [x] **Step 1: Write focused library synchronizer tests**
 
 Create `composeApp/src/commonTest/kotlin/com/yanhao/kmpmusic/feature/app/library/MusicAppLibraryStateSynchronizerTest.kt`:
 
@@ -1170,7 +1170,7 @@ private class FakeMusicLibraryRepository(
 }
 ```
 
-- [ ] **Step 2: Run library tests and verify they fail**
+- [x] **Step 2: Run library tests and verify they fail**
 
 Run:
 
@@ -1180,7 +1180,7 @@ Run:
 
 Expected: FAIL with an unresolved reference to `LibraryStateSynchronizer`.
 
-- [ ] **Step 3: Add `LibraryStateSynchronizer`**
+- [x] **Step 3: Add `LibraryStateSynchronizer`**
 
 Create `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/app/library/LibraryStateSynchronizer.kt`:
 
@@ -1332,7 +1332,7 @@ class LibraryStateSynchronizer(
 }
 ```
 
-- [ ] **Step 4: Wire library synchronizer into `MusicAppController`**
+- [x] **Step 4: Wire library synchronizer into `MusicAppController`**
 
 Add a property after `favoritesRepository` is initialized. Because `favoritesRepository` is assigned in `init`, use `lateinit`:
 
@@ -1380,7 +1380,7 @@ fun loadLocalMusicLibrary() {
 
 Keep `resolveAvailableSongsByIds`, `preferredKnownSongs`, and `buildFavoriteSongs` in `MusicAppController` until Task 6 and Task 5 move their remaining call sites.
 
-- [ ] **Step 5: Run library and affected facade tests**
+- [x] **Step 5: Run library and affected facade tests**
 
 Run:
 
@@ -1390,7 +1390,7 @@ Run:
 
 Expected: PASS.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/app/library/LibraryStateSynchronizer.kt composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/app/MusicAppController.kt composeApp/src/commonTest/kotlin/com/yanhao/kmpmusic/feature/app/library/MusicAppLibraryStateSynchronizerTest.kt
@@ -1406,7 +1406,7 @@ git commit -m "重构曲库状态同步"
 - Create: `composeApp/src/commonTest/kotlin/com/yanhao/kmpmusic/feature/app/favorites/MusicAppFavoriteStateSynchronizerTest.kt`
 - Modify: `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/app/MusicAppController.kt`
 
-- [ ] **Step 1: Write focused favorite synchronization tests**
+- [x] **Step 1: Write focused favorite synchronization tests**
 
 Create `composeApp/src/commonTest/kotlin/com/yanhao/kmpmusic/feature/app/favorites/MusicAppFavoriteStateSynchronizerTest.kt`:
 
@@ -1510,7 +1510,7 @@ class MusicAppFavoriteStateSynchronizerTest {
 }
 ```
 
-- [ ] **Step 2: Run favorite tests and verify they fail**
+- [x] **Step 2: Run favorite tests and verify they fail**
 
 Run:
 
@@ -1520,7 +1520,7 @@ Run:
 
 Expected: FAIL with an unresolved reference to `FavoriteStateSynchronizer`.
 
-- [ ] **Step 3: Add favorite synchronizer**
+- [x] **Step 3: Add favorite synchronizer**
 
 Create `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/app/favorites/FavoriteStateSynchronizer.kt`:
 
@@ -1566,7 +1566,7 @@ class FavoriteStateSynchronizer(
 }
 ```
 
-- [ ] **Step 4: Wire `MusicAppController.toggleFavorite`**
+- [x] **Step 4: Wire `MusicAppController.toggleFavorite`**
 
 Add a property:
 
@@ -1601,7 +1601,7 @@ fun toggleFavorite(songId: String) {
 }
 ```
 
-- [ ] **Step 5: Run favorite tests**
+- [x] **Step 5: Run favorite tests**
 
 Run:
 
@@ -1611,7 +1611,7 @@ Run:
 
 Expected: PASS.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/app/favorites/FavoriteStateSynchronizer.kt composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/app/MusicAppController.kt composeApp/src/commonTest/kotlin/com/yanhao/kmpmusic/feature/app/favorites/MusicAppFavoriteStateSynchronizerTest.kt
@@ -1629,7 +1629,7 @@ git commit -m "重构收藏状态同步"
 - Create: `composeApp/src/commonTest/kotlin/com/yanhao/kmpmusic/feature/app/playback/MusicAppPlaybackRestoreOrchestratorTest.kt`
 - Modify: `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/app/MusicAppController.kt`
 
-- [ ] **Step 1: Write playback UI synchronizer tests**
+- [x] **Step 1: Write playback UI synchronizer tests**
 
 Create `composeApp/src/commonTest/kotlin/com/yanhao/kmpmusic/feature/app/playback/MusicAppPlaybackUiStateSynchronizerTest.kt`:
 
@@ -1703,7 +1703,7 @@ class MusicAppPlaybackUiStateSynchronizerTest {
 }
 ```
 
-- [ ] **Step 2: Write playback restore tests**
+- [x] **Step 2: Write playback restore tests**
 
 Create `composeApp/src/commonTest/kotlin/com/yanhao/kmpmusic/feature/app/playback/MusicAppPlaybackRestoreOrchestratorTest.kt`:
 
@@ -1798,7 +1798,7 @@ class MusicAppPlaybackRestoreOrchestratorTest {
 }
 ```
 
-- [ ] **Step 3: Run playback tests and verify they fail**
+- [x] **Step 3: Run playback tests and verify they fail**
 
 Run:
 
@@ -1808,7 +1808,7 @@ Run:
 
 Expected: FAIL with unresolved references to `PlaybackUiStateSynchronizer` and `PlaybackRestoreOrchestrator`.
 
-- [ ] **Step 4: Add playback UI synchronizer**
+- [x] **Step 4: Add playback UI synchronizer**
 
 Create `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/app/playback/PlaybackUiStateSynchronizer.kt`:
 
@@ -1844,7 +1844,7 @@ class PlaybackUiStateSynchronizer(
 }
 ```
 
-- [ ] **Step 5: Add playback restore orchestrator**
+- [x] **Step 5: Add playback restore orchestrator**
 
 Create `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/app/playback/PlaybackRestoreOrchestrator.kt`:
 
@@ -1886,7 +1886,7 @@ class PlaybackRestoreOrchestrator(
 }
 ```
 
-- [ ] **Step 6: Wire playback collaborators into `MusicAppController`**
+- [x] **Step 6: Wire playback collaborators into `MusicAppController`**
 
 Add properties:
 
@@ -1949,7 +1949,7 @@ private fun preferredKnownSongs(): List<Song> {
 
 Delete `resolveAvailableSongsByIds` and `buildFavoriteSongs` from `MusicAppController` after all call sites use collaborators.
 
-- [ ] **Step 7: Run playback and restore tests**
+- [x] **Step 7: Run playback and restore tests**
 
 Run:
 
@@ -1959,7 +1959,7 @@ Run:
 
 Expected: PASS.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/app/playback/PlaybackUiStateSynchronizer.kt composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/app/playback/PlaybackRestoreOrchestrator.kt composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/app/MusicAppController.kt composeApp/src/commonTest/kotlin/com/yanhao/kmpmusic/feature/app/playback/MusicAppPlaybackUiStateSynchronizerTest.kt composeApp/src/commonTest/kotlin/com/yanhao/kmpmusic/feature/app/playback/MusicAppPlaybackRestoreOrchestratorTest.kt
@@ -1975,7 +1975,7 @@ git commit -m "重构播放 UI 同步与快照恢复"
 - Create: `composeApp/src/commonTest/kotlin/com/yanhao/kmpmusic/feature/app/session/LoginAndDialogStateControllerTest.kt`
 - Modify: `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/app/MusicAppController.kt`
 
-- [ ] **Step 1: Write session controller tests**
+- [x] **Step 1: Write session controller tests**
 
 Create `composeApp/src/commonTest/kotlin/com/yanhao/kmpmusic/feature/app/session/LoginAndDialogStateControllerTest.kt`:
 
@@ -2036,7 +2036,7 @@ class LoginAndDialogStateControllerTest {
 }
 ```
 
-- [ ] **Step 2: Run session tests and verify they fail**
+- [x] **Step 2: Run session tests and verify they fail**
 
 Run:
 
@@ -2046,7 +2046,7 @@ Run:
 
 Expected: FAIL with an unresolved reference to `LoginAndDialogStateController`.
 
-- [ ] **Step 3: Add session controller**
+- [x] **Step 3: Add session controller**
 
 Create `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/app/session/LoginAndDialogStateController.kt`:
 
@@ -2100,7 +2100,7 @@ object LoginAndDialogStateController {
 }
 ```
 
-- [ ] **Step 4: Wire lightweight session methods**
+- [x] **Step 4: Wire lightweight session methods**
 
 Modify `MusicAppController`:
 
@@ -2150,7 +2150,7 @@ fun sendLoginMail() {
 
 Do not move permission settings methods into this controller.
 
-- [ ] **Step 5: Run session and facade tests**
+- [x] **Step 5: Run session and facade tests**
 
 Run:
 
@@ -2160,7 +2160,7 @@ Run:
 
 Expected: PASS.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/app/session/LoginAndDialogStateController.kt composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/app/MusicAppController.kt composeApp/src/commonTest/kotlin/com/yanhao/kmpmusic/feature/app/session/LoginAndDialogStateControllerTest.kt
@@ -2175,7 +2175,7 @@ git commit -m "重构轻量会话状态控制"
 - Modify: `composeApp/src/commonTest/kotlin/com/yanhao/kmpmusic/feature/app/MusicAppControllerTest.kt`
 - Modify focused test files created in Tasks 1-7 only when moving exact tests into better homes.
 
-- [ ] **Step 1: Keep facade acceptance tests in `MusicAppControllerTest`**
+- [x] **Step 1: Keep facade acceptance tests in `MusicAppControllerTest`**
 
 Keep these tests in `composeApp/src/commonTest/kotlin/com/yanhao/kmpmusic/feature/app/MusicAppControllerTest.kt`:
 
@@ -2228,7 +2228,7 @@ systemBackClosesPermissionSettingsDialog
 systemBackClosesOverlayBeforeSecondaryScreen
 ```
 
-- [ ] **Step 2: Delete projector-only facade tests after Task 1 coverage passes**
+- [x] **Step 2: Delete projector-only facade tests after Task 1 coverage passes**
 
 Delete these tests from `MusicAppControllerTest` because `MusicLibraryProjectorTest` and library synchronizer tests now cover their pure projection rules:
 
@@ -2242,7 +2242,7 @@ coldStartWithPersistedSongsShowsDoneStateWithoutFullLibraryLoad
 
 Keep `favoriteSongsRemainAvailableBeforeFullLibraryLoads` in the facade file because it verifies lazy library loading, favorites, and detail availability together.
 
-- [ ] **Step 3: Delete search-history unit tests after Task 3 coverage passes**
+- [x] **Step 3: Delete search-history unit tests after Task 3 coverage passes**
 
 Delete these tests from `MusicAppControllerTest` because `MusicAppSearchControllerTest` now covers context isolation, clearing behavior, history restore, deduplication, and per-context clearing:
 
@@ -2256,7 +2256,7 @@ clearSearchHistoryOnlyClearsCurrentContext
 
 Keep `nonBlankSearchQueryCommitsToHistoryWhenLeavingSearch` and `searchQueryWithoutResultsCommitsToHistoryWhenLeavingSearch` in the facade file because they verify navigation lifecycle commits through `MusicAppController`.
 
-- [ ] **Step 4: Delete reducer-only navigation/session tests after Tasks 2 and 7 coverage pass**
+- [x] **Step 4: Delete reducer-only navigation/session tests after Tasks 2 and 7 coverage pass**
 
 Delete these tests from `MusicAppControllerTest` because `MusicAppNavigationControllerTest` or `LoginAndDialogStateControllerTest` now cover the reducer-only behavior:
 
@@ -2270,7 +2270,7 @@ emptyIdleStatusHasNoActivePlaybackSession
 
 Keep all system-back tests in the facade file because they coordinate dialogs, more menu, queue, and secondary pages.
 
-- [ ] **Step 5: Run targeted split-test set**
+- [x] **Step 5: Run targeted split-test set**
 
 Run:
 
@@ -2280,7 +2280,7 @@ Run:
 
 Expected: PASS.
 
-- [ ] **Step 6: Confirm file sizes moved in the right direction**
+- [x] **Step 6: Confirm file sizes moved in the right direction**
 
 Run:
 
@@ -2290,7 +2290,7 @@ wc -l composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/app/MusicAppC
 
 Expected: both files have fewer lines than the starting point of 918 and 1527, and `MusicAppController.kt` no longer contains private `buildAlbums`, `buildArtists`, search-history helpers, or favorite state projection loops.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add composeApp/src/commonTest/kotlin/com/yanhao/kmpmusic/feature/app/MusicAppControllerTest.kt composeApp/src/commonTest/kotlin/com/yanhao/kmpmusic/feature/app/library/MusicLibraryProjectorTest.kt composeApp/src/commonTest/kotlin/com/yanhao/kmpmusic/feature/app/navigation/MusicAppNavigationControllerTest.kt composeApp/src/commonTest/kotlin/com/yanhao/kmpmusic/feature/app/search/MusicAppSearchControllerTest.kt composeApp/src/commonTest/kotlin/com/yanhao/kmpmusic/feature/app/library/MusicAppLibraryStateSynchronizerTest.kt composeApp/src/commonTest/kotlin/com/yanhao/kmpmusic/feature/app/favorites/MusicAppFavoriteStateSynchronizerTest.kt composeApp/src/commonTest/kotlin/com/yanhao/kmpmusic/feature/app/playback/MusicAppPlaybackUiStateSynchronizerTest.kt composeApp/src/commonTest/kotlin/com/yanhao/kmpmusic/feature/app/playback/MusicAppPlaybackRestoreOrchestratorTest.kt composeApp/src/commonTest/kotlin/com/yanhao/kmpmusic/feature/app/session/LoginAndDialogStateControllerTest.kt
@@ -2304,7 +2304,7 @@ git commit -m "拆分应用控制器测试职责"
 **Files:**
 - Modify: `docs/superpowers/specs/2026-06-30-codebase-architecture-optimization-design.md` only if implementation reveals a documented boundary that must be sharpened.
 
-- [ ] **Step 1: Run shared logic tests**
+- [x] **Step 1: Run shared logic tests**
 
 Run:
 
@@ -2314,7 +2314,7 @@ Run:
 
 Expected: PASS.
 
-- [ ] **Step 2: Run Android common compile**
+- [x] **Step 2: Run Android common compile**
 
 Run:
 
@@ -2324,7 +2324,7 @@ Run:
 
 Expected: PASS.
 
-- [ ] **Step 3: Verify no collaborator owns Compose mutable state**
+- [x] **Step 3: Verify no collaborator owns Compose mutable state**
 
 Run:
 
@@ -2334,7 +2334,7 @@ rg -n "mutableStateOf|var uiState|MutableState" composeApp/src/commonMain/kotlin
 
 Expected: no matches.
 
-- [ ] **Step 4: Verify UI still calls only the facade**
+- [x] **Step 4: Verify UI still calls only the facade**
 
 Run:
 
@@ -2344,7 +2344,7 @@ rg -n "NavigationStateController|SearchSessionController|LibraryStateSynchronize
 
 Expected: no matches.
 
-- [ ] **Step 5: Verify controller still exposes expected public methods**
+- [x] **Step 5: Verify controller still exposes expected public methods**
 
 Run:
 
@@ -2354,7 +2354,7 @@ rg -n "fun (navigateToSecondary|navigateToRoot|navigateBack|handleSystemBack|sca
 
 Expected: matches for all listed public methods.
 
-- [ ] **Step 6: Inspect git status**
+- [x] **Step 6: Inspect git status**
 
 Run:
 
@@ -2364,7 +2364,7 @@ git status --short --branch
 
 Expected: only intentional source, test, and documentation changes are present.
 
-- [ ] **Step 7: Commit verification fixes if any source changes were needed**
+- [x] **Step 7: Commit verification fixes if any source changes were needed**
 
 If Step 1 or Step 2 required source/test fixes, commit them:
 

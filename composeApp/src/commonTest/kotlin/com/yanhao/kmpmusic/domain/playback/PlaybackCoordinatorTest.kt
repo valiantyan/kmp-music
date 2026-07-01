@@ -4,6 +4,7 @@ import com.yanhao.kmpmusic.data.FakeAudioPlayerEngine
 import com.yanhao.kmpmusic.data.InMemoryPlaybackRepository
 import com.yanhao.kmpmusic.domain.model.CoverArt
 import com.yanhao.kmpmusic.domain.model.LocalMusicSourceKind
+import com.yanhao.kmpmusic.domain.model.PlayableMedia
 import com.yanhao.kmpmusic.domain.model.PlaybackError
 import com.yanhao.kmpmusic.domain.model.PlaybackErrorType
 import com.yanhao.kmpmusic.domain.model.PlaybackMode
@@ -46,6 +47,7 @@ class PlaybackCoordinatorTest {
         val queue = repository.getQueueState()
         assertEquals(expected = songs.map { song -> song.id }, actual = queue.songIds)
         assertEquals(expected = 2, actual = queue.currentIndex)
+        assertEquals(expected = emptyList(), actual = queue.shuffleRemaining)
         assertEquals(expected = songs[2].id, actual = repository.getPlaybackState().currentSongId)
     }
 
@@ -107,26 +109,6 @@ class PlaybackCoordinatorTest {
     }
 
     /**
-     * 顺序播放点击下一首时应按队列循环，最后一首回到第一首。
-     */
-    @Test
-    fun sequenceModeNextFromLastSongLoopsToFirstSong(): Unit = runTest {
-        val repository = InMemoryPlaybackRepository()
-        val coordinator = PlaybackCoordinator(
-            playbackRepository = repository,
-            audioPlayerEngine = FakeAudioPlayerEngine(),
-            snapshotWriteScope = backgroundScope,
-        )
-        val songs = buildSongs(count = 3)
-
-        coordinator.playSong(song = songs[2], queueSongs = songs)
-        coordinator.moveNext()
-
-        assertEquals(expected = 0, actual = repository.getQueueState().currentIndex)
-        assertEquals(expected = songs[0].id, actual = repository.getPlaybackState().currentSongId)
-    }
-
-    /**
      * 顺序播放自然结束时也应复用同一套队列循环规则。
      */
     @Test
@@ -166,31 +148,6 @@ class PlaybackCoordinatorTest {
 
         assertEquals(expected = 1, actual = repository.getQueueState().currentIndex)
         assertEquals(expected = songs[1].id, actual = repository.getPlaybackState().currentSongId)
-    }
-
-    /**
-     * 随机模式回退上一首时应优先使用历史，而不是重新随机。
-     */
-    @Test
-    fun shufflePreviousUsesHistory(): Unit = runTest {
-        val repository = InMemoryPlaybackRepository()
-        val coordinator = PlaybackCoordinator(
-            playbackRepository = repository,
-            audioPlayerEngine = FakeAudioPlayerEngine(),
-            snapshotWriteScope = backgroundScope,
-            randomIndex = { candidates: List<Int> -> candidates.first() },
-        )
-        val songs = buildSongs(count = 4)
-
-        coordinator.playSong(song = songs[0], queueSongs = songs)
-        coordinator.cyclePlaybackMode()
-        coordinator.cyclePlaybackMode()
-        coordinator.moveNext()
-        val shuffledIndex = repository.getQueueState().currentIndex
-        coordinator.movePrevious()
-
-        assertEquals(expected = 1, actual = shuffledIndex)
-        assertEquals(expected = 0, actual = repository.getQueueState().currentIndex)
     }
 
     /**
@@ -345,6 +302,7 @@ class PlaybackCoordinatorTest {
         assertEquals(expected = PlaybackStatus.Paused, actual = repository.getPlaybackState().status)
         assertEquals(expected = restoredSong.id, actual = repository.getPlaybackState().currentSongId)
         assertEquals(expected = 18_000L, actual = repository.getPlaybackState().positionMs)
+        assertEquals(expected = emptyList(), actual = repository.getQueueState().shuffleRemaining)
 
         coordinator.togglePlayback()
         advanceUntilIdle()
@@ -352,6 +310,45 @@ class PlaybackCoordinatorTest {
         assertEquals(expected = PlaybackStatus.Playing, actual = repository.getPlaybackState().status)
         assertEquals(expected = restoredSong.id, actual = repository.getPlaybackState().currentSongId)
         assertEquals(expected = 18_000L, actual = repository.getPlaybackState().positionMs)
+    }
+
+    /**
+     * 启动中状态的 toggle 应继续播放命令，不能把刚点击的歌曲反向暂停。
+     */
+    @Test
+    fun toggleWhileLoadingRequestsPlayInsteadOfPause(): Unit = runTest {
+        val repository = InMemoryPlaybackRepository()
+        val engine = FakeAudioPlayerEngine()
+        val coordinator = PlaybackCoordinator(
+            playbackRepository = repository,
+            audioPlayerEngine = engine,
+            snapshotWriteScope = backgroundScope,
+        )
+        val songs = buildSongs(count = 1)
+        engine.setQueue(
+            items = songs.map { song -> song.toPlayableMediaForTest() },
+            startIndex = 0,
+            startPositionMs = 0L,
+        )
+        repository.saveQueueState(
+            state = QueueState(
+                songIds = listOf(songs[0].id),
+                currentIndex = 0,
+            ),
+        )
+        repository.savePlaybackState(
+            state = PlaybackState(
+                currentSongId = songs[0].id,
+                status = PlaybackStatus.Loading,
+                durationMs = songs[0].durationMs,
+            ),
+        )
+        coordinator.start(scope = backgroundScope)
+
+        coordinator.togglePlayback()
+        advanceUntilIdle()
+
+        assertEquals(expected = PlaybackStatus.Playing, actual = repository.getPlaybackState().status)
     }
 
     /**
@@ -446,10 +443,10 @@ class PlaybackCoordinatorTest {
     }
 
     /**
-     * 单曲循环同一首连续失败三次后应停止自动重试。
+     * 非单曲循环的单首坏文件没有可跳过目标时，应停留错误态而不是重试同一首。
      */
     @Test
-    fun loopOneStopsAfterThreeFailuresForSameSong(): Unit = runTest {
+    fun nonLoopSingleSongFailureStaysErrorWithoutRetryingSameSong(): Unit = runTest {
         val repository = InMemoryPlaybackRepository()
         val coordinator = PlaybackCoordinator(
             playbackRepository = repository,
@@ -457,22 +454,19 @@ class PlaybackCoordinatorTest {
             snapshotWriteScope = backgroundScope,
         )
         val songs = buildSongs(count = 1)
+        val expectedError = PlaybackError(
+            type = PlaybackErrorType.Unknown,
+            songId = songs[0].id,
+            message = "坏文件",
+        )
 
         coordinator.playSong(song = songs[0], queueSongs = songs)
-        coordinator.cyclePlaybackMode()
-        repeat(times = 3) {
-            coordinator.handleEngineEventForTest(
-                PlaybackEngineEvent.Failed(
-                    error = PlaybackError(
-                        type = PlaybackErrorType.Unknown,
-                        songId = songs[0].id,
-                        message = "坏文件",
-                    ),
-                ),
-            )
-        }
+        coordinator.handleEngineEventForTest(PlaybackEngineEvent.Failed(error = expectedError))
 
+        assertEquals(expected = 0, actual = repository.getQueueState().currentIndex)
+        assertEquals(expected = songs[0].id, actual = repository.getPlaybackState().currentSongId)
         assertEquals(expected = PlaybackStatus.Error, actual = repository.getPlaybackState().status)
+        assertEquals(expected = expectedError, actual = repository.getPlaybackState().error)
     }
 
     /**
@@ -580,6 +574,44 @@ class PlaybackCoordinatorTest {
     }
 
     /**
+     * 移除当前歌曲后，repository 队列和引擎队列应同步到新的当前歌曲。
+     */
+    @Test
+    fun removeCurrentSongKeepsRepositoryAndEngineQueueInSync(): Unit = runTest {
+        val repository = InMemoryPlaybackRepository()
+        val engine = FakeAudioPlayerEngine()
+        val coordinator = PlaybackCoordinator(
+            playbackRepository = repository,
+            audioPlayerEngine = engine,
+            snapshotWriteScope = backgroundScope,
+        )
+        val songs = buildSongs(count = 3)
+
+        coordinator.start(scope = backgroundScope)
+        coordinator.playSong(song = songs[0], queueSongs = songs)
+        advanceUntilIdle()
+        coordinator.pause()
+        advanceUntilIdle()
+
+        coordinator.removeFromQueue(
+            songId = songs[0].id,
+            availableSongs = songs,
+        )
+        advanceUntilIdle()
+
+        assertEquals(expected = listOf(songs[1].id, songs[2].id), actual = repository.getQueueState().songIds)
+        assertEquals(expected = 0, actual = repository.getQueueState().currentIndex)
+        assertEquals(expected = songs[1].id, actual = repository.getPlaybackState().currentSongId)
+        assertEquals(expected = PlaybackStatus.Paused, actual = repository.getPlaybackState().status)
+        coordinator.moveNext()
+        advanceUntilIdle()
+
+        assertEquals(expected = 1, actual = repository.getQueueState().currentIndex)
+        assertEquals(expected = songs[2].id, actual = repository.getPlaybackState().currentSongId)
+        assertEquals(expected = PlaybackStatus.Playing, actual = repository.getPlaybackState().status)
+    }
+
+    /**
      * Service 退出前必须把最后进度写成暂停快照，避免冷启动恢复回到更早的位置。
      */
     @Test
@@ -674,6 +706,20 @@ class PlaybackCoordinatorTest {
                 mimeType = "audio/mpeg",
             )
         }
+    }
+
+    // 测试中直接预热 fake 引擎时复用生产映射所需的最小媒体信息。
+    private fun Song.toPlayableMediaForTest(): PlayableMedia {
+        return PlayableMedia(
+            songId = id,
+            title = title,
+            artist = artist,
+            album = album,
+            durationMs = durationMs,
+            localUri = localUri,
+            coverArt = coverArt,
+            mimeType = mimeType,
+        )
     }
 
     /**

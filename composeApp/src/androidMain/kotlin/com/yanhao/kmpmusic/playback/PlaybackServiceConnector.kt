@@ -155,14 +155,14 @@ class PlaybackServiceConnector(
      * 通过官方自定义 session 命令刷新媒体按钮偏好。
      */
     fun refreshMediaButtonPreferences(
-        isPlaying: Boolean,
+        shouldShowPauseButton: Boolean,
         isFavorite: Boolean,
         playbackMode: PlaybackMode,
         playbackStatus: PlaybackStatus,
         hasActivePlaybackSession: Boolean,
     ) {
         pendingMediaButtonState = MediaButtonState(
-            isPlaying = isPlaying,
+            shouldShowPauseButton = shouldShowPauseButton,
             isFavorite = isFavorite,
             playbackMode = playbackMode,
             playbackStatus = playbackStatus,
@@ -181,7 +181,7 @@ class PlaybackServiceConnector(
      */
     fun clearNotification() {
         pendingMediaButtonState = MediaButtonState(
-            isPlaying = false,
+            shouldShowPauseButton = false,
             isFavorite = false,
             playbackMode = playbackMode,
             playbackStatus = PlaybackStatus.Idle,
