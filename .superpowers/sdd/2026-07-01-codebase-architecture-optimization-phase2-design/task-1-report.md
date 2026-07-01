@@ -19,7 +19,7 @@
 
 ## What you tested and command outputs
 
-### Focused RED
+### Initial test filter attempt
 
 命令：
 
@@ -35,6 +35,8 @@ Execution failed for task ':composeApp:desktopTest'.
 > No tests found for given includes: [com.yanhao.kmpmusic.domain.playback.ShuffleQueuePolicyTest](--tests filter)
 BUILD FAILED
 ```
+
+说明：这只是一次初始的 `--tests` 过滤尝试，说明过滤条件没有命中目标测试，不构成有效的 RED/GREEN 证据。
 
 ### Focused GREEN
 
@@ -90,8 +92,9 @@ BUILD SUCCESSFUL in 15s
 
 ## TDD Evidence
 
-- RED：`ShuffleQueuePolicyTest` 在实现前不存在，focused test 失败并报 `No tests found`。
-- GREEN：实现策略与测试后，focused test 通过；随后 `:composeApp:desktopTest` 和 `:composeApp:compileDebugKotlinAndroid` 全部通过。
+- 过滤尝试：第一次 `--tests` 命令返回 `No tests found`，仅说明过滤未命中，不作为 TDD 的 RED。
+- RED：随后通过临时破坏 `ShuffleQueuePolicy.buildInitialRemaining()` 的行为，`ShuffleQueuePolicyTest` 出现真实失败。
+- GREEN：恢复正确实现后，focused policy/coordinator 回归、`:composeApp:desktopTest` 和 `:composeApp:compileDebugKotlinAndroid` 全部通过。
 
 ## Files changed
 
