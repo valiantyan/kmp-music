@@ -22,19 +22,19 @@ import com.yanhao.kmpmusic.domain.model.LocalMusicSourceSummary
 import com.yanhao.kmpmusic.domain.model.PlaybackStatus
 import com.yanhao.kmpmusic.domain.model.Song
 import com.yanhao.kmpmusic.feature.app.LocalMusicSection
-import com.yanhao.kmpmusic.feature.desktop.DesktopAlbumGrid
-import com.yanhao.kmpmusic.feature.desktop.DesktopArtistStrip
-import com.yanhao.kmpmusic.feature.desktop.DesktopContentRow
-import com.yanhao.kmpmusic.feature.desktop.DesktopContentRowFolderIcon
-import com.yanhao.kmpmusic.feature.desktop.DesktopContentRowSyncIcon
 import com.yanhao.kmpmusic.feature.desktop.DesktopMusicColors
 import com.yanhao.kmpmusic.feature.desktop.DesktopMusicType
-import com.yanhao.kmpmusic.feature.desktop.DesktopPageHeader
-import com.yanhao.kmpmusic.feature.desktop.DesktopPrimaryButton
-import com.yanhao.kmpmusic.feature.desktop.DesktopSectionHeader
-import com.yanhao.kmpmusic.feature.desktop.DesktopSegmentedControl
-import com.yanhao.kmpmusic.feature.desktop.DesktopSongTable
+import com.yanhao.kmpmusic.feature.desktop.components.DesktopAlbumGrid
+import com.yanhao.kmpmusic.feature.desktop.components.DesktopArtistStrip
+import com.yanhao.kmpmusic.feature.desktop.components.DesktopContentRow
+import com.yanhao.kmpmusic.feature.desktop.components.DesktopContentRowFolderIcon
+import com.yanhao.kmpmusic.feature.desktop.components.DesktopContentRowSyncIcon
+import com.yanhao.kmpmusic.feature.desktop.components.DesktopPageHeader
+import com.yanhao.kmpmusic.feature.desktop.components.DesktopPrimaryButton
+import com.yanhao.kmpmusic.feature.desktop.components.DesktopSectionHeader
 import com.yanhao.kmpmusic.feature.desktop.components.DesktopSectionEmptyMessage
+import com.yanhao.kmpmusic.feature.desktop.components.DesktopSegmentedControl
+import com.yanhao.kmpmusic.feature.desktop.components.DesktopSongTable
 
 private const val ARTIST_STRIP_COUNT = 4
 

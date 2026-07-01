@@ -18,16 +18,16 @@ import com.yanhao.kmpmusic.domain.model.CoverArt
 import com.yanhao.kmpmusic.domain.model.LibraryStats
 import com.yanhao.kmpmusic.domain.model.PlaybackStatus
 import com.yanhao.kmpmusic.domain.model.Song
-import com.yanhao.kmpmusic.feature.desktop.DesktopAlbumGrid
-import com.yanhao.kmpmusic.feature.desktop.DesktopMoreButton
-import com.yanhao.kmpmusic.feature.desktop.DesktopPageHeader
-import com.yanhao.kmpmusic.feature.desktop.DesktopScanIcon
-import com.yanhao.kmpmusic.feature.desktop.DesktopSecondaryButton
-import com.yanhao.kmpmusic.feature.desktop.DesktopSectionHeader
-import com.yanhao.kmpmusic.feature.desktop.DesktopSongTable
-import com.yanhao.kmpmusic.feature.desktop.DesktopStatCard
-import com.yanhao.kmpmusic.feature.desktop.DesktopToolbar
+import com.yanhao.kmpmusic.feature.desktop.components.DesktopAlbumGrid
+import com.yanhao.kmpmusic.feature.desktop.components.DesktopMoreButton
+import com.yanhao.kmpmusic.feature.desktop.components.DesktopPageHeader
+import com.yanhao.kmpmusic.feature.desktop.components.DesktopScanIcon
+import com.yanhao.kmpmusic.feature.desktop.components.DesktopSecondaryButton
+import com.yanhao.kmpmusic.feature.desktop.components.DesktopSectionHeader
 import com.yanhao.kmpmusic.feature.desktop.components.DesktopSectionEmptyMessage
+import com.yanhao.kmpmusic.feature.desktop.components.DesktopSongTable
+import com.yanhao.kmpmusic.feature.desktop.components.DesktopStatCard
+import com.yanhao.kmpmusic.feature.desktop.components.DesktopToolbar
 
 private const val HOME_ALBUM_PREVIEW_COUNT = 4
 

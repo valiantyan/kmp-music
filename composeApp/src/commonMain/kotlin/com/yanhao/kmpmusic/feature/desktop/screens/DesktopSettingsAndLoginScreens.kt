@@ -18,15 +18,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.yanhao.kmpmusic.domain.model.ThemeMode
-import com.yanhao.kmpmusic.feature.desktop.DesktopContentRow
-import com.yanhao.kmpmusic.feature.desktop.DesktopContentRowSyncIcon
 import com.yanhao.kmpmusic.feature.desktop.DesktopMusicColors
 import com.yanhao.kmpmusic.feature.desktop.DesktopMusicDimens
 import com.yanhao.kmpmusic.feature.desktop.DesktopMusicType
-import com.yanhao.kmpmusic.feature.desktop.DesktopPageHeader
-import com.yanhao.kmpmusic.feature.desktop.DesktopPrimaryButton
-import com.yanhao.kmpmusic.feature.desktop.DesktopSegmentedControl
-import com.yanhao.kmpmusic.feature.desktop.DesktopTextInput
+import com.yanhao.kmpmusic.feature.desktop.components.DesktopContentRow
+import com.yanhao.kmpmusic.feature.desktop.components.DesktopContentRowSyncIcon
+import com.yanhao.kmpmusic.feature.desktop.components.DesktopPageHeader
+import com.yanhao.kmpmusic.feature.desktop.components.DesktopPrimaryButton
+import com.yanhao.kmpmusic.feature.desktop.components.DesktopSegmentedControl
+import com.yanhao.kmpmusic.feature.desktop.components.DesktopTextInput
 
 /**
  * 设置页只暴露当前桌面端已实现的偏好与维护动作。

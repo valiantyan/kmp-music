@@ -17,14 +17,14 @@ import com.yanhao.kmpmusic.domain.model.Artist
 import com.yanhao.kmpmusic.domain.model.PlaybackStatus
 import com.yanhao.kmpmusic.domain.model.Song
 import com.yanhao.kmpmusic.feature.app.FavoriteSection
-import com.yanhao.kmpmusic.feature.desktop.DesktopAlbumGrid
-import com.yanhao.kmpmusic.feature.desktop.DesktopArtistStrip
-import com.yanhao.kmpmusic.feature.desktop.DesktopContentRow
-import com.yanhao.kmpmusic.feature.desktop.DesktopPageHeader
-import com.yanhao.kmpmusic.feature.desktop.DesktopSectionHeader
-import com.yanhao.kmpmusic.feature.desktop.DesktopSegmentedControl
-import com.yanhao.kmpmusic.feature.desktop.DesktopSongTable
-import com.yanhao.kmpmusic.feature.desktop.DesktopToolbar
+import com.yanhao.kmpmusic.feature.desktop.components.DesktopAlbumGrid
+import com.yanhao.kmpmusic.feature.desktop.components.DesktopArtistStrip
+import com.yanhao.kmpmusic.feature.desktop.components.DesktopContentRow
+import com.yanhao.kmpmusic.feature.desktop.components.DesktopPageHeader
+import com.yanhao.kmpmusic.feature.desktop.components.DesktopSectionHeader
+import com.yanhao.kmpmusic.feature.desktop.components.DesktopSegmentedControl
+import com.yanhao.kmpmusic.feature.desktop.components.DesktopSongTable
+import com.yanhao.kmpmusic.feature.desktop.components.DesktopToolbar
 
 private const val FAVORITE_ALBUM_PREVIEW_COUNT = 4
 private const val ARTIST_STRIP_COUNT = 4

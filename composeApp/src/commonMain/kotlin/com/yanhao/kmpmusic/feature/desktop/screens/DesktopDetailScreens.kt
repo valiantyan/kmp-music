@@ -10,9 +10,9 @@ import com.yanhao.kmpmusic.domain.model.Album
 import com.yanhao.kmpmusic.domain.model.Artist
 import com.yanhao.kmpmusic.domain.model.PlaybackStatus
 import com.yanhao.kmpmusic.domain.model.Song
-import com.yanhao.kmpmusic.feature.desktop.DesktopPageHeader
-import com.yanhao.kmpmusic.feature.desktop.DesktopPrimaryButton
-import com.yanhao.kmpmusic.feature.desktop.DesktopSongTable
+import com.yanhao.kmpmusic.feature.desktop.components.DesktopPageHeader
+import com.yanhao.kmpmusic.feature.desktop.components.DesktopPrimaryButton
+import com.yanhao.kmpmusic.feature.desktop.components.DesktopSongTable
 
 /**
  * 专辑详情直接基于当前共享曲库过滤，避免再维护桌面专属数据投影。

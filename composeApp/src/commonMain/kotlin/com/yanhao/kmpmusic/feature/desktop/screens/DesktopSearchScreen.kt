@@ -31,17 +31,17 @@ import com.yanhao.kmpmusic.domain.model.SearchContext
 import com.yanhao.kmpmusic.domain.model.SearchScope
 import com.yanhao.kmpmusic.domain.model.Song
 import com.yanhao.kmpmusic.domain.usecase.SearchResult
-import com.yanhao.kmpmusic.feature.desktop.DesktopAlbumGrid
-import com.yanhao.kmpmusic.feature.desktop.DesktopArtistStrip
 import com.yanhao.kmpmusic.feature.desktop.DesktopMusicColors
 import com.yanhao.kmpmusic.feature.desktop.DesktopMusicType
-import com.yanhao.kmpmusic.feature.desktop.DesktopPageHeader
-import com.yanhao.kmpmusic.feature.desktop.DesktopSecondaryButton
-import com.yanhao.kmpmusic.feature.desktop.DesktopSectionHeader
-import com.yanhao.kmpmusic.feature.desktop.DesktopSegmentedControl
-import com.yanhao.kmpmusic.feature.desktop.DesktopSongTable
-import com.yanhao.kmpmusic.feature.desktop.DesktopTextInput
+import com.yanhao.kmpmusic.feature.desktop.components.DesktopAlbumGrid
+import com.yanhao.kmpmusic.feature.desktop.components.DesktopArtistStrip
+import com.yanhao.kmpmusic.feature.desktop.components.DesktopPageHeader
+import com.yanhao.kmpmusic.feature.desktop.components.DesktopSecondaryButton
+import com.yanhao.kmpmusic.feature.desktop.components.DesktopSectionHeader
 import com.yanhao.kmpmusic.feature.desktop.components.DesktopSectionEmptyMessage
+import com.yanhao.kmpmusic.feature.desktop.components.DesktopSegmentedControl
+import com.yanhao.kmpmusic.feature.desktop.components.DesktopSongTable
+import com.yanhao.kmpmusic.feature.desktop.components.DesktopTextInput
 import com.yanhao.kmpmusic.feature.desktop.components.DesktopTinyTextButton
 
 /**
