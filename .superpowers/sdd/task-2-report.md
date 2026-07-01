@@ -1,69 +1,73 @@
-# Task 2 Report: Extract NavigationStateController
+# Task 2 Report: Extract PlaybackQueueNavigator
 
 ## What I implemented
 
-- 新增 `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/app/navigation/NavigationStateController.kt`
-  - 抽出 `navigateToSecondary(...)`
-  - 抽出 `navigateToRoot(...)`
-  - 抽出 `navigateBack(...)`
-- 新增 `composeApp/src/commonTest/kotlin/com/yanhao/kmpmusic/feature/app/navigation/MusicAppNavigationControllerTest.kt`
-  - 覆盖进入二级页时保存 `previousRootTab`、自增 `secondaryEntryId`、关闭 queue / more
-  - 覆盖切换一级 Tab 时清空二级路由并重置 `previousRootTab`
-  - 覆盖返回一级页时保留 `secondaryEntryId`
-- 修改 `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/app/MusicAppController.kt`
-  - 保持 `MusicAppController` 作为唯一 public facade 和 Compose mutable state owner
-  - 将 `navigateToSecondary(...)`、`navigateToRoot(...)`、`navigateBack()` 改为委托给 `NavigationStateController`
-  - 保持 `handleSystemBack()` 原有关闭顺序不变
-- 更新 `docs/superpowers/plans/2026-06-30-codebase-architecture-optimization-phase1.md` 中 Task 2 的步骤勾选
+- 新增 `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/domain/playback/PlaybackQueueNavigator.kt`
+  - 抽出纯队列导航协作者 `PlaybackQueueNavigator`
+  - 提供 `next(...)`、`previous(...)`、`exactIndex(...)`、`engineTransition(...)`
+  - 提供 `changePlaybackMode(...)`、`removeSong(...)`、`hasDifferentNextTarget(...)`
+  - 新增结果类型 `QueueNavigationResult`
+- 新增 `composeApp/src/commonTest/kotlin/com/yanhao/kmpmusic/domain/playback/PlaybackQueueNavigatorTest.kt`
+  - 覆盖顺序前进/后退循环
+  - 覆盖单曲循环自然结束保持当前
+  - 覆盖越界拒绝与随机模式当前项不污染历史
+  - 覆盖引擎切歌、模式切换、删歌、可恢复下一首判断
+
+## Adaptation to current source
+
+- 按当前真实实现适配 `ShuffleQueuePolicy`，没有沿用 brief 里的旧接口名
+  - 使用 `buildInitialRemaining(...)`
+  - 使用 `nextIndex(...)`
+  - 使用 `migrateQueueState(...)`
+- 没有修改 `PlaybackCoordinator`
+- 没有改写 `ShuffleQueuePolicy`，因为当前接口已足够支撑 Task 2 行为
 
 ## Tests run and results
 
 - RED:
-  - `./gradlew :composeApp:desktopTest --tests "com.yanhao.kmpmusic.feature.app.navigation.MusicAppNavigationControllerTest"`
-  - 结果：失败，`NavigationStateController` unresolved reference；同时当前仓库里的 `Song` / `CoverArt` 模型与 brief 样例有差异，测试夹具需要补齐现有必填字段
+  - `./gradlew :composeApp:desktopTest --tests "com.yanhao.kmpmusic.domain.playback.PlaybackQueueNavigatorTest"`
+  - 结果：失败，`PlaybackQueueNavigator` 与 `QueueNavigationResult` unresolved reference
 - GREEN:
-  - `./gradlew :composeApp:desktopTest --tests "com.yanhao.kmpmusic.feature.app.navigation.MusicAppNavigationControllerTest" --tests "com.yanhao.kmpmusic.feature.app.MusicAppControllerTest.rootNavigationClearsSecondaryScreen" --tests "com.yanhao.kmpmusic.feature.app.MusicAppControllerTest.systemBackClosesOverlayBeforeSecondaryScreen"`
-  - 结果：通过，目标 3 组测试全部成功
+  - `./gradlew :composeApp:desktopTest --tests "com.yanhao.kmpmusic.domain.playback.PlaybackQueueNavigatorTest" --tests "com.yanhao.kmpmusic.domain.playback.ShuffleQueuePolicyTest"`
+  - 结果：通过，目标 2 组测试全部成功
 
 ## TDD Evidence
 
 ### RED command/output summary
 
 - 命令：
-  - `./gradlew :composeApp:desktopTest --tests "com.yanhao.kmpmusic.feature.app.navigation.MusicAppNavigationControllerTest"`
+  - `./gradlew :composeApp:desktopTest --tests "com.yanhao.kmpmusic.domain.playback.PlaybackQueueNavigatorTest"`
 - 摘要：
   - `:composeApp:compileTestKotlinDesktop FAILED`
-  - 关键失败：`Unresolved reference 'NavigationStateController'`
-  - 同次编译还暴露出当前 `Song` 构造函数缺少 `coverArt`、`isLiked`、`lastPlayed`、`quality`、`lyric`、`trackNumber` 等必填参数，说明需要让测试夹具适配现有模型
+  - 关键失败：`Unresolved reference 'PlaybackQueueNavigator'`
+  - 连带失败：`Unresolved reference 'QueueNavigationResult'`
+  - 说明测试先于实现建立，RED 证据成立
 
 ### GREEN command/output summary
 
 - 命令：
-  - `./gradlew :composeApp:desktopTest --tests "com.yanhao.kmpmusic.feature.app.navigation.MusicAppNavigationControllerTest" --tests "com.yanhao.kmpmusic.feature.app.MusicAppControllerTest.rootNavigationClearsSecondaryScreen" --tests "com.yanhao.kmpmusic.feature.app.MusicAppControllerTest.systemBackClosesOverlayBeforeSecondaryScreen"`
+  - `./gradlew :composeApp:desktopTest --tests "com.yanhao.kmpmusic.domain.playback.PlaybackQueueNavigatorTest" --tests "com.yanhao.kmpmusic.domain.playback.ShuffleQueuePolicyTest"`
 - 摘要：
   - `BUILD SUCCESSFUL`
-  - 新增导航 reducer 测试通过
-  - facade 回归测试 `rootNavigationClearsSecondaryScreen` 与 `systemBackClosesOverlayBeforeSecondaryScreen` 通过
+  - 新增 `PlaybackQueueNavigatorTest` 全部通过
+  - 现有 `ShuffleQueuePolicyTest` 继续通过，说明新协作者与当前随机策略接口兼容
 
 ## Files changed
 
-- `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/app/navigation/NavigationStateController.kt`
-- `composeApp/src/commonTest/kotlin/com/yanhao/kmpmusic/feature/app/navigation/MusicAppNavigationControllerTest.kt`
-- `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/app/MusicAppController.kt`
-- `docs/superpowers/plans/2026-06-30-codebase-architecture-optimization-phase1.md`
+- `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/domain/playback/PlaybackQueueNavigator.kt`
+- `composeApp/src/commonTest/kotlin/com/yanhao/kmpmusic/domain/playback/PlaybackQueueNavigatorTest.kt`
 - `.superpowers/sdd/task-2-report.md`
 
 ## Self-review findings
 
-- 抽取后的 `NavigationStateController` 保持纯函数形态，只接收 `MusicAppUiState` 并返回新状态，没有引入 Compose 状态或仓库依赖
-- `MusicAppController` 仍然保留搜索 history commit 与系统返回编排，职责边界和 brief 要求一致
-- 导航 reducer 保留了 `secondaryEntryId` 的累加与回退保留语义，因此不会破坏现有滚动 key 稳定性
-- 新测试覆盖了 queue / more 清理规则，避免以后把导航副作用悄悄散回 facade
+- `PlaybackQueueNavigator` 保持纯计算边界，只接收 `QueueState` 和简单参数，不引入 repository、engine 或 coroutine 依赖
+- 随机模式相关更新全部委托给 `ShuffleQueuePolicy`，避免在 navigator 内复制随机历史规则
+- 模式切换与删歌后的随机状态重建遵循当前 `PlaybackCoordinator` 既有语义：仅 Shuffle 模式构建 remaining，其它模式清空
+- 当前任务严格未触碰 `PlaybackCoordinator`，为后续 facade 接线任务保留清晰迁移面
 
 ## Concerns, if any
 
 - 无功能性阻塞
 - Gradle 仍输出与本任务无关的既有 warning：
   - Kotlin MPP/AGP deprecated property 警告
-  - `PlaybackCoordinator.kt` 中 Elvis operator 警告
-  - 现有测试文件中的轻量 warning
+  - 其他测试文件中的既有轻量 warning

@@ -304,7 +304,7 @@ git commit -m "refactor: 抽出随机播放队列策略"
 - Create: `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/domain/playback/PlaybackQueueNavigator.kt`
 - Create: `composeApp/src/commonTest/kotlin/com/yanhao/kmpmusic/domain/playback/PlaybackQueueNavigatorTest.kt`
 
-- [ ] **Step 1: Write the failing queue navigator tests**
+- [x] **Step 1: Write the failing queue navigator tests**
 
 Create `composeApp/src/commonTest/kotlin/com/yanhao/kmpmusic/domain/playback/PlaybackQueueNavigatorTest.kt`:
 
@@ -494,7 +494,7 @@ class PlaybackQueueNavigatorTest {
 }
 ```
 
-- [ ] **Step 2: Run the queue navigator test and verify it fails**
+- [x] **Step 2: Run the queue navigator test and verify it fails**
 
 Run:
 
@@ -504,7 +504,7 @@ Run:
 
 Expected: FAIL with unresolved reference `PlaybackQueueNavigator`.
 
-- [ ] **Step 3: Add `PlaybackQueueNavigator`**
+- [x] **Step 3: Add `PlaybackQueueNavigator`**
 
 Create `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/domain/playback/PlaybackQueueNavigator.kt`:
 
@@ -670,7 +670,7 @@ data class QueueNavigationResult(
 )
 ```
 
-- [ ] **Step 4: Run queue and shuffle tests**
+- [x] **Step 4: Run queue and shuffle tests**
 
 Run:
 
@@ -680,7 +680,7 @@ Run:
 
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/domain/playback/PlaybackQueueNavigator.kt composeApp/src/commonTest/kotlin/com/yanhao/kmpmusic/domain/playback/PlaybackQueueNavigatorTest.kt
