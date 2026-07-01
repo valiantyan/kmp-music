@@ -51,14 +51,24 @@ def _copy_for_runtime_tests(root: Path) -> tempfile.TemporaryDirectory:
     memory_dir.mkdir(exist_ok=True)
     shutil.copy2(root / ".agent-memory" / "config.json", memory_dir / "config.json")
     shutil.copy2(root / ".agent-memory" / ".gitignore", memory_dir / ".gitignore")
-    for name in ["working.md", "learning.md", "wiki.md", "preferences.md", "state.json"]:
+    for name in ["working.md", "learning.md", "wiki.md", "preferences.md"]:
         shutil.copy2(root / ".agent-memory" / name, memory_dir / name)
+    _seed_runtime_state(root, memory_dir)
     for name in ["buffer.jsonl", "memory_items.jsonl", "review_queue.jsonl", "security_events.jsonl", "hook_errors.jsonl"]:
         (memory_dir / name).write_text("", encoding="utf-8")
     graph_path = memory_dir / "trust_graph.json"
     if graph_path.exists():
         graph_path.unlink()
     return tmp
+
+
+def _seed_runtime_state(root: Path, memory_dir: Path) -> None:
+    state_path = root / ".agent-memory" / "state.json"
+    runtime_state_path = memory_dir / "state.json"
+    if state_path.exists():
+        shutil.copy2(state_path, runtime_state_path)
+        return
+    runtime_state_path.write_text("{}\n", encoding="utf-8")
 
 
 def _run_runtime_checks(
