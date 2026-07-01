@@ -1744,7 +1744,7 @@ git commit -m "refactor: 播放协调器接入内部协作者"
 **Files:**
 - Modify: `composeApp/src/commonTest/kotlin/com/yanhao/kmpmusic/domain/playback/PlaybackCoordinatorTest.kt`
 
-- [ ] **Step 1: Remove pure strategy duplication from coordinator tests**
+- [x] **Step 1: Remove pure strategy duplication from coordinator tests**
 
 Keep facade-level tests that prove `PlaybackCoordinator` still integrates repository, history, snapshot, and engine commands. Preserve these tests in `PlaybackCoordinatorTest.kt`:
 
@@ -1782,7 +1782,7 @@ loopOneStopsAfterThreeFailuresForSameSong
 
 Do not delete facade tests that protect cross-collaborator behavior even when a focused test has a similar name.
 
-- [ ] **Step 2: Run playback-domain tests**
+- [x] **Step 2: Run playback-domain tests**
 
 Run:
 
@@ -1792,7 +1792,7 @@ Run:
 
 Expected: PASS.
 
-- [ ] **Step 3: Run full phase verification**
+- [x] **Step 3: Run full phase verification**
 
 Run:
 
@@ -1802,7 +1802,7 @@ Run:
 
 Expected: PASS for both tasks.
 
-- [ ] **Step 4: Inspect working tree**
+- [x] **Step 4: Inspect working tree**
 
 Run:
 
@@ -1812,7 +1812,7 @@ git status --short --branch
 
 Expected: only the intended playback production/test files are modified, plus this plan document if it has not already been committed.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add composeApp/src/commonTest/kotlin/com/yanhao/kmpmusic/domain/playback/PlaybackCoordinatorTest.kt

@@ -109,26 +109,6 @@ class PlaybackCoordinatorTest {
     }
 
     /**
-     * 顺序播放点击下一首时应按队列循环，最后一首回到第一首。
-     */
-    @Test
-    fun sequenceModeNextFromLastSongLoopsToFirstSong(): Unit = runTest {
-        val repository = InMemoryPlaybackRepository()
-        val coordinator = PlaybackCoordinator(
-            playbackRepository = repository,
-            audioPlayerEngine = FakeAudioPlayerEngine(),
-            snapshotWriteScope = backgroundScope,
-        )
-        val songs = buildSongs(count = 3)
-
-        coordinator.playSong(song = songs[2], queueSongs = songs)
-        coordinator.moveNext()
-
-        assertEquals(expected = 0, actual = repository.getQueueState().currentIndex)
-        assertEquals(expected = songs[0].id, actual = repository.getPlaybackState().currentSongId)
-    }
-
-    /**
      * 顺序播放自然结束时也应复用同一套队列循环规则。
      */
     @Test
@@ -168,31 +148,6 @@ class PlaybackCoordinatorTest {
 
         assertEquals(expected = 1, actual = repository.getQueueState().currentIndex)
         assertEquals(expected = songs[1].id, actual = repository.getPlaybackState().currentSongId)
-    }
-
-    /**
-     * 随机模式回退上一首时应优先使用历史，而不是重新随机。
-     */
-    @Test
-    fun shufflePreviousUsesHistory(): Unit = runTest {
-        val repository = InMemoryPlaybackRepository()
-        val coordinator = PlaybackCoordinator(
-            playbackRepository = repository,
-            audioPlayerEngine = FakeAudioPlayerEngine(),
-            snapshotWriteScope = backgroundScope,
-            randomIndex = { candidates: List<Int> -> candidates.first() },
-        )
-        val songs = buildSongs(count = 4)
-
-        coordinator.playSong(song = songs[0], queueSongs = songs)
-        coordinator.cyclePlaybackMode()
-        coordinator.cyclePlaybackMode()
-        coordinator.moveNext()
-        val shuffledIndex = repository.getQueueState().currentIndex
-        coordinator.movePrevious()
-
-        assertEquals(expected = 1, actual = shuffledIndex)
-        assertEquals(expected = 0, actual = repository.getQueueState().currentIndex)
     }
 
     /**
@@ -485,36 +440,6 @@ class PlaybackCoordinatorTest {
         assertEquals(expected = songs[3].id, actual = repository.getPlaybackState().currentSongId)
         assertEquals(expected = 12_345L, actual = repository.getPlaybackState().positionMs)
         assertEquals(expected = PlaybackStatus.Paused, actual = repository.getPlaybackState().status)
-    }
-
-    /**
-     * 单曲循环同一首连续失败三次后应停止自动重试。
-     */
-    @Test
-    fun loopOneStopsAfterThreeFailuresForSameSong(): Unit = runTest {
-        val repository = InMemoryPlaybackRepository()
-        val coordinator = PlaybackCoordinator(
-            playbackRepository = repository,
-            audioPlayerEngine = FakeAudioPlayerEngine(),
-            snapshotWriteScope = backgroundScope,
-        )
-        val songs = buildSongs(count = 1)
-
-        coordinator.playSong(song = songs[0], queueSongs = songs)
-        coordinator.cyclePlaybackMode()
-        repeat(times = 3) {
-            coordinator.handleEngineEventForTest(
-                PlaybackEngineEvent.Failed(
-                    error = PlaybackError(
-                        type = PlaybackErrorType.Unknown,
-                        songId = songs[0].id,
-                        message = "坏文件",
-                    ),
-                ),
-            )
-        }
-
-        assertEquals(expected = PlaybackStatus.Error, actual = repository.getPlaybackState().status)
     }
 
     /**
