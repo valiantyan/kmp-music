@@ -1,82 +1,70 @@
-# Task 3 Report
+# Task 3 Report: Extract PlaybackFailurePolicy
 
 ## What I implemented
 
-- Added `SearchSessionController` under `feature/app/search` and moved search query reducers, active-query debounce scheduling, and context-isolated search history persistence into it.
-- Kept `MusicAppController` as the public facade and only Compose `mutableStateOf` owner by wiring the new controller through `publishStateUpdate = { reducer -> uiState = reducer(uiState) }`.
-- Moved `openSearch`, `setSearchQuery`, `setSearchScope`, `commitSearchQueryToHistory`, history selection/removal/clear, and leave-search commit behavior over to the extracted controller without changing search source selection in `MusicAppController`.
-- Added focused controller tests covering search reset, clear-before-loss history commit, debounced active query publishing, and context-isolated deduplicated history ordering.
+- 新增 `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/domain/playback/PlaybackFailurePolicy.kt`
+  - 抽出纯失败恢复协作者 `PlaybackFailurePolicy`
+  - 提供 `onFailure(...)` 与 `reset()`
+  - 新增恢复决策枚举 `PlaybackFailureDecision`
+- 新增 `composeApp/src/commonTest/kotlin/com/yanhao/kmpmusic/domain/playback/PlaybackFailurePolicyTest.kt`
+  - 覆盖单曲循环同曲两次重试、第三次停留错误
+  - 覆盖单曲循环切到新歌后失败窗口独立重置
+  - 覆盖非单曲循环前两次跳过、第三次停留错误
+  - 覆盖无可恢复目标直接停留错误
+  - 覆盖成功恢复后的 `reset()` 清空失败窗口
+
+## Adaptation to current source
+
+- 按当前 `domain/playback` 协作者风格使用 `internal`
+- KDoc 与注释保持中文语气，并维持纯 common-domain 边界
+- 严格未修改 `PlaybackCoordinator`，只为后续 facade 接线任务准备独立协作者
 
 ## Tests run and results
 
-- RED: `./gradlew :composeApp:desktopTest --tests "com.yanhao.kmpmusic.feature.app.search.MusicAppSearchControllerTest"`  
-  Result: failed as expected in `:composeApp:compileTestKotlinDesktop` with unresolved reference `SearchSessionController`.
-- GREEN: `./gradlew :composeApp:desktopTest --tests "com.yanhao.kmpmusic.feature.app.search.MusicAppSearchControllerTest" --tests "com.yanhao.kmpmusic.feature.app.MusicAppControllerTest.searchHistoryIsIsolatedByContext" --tests "com.yanhao.kmpmusic.feature.app.MusicAppControllerTest.nonBlankSearchQueryCommitsToHistoryWhenLeavingSearch"`  
-  Result: `BUILD SUCCESSFUL`.
+- RED:
+  - `./gradlew :composeApp:desktopTest --tests "com.yanhao.kmpmusic.domain.playback.PlaybackFailurePolicyTest"`
+  - 结果：失败，`PlaybackFailurePolicy` / `PlaybackFailureDecision` unresolved reference
+- GREEN:
+  - `./gradlew :composeApp:desktopTest --tests "com.yanhao.kmpmusic.domain.playback.PlaybackFailurePolicyTest"`
+  - 结果：通过，新增失败恢复策略测试全部成功
 
-## TDD evidence
+## TDD Evidence
 
 ### RED command/output summary
 
-- Command:
-  ```bash
-  ./gradlew :composeApp:desktopTest --tests "com.yanhao.kmpmusic.feature.app.search.MusicAppSearchControllerTest"
-  ```
-- Summary:
-  - Build failed in `:composeApp:compileTestKotlinDesktop`.
-  - Primary expected error: `Unresolved reference 'SearchSessionController'` in `MusicAppSearchControllerTest.kt`.
-  - Secondary inference errors on the `publishStateUpdate` lambdas also appeared because the missing controller type prevented lambda typing.
+- 命令：
+  - `./gradlew :composeApp:desktopTest --tests "com.yanhao.kmpmusic.domain.playback.PlaybackFailurePolicyTest"`
+- 摘要：
+  - `:composeApp:compileTestKotlinDesktop FAILED`
+  - 关键失败：`Unresolved reference 'PlaybackFailurePolicy'`
+  - 连带失败：`Unresolved reference 'PlaybackFailureDecision'`
+  - 说明测试先于实现建立，RED 证据成立
 
 ### GREEN command/output summary
 
-- Command:
-  ```bash
-  ./gradlew :composeApp:desktopTest --tests "com.yanhao.kmpmusic.feature.app.search.MusicAppSearchControllerTest" --tests "com.yanhao.kmpmusic.feature.app.MusicAppControllerTest.searchHistoryIsIsolatedByContext" --tests "com.yanhao.kmpmusic.feature.app.MusicAppControllerTest.nonBlankSearchQueryCommitsToHistoryWhenLeavingSearch"
-  ```
-- Summary:
-  - Targeted search controller tests passed.
-  - Search facade acceptance coverage in `MusicAppControllerTest` passed.
-  - Final result: `BUILD SUCCESSFUL in 3s`.
+- 命令：
+  - `./gradlew :composeApp:desktopTest --tests "com.yanhao.kmpmusic.domain.playback.PlaybackFailurePolicyTest"`
+- 摘要：
+  - `BUILD SUCCESSFUL`
+  - 新增 `PlaybackFailurePolicyTest` 全部通过
+  - 编译阶段仅出现与本任务无关的既有 warning，不影响结果
 
 ## Files changed
 
-- `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/app/search/SearchSessionController.kt`
-- `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/app/MusicAppController.kt`
-- `composeApp/src/commonTest/kotlin/com/yanhao/kmpmusic/feature/app/search/MusicAppSearchControllerTest.kt`
-- `docs/superpowers/plans/2026-06-30-codebase-architecture-optimization-phase1.md`
+- `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/domain/playback/PlaybackFailurePolicy.kt`
+- `composeApp/src/commonTest/kotlin/com/yanhao/kmpmusic/domain/playback/PlaybackFailurePolicyTest.kt`
 - `.superpowers/sdd/task-3-report.md`
 
 ## Self-review findings
 
-- Debounced active-query updates are published through the injected reducer callback rather than cached for later polling, matching the task requirement exactly.
-- Commit-before-navigation behavior still lives at the `MusicAppController` facade boundary via `commitActiveSearchQueryToHistoryIfNeeded()`, but reducer logic now lives in `SearchSessionController`.
-- `MusicAppController` still owns `uiState`; the extracted controller only returns new state or publishes a reducer callback.
-- Search source resolution stays in `MusicAppController`, so this extraction does not blur repository access or change result derivation rules.
+- `PlaybackFailurePolicy` 只持有运行时失败计数和最近失败歌曲标识，没有引入 repository、engine 或 coroutine 依赖
+- 单曲循环与非单曲循环的失败窗口拆分保存，避免两类恢复规则在调用方继续分散实现
+- `reset()` 显式同时清理两套计数和 `lastFailedSongId`，保证成功恢复后不会把旧窗口带到后续歌曲
+- 本任务未越界修改 `PlaybackCoordinator`，和 brief 的任务边界一致
 
 ## Concerns, if any
 
-- No functional concerns from this task.
-- The targeted test run still shows pre-existing unrelated compiler warnings in other files, but no new warnings remain in the added search controller test.
-
-## Review fix follow-up
-
-### What I fixed
-
-- Added a task-scoped facade assertion in `MusicAppControllerTest` to prove `setSearchQuery()` still publishes debounced `activeSearchQuery` updates back through `MusicAppController.uiState` after the extraction.
-- Added focused `MusicAppSearchControllerTest` coverage for migrated `selectSearchHistory`, `removeSearchHistoryItem`, and `clearSearchHistory` behavior without changing production code.
-
-### Files changed in follow-up
-
-- `composeApp/src/commonTest/kotlin/com/yanhao/kmpmusic/feature/app/MusicAppControllerTest.kt`
-- `composeApp/src/commonTest/kotlin/com/yanhao/kmpmusic/feature/app/search/MusicAppSearchControllerTest.kt`
-- `.superpowers/sdd/task-3-report.md`
-
-### Follow-up tests run and results
-
-- Command:
-  ```bash
-  ./gradlew :composeApp:desktopTest --tests "com.yanhao.kmpmusic.feature.app.search.MusicAppSearchControllerTest" --tests "com.yanhao.kmpmusic.feature.app.MusicAppControllerTest.debouncedSearchQueryPublishesActiveQueryThroughFacade" --tests "com.yanhao.kmpmusic.feature.app.MusicAppControllerTest.searchHistoryIsIsolatedByContext" --tests "com.yanhao.kmpmusic.feature.app.MusicAppControllerTest.nonBlankSearchQueryCommitsToHistoryWhenLeavingSearch"
-  ```
-- Result:
-  - `BUILD SUCCESSFUL in 3s`
-  - No production changes were required for the added assertions to pass.
+- 无功能性阻塞
+- Gradle 仍输出与本任务无关的既有 warning：
+  - Kotlin MPP deprecated property 警告
+  - 其他测试文件中的既有 `No cast needed` / `Unnecessary safe call` warning

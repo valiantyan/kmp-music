@@ -695,7 +695,7 @@ git commit -m "refactor: 抽出播放队列导航策略"
 - Create: `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/domain/playback/PlaybackFailurePolicy.kt`
 - Create: `composeApp/src/commonTest/kotlin/com/yanhao/kmpmusic/domain/playback/PlaybackFailurePolicyTest.kt`
 
-- [ ] **Step 1: Write the failing failure-policy tests**
+- [x] **Step 1: Write the failing failure-policy tests**
 
 Create `composeApp/src/commonTest/kotlin/com/yanhao/kmpmusic/domain/playback/PlaybackFailurePolicyTest.kt`:
 
@@ -796,7 +796,7 @@ class PlaybackFailurePolicyTest {
 }
 ```
 
-- [ ] **Step 2: Run the failure-policy test and verify it fails**
+- [x] **Step 2: Run the failure-policy test and verify it fails**
 
 Run:
 
@@ -806,7 +806,7 @@ Run:
 
 Expected: FAIL with unresolved reference `PlaybackFailurePolicy`.
 
-- [ ] **Step 3: Add `PlaybackFailurePolicy`**
+- [x] **Step 3: Add `PlaybackFailurePolicy`**
 
 Create `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/domain/playback/PlaybackFailurePolicy.kt`:
 
@@ -865,7 +865,7 @@ enum class PlaybackFailureDecision {
 }
 ```
 
-- [ ] **Step 4: Run the failure-policy test and verify it passes**
+- [x] **Step 4: Run the failure-policy test and verify it passes**
 
 Run:
 
@@ -875,7 +875,7 @@ Run:
 
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/domain/playback/PlaybackFailurePolicy.kt composeApp/src/commonTest/kotlin/com/yanhao/kmpmusic/domain/playback/PlaybackFailurePolicyTest.kt
