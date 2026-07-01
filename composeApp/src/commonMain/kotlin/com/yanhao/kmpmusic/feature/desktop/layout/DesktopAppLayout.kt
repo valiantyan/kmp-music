@@ -17,15 +17,15 @@ import com.yanhao.kmpmusic.feature.app.RootTab
 import com.yanhao.kmpmusic.feature.app.SecondaryScreen
 import com.yanhao.kmpmusic.feature.app.surfaces.AppDialogs
 import com.yanhao.kmpmusic.feature.app.surfaces.AppPanels
-import com.yanhao.kmpmusic.feature.desktop.DesktopBottomPlayer
 import com.yanhao.kmpmusic.feature.desktop.DesktopLibrarySidebar
 import com.yanhao.kmpmusic.feature.desktop.DesktopMusicColors
-import com.yanhao.kmpmusic.feature.desktop.DesktopPlayerDetailScreen
 import com.yanhao.kmpmusic.feature.desktop.navigation.DesktopRail
 import com.yanhao.kmpmusic.feature.desktop.navigation.desktopRailDestination
+import com.yanhao.kmpmusic.feature.desktop.player.DesktopBottomPlayer
+import com.yanhao.kmpmusic.feature.desktop.player.DesktopPlayerDetailScreen
 
 /**
- * 桌面顶层 layout 负责 shell、全屏播放器和全局弹层，不持有具体页面路由。
+ * 桌面顶层 layout 负责窗口布局、全屏播放器和全局弹层，不持有具体页面路由。
  */
 @Composable
 fun DesktopAppLayout(
