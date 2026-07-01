@@ -43,154 +43,10 @@ import com.yanhao.kmpmusic.domain.model.ThemeMode
 import com.yanhao.kmpmusic.domain.usecase.SearchResult
 import com.yanhao.kmpmusic.feature.app.FavoriteSection
 import com.yanhao.kmpmusic.feature.app.LocalMusicSection
-import com.yanhao.kmpmusic.feature.app.MusicAppController
-import com.yanhao.kmpmusic.feature.app.MusicAppUiState
-import com.yanhao.kmpmusic.feature.app.SecondaryScreen
 
 private const val HOME_ALBUM_PREVIEW_COUNT = 4
 private const val FAVORITE_ALBUM_PREVIEW_COUNT = 4
 private const val ARTIST_STRIP_COUNT = 4
-
-/**
- * 桌面二级页统一从这里分发，避免 [DesktopMusicApp] 复制具体页面路由。
- */
-@Composable
-fun DesktopSecondaryScreen(
-    state: MusicAppUiState,
-    controller: MusicAppController,
-    onScanLocalMusic: () -> Unit,
-) {
-    when (state.navigationState.secondaryScreen) {
-        is SecondaryScreen.Search -> {
-            val searchResult: SearchResult = controller.search()
-            DesktopSearchScreen(
-                context = state.searchContext,
-                query = state.searchQuery,
-                scope = state.searchScope,
-                result = searchResult,
-                history = state.searchHistoryFor(),
-                currentSongId = state.currentSongId,
-                currentPlaybackStatus = state.playbackStatus,
-                onQuery = controller::setSearchQuery,
-                onScope = controller::setSearchScope,
-                onBack = controller::navigateBack,
-                onCommitSearch = controller::commitSearchQueryToHistory,
-                onHistoryClick = controller::selectSearchHistory,
-                onHistoryRemove = { query: String ->
-                    controller.removeSearchHistoryItem(
-                        context = state.searchContext,
-                        query = query,
-                    )
-                },
-                onHistoryClear = { controller.clearSearchHistory(context = state.searchContext) },
-                onSongPlay = { song: Song, queueSongs: List<Song> ->
-                    controller.commitSearchQueryToHistory()
-                    controller.playSong(
-                        song = song,
-                        queueSongs = queueSongs,
-                    )
-                },
-                onMore = controller::openMore,
-                onAlbumOpen = { album: Album ->
-                    controller.commitSearchQueryToHistory()
-                    controller.openAlbum(album = album)
-                },
-                onArtistOpen = { artist: Artist ->
-                    controller.commitSearchQueryToHistory()
-                    controller.openArtist(artist = artist)
-                },
-            )
-        }
-        SecondaryScreen.Player -> DesktopPlayerDetailScreen(
-            song = state.currentSong,
-            queueSongs = state.queueSongs,
-            isPlaying = state.shouldShowPauseControl,
-            playbackPositionMs = state.playbackPositionMs,
-            playbackDurationMs = state.playbackDurationMs,
-            playbackMode = state.playbackMode,
-            volume = state.playbackVolume,
-            onBack = controller::navigateBack,
-            onToggle = controller::togglePlayback,
-            onPrev = { controller.moveTrack(direction = -1) },
-            onNext = { controller.moveTrack(direction = 1) },
-            onMode = controller::cyclePlaybackMode,
-            onLike = controller::toggleFavorite,
-            onSeek = controller::seekTo,
-            onVolumeChange = controller::setVolume,
-        )
-        SecondaryScreen.AlbumDetail -> DesktopAlbumDetailScreen(
-            album = state.selectedAlbum,
-            songs = state.localSongs,
-            currentSongId = state.currentSongId,
-            currentPlaybackStatus = state.playbackStatus,
-            onBack = controller::navigateBack,
-            onSongPlay = { song: Song, queueSongs: List<Song> ->
-                controller.playSong(
-                    song = song,
-                    queueSongs = queueSongs,
-                )
-            },
-            onMore = controller::openMore,
-        )
-        SecondaryScreen.ArtistDetail -> DesktopArtistDetailScreen(
-            artist = state.selectedArtist,
-            songs = state.localSongs,
-            albums = state.localAlbums,
-            currentSongId = state.currentSongId,
-            currentPlaybackStatus = state.playbackStatus,
-            onBack = controller::navigateBack,
-            onSongPlay = { song: Song, queueSongs: List<Song> ->
-                controller.playSong(
-                    song = song,
-                    queueSongs = queueSongs,
-                )
-            },
-            onMore = controller::openMore,
-        )
-        SecondaryScreen.Settings -> DesktopSettingsScreen(
-            themeMode = state.themeMode,
-            onThemeMode = controller::setThemeMode,
-            onBack = controller::navigateBack,
-            onScan = onScanLocalMusic,
-            onLocalMusicSources = {
-                controller.openLocalMusic(section = LocalMusicSection.Sources)
-            },
-            onClearCache = controller::openClearCacheDialog,
-        )
-        SecondaryScreen.Login -> DesktopLoginScreen(
-            email = state.email,
-            isMailSent = state.isMailSent,
-            onEmail = controller::setEmail,
-            onSend = controller::sendLoginMail,
-            onBack = controller::navigateBack,
-        )
-        is SecondaryScreen.LocalMusic -> DesktopLocalMusicScreen(
-            initialSection = state.navigationState.secondaryScreen.initialSection,
-            songs = state.localSongs,
-            albums = state.localAlbums,
-            artists = state.localArtists,
-            sources = state.localMusicSources,
-            problems = state.localMusicProblems,
-            currentSongId = state.currentSongId,
-            currentPlaybackStatus = state.playbackStatus,
-            onBack = controller::navigateBack,
-            onScan = onScanLocalMusic,
-            onSongPlay = { song: Song, queueSongs: List<Song> ->
-                controller.playSong(
-                    song = song,
-                    queueSongs = queueSongs,
-                )
-            },
-            onMore = controller::openMore,
-            onAlbumOpen = controller::openAlbum,
-            onArtistOpen = controller::openArtist,
-        )
-        null -> DesktopEmptyStateScreen(
-            title = "本地音乐",
-            subtitle = "桌面首页",
-        )
-    }
-}
 
 @Composable
 // 本地音乐首页只展示播放历史反推的最近专辑，避免把全库误标成最近播放。
@@ -549,7 +405,7 @@ fun DesktopMeRootScreen(
  * 搜索页根据入口上下文展示独立的历史、范围和派生结果，避免首页与收藏搜索串味。
  */
 @Composable
-private fun DesktopSearchScreen(
+internal fun DesktopSearchScreen(
     context: SearchContext,
     query: String,
     scope: SearchScope,
@@ -828,7 +684,7 @@ private fun DesktopSearchResultsSection(
  * 专辑详情直接基于当前共享曲库过滤，避免再维护桌面专属数据投影。
  */
 @Composable
-private fun DesktopAlbumDetailScreen(
+internal fun DesktopAlbumDetailScreen(
     album: Album?,
     songs: List<Song>,
     currentSongId: String?,
@@ -876,7 +732,7 @@ private fun DesktopAlbumDetailScreen(
  * 歌手详情页复用桌面表格与统计文案，减少重复布局。
  */
 @Composable
-private fun DesktopArtistDetailScreen(
+internal fun DesktopArtistDetailScreen(
     artist: Artist?,
     songs: List<Song>,
     albums: List<Album>,
@@ -920,7 +776,7 @@ private fun DesktopArtistDetailScreen(
  * 设置页只暴露当前桌面端已实现的偏好与维护动作。
  */
 @Composable
-private fun DesktopSettingsScreen(
+internal fun DesktopSettingsScreen(
     themeMode: ThemeMode,
     onThemeMode: (ThemeMode) -> Unit,
     onBack: () -> Unit,
@@ -1009,7 +865,7 @@ private fun DesktopSettingsScreen(
  * 登录页提供桌面原生邮箱输入，确保发送登录邮件前能完成最小必需表单。
  */
 @Composable
-private fun DesktopLoginScreen(
+internal fun DesktopLoginScreen(
     email: String,
     isMailSent: Boolean,
     onEmail: (String) -> Unit,
@@ -1048,7 +904,7 @@ private fun DesktopLoginScreen(
  * 本地音乐二级页在桌面端保留分段语义，避免不同入口都退化成来源管理页。
  */
 @Composable
-private fun DesktopLocalMusicScreen(
+internal fun DesktopLocalMusicScreen(
     initialSection: LocalMusicSection,
     songs: List<Song>,
     albums: List<Album>,
