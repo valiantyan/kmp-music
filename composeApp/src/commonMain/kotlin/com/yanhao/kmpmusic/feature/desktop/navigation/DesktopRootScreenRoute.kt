@@ -7,9 +7,9 @@ import com.yanhao.kmpmusic.feature.app.MusicAppController
 import com.yanhao.kmpmusic.feature.app.MusicAppUiState
 import com.yanhao.kmpmusic.feature.app.RootTab
 import com.yanhao.kmpmusic.feature.app.SecondaryScreen
-import com.yanhao.kmpmusic.feature.desktop.DesktopFavoritesRootScreen
-import com.yanhao.kmpmusic.feature.desktop.DesktopLocalMusicRootScreen
-import com.yanhao.kmpmusic.feature.desktop.DesktopMeRootScreen
+import com.yanhao.kmpmusic.feature.desktop.screens.DesktopFavoritesRootScreen
+import com.yanhao.kmpmusic.feature.desktop.screens.DesktopLocalMusicRootScreen
+import com.yanhao.kmpmusic.feature.desktop.screens.DesktopMeRootScreen
 
 /**
  * 桌面一级路由集中转发根 Tab，保证页面动作继续只通过 [MusicAppController]。

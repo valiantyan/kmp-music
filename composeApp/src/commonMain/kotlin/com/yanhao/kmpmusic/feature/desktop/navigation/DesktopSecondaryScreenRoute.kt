@@ -9,13 +9,13 @@ import com.yanhao.kmpmusic.feature.app.LocalMusicSection
 import com.yanhao.kmpmusic.feature.app.MusicAppController
 import com.yanhao.kmpmusic.feature.app.MusicAppUiState
 import com.yanhao.kmpmusic.feature.app.SecondaryScreen
-import com.yanhao.kmpmusic.feature.desktop.DesktopAlbumDetailScreen
-import com.yanhao.kmpmusic.feature.desktop.DesktopArtistDetailScreen
-import com.yanhao.kmpmusic.feature.desktop.DesktopEmptyStateScreen
-import com.yanhao.kmpmusic.feature.desktop.DesktopLocalMusicScreen
-import com.yanhao.kmpmusic.feature.desktop.DesktopLoginScreen
-import com.yanhao.kmpmusic.feature.desktop.DesktopSearchScreen
-import com.yanhao.kmpmusic.feature.desktop.DesktopSettingsScreen
+import com.yanhao.kmpmusic.feature.desktop.screens.DesktopAlbumDetailScreen
+import com.yanhao.kmpmusic.feature.desktop.screens.DesktopArtistDetailScreen
+import com.yanhao.kmpmusic.feature.desktop.screens.DesktopEmptyStateScreen
+import com.yanhao.kmpmusic.feature.desktop.screens.DesktopLocalMusicScreen
+import com.yanhao.kmpmusic.feature.desktop.screens.DesktopLoginScreen
+import com.yanhao.kmpmusic.feature.desktop.screens.DesktopSearchScreen
+import com.yanhao.kmpmusic.feature.desktop.screens.DesktopSettingsScreen
 
 /**
  * 桌面二级路由集中处理非全屏播放器页面，播放器由顶层 [com.yanhao.kmpmusic.feature.desktop.layout.DesktopAppLayout] 拦截。
