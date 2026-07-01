@@ -77,7 +77,7 @@ def validate_event(event: MemoryEvent, cfg: dict) -> ValidationResult:
     if fw.action == "review":
         return ValidationResult(True, "review", layer, trust, authority, reasons + ["firewall_review"], fw.sanitized_text)
 
-    if trust < trust_min:
+    if event.source != "tool" and trust < trust_min:
         return ValidationResult(False, "rejected", layer, trust, authority, reasons + ["below_trust_min"], fw.sanitized_text)
 
     promotion = cfg.get("promotion", {})
