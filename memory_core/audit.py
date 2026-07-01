@@ -87,7 +87,43 @@ def _run_runtime_checks(
     result_user = process_user_prompt(payload, test_root)
     c(
         "explicit user preference active",
-        lambda: result_user["status"] in {"active", "candidate"} and result_user["layer"] in {"preferences", "working"},
+        lambda: result_user["status"] == "active" and result_user["layer"] == "preferences",
+    )
+
+    english_preference_payload = {
+        "hook_event_name": "UserPromptSubmit",
+        "session_id": "audit",
+        "turn_id": "u1-en",
+        "prompt": "please remember that I prefer concise answers.",
+    }
+    result_english_preference = process_user_prompt(english_preference_payload, test_root)
+    c(
+        "english explicit preference active",
+        lambda: result_english_preference["status"] == "active" and result_english_preference["layer"] == "preferences",
+    )
+
+    always_preference_payload = {
+        "hook_event_name": "UserPromptSubmit",
+        "session_id": "audit",
+        "turn_id": "u1-always",
+        "prompt": "always answer in Chinese.",
+    }
+    result_always_preference = process_user_prompt(always_preference_payload, test_root)
+    c(
+        "always preference active",
+        lambda: result_always_preference["status"] == "active" and result_always_preference["layer"] == "preferences",
+    )
+
+    incidental_always_payload = {
+        "hook_event_name": "UserPromptSubmit",
+        "session_id": "audit",
+        "turn_id": "u1-always-incidental",
+        "prompt": "the test always fails before setup completes.",
+    }
+    result_incidental_always = process_user_prompt(incidental_always_payload, test_root)
+    c(
+        "incidental always not preference active",
+        lambda: not (result_incidental_always["status"] == "active" and result_incidental_always["layer"] == "preferences"),
     )
 
     polite_payload = {
@@ -172,6 +208,19 @@ def _run_runtime_checks(
     c(
         "learning experience active from inference",
         lambda: result_learning["processed"]["layer"] == "learning" and result_learning["processed"]["status"] == "active",
+    )
+
+    learning_done_payload = {
+        "hook_event_name": "Stop",
+        "session_id": "audit",
+        "turn_id": "s-learning-done",
+        "last_assistant_message": "完成修复，根因是 validator allowed raw prompts.",
+        "stop_hook_active": False,
+    }
+    result_learning_done = process_stop(learning_done_payload, test_root)
+    c(
+        "completed fix experience active from inference",
+        lambda: result_learning_done["processed"]["layer"] == "learning" and result_learning_done["processed"]["status"] == "active",
     )
 
     stop_result = process_stop(

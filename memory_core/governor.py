@@ -7,6 +7,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, Optional
 
+from memory_core.classifier import PREFERENCE_RE
 from memory_core.config import load_config
 from memory_core.healer import heal
 from memory_core.paths import find_repo_root
@@ -95,6 +96,7 @@ def process_user_prompt(payload: Dict[str, Any], root: Optional[Path] = None) ->
     root = root or find_repo_root()
     prompt = payload.get("prompt") or payload.get("user_prompt") or payload.get("message") or ""
     prompt = summarize_value(prompt, 2000)
+    confidence = 0.98 if PREFERENCE_RE.search(prompt) else 0.62
     event = MemoryEvent(
         event_type="UserPromptSubmit",
         source="user",
@@ -103,7 +105,7 @@ def process_user_prompt(payload: Dict[str, Any], root: Optional[Path] = None) ->
         session_id=str(payload.get("session_id", "")),
         turn_id=str(payload.get("turn_id", "")),
         raw_ref="user_prompt",
-        confidence=0.92 if any(x in prompt.lower() for x in ["i prefer", "my preference", "以后", "偏好", "请记住"]) else 0.62,
+        confidence=confidence,
         metadata={"hook_event_name": payload.get("hook_event_name", "UserPromptSubmit")},
     )
     return process_memory_event(event, root)
