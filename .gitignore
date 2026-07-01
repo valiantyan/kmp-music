@@ -26,3 +26,7 @@ dist/
 
 # Logs
 *.log
+
+# Python runtime caches
+__pycache__/
+*.py[cod]

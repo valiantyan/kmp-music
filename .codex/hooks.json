@@ -1,0 +1,59 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|resume|clear|compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh -lc 'export PYTHONDONTWRITEBYTECODE=1; ROOT=\"$(git rev-parse --show-toplevel 2>/dev/null || pwd)\"; while [ ! -d \"$ROOT/.codex/hooks\" ] && [ \"$ROOT\" != \"/\" ]; do ROOT=\"$(dirname \"$ROOT\")\"; done; exec python3 \"$ROOT/.codex/hooks/session_start.py\"'",
+            "commandWindows": "powershell -NoProfile -ExecutionPolicy Bypass -Command \"$env:PYTHONDONTWRITEBYTECODE='1'; $root=(git rev-parse --show-toplevel 2>$null); if(-not $root){$root=(Get-Location).Path; while($root -and -not (Test-Path (Join-Path $root '.codex\\hooks'))){$parent=Split-Path $root -Parent; if($parent -eq $root){break}; $root=$parent}}; py -3 (Join-Path $root '.codex\\hooks\\session_start.py')\"",
+            "timeout": 30,
+            "statusMessage": "Compiling Memory OS context"
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh -lc 'export PYTHONDONTWRITEBYTECODE=1; ROOT=\"$(git rev-parse --show-toplevel 2>/dev/null || pwd)\"; while [ ! -d \"$ROOT/.codex/hooks\" ] && [ \"$ROOT\" != \"/\" ]; do ROOT=\"$(dirname \"$ROOT\")\"; done; exec python3 \"$ROOT/.codex/hooks/user_prompt_submit.py\"'",
+            "commandWindows": "powershell -NoProfile -ExecutionPolicy Bypass -Command \"$env:PYTHONDONTWRITEBYTECODE='1'; $root=(git rev-parse --show-toplevel 2>$null); if(-not $root){$root=(Get-Location).Path; while($root -and -not (Test-Path (Join-Path $root '.codex\\hooks'))){$parent=Split-Path $root -Parent; if($parent -eq $root){break}; $root=$parent}}; py -3 (Join-Path $root '.codex\\hooks\\user_prompt_submit.py')\"",
+            "timeout": 30,
+            "statusMessage": "Screening user prompt for durable memory"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh -lc 'export PYTHONDONTWRITEBYTECODE=1; ROOT=\"$(git rev-parse --show-toplevel 2>/dev/null || pwd)\"; while [ ! -d \"$ROOT/.codex/hooks\" ] && [ \"$ROOT\" != \"/\" ]; do ROOT=\"$(dirname \"$ROOT\")\"; done; exec python3 \"$ROOT/.codex/hooks/post_tool_use.py\"'",
+            "commandWindows": "powershell -NoProfile -ExecutionPolicy Bypass -Command \"$env:PYTHONDONTWRITEBYTECODE='1'; $root=(git rev-parse --show-toplevel 2>$null); if(-not $root){$root=(Get-Location).Path; while($root -and -not (Test-Path (Join-Path $root '.codex\\hooks'))){$parent=Split-Path $root -Parent; if($parent -eq $root){break}; $root=$parent}}; py -3 (Join-Path $root '.codex\\hooks\\post_tool_use.py')\"",
+            "timeout": 30,
+            "statusMessage": "Governing tool-output memory"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh -lc 'export PYTHONDONTWRITEBYTECODE=1; ROOT=\"$(git rev-parse --show-toplevel 2>/dev/null || pwd)\"; while [ ! -d \"$ROOT/.codex/hooks\" ] && [ \"$ROOT\" != \"/\" ]; do ROOT=\"$(dirname \"$ROOT\")\"; done; exec python3 \"$ROOT/.codex/hooks/stop.py\"'",
+            "commandWindows": "powershell -NoProfile -ExecutionPolicy Bypass -Command \"$env:PYTHONDONTWRITEBYTECODE='1'; $root=(git rev-parse --show-toplevel 2>$null); if(-not $root){$root=(Get-Location).Path; while($root -and -not (Test-Path (Join-Path $root '.codex\\hooks'))){$parent=Split-Path $root -Parent; if($parent -eq $root){break}; $root=$parent}}; py -3 (Join-Path $root '.codex\\hooks\\stop.py')\"",
+            "timeout": 30,
+            "statusMessage": "Healing and checkpointing memory"
+          }
+        ]
+      }
+    ]
+  }
+}

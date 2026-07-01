@@ -1,0 +1,21 @@
+# Raw/private memory runtime data: do not commit by default.
+buffer*.jsonl
+tool-events*.jsonl
+security_events*.jsonl
+hook_errors*.jsonl
+state.json
+*.lock
+archive/
+
+# Structured runtime stores are also ignored by default.
+memory_items.jsonl
+trust_graph.json
+review_queue.jsonl
+
+# Keep human-readable and policy files versionable if desired.
+!working.md
+!learning.md
+!wiki.md
+!preferences.md
+!config.json
+!.gitignore
