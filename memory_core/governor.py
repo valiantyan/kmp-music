@@ -141,6 +141,26 @@ def process_tool_use(payload: Dict[str, Any], root: Optional[Path] = None) -> Di
     return process_memory_event(event, root)
 
 
+def stop_confidence(summary: str) -> float:
+    lowered = summary.lower()
+    learning_signals = [
+        "root cause",
+        "fixed",
+        "resolved",
+        "lesson",
+        "learned",
+        "avoid",
+        "修复",
+        "根因",
+        "解决",
+        "踩坑",
+        "教训",
+    ]
+    if any(signal in lowered for signal in learning_signals):
+        return 0.92
+    return 0.58
+
+
 def process_stop(payload: Dict[str, Any], root: Optional[Path] = None) -> Dict[str, Any]:
     root = root or find_repo_root()
     last = payload.get("last_assistant_message") or ""
@@ -149,12 +169,12 @@ def process_stop(payload: Dict[str, Any], root: Optional[Path] = None) -> Dict[s
         event = MemoryEvent(
             event_type="Stop",
             source="inference",
-            content=f"Turn-level handoff summary: {summary}",
+            content=f"Turn summary: {summary}",
             timestamp=now_iso(),
             session_id=str(payload.get("session_id", "")),
             turn_id=str(payload.get("turn_id", "")),
             raw_ref="last_assistant_message",
-            confidence=0.58,
+            confidence=stop_confidence(summary),
             metadata={"stop_hook_active": payload.get("stop_hook_active", False)},
         )
         processed = process_memory_event(event, root)

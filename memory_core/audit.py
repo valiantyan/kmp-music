@@ -53,12 +53,16 @@ def run_audit(root: Path | None = None, quick: bool = False) -> Tuple[bool, str]
             passes += 1
 
     # Static/package checks.
-    c("config loads", lambda: cfg.get("version") == "3.5.0")
+    c("config loads", lambda: cfg.get("version") == "3.6.0")
+    c("daily-dev mode enabled", lambda: cfg.get("mode") == "daily-dev")
     c("hooks.json exists", lambda: (root / ".codex" / "hooks.json").exists())
     c("AGENTS.md exists", lambda: (root / "AGENTS.md").exists())
     c("memory files exist", lambda: all((root / ".agent-memory" / x).exists() for x in ["working.md", "learning.md", "wiki.md", "preferences.md", "config.json", ".gitignore"]))
     c("source weights include tool low trust", lambda: cfg["source_weights"]["tool"] < cfg["source_weights"]["user"])
     c("wiki auto write disabled", lambda: cfg["promotion"].get("wiki_auto_write") is False)
+    c("working auto write enabled", lambda: cfg["promotion"].get("working_auto_write") is True)
+    c("tool learning active disabled", lambda: cfg["promotion"].get("tool_to_learning_active_allowed") is False)
+    c("learning auto write min configured", lambda: float(cfg["promotion"].get("learning_auto_write_min", 0.0)) >= 0.68)
     c("secret redaction sk", lambda: "[REDACTED_SECRET]" in redact_secrets("token=sk-abcdefghijklmnopqrstuvwxyz123456"))
     c("secret redaction aws", lambda: "[REDACTED_SECRET]" in redact_secrets("AKIAABCDEFGHIJKLMNOP"))
     c("sensitive path detection", lambda: references_sensitive_path("cat .env", cfg["security"]["sensitive_path_patterns"]))
@@ -77,6 +81,17 @@ def run_audit(root: Path | None = None, quick: bool = False) -> Tuple[bool, str]
         payload = {"hook_event_name": "UserPromptSubmit", "session_id": "audit", "turn_id": "u1", "prompt": "请记住：我偏好中文回答，并且希望先给结论。"}
         result_user = process_user_prompt(payload, test_root)
         c("explicit user preference active", lambda: result_user["status"] in {"active", "candidate"} and result_user["layer"] in {"preferences", "working"})
+        polite_payload = {"hook_event_name": "UserPromptSubmit", "session_id": "audit", "turn_id": "u2", "prompt": "请帮我看一下这个文件。"}
+        result_polite = process_user_prompt(polite_payload, test_root)
+        c("polite request not preference active", lambda: result_polite["layer"] == "working" and result_polite["status"] != "active")
+
+        working_payload = {"hook_event_name": "UserPromptSubmit", "session_id": "audit", "turn_id": "u3", "prompt": "下一步修复 validator，并确认 audit 不污染真实 memory。"}
+        result_working = process_user_prompt(working_payload, test_root)
+        c("working task state active", lambda: result_working["layer"] == "working" and result_working["status"] == "active")
+
+        learning_payload = {"hook_event_name": "Stop", "session_id": "audit", "turn_id": "s-learning", "last_assistant_message": "root cause fixed: validator allowed raw prompts into working active.", "stop_hook_active": False}
+        result_learning = process_stop(learning_payload, test_root)
+        c("learning experience active from inference", lambda: result_learning["processed"]["layer"] == "learning" and result_learning["processed"]["status"] == "active")
 
         attack_tool = {
             "hook_event_name": "PostToolUse", "session_id": "audit", "turn_id": "t1", "tool_name": "Bash", "tool_use_id": "atk1",
@@ -85,6 +100,13 @@ def run_audit(root: Path | None = None, quick: bool = False) -> Tuple[bool, str]
         }
         result_attack = process_tool_use(attack_tool, test_root)
         c("tool injection not active canonical", lambda: result_attack["status"] in {"rejected", "review", "candidate"} and result_attack["layer"] != "wiki")
+        learning_tool = {
+            "hook_event_name": "PostToolUse", "session_id": "audit", "turn_id": "t-learning", "tool_name": "Bash", "tool_use_id": "learn-tool",
+            "tool_input": {"command": "pytest"},
+            "tool_response": {"stdout": "root cause fixed: dependency path was wrong"},
+        }
+        result_learning_tool = process_tool_use(learning_tool, test_root)
+        c("tool output not learning active", lambda: result_learning_tool["layer"] == "working" and result_learning_tool["status"] == "candidate")
 
         secret_tool = {
             "hook_event_name": "PostToolUse", "session_id": "audit", "turn_id": "t2", "tool_name": "Bash", "tool_use_id": "sec1",
@@ -114,7 +136,7 @@ def run_audit(root: Path | None = None, quick: bool = False) -> Tuple[bool, str]
 
     ok = passes == total
     report = "\n".join([
-        "# Red Team Audit Report — Codex Memory OS v3.5",
+        "# Red Team Audit Report — Codex Memory OS v3.6",
         "",
         f"Result: {passes}/{total} checks passed ({passes / total * 100:.1f}%).",
         "",
