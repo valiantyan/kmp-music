@@ -38,6 +38,22 @@ def compute_trust(event: MemoryEvent, fw_score: float, evidence_count: int, cfg:
     return max(0.0, min(1.0, trust))
 
 
+def is_daily_dev(cfg: dict) -> bool:
+    return str(cfg.get("mode", "")).lower() == "daily-dev"
+
+
+def has_reason(reasons: List[str], expected: str) -> bool:
+    return expected in set(reasons)
+
+
+def learning_active_min(cfg: dict) -> float:
+    thresholds = cfg.get("thresholds", {})
+    promotion = cfg.get("promotion", {})
+    learning_min = float(thresholds.get("learning_min", 0.55))
+    auto_min = float(promotion.get("learning_auto_write_min", learning_min))
+    return max(learning_min, auto_min)
+
+
 def validate_event(event: MemoryEvent, cfg: dict) -> ValidationResult:
     fw = firewall(event.content, event.source, cfg, context=event.event_type)
     evidence_count = len(event.metadata.get("evidence", []) or []) + (1 if event.raw_ref else 0)
@@ -64,18 +80,30 @@ def validate_event(event: MemoryEvent, cfg: dict) -> ValidationResult:
     if trust < trust_min:
         return ValidationResult(False, "rejected", layer, trust, authority, reasons + ["below_trust_min"], fw.sanitized_text)
 
+    promotion = cfg.get("promotion", {})
+
     if event.source == "tool":
-        # Tool outputs are useful context, but not direct validated rules.
         return ValidationResult(True, "candidate", "working", trust, authority, reasons + ["tool_buffer_candidate_only"], fw.sanitized_text)
 
-    if layer == "preferences" and event.source == "user" and trust >= float(cfg["thresholds"].get("preference_min", 0.68)):
-        return ValidationResult(True, "active", layer, trust, authority, reasons, fw.sanitized_text)
+    if layer == "preferences":
+        explicit_required = bool(promotion.get("preferences_require_explicit_user_signal", True))
+        explicit = has_reason(reasons, "explicit_user_preference")
+        if event.source == "user" and trust >= float(cfg["thresholds"].get("preference_min", 0.68)) and (explicit or not explicit_required):
+            return ValidationResult(True, "active", layer, trust, authority, reasons, fw.sanitized_text)
+        return ValidationResult(True, "candidate", "working", trust, authority, reasons + ["preference_requires_explicit_user_signal"], fw.sanitized_text)
 
-    if layer == "learning" and trust >= float(cfg["thresholds"].get("learning_min", 0.55)):
-        return ValidationResult(True, "active", layer, trust, authority, reasons, fw.sanitized_text)
+    if layer == "learning":
+        if trust >= learning_active_min(cfg):
+            return ValidationResult(True, "active", layer, trust, authority, reasons, fw.sanitized_text)
+        if promotion.get("learning_auto_candidate", True):
+            return ValidationResult(True, "candidate", layer, trust, authority, reasons + ["below_learning_auto_write_min"], fw.sanitized_text)
+        return ValidationResult(False, "rejected", layer, trust, authority, reasons + ["learning_auto_candidate_disabled"], fw.sanitized_text)
 
     if layer == "working":
-        return ValidationResult(True, "active" if trust >= trust_min else "candidate", layer, trust, authority, reasons, fw.sanitized_text)
+        working_auto = bool(promotion.get("working_auto_write", is_daily_dev(cfg)))
+        if working_auto and has_reason(reasons, "working_handoff_pattern") and trust >= trust_min:
+            return ValidationResult(True, "active", layer, trust, authority, reasons, fw.sanitized_text)
+        return ValidationResult(True, "candidate", layer, trust, authority, reasons + ["working_requires_task_state_signal"], fw.sanitized_text)
 
     return ValidationResult(True, "candidate", layer, trust, authority, reasons, fw.sanitized_text)
 
