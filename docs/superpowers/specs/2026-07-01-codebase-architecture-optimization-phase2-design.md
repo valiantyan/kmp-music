@@ -7,6 +7,7 @@
 第二阶段聚焦 `PlaybackCoordinator.kt` 和 `PlaybackCoordinatorTest.kt`。当前 `PlaybackCoordinator` 约 750 行，仍然同时承担：
 
 - 播放队列生成、下标移动和精确跳转。
+- 移除队列歌曲时重建队列、选择新 current、同步 engine queue。
 - 随机播放历史和剩余集合维护。
 - 引擎事件折返到 `PlaybackRepository`。
 - 自然结束、失败重试、失败跳过和单曲循环失败阈值。
@@ -84,7 +85,7 @@ MusicAppController
 
 ### 本阶段包含
 
-- 抽出 `PlaybackQueueNavigator`，集中处理下一首、上一首、精确下标和引擎媒体切换对应的队列状态迁移。
+- 抽出 `PlaybackQueueNavigator`，集中处理下一首、上一首、精确下标、移除队列歌曲和引擎媒体切换对应的队列状态迁移。
 - 抽出 `ShuffleQueuePolicy`，集中维护随机模式的历史栈、剩余集合和首轮待播集合。
 - 抽出 `PlaybackFailurePolicy`，集中处理单曲循环失败阈值、连续失败跳过和成功播放后的计数清空。
 - 抽出 `PlaybackSnapshotWriter`，集中管理异步快照写入、pending 写入集合、退出前等待和同步落盘。
@@ -110,9 +111,9 @@ MusicAppController
 
 | 模块 | 形态 | 职责 |
 | --- | --- | --- |
-| `PlaybackCoordinator` | facade / orchestrator | 保留 public API、订阅 engine event、维护 repository 写入顺序、调用 engine 命令。 |
+| `PlaybackCoordinator` | facade / orchestrator | 保留 public API、订阅 engine event、维护 repository 写入顺序、调用 engine 命令、把 `Song` 映射为 engine 队列。 |
 | `ShuffleQueuePolicy` | 纯策略 | 构建随机初始剩余集合、前进/后退时更新 `shuffleHistory` 和 `shuffleRemaining`。 |
-| `PlaybackQueueNavigator` | 纯策略 | 基于 `QueueState` 和目标操作计算目标下标与下一份 `QueueState`。 |
+| `PlaybackQueueNavigator` | 纯策略 | 基于 `QueueState`、目标操作和必要的 song id 列表计算目标下标与下一份 `QueueState`。 |
 | `PlaybackFailurePolicy` | 有状态策略 | 记录失败计数，判断是否重试当前歌曲、跳到下一首或停留错误态。 |
 | `PlaybackSnapshotWriter` | IO 协作者 | 读取 repository 当前状态，写入 `PlaybackSnapshotStore`，管理 pending async writes 和 teardown await。 |
 | `PlaybackHistoryRecorder` | repository 协作者 | 维护最近播放历史，新歌曲置顶、去重、最多 50 条。 |
@@ -123,7 +124,7 @@ MusicAppController
 
 ### 队列导航
 
-`PlaybackQueueNavigator` 不接触 repository，不调用 engine，不记录历史。它只接收 `QueueState`、目标动作和随机选择器，返回目标下标与下一份队列状态。
+`PlaybackQueueNavigator` 不接触 repository，不调用 engine，不记录历史。它接收当前 `QueueState`、目标动作、必要的队列 song id 列表和随机选择器，返回下一份队列状态和目标下标。它不接收完整 `Song`，也不负责 `Song` 到 `PlayableMedia` 的映射。
 
 它应覆盖这些动作：
 
@@ -133,8 +134,13 @@ MusicAppController
 - 随机上一首。
 - 外部平台控制器通过 `CurrentMediaChanged(index)` 切换到精确下标。
 - 切换播放模式后重置随机历史和剩余集合。
+- 移除队列歌曲后重建 song id 队列、计算新的 currentIndex、重置随机历史和 remaining。
 
-`PlaybackCoordinator` 继续负责把结果写入 repository、记录播放历史、保存快照和调用 engine。
+初始点歌队列生成是一个例外：它需要完整 `Song` 列表、目标 `Song`、当前播放模式和后续 engine 队列映射。第二阶段不把这部分塞进 navigator。`PlaybackCoordinator` 继续决定点歌时的 `matchingQueueSongs` 和 `startIndex`，只委托 `ShuffleQueuePolicy` 构建初始随机 remaining。
+
+移除队列歌曲时，`PlaybackCoordinator` 仍负责把 `availableSongs` 解析成可交给 engine 的 `Song` 列表，并处理解析后队列为空时的 stop 分支。`PlaybackQueueNavigator` 只负责基于已经解析出的剩余 song id 列表计算下一份 `QueueState`，避免纯策略层需要理解完整 `Song` 或 engine 队列。
+
+`PlaybackCoordinator` 继续负责把 navigator 结果写入 repository、记录播放历史、保存快照和调用 engine。
 
 ### 随机播放
 
@@ -157,6 +163,8 @@ MusicAppController
 - `StayError`：达到阈值或没有可用下一首，停留错误态。
 - `Reset`：成功进入 `Playing` 后清空计数。
 
+第二阶段保持当前产品语义：失败计数只在 engine 回报 `PlaybackStatus.Playing` 时 reset。用户点新歌、恢复快照、seek、暂停、移除队列和普通切歌都不主动清空失败计数。原因是这些动作还不代表底层媒体已经成功播放；提前清空会掩盖连续坏文件或平台解码失败。若后续产品希望“用户主动点新歌即开启新失败窗口”，需要另开行为设计并补测试。
+
 `PlaybackCoordinator` 仍负责先把错误写入 repository，再根据决策调用队列导航和 engine 命令。这样 UI 能看到最近错误，直到下一首真正恢复播放。
 
 ### 快照写入
@@ -174,6 +182,8 @@ MusicAppController
 - `saveNowAndAwait()`：同步写入当前 repository 状态，用于进程退出前最后收口。
 - `awaitPendingWrites()`：等待所有已发出的异步写入完成。
 - `saveForEvent(event)`：对 `ProgressChanged` 应用节流，其他关键事件立即写。
+
+快照 writer 不应在第二阶段擅自做语义去重。当前流程可能在一次 engine event 中出现两类写入：事件处理内部因切歌、失败或结束触发的立即写入，以及事件处理后 `saveForEvent(event)` 的兜底写入。实现可以通过 focused tests 证明多写不会产生竞态，但不能为了减少写入次数改变这些关键落盘时机。只有纯 `ProgressChanged` 可以继续按 `snapshotThrottleMs` 节流。
 
 `PlaybackCoordinator` 的 `persistSnapshotForServiceTeardown` 和 `persistSnapshotForProcessTeardown` 仍保留 public API，但内部委托 writer。进程退出同步写入失败必须继续向宿主抛出，不能吞掉。
 
@@ -210,7 +220,8 @@ MusicAppController
 ```text
 MusicAppController.playSong
   -> PlaybackCoordinator.playSong
-  -> PlaybackQueueNavigator.buildInitialQueueState
+  -> PlaybackCoordinator 生成 matchingQueueSongs / startIndex
+  -> ShuffleQueuePolicy.buildInitialRemaining
   -> PlaybackRepository.saveQueueState / savePlaybackState
   -> PlaybackHistoryRecorder.record
   -> PlaybackSnapshotWriter.saveAsync
@@ -240,6 +251,18 @@ AudioPlayerEngine.events: Failed
   -> PlaybackCoordinator.moveToIndex(clearError = false)
 ```
 
+移除队列歌曲：
+
+```text
+MusicAppController.removeFromQueue
+  -> PlaybackCoordinator.removeFromQueue
+  -> PlaybackQueueNavigator.removeSong
+  -> PlaybackRepository.saveQueueState / savePlaybackState
+  -> PlaybackSnapshotWriter.saveAsync
+  -> AudioPlayerEngine.setPlaybackMode / setQueue
+  -> AudioPlayerEngine.play or pause
+```
+
 快照写入：
 
 ```text
@@ -254,10 +277,10 @@ Repository current state
 
 | 测试文件 | 覆盖内容 |
 | --- | --- |
-| `PlaybackQueueNavigatorTest` | 顺序下一首/上一首、精确跳转、外部引擎下标迁移、播放模式切换后的队列状态。 |
+| `PlaybackQueueNavigatorTest` | 顺序下一首/上一首、精确跳转、外部引擎下标迁移、播放模式切换后的队列状态、移除当前/非当前歌曲后的队列状态。 |
 | `ShuffleQueuePolicyTest` | 初始 remaining、前进 history、后退恢复 remaining、下一轮不重复当前歌曲。 |
 | `PlaybackFailurePolicyTest` | 单曲循环三次阈值、非单曲连续失败三次阈值、成功播放后计数清空。 |
-| `PlaybackSnapshotWriterTest` | 首个进度事件写入、进度节流、pending writes 等待、同步写入异常向外抛。 |
+| `PlaybackSnapshotWriterTest` | 首个进度事件写入、进度节流、关键事件不被节流、pending writes 等待、同步写入异常向外抛。 |
 | `PlaybackHistoryRecorderTest` | 新歌曲置顶、重复去重、最多 50 条。 |
 
 `PlaybackCoordinatorTest` 保留 facade 级跨职责验收：
@@ -268,6 +291,8 @@ Repository current state
 - 显式 play/pause 通过 engine event 回写 repository。
 - 自然结束调用队列导航并推进 engine。
 - 失败自动跳歌时错误保留到下一首真正 `Playing`。
+- 成功 `Playing` 后清空失败计数，普通切歌和移除队列不提前清空失败计数。
+- 移除当前歌曲后 repository 队列和 engine 队列保持同步。
 - service/process teardown 写入暂停快照。
 
 阶段二执行时每个小拆分都先写或迁移测试，再移动实现，最后运行对应 focused test 和受影响的 `PlaybackCoordinatorTest`。
@@ -278,6 +303,8 @@ Repository current state
 - 不改变 `AudioPlayerEngine` 和 `PlaybackRepository` 的方法签名。
 - 不改变 `PlaybackState.isPlaying` 语义。
 - 不删除现有协调器验收测试，只把纯规则迁移到 focused test。
+- 不把移除队列歌曲留成协调器内的大块私有规则；它必须进入队列策略或明确的队列重建 helper。
+- 不为减少快照写入次数改变结束、失败、切歌和退出前同步写入的落盘时机。
 - 与 Android 媒体按钮、Desktop vlcj 意图过滤、持久化恢复相关的修复测试必须继续保留。
 - 如果某个拆分需要平台层一起改动，先停下来重新评估范围，不在第二阶段偷偷扩大到第四阶段。
 
@@ -289,6 +316,11 @@ Repository current state
 - 队列导航、随机策略、失败策略、快照写入和历史记录各有清晰归属。
 - `PlaybackCoordinatorTest.kt` 不再是纯队列、纯随机、纯失败计数和纯快照写入规则的唯一承载点。
 - 当前两个 Kotlin warning 被清理。
+- 随机后退再前进不重复当前歌曲。
+- 外部 `CurrentMediaChanged(index)` 在随机模式下同步更新 shuffle history 和 remaining。
+- 失败自动跳歌保留错误，直到下一首真正进入 `Playing`。
+- `removeFromQueue` 移除当前歌曲后同步 repository 队列和 engine 队列。
+- process teardown 同步快照写入失败继续向宿主抛出。
 - `:composeApp:desktopTest` 通过。
 - `:composeApp:compileDebugKotlinAndroid` 通过。
 - Android 与 Desktop 的播放修复基线不回退。
