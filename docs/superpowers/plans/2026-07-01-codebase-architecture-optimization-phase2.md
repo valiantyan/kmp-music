@@ -890,7 +890,7 @@ git commit -m "refactor: 抽出播放失败恢复策略"
 - Create: `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/domain/playback/PlaybackSnapshotWriter.kt`
 - Create: `composeApp/src/commonTest/kotlin/com/yanhao/kmpmusic/domain/playback/PlaybackSnapshotWriterTest.kt`
 
-- [ ] **Step 1: Write the failing snapshot-writer tests**
+- [x] **Step 1: Write the failing snapshot-writer tests**
 
 Create `composeApp/src/commonTest/kotlin/com/yanhao/kmpmusic/domain/playback/PlaybackSnapshotWriterTest.kt`:
 
@@ -1071,7 +1071,7 @@ class PlaybackSnapshotWriterTest {
 }
 ```
 
-- [ ] **Step 2: Run the snapshot-writer test and verify it fails**
+- [x] **Step 2: Run the snapshot-writer test and verify it fails**
 
 Run:
 
@@ -1081,7 +1081,7 @@ Run:
 
 Expected: FAIL with unresolved reference `PlaybackSnapshotWriter`.
 
-- [ ] **Step 3: Add `PlaybackSnapshotWriter`**
+- [x] **Step 3: Add `PlaybackSnapshotWriter`**
 
 Create `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/domain/playback/PlaybackSnapshotWriter.kt`:
 
@@ -1166,7 +1166,7 @@ class PlaybackSnapshotWriter(
 }
 ```
 
-- [ ] **Step 4: Run the snapshot-writer test and verify it passes**
+- [x] **Step 4: Run the snapshot-writer test and verify it passes**
 
 Run:
 
@@ -1176,7 +1176,7 @@ Run:
 
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/domain/playback/PlaybackSnapshotWriter.kt composeApp/src/commonTest/kotlin/com/yanhao/kmpmusic/domain/playback/PlaybackSnapshotWriterTest.kt

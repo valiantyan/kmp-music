@@ -1,49 +1,90 @@
-# Task 4 Report
+# Task 4 Report - Extract PlaybackSnapshotWriter
 
-## What I implemented
+## Status
 
-- Added `LibraryStateSynchronizer` for library scan state, snapshot synchronization, full-library loading, recent playback visible list rebuilding, favorite entity completion, and permission gate state.
-- Wired `MusicAppController` to delegate library snapshot sync, initial scan state, permission confirmation checks, and on-demand local library loading to the synchronizer while keeping `MusicAppController` as the UI state owner.
-- Added focused `MusicAppLibraryStateSynchronizerTest` coverage for cold-start scan state, permanent permission denial, snapshot refresh, recent playback reconstruction, and no-op loading when local songs are already loaded.
-- Updated Task 4 checkboxes in `docs/superpowers/plans/2026-06-30-codebase-architecture-optimization-phase1.md`.
-- Cleaned up extracted-code imports and used a constructor-initialized `val` for the synchronizer to avoid a new Kotlin `lateinit` warning.
+DONE
 
-## What I tested and test results
+## Scope
 
-RED:
+- Created [PlaybackSnapshotWriter] as a standalone playback-domain collaborator.
+- Added focused tests for snapshot throttling, async write tracking, teardown waiting, and error propagation.
+- Did not modify [PlaybackCoordinator], per task boundary.
+
+## Files Changed
+
+- `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/domain/playback/PlaybackSnapshotWriter.kt`
+- `composeApp/src/commonTest/kotlin/com/yanhao/kmpmusic/domain/playback/PlaybackSnapshotWriterTest.kt`
+
+## TDD Record
+
+### RED
+
+Command:
 
 ```bash
-./gradlew :composeApp:desktopTest --tests "com.yanhao.kmpmusic.feature.app.library.MusicAppLibraryStateSynchronizerTest"
+./gradlew :composeApp:desktopTest --tests "com.yanhao.kmpmusic.domain.playback.PlaybackSnapshotWriterTest"
 ```
 
-Expected failure was the missing `LibraryStateSynchronizer` reference before the production class existed.
+Result:
 
-GREEN:
+- `:composeApp:compileTestKotlinDesktop FAILED`
+- Unresolved reference `PlaybackSnapshotWriter`
+- Follow-on unresolved references for `saveForEvent`, `saveAsync`, `awaitPendingWrites`, and `saveNowAndAwait`
+
+Key evidence:
+
+```text
+e: .../PlaybackSnapshotWriterTest.kt:33:21 Unresolved reference 'PlaybackSnapshotWriter'.
+e: .../PlaybackSnapshotWriterTest.kt:42:16 Unresolved reference 'saveForEvent'.
+e: .../PlaybackSnapshotWriterTest.kt:117:16 Unresolved reference 'saveAsync'.
+e: .../PlaybackSnapshotWriterTest.kt:121:20 Unresolved reference 'awaitPendingWrites'.
+e: .../PlaybackSnapshotWriterTest.kt:144:20 Unresolved reference 'saveNowAndAwait'.
+```
+
+### GREEN
+
+Command:
 
 ```bash
-./gradlew :composeApp:desktopTest --tests "com.yanhao.kmpmusic.feature.app.library.MusicAppLibraryStateSynchronizerTest" --tests "com.yanhao.kmpmusic.feature.app.MusicAppControllerTest.coldStartWithPersistedSongsShowsDoneStateWithoutFullLibraryLoad" --tests "com.yanhao.kmpmusic.feature.app.MusicAppControllerTest.scanPermissionPermanentlyDeniedRequiresUserConfirmationBeforeSettings" --tests "com.yanhao.kmpmusic.feature.app.MusicAppControllerTest.localMusicPageLoadsFullSongsOnDemand"
+./gradlew :composeApp:desktopTest --tests "com.yanhao.kmpmusic.domain.playback.PlaybackSnapshotWriterTest"
 ```
 
-Result: `BUILD SUCCESSFUL`.
+Result:
 
-Notes: Gradle still reports existing deprecated Kotlin MPP property warnings and two pre-existing `PlaybackCoordinator.kt` Elvis warnings.
+- `BUILD SUCCESSFUL`
+- Focused test target passed after adding [PlaybackSnapshotWriter]
 
-## Files changed
+## Implementation Notes
 
-- `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/app/library/LibraryStateSynchronizer.kt`
-- `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/app/MusicAppController.kt`
-- `composeApp/src/commonTest/kotlin/com/yanhao/kmpmusic/feature/app/library/MusicAppLibraryStateSynchronizerTest.kt`
-- `docs/superpowers/plans/2026-06-30-codebase-architecture-optimization-phase1.md`
+- Extracted snapshot-writing behavior into [PlaybackSnapshotWriter] with `internal` visibility to match neighboring playback collaborators.
+- Preserved the current rules from [PlaybackCoordinator]:
+  - first progress event writes immediately
+  - progress writes are throttled by `snapshotThrottleMs`
+  - non-progress engine events bypass throttling
+  - async writes are tracked in a pending set
+  - teardown can await all pending writes
+  - synchronous teardown save propagates store failures
+- Kept repository access synchronous via [PlaybackRepository], and snapshot persistence behind [PlaybackSnapshotStore].
 
-## Self-review findings
+## Focused Test Coverage Added
 
-- The synchronizer does not own Compose mutable state; it returns updated immutable `MusicAppUiState`.
-- The full-library refresh gate remains unchanged: refresh only when local songs are already loaded or the Local Music secondary screen is active.
-- Recent songs still derive from playback history, not scan result order.
-- Playback restore remains sequenced by the facade after state synchronization.
-- The test helper now asserts against the repository instance actually injected into the synchronizer.
-- Task 4 reviewer finding fixed: `createSynchronizer()` now mutates `stats` on the same fake repository instance instead of copying it, so the lazy-load assertion observes the exact injected repository.
+- `firstProgressEventPersistsSnapshot`
+- `progressEventsInsideThrottleWindowAreSkipped`
+- `nonProgressEventsAreNotThrottled`
+- `awaitPendingWritesWaitsForAsyncSaveCompletion`
+- `saveNowAndAwaitPropagatesSnapshotStoreFailure`
+
+## Self Review
+
+- Confirmed only the two task-owned files were modified.
+- Confirmed [PlaybackCoordinator] was not changed or wired to the new collaborator.
+- Confirmed the extracted collaborator keeps the existing snapshot rules intact instead of introducing a partial patch.
+- Confirmed the focused desktop test command passes after the extraction.
+
+## Commit
+
+- `refactor: 抽出播放快照写入器`
 
 ## Concerns
 
-- None for Task 4. Existing controller helper duplication remains intentionally in place for Task 5 and Task 6 follow-up extraction.
+- None for this task scope.
