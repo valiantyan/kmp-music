@@ -49,9 +49,9 @@ enum class LocalMusicSection {
 }
 
 /**
- * 底部全局 chrome 的整体位置策略。
+ * 手机端固定底栏的整体位置策略。
  */
-enum class BottomChromePlacement {
+enum class MobileFixedBarPlacement {
     TopLevel,
     MiniPlayerOnly,
     Hidden,
@@ -67,26 +67,26 @@ enum class ContentBottomSpace {
 }
 
 /**
- * 页面全局 chrome 策略，统一管理底部 Tab、迷你播放器和页面留白。
+ * 手机端页面固定底栏策略，统一管理底部 Tab、迷你播放器和页面留白。
  */
-enum class AppChromeMode(
+enum class MobileFixedBarMode(
     val showsBottomNavigation: Boolean,
-    val bottomChromePlacement: BottomChromePlacement,
+    val fixedBarPlacement: MobileFixedBarPlacement,
     val contentBottomSpace: ContentBottomSpace,
 ) {
     TopLevel(
         showsBottomNavigation = true,
-        bottomChromePlacement = BottomChromePlacement.TopLevel,
+        fixedBarPlacement = MobileFixedBarPlacement.TopLevel,
         contentBottomSpace = ContentBottomSpace.TopLevel,
     ),
     SecondaryWithMiniPlayer(
         showsBottomNavigation = false,
-        bottomChromePlacement = BottomChromePlacement.MiniPlayerOnly,
+        fixedBarPlacement = MobileFixedBarPlacement.MiniPlayerOnly,
         contentBottomSpace = ContentBottomSpace.SecondaryWithMiniPlayer,
     ),
     SecondaryFullscreen(
         showsBottomNavigation = false,
-        bottomChromePlacement = BottomChromePlacement.Hidden,
+        fixedBarPlacement = MobileFixedBarPlacement.Hidden,
         contentBottomSpace = ContentBottomSpace.Fullscreen,
     ),
 }
@@ -119,25 +119,22 @@ data class NavigationState(
     val isTopLevel: Boolean = secondaryScreen == null
 
     /**
-     * 当前页面对应的全局 chrome 策略。
+     * 当前页面对应的手机端固定底栏策略。
      *
-     * 这里是二级页面到底部 chrome 表现的唯一配置入口：新增页面时优先在这里归类，
-     * 不要在页面 Composable 或 [BottomChrome] 周围散写显示/隐藏判断。
+     * 这里是二级页面到底部固定栏表现的唯一配置入口：新增页面时优先在这里归类，
+     * 不要在页面 Composable 或固定底栏周围散写显示/隐藏判断。
      */
-    val chromeMode: AppChromeMode = when (secondaryScreen) {
-        // 一级页面：同时显示 mini player 和底部 Tab。
-        null -> AppChromeMode.TopLevel
-        // 沉浸式二级页面：mini player 和底部 Tab 都隐藏。
+    val fixedBarMode: MobileFixedBarMode = when (secondaryScreen) {
+        null -> MobileFixedBarMode.TopLevel
         SecondaryScreen.Player,
         SecondaryScreen.Settings,
-        -> AppChromeMode.SecondaryFullscreen
-        // 普通二级页面：只显示 mini player，底部 Tab 隐藏。
+        -> MobileFixedBarMode.SecondaryFullscreen
         is SecondaryScreen.Search,
         SecondaryScreen.AlbumDetail,
         SecondaryScreen.ArtistDetail,
         SecondaryScreen.Login,
         is SecondaryScreen.LocalMusic,
-        -> AppChromeMode.SecondaryWithMiniPlayer
+        -> MobileFixedBarMode.SecondaryWithMiniPlayer
     }
 
     /**

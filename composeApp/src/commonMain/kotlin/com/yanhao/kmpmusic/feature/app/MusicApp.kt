@@ -166,11 +166,11 @@ fun MusicApp(
                         )
                         .background(MaterialTheme.colorScheme.background.copy(alpha = 0.96f)),
                 ) {
-                    val chromeMode: AppChromeMode = state.navigationState.chromeMode
+                    val fixedBarMode: MobileFixedBarMode = state.navigationState.fixedBarMode
                     AppContent(
                         state = state,
                         controller = controller,
-                        chromeMode = chromeMode,
+                        fixedBarMode = fixedBarMode,
                         onScanLocalMusic = scanLocalMusic,
                     )
                     BottomChrome(
@@ -178,8 +178,8 @@ fun MusicApp(
                         isPlaying = state.shouldShowPauseControl,
                         playbackPositionMs = state.playbackPositionMs,
                         playbackDurationMs = state.playbackDurationMs,
-                        placement = chromeMode.bottomChromePlacement,
-                        showsBottomNavigation = chromeMode.showsBottomNavigation,
+                        placement = fixedBarMode.fixedBarPlacement,
+                        showsBottomNavigation = fixedBarMode.showsBottomNavigation,
                         rootTab = state.navigationState.rootTab,
                         onOpen = controller::openPlayer,
                         onToggle = controller::togglePlayback,
@@ -202,10 +202,10 @@ fun MusicApp(
 private fun AppContent(
     state: MusicAppUiState,
     controller: MusicAppController,
-    chromeMode: AppChromeMode,
+    fixedBarMode: MobileFixedBarMode,
     onScanLocalMusic: () -> Unit,
 ) {
-    val bottomPadding: Dp = getContentBottomPadding(contentBottomSpace = chromeMode.contentBottomSpace)
+    val bottomPadding: Dp = getContentBottomPadding(contentBottomSpace = fixedBarMode.contentBottomSpace)
     val pagePadding: PaddingValues = PaddingValues(
         start = scaledDp(MusicDimens.PagePaddingHorizontal),
         top = scaledDp(MusicDimens.PagePaddingTop),
@@ -453,7 +453,7 @@ private fun BottomChrome(
     isPlaying: Boolean,
     playbackPositionMs: Long,
     playbackDurationMs: Long?,
-    placement: BottomChromePlacement,
+    placement: MobileFixedBarPlacement,
     showsBottomNavigation: Boolean,
     rootTab: RootTab,
     onOpen: () -> Unit,
@@ -473,13 +473,13 @@ private fun BottomChrome(
     }
     val bottomChromeTransition = updateTransition(
         targetState = placement,
-        label = "BottomChromePlacement",
+        label = "MobileFixedBarPlacement",
     )
     val stackOffset: Dp by bottomChromeTransition.animateDp(
         transitionSpec = {
             val durationMillis: Int = if (
-                initialState == BottomChromePlacement.Hidden ||
-                    targetState == BottomChromePlacement.Hidden
+                initialState == MobileFixedBarPlacement.Hidden ||
+                    targetState == MobileFixedBarPlacement.Hidden
             ) {
                 BOTTOM_CHROME_HIDDEN_TRANSITION_MILLIS
             } else {
@@ -488,15 +488,15 @@ private fun BottomChrome(
             tween(durationMillis = durationMillis, easing = FastOutSlowInEasing)
         },
         label = "BottomChromeOffset",
-    ) { targetPlacement: BottomChromePlacement ->
+    ) { targetPlacement: MobileFixedBarPlacement ->
         when (targetPlacement) {
-            BottomChromePlacement.TopLevel -> 0.dp
-            BottomChromePlacement.MiniPlayerOnly -> if (song == null) {
+            MobileFixedBarPlacement.TopLevel -> 0.dp
+            MobileFixedBarPlacement.MiniPlayerOnly -> if (song == null) {
                 stackHeight + navigationBarHeight
             } else {
                 scaledDp(MusicDimens.BottomNavHeight)
             }
-            BottomChromePlacement.Hidden -> stackHeight + navigationBarHeight
+            MobileFixedBarPlacement.Hidden -> stackHeight + navigationBarHeight
         }
     }
     Box(

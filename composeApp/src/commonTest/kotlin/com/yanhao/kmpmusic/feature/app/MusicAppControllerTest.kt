@@ -74,8 +74,8 @@ class MusicAppControllerTest {
             actual = controller.uiState.navigationState.secondaryScreen,
         )
         assertEquals(
-            expected = AppChromeMode.SecondaryWithMiniPlayer,
-            actual = controller.uiState.navigationState.chromeMode,
+            expected = MobileFixedBarMode.SecondaryWithMiniPlayer,
+            actual = controller.uiState.navigationState.fixedBarMode,
         )
     }
 
@@ -962,8 +962,8 @@ class MusicAppControllerTest {
             actual = controller.uiState.navigationState.previousRootTab,
         )
         assertEquals(
-            expected = AppChromeMode.SecondaryFullscreen,
-            actual = controller.uiState.navigationState.chromeMode,
+            expected = MobileFixedBarMode.SecondaryFullscreen,
+            actual = controller.uiState.navigationState.fixedBarMode,
         )
     }
 
