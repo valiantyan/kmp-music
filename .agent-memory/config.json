@@ -1,5 +1,6 @@
 {
-  "version": "3.5.0",
+  "version": "3.6.0",
+  "mode": "daily-dev",
   "thresholds": {
     "trust_min": 0.35,
     "learning_min": 0.55,
@@ -22,11 +23,15 @@
     "system": 0.98,
     "user": 0.74,
     "tool": 0.24,
-    "inference": 0.46
+    "inference": 0.74
   },
   "promotion": {
+    "working_auto_write": true,
+    "learning_auto_candidate": true,
+    "learning_auto_write_min": 0.68,
     "wiki_auto_write": false,
     "tool_to_canonical_allowed": false,
+    "tool_to_learning_active_allowed": false,
     "preferences_require_explicit_user_signal": true,
     "min_supporting_evidence_for_wiki": 2
   },

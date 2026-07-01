@@ -7,7 +7,8 @@ from memory_core.io_utils import load_json
 from memory_core.paths import find_repo_root
 
 DEFAULT_CONFIG: Dict[str, Any] = {
-    "version": "3.5.0",
+    "version": "3.6.0",
+    "mode": "daily-dev",
     "thresholds": {
         "trust_min": 0.35,
         "learning_min": 0.55,
@@ -26,10 +27,14 @@ DEFAULT_CONFIG: Dict[str, Any] = {
         "review_queue_max_lines": 500,
         "markdown_auto_items": 80,
     },
-    "source_weights": {"system": 0.98, "user": 0.74, "tool": 0.24, "inference": 0.46},
+    "source_weights": {"system": 0.98, "user": 0.74, "tool": 0.24, "inference": 0.74},
     "promotion": {
+        "working_auto_write": True,
+        "learning_auto_candidate": True,
+        "learning_auto_write_min": 0.68,
         "wiki_auto_write": False,
         "tool_to_canonical_allowed": False,
+        "tool_to_learning_active_allowed": False,
         "preferences_require_explicit_user_signal": True,
         "min_supporting_evidence_for_wiki": 2,
     },
