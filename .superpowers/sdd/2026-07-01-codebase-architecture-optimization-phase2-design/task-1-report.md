@@ -40,23 +40,8 @@ BUILD FAILED
 
 ### Focused GREEN
 
-命令：
-
-```bash
-./gradlew :composeApp:desktopTest \
-  --tests com.yanhao.kmpmusic.domain.playback.ShuffleQueuePolicyTest \
-  --tests com.yanhao.kmpmusic.domain.playback.PlaybackCoordinatorTest.shufflePreviousUsesHistory \
-  --tests com.yanhao.kmpmusic.domain.playback.PlaybackCoordinatorTest.externalShuffleTransitionUpdatesHistoryAndRemaining \
-  --tests com.yanhao.kmpmusic.domain.playback.PlaybackCoordinatorTest.shuffleNextAfterPreviousDoesNotReplayCurrentSong
-```
-
-结果：
-
-```text
-> Task :composeApp:desktopTest
-BUILD SUCCESSFUL in 10s
-18 actionable tasks: 8 executed, 10 up-to-date
-```
+有效的 focused GREEN 证据见后文 `Follow-up GREEN after restoring correct code`，其中使用
+`--tests '*ShuffleQueuePolicyTest'` 命中了新增纯策略测试，并同时覆盖 3 个 coordinator shuffle 回归用例。
 
 ### Full desktop tests
 
