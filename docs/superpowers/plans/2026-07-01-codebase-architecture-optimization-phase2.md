@@ -72,7 +72,7 @@ Use one commit per task. Each task must leave targeted tests passing before comm
 - Create: `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/domain/playback/ShuffleQueuePolicy.kt`
 - Create: `composeApp/src/commonTest/kotlin/com/yanhao/kmpmusic/domain/playback/ShuffleQueuePolicyTest.kt`
 
-- [ ] **Step 1: Write the failing shuffle policy tests**
+- [x] **Step 1: Write the failing shuffle policy tests**
 
 Create `composeApp/src/commonTest/kotlin/com/yanhao/kmpmusic/domain/playback/ShuffleQueuePolicyTest.kt`:
 
@@ -189,7 +189,7 @@ class ShuffleQueuePolicyTest {
 }
 ```
 
-- [ ] **Step 2: Run the shuffle policy test and verify it fails**
+- [x] **Step 2: Run the shuffle policy test and verify it fails**
 
 Run:
 
@@ -199,7 +199,13 @@ Run:
 
 Expected: FAIL with unresolved reference `ShuffleQueuePolicy`.
 
-- [ ] **Step 3: Add `ShuffleQueuePolicy`**
+Actual: Completed with follow-up failure evidence recorded in
+`.superpowers/sdd/2026-07-01-codebase-architecture-optimization-phase2-design/task-1-report.md`.
+The initial exact-class `--tests` filter did not match tests, so the accepted RED evidence is the
+temporary mutation of `ShuffleQueuePolicy.buildInitialRemaining()` that made `ShuffleQueuePolicyTest`
+fail before restoring the correct implementation.
+
+- [x] **Step 3: Add `ShuffleQueuePolicy`**
 
 Create `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/domain/playback/ShuffleQueuePolicy.kt`:
 
@@ -273,7 +279,7 @@ class ShuffleQueuePolicy(
 }
 ```
 
-- [ ] **Step 4: Run the shuffle policy test and verify it passes**
+- [x] **Step 4: Run the shuffle policy test and verify it passes**
 
 Run:
 
@@ -283,7 +289,7 @@ Run:
 
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/domain/playback/ShuffleQueuePolicy.kt composeApp/src/commonTest/kotlin/com/yanhao/kmpmusic/domain/playback/ShuffleQueuePolicyTest.kt
