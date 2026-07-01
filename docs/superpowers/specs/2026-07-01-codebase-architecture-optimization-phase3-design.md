@@ -50,19 +50,23 @@
 | `BottomChromePlacement` | `MobileFixedBarPlacement` | 手机端固定底栏位置策略。 |
 | `AppChromeMode` | `MobileFixedBarMode` | 页面对应的固定底栏和内容避让模式。 |
 | `chromeMode` | `fixedBarMode` | 导航状态派生出的固定底栏模式。 |
-| `AppOverlays` | `MobileAppDialogs` + `MobileAppPanels` | 拆成弹窗和面板；可保留兼容门面。 |
+| `AppOverlays` | `AppDialogs` + `AppPanels` | 拆成跨端弹窗和面板入口；不再使用 overlays 命名。 |
 
 命名治理只限 UI 结构相关命名。状态模型重命名必须与对应测试同步，且不改变任何行为。
 
 ## 总体目录
 
-手机端建议新增：
+App 侧 UI 建议新增：
 
 - `feature/app/layout`
-- `feature/app/navigation`
-- `feature/app/playerbar`
 - `feature/app/dialogs`
 - `feature/app/panels`
+- `feature/app/surfaces`
+
+手机端专属 UI 建议新增：
+
+- `feature/app/routes`
+- `feature/app/playerbar`
 
 桌面端建议新增：
 
@@ -108,13 +112,13 @@
 
 底部避让语义继续来自导航状态派生，不在页面里散写显示或隐藏判断。
 
-### `feature/app/navigation/MobileRootScreenRouter.kt`
+### `feature/app/routes/MobileRootScreenRoute.kt`
 
 只处理 `RootTab.Home`、`RootTab.Favorites`、`RootTab.Me` 到手机端一级页的分发。
 
 它可以接收 `MusicAppUiState`、必要 callback 和 `PaddingValues`，但不持有状态真相，不直接访问 repository 或平台能力。
 
-### `feature/app/navigation/MobileSecondaryScreenRouter.kt`
+### `feature/app/routes/MobileSecondaryScreenRoute.kt`
 
 只处理 `SecondaryScreen` 到手机端二级页的分发：
 
@@ -160,23 +164,25 @@
 
 它只负责展示和 root tab callback，不处理二级页面规则。
 
-### `feature/app/dialogs/MobileAppDialogs.kt`
+### `feature/app/surfaces/AppDialogs.kt`
 
-承接全局对话框：
+承接跨端可复用的全局对话框：
 
 - 权限设置确认。
 - 清缓存确认。
 - 后续同类 AlertDialog。
 
-### `feature/app/panels/MobileAppPanels.kt`
+当前桌面端复用手机端的全局弹窗和底部面板入口，因此弹窗与面板的跨端入口不使用 `Mobile` 前缀。只有确实含手机端布局细节的内部组件，才放到 `feature/app/dialogs` 或 `feature/app/panels` 并使用 `Mobile` 前缀。
 
-承接全局底部面板：
+### `feature/app/surfaces/AppPanels.kt`
+
+承接跨端可复用的全局面板：
 
 - 队列面板。
 - 更多操作面板。
 - `BottomSheetAction`。
 
-`AppOverlays(state, controller)` 可以短期保留为兼容门面，但内部应转调 dialogs 和 panels。桌面端当前复用它，因此执行时不能直接删除。
+`AppOverlays(state, controller)` 不作为第三阶段后的生产入口保留。执行时可以在单个迁移任务内临时保留兼容门面，但同一任务结束前必须把手机端和桌面端调用点切到 `AppDialogs` / `AppPanels`，并删除 `AppOverlays` 旧入口。
 
 ### 手机端播放详情页
 
@@ -211,6 +217,8 @@
 
 播放详情页仍然是沉浸式全屏：显示时不渲染常规桌面布局和底部播放器。
 
+`SecondaryScreen.Player` 只允许在 `DesktopAppLayout` 最高层拦截。`DesktopSecondaryScreenRoute` 不再处理播放详情页，避免桌面播放详情同时存在全屏入口和普通二级路由入口。
+
 ### `feature/desktop/layout/DesktopWorkspaceLayout.kt`
 
 承接主工作区容器：
@@ -233,18 +241,17 @@
 - root tab 和设置入口映射。
 - root/settings 选中态。
 
-### `feature/desktop/navigation/DesktopRootScreenRouter.kt`
+### `feature/desktop/navigation/DesktopRootScreenRoute.kt`
 
 负责 `RootTab.Home`、`RootTab.Favorites`、`RootTab.Me` 到桌面一级页的分发。
 
 它不写具体页面布局，只负责把 state 和 controller callback 转交给对应页面。
 
-### `feature/desktop/navigation/DesktopSecondaryScreenRouter.kt`
+### `feature/desktop/navigation/DesktopSecondaryScreenRoute.kt`
 
 负责桌面二级页分发：
 
 - 搜索。
-- 播放详情。
 - 专辑详情。
 - 歌手详情。
 - 设置。
@@ -359,6 +366,8 @@
 
 辅助纯函数应随职责迁移，不单独堆到通用 utils 文件里。
 
+组件分类以高内聚优先，不做机械拆分。若一个 grid 和 card 总是一起演进，例如 `DesktopAlbumGrid` 与 `DesktopAlbumCard`，可以放在同一个文件中。`buttons/forms/tables/cards/sections` 是默认归类，而不是强制把强相关组件拆散的规则。
+
 ## 播放器 UI 结构
 
 ### 手机端播放器
@@ -405,7 +414,7 @@
 MusicApp
   -> MobileAppLayout
   -> MobileContentLayout
-  -> MobileRootScreenRouter / MobileSecondaryScreenRouter
+  -> MobileRootScreenRoute / MobileSecondaryScreenRoute
   -> screen composables
 
 MusicApp
@@ -415,7 +424,7 @@ MusicApp
 
 MusicApp
   -> MobileAppLayout
-  -> MobileAppDialogs / MobileAppPanels
+  -> AppDialogs / AppPanels
 ```
 
 桌面端：
@@ -424,12 +433,16 @@ MusicApp
 DesktopMusicApp
   -> DesktopAppLayout
   -> DesktopTitleBar / DesktopNavigationRail / DesktopWorkspaceLayout / DesktopBottomPlayer
-  -> DesktopRootScreenRouter / DesktopSecondaryScreenRouter
+  -> DesktopRootScreenRoute / DesktopSecondaryScreenRoute
   -> desktop screen composables
 
 DesktopMusicApp
   -> DesktopAppLayout
   -> DesktopPlayerDetailScreen
+
+DesktopMusicApp
+  -> DesktopAppLayout
+  -> AppDialogs / AppPanels
 ```
 
 所有用户动作继续回到 `MusicAppController`。UI 拆分不新增第二个状态真相。
@@ -458,7 +471,7 @@ DesktopMusicApp
 
 - `MusicApp(controller)` 签名不变。
 - `DesktopMusicApp(controller)` 签名不变。
-- `AppOverlays(state, controller)` 可短期保留兼容门面，直到桌面端迁移到新的 dialogs/panels 入口。
+- `AppOverlays(state, controller)` 不作为完成态保留；迁移任务结束时调用点应切到 `AppDialogs` / `AppPanels`。
 - `DesktopBottomPlayer`、`DesktopPlayerDetailScreen` 等外部调用的公开 composable 名称尽量不改。
 - `MusicAppController` public API 不因 UI 拆分而改变。
 
@@ -487,7 +500,7 @@ DesktopMusicApp
 | 大量移动文件导致 import 和可见性错误 | 分批迁移，每批运行 Android 编译。 |
 | 固定底栏规则回归 | 先重命名并保留原测试语义，再迁移 UI 组件。 |
 | 桌面播放详情页不再沉浸 | 把详情页全屏分支留在 `DesktopAppLayout` 的最高层。 |
-| 桌面组件目录变成新杂物间 | 按 buttons/forms/tables/cards/sections 分类，辅助函数靠近使用者。 |
+| 桌面组件目录变成新杂物间 | 按 buttons/forms/tables/cards/sections 默认分类，强相关组件允许同文件保持高内聚。 |
 | 命名治理扩大范围 | 只改 UI 结构相关命名，不回改历史文档，不改业务状态语义。 |
 | 视觉回归难以自动测试 | 自动编译加手动/截图清单，最终说明剩余视觉风险。 |
 
@@ -495,13 +508,13 @@ DesktopMusicApp
 
 第三阶段完成时应满足：
 
-- `MusicApp.kt` 明显变薄，只保留入口组装。
-- `DesktopMusicApp.kt` 明显变薄，只保留入口组装和必要启动副作用。
+- `MusicApp.kt` 只保留公开入口、主题、系统返回、扫描 callback 和顶层布局调用；不再定义页面级、固定底栏、弹窗或面板 Composable。
+- `DesktopMusicApp.kt` 只保留公开入口、主题、扫描 callback、冷启动加载副作用和顶层布局调用；不再定义工作区、路由或播放器 Composable。
 - `DesktopMusicScreens.kt` 的页面内容按一级页、二级页和本地音乐分区拆清。
 - `DesktopMusicComponents.kt` 的组件按按钮、表单、表格、卡片和分区拆清。
 - `DesktopMusicPlayer.kt` 和 `DesktopPlayerDetailScreen.kt` 的底部播放器、详情页布局、控制区、队列区职责清晰。
 - 生产代码新增命名不再使用 `shell`、`chrome`、`overlays`。
-- 现有 `BottomChrome`、`AppChromeMode`、`BottomChromePlacement` 等 UI 结构相关歧义命名完成替换或留下明确兼容门面。
+- 现有 `BottomChrome`、`AppChromeMode`、`BottomChromePlacement` 等 UI 结构相关歧义命名完成替换；仅允许单个迁移任务内部短期兼容，不作为阶段完成态保留。
 - 手机端和桌面端视觉与交互保持现状。
 - `:composeApp:compileDebugKotlinAndroid` 通过。
 - `:composeApp:desktopTest` 通过。
