@@ -5,21 +5,21 @@ import com.yanhao.kmpmusic.domain.model.QueueState
 /**
  * 纯随机队列策略，集中维护随机模式下的历史栈、剩余集合和下一首选择规则。
  */
-class ShuffleQueuePolicy(
+internal class ShuffleQueuePolicy(
     // 随机候选下标选择器，保留可注入能力以便测试固定结果。
     private val randomIndex: (List<Int>) -> Int = { candidates: List<Int> -> candidates.random() },
 ) {
     /**
      * 为随机模式生成首轮待播集合，避免一开始就重复当前歌曲。
      */
-    fun buildInitialRemaining(queueSize: Int, currentIndex: Int): List<Int> {
+    internal fun buildInitialRemaining(queueSize: Int, currentIndex: Int): List<Int> {
         return (0 until queueSize).filterNot { index: Int -> index == currentIndex }
     }
 
     /**
      * 计算随机模式下的下一首；若当前轮已耗尽，则开启新一轮但避开当前歌曲。
      */
-    fun nextIndex(queueState: QueueState): Int {
+    internal fun nextIndex(queueState: QueueState): Int {
         if (queueState.songIds.isEmpty()) {
             return -1
         }
@@ -37,7 +37,7 @@ class ShuffleQueuePolicy(
     /**
      * 迁移随机模式队列状态，统一维护前进和后退时的历史与剩余集合。
      */
-    fun migrateQueueState(
+    internal fun migrateQueueState(
         queueState: QueueState,
         targetIndex: Int,
         isMovingBackward: Boolean,

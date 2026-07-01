@@ -41,9 +41,10 @@ class PlaybackCoordinator(
     private val snapshotThrottleMs: Long = 5_000L,
     // 随机模式下的下标选择器，方便测试固定随机结果。
     private val randomIndex: (List<Int>) -> Int = { candidates -> candidates.random() },
-    // Shuffle 纯策略，负责维护随机历史、剩余集合和候选选择。
-    private val shuffleQueuePolicy: ShuffleQueuePolicy = ShuffleQueuePolicy(randomIndex = randomIndex),
 ) {
+    // Shuffle 纯策略只在协调器内部协作，不暴露给公共构造签名。
+    private val shuffleQueuePolicy: ShuffleQueuePolicy = ShuffleQueuePolicy(randomIndex = randomIndex)
+
     // 快照写入任务集合，供进程级 teardown 在关闭数据库前等待所有异步写入完成。
     private val pendingSnapshotWritesLock: Any = Any()
 

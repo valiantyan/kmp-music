@@ -113,3 +113,110 @@ BUILD SUCCESSFUL in 15s
 
 - 本次只抽取了 shuffle policy；`PlaybackQueueNavigator`、`PlaybackFailurePolicy`、`PlaybackSnapshotWriter`、`PlaybackHistoryRecorder` 仍留在后续 phase2 任务中。
 - Gradle 仍会输出项目现有的 deprecated property 警告（`kotlin.mpp.androidGradlePluginCompatibility.nowarn`、`kotlin.mpp.androidSourceSetLayoutVersion`），与本任务无关，未在本次处理。
+
+## Follow-up for review findings
+
+### Fix 1: 收紧 `ShuffleQueuePolicy` 可见性并移除 public 构造暴露
+
+- 将 `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/domain/playback/ShuffleQueuePolicy.kt` 的类可见性收紧为 `internal`。
+- 将 `buildInitialRemaining`、`nextIndex`、`migrateQueueState` 明确标记为 `internal`，避免继续以默认 `public` 暴露模块边界。
+- 从 `PlaybackCoordinator` 的 public 构造参数中移除 `shuffleQueuePolicy` 协作者，改为协调器内部私有实例：
+  - 保留原有 `randomIndex` 注入点；
+  - 不再把 `ShuffleQueuePolicy` 类型暴露到 `PlaybackCoordinator` 的 public API 中；
+  - 测试和生产集成都继续走同一条 `randomIndex -> ShuffleQueuePolicy` 路径。
+
+### Fix 2: 补充诚实的失败/通过证据
+
+原报告中的 “RED” 证据无效：`No tests found` 只能说明 `--tests` 过滤条件不匹配，不能证明行为测试先失败。因此这里补一段 follow-up 证据，并明确说明它不是“补写历史”，而是对新增测试做一次可审计的行为验证。
+
+做法：
+
+1. 保持最终正确实现不变之前，先临时引入一个可逆突变：把 `ShuffleQueuePolicy.buildInitialRemaining()` 改成返回全部 index，故意破坏“首轮随机候选不包含当前歌曲”这一核心不变量。
+2. 运行 focused `ShuffleQueuePolicyTest`，记录真实失败输出。
+3. 立即恢复正确实现。
+4. 重新运行 focused policy/coordinator shuffle 回归、`desktopTest` 和 Android 编译，记录 GREEN。
+
+### Follow-up failure evidence
+
+临时突变内容：
+
+```kotlin
+internal fun buildInitialRemaining(queueSize: Int, currentIndex: Int): List<Int> {
+    return (0 until queueSize).toList()
+}
+```
+
+命令：
+
+```bash
+./gradlew :composeApp:desktopTest --tests '*ShuffleQueuePolicyTest'
+```
+
+结果：
+
+```text
+> Task :composeApp:desktopTest FAILED
+
+ShuffleQueuePolicyTest[desktop] > buildInitialRemainingExcludesCurrentIndex[desktop] FAILED
+    java.lang.AssertionError at ShuffleQueuePolicyTest.kt:23
+
+5 tests completed, 1 failed
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':composeApp:desktopTest'.
+> There were failing tests.
+
+BUILD FAILED in 9s
+```
+
+说明：这次失败来自故意破坏 `buildInitialRemaining` 的行为，能够真实证明新增纯策略测试会在不变量被打破时报警；随后已恢复正确代码，最终工作树不保留该突变。
+
+### Follow-up GREEN after restoring correct code
+
+命令（focused policy + coordinator shuffle 回归）：
+
+```bash
+./gradlew :composeApp:desktopTest \
+  --tests '*ShuffleQueuePolicyTest' \
+  --tests 'com.yanhao.kmpmusic.domain.playback.PlaybackCoordinatorTest.shufflePreviousUsesHistory' \
+  --tests 'com.yanhao.kmpmusic.domain.playback.PlaybackCoordinatorTest.externalShuffleTransitionUpdatesHistoryAndRemaining' \
+  --tests 'com.yanhao.kmpmusic.domain.playback.PlaybackCoordinatorTest.shuffleNextAfterPreviousDoesNotReplayCurrentSong'
+```
+
+结果：
+
+```text
+> Task :composeApp:desktopTest
+BUILD SUCCESSFUL in 18s
+18 actionable tasks: 4 executed, 14 up-to-date
+```
+
+命令（full desktop tests）：
+
+```bash
+./gradlew :composeApp:desktopTest
+```
+
+结果：
+
+```text
+> Task :composeApp:desktopTest
+BUILD SUCCESSFUL in 14s
+18 actionable tasks: 7 executed, 11 up-to-date
+```
+
+命令（Android compile）：
+
+```bash
+./gradlew :composeApp:compileDebugKotlinAndroid
+```
+
+结果：
+
+```text
+> Task :composeApp:compileDebugKotlinAndroid
+BUILD SUCCESSFUL in 28s
+25 actionable tasks: 3 executed, 22 up-to-date
+```
