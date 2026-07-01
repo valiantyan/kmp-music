@@ -34,6 +34,17 @@
 ./gradlew :composeApp:desktopTest :composeApp:compileDebugKotlinAndroid
 ```
 
+## 执行状态
+
+| 任务 | 状态 | 说明 |
+| --- | --- | --- |
+| Task 1: Extract `ShuffleQueuePolicy` | 已完成 | commits `39dd3d1..cd6937d`，task review clean after report follow-up。 |
+| Task 2: Extract `PlaybackQueueNavigator` | 未开始 | 后续任务处理。 |
+| Task 3: Extract `PlaybackFailurePolicy` | 未开始 | 后续任务处理。 |
+| Task 4: Extract `PlaybackSnapshotWriter` | 未开始 | 后续任务处理。 |
+| Task 5: Extract `PlaybackHistoryRecorder` | 未开始 | 后续任务处理。 |
+| Event reducer extraction | 不在本阶段 | 本阶段继续保留事件编排在 `PlaybackCoordinator`。 |
+
 ## 第一性原则
 
 第二阶段继续遵守播放主干：
@@ -85,11 +96,11 @@ MusicAppController
 
 ### 本阶段包含
 
-- 抽出 `PlaybackQueueNavigator`，集中处理下一首、上一首、精确下标、移除队列歌曲和引擎媒体切换对应的队列状态迁移。
-- 抽出 `ShuffleQueuePolicy`，集中维护随机模式的历史栈、剩余集合和首轮待播集合。
-- 抽出 `PlaybackFailurePolicy`，集中处理单曲循环失败阈值、连续失败跳过和成功播放后的计数清空。
-- 抽出 `PlaybackSnapshotWriter`，集中管理异步快照写入、pending 写入集合、退出前等待和同步落盘。
-- 抽出 `PlaybackHistoryRecorder`，集中维护最近播放历史去重和上限。
+- 抽出 `PlaybackQueueNavigator`，集中处理下一首、上一首、精确下标、移除队列歌曲和引擎媒体切换对应的队列状态迁移。（状态：未开始）
+- 抽出 `ShuffleQueuePolicy`，集中维护随机模式的历史栈、剩余集合和首轮待播集合。（状态：已完成）
+- 抽出 `PlaybackFailurePolicy`，集中处理单曲循环失败阈值、连续失败跳过和成功播放后的计数清空。（状态：未开始）
+- 抽出 `PlaybackSnapshotWriter`，集中管理异步快照写入、pending 写入集合、退出前等待和同步落盘。（状态：未开始）
+- 抽出 `PlaybackHistoryRecorder`，集中维护最近播放历史去重和上限。（状态：未开始）
 - 保留 `PlaybackCoordinator` 公开方法和构造参数兼容，除非后续执行计划确认可以用默认参数平滑迁移。
 - 拆分 `PlaybackCoordinatorTest` 中的纯规则测试，让协调器测试保留跨职责验收。
 - 清理当前 `PlaybackCoordinator.kt` 中的无效 Elvis warning。
@@ -109,14 +120,14 @@ MusicAppController
 
 建议新增文件都放在 `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/domain/playback/`，因为这些规则属于 common 播放语义，不属于 feature UI。
 
-| 模块 | 形态 | 职责 |
-| --- | --- | --- |
-| `PlaybackCoordinator` | facade / orchestrator | 保留 public API、订阅 engine event、维护 repository 写入顺序、调用 engine 命令、把 `Song` 映射为 engine 队列。 |
-| `ShuffleQueuePolicy` | 纯策略 | 构建随机初始剩余集合、前进/后退时更新 `shuffleHistory` 和 `shuffleRemaining`。 |
-| `PlaybackQueueNavigator` | 纯策略 | 基于 `QueueState`、目标操作和必要的 song id 列表计算目标下标与下一份 `QueueState`。 |
-| `PlaybackFailurePolicy` | 有状态策略 | 记录失败计数，判断是否重试当前歌曲、跳到下一首或停留错误态。 |
-| `PlaybackSnapshotWriter` | IO 协作者 | 读取 repository 当前状态，写入 `PlaybackSnapshotStore`，管理 pending async writes 和 teardown await。 |
-| `PlaybackHistoryRecorder` | repository 协作者 | 维护最近播放历史，新歌曲置顶、去重、最多 50 条。 |
+| 模块 | 形态 | 状态 | 职责 |
+| --- | --- | --- | --- |
+| `PlaybackCoordinator` | facade / orchestrator | 进行中 | 保留 public API、订阅 engine event、维护 repository 写入顺序、调用 engine 命令、把 `Song` 映射为 engine 队列。 |
+| `ShuffleQueuePolicy` | 纯策略 | 已完成 | 构建随机初始剩余集合、前进/后退时更新 `shuffleHistory` 和 `shuffleRemaining`。 |
+| `PlaybackQueueNavigator` | 纯策略 | 未开始 | 基于 `QueueState`、目标操作和必要的 song id 列表计算目标下标与下一份 `QueueState`。 |
+| `PlaybackFailurePolicy` | 有状态策略 | 未开始 | 记录失败计数，判断是否重试当前歌曲、跳到下一首或停留错误态。 |
+| `PlaybackSnapshotWriter` | IO 协作者 | 未开始 | 读取 repository 当前状态，写入 `PlaybackSnapshotStore`，管理 pending async writes 和 teardown await。 |
+| `PlaybackHistoryRecorder` | repository 协作者 | 未开始 | 维护最近播放历史，新歌曲置顶、去重、最多 50 条。 |
 
 不建议单独抽 `SongPlayableMediaMapper`。`Song.toPlayableMedia()` 当前只是字段映射，且只在协调器给 engine 组队列时使用。可以先保留为 `PlaybackCoordinator` 私有扩展；如果未来网络音频或多来源 metadata 让映射复杂化，再抽成独立 mapper。
 
@@ -143,6 +154,8 @@ MusicAppController
 `PlaybackCoordinator` 继续负责把 navigator 结果写入 repository、记录播放历史、保存快照和调用 engine。
 
 ### 随机播放
+
+状态：已完成。`ShuffleQueuePolicy` 已抽出为 common 层内部策略，当前通过 `PlaybackCoordinator` 私有协作者使用，不暴露给 UI 或平台层直接调用。
 
 `ShuffleQueuePolicy` 是 `PlaybackQueueNavigator` 的内部策略，不应被 UI 或平台层直接调用。它的核心不变量：
 
@@ -189,6 +202,8 @@ MusicAppController
 
 ### 最近播放历史
 
+状态：未开始。此部分由后续 `PlaybackHistoryRecorder` 任务处理。
+
 `PlaybackHistoryRecorder` 负责读取并保存 `PlaybackHistory`：
 
 - 新播放歌曲排在最前。
@@ -198,6 +213,8 @@ MusicAppController
 它不读取队列，不判断播放状态，不写快照。`PlaybackCoordinator` 在用户点歌和成功切换目标下标时调用它。
 
 ### 引擎事件
+
+状态：按设计保留在 `PlaybackCoordinator`，不作为 Task 1 改动。
 
 第二阶段暂不把 `handleEngineEvent` 整体抽成 reducer。原因是事件处理不仅是纯状态迁移，还涉及快照写入、失败策略、队列导航、状态回调和 engine 命令。过早抽成 event reducer 会让依赖从一个大类变成一个大参数对象。
 
@@ -275,15 +292,17 @@ Repository current state
 
 新增 focused tests：
 
-| 测试文件 | 覆盖内容 |
-| --- | --- |
-| `PlaybackQueueNavigatorTest` | 顺序下一首/上一首、精确跳转、外部引擎下标迁移、播放模式切换后的队列状态、移除当前/非当前歌曲后的队列状态。 |
-| `ShuffleQueuePolicyTest` | 初始 remaining、前进 history、后退恢复 remaining、下一轮不重复当前歌曲。 |
-| `PlaybackFailurePolicyTest` | 单曲循环三次阈值、非单曲连续失败三次阈值、成功播放后计数清空。 |
-| `PlaybackSnapshotWriterTest` | 首个进度事件写入、进度节流、关键事件不被节流、pending writes 等待、同步写入异常向外抛。 |
-| `PlaybackHistoryRecorderTest` | 新歌曲置顶、重复去重、最多 50 条。 |
+| 测试文件 | 状态 | 覆盖内容 |
+| --- | --- | --- |
+| `PlaybackQueueNavigatorTest` | 未开始 | 顺序下一首/上一首、精确跳转、外部引擎下标迁移、播放模式切换后的队列状态、移除当前/非当前歌曲后的队列状态。 |
+| `ShuffleQueuePolicyTest` | 已完成 | 初始 remaining、前进 history、后退恢复 remaining、下一轮不重复当前歌曲。 |
+| `PlaybackFailurePolicyTest` | 未开始 | 单曲循环三次阈值、非单曲连续失败三次阈值、成功播放后计数清空。 |
+| `PlaybackSnapshotWriterTest` | 未开始 | 首个进度事件写入、进度节流、关键事件不被节流、pending writes 等待、同步写入异常向外抛。 |
+| `PlaybackHistoryRecorderTest` | 未开始 | 新歌曲置顶、重复去重、最多 50 条。 |
 
 `PlaybackCoordinatorTest` 保留 facade 级跨职责验收：
+
+状态：Task 1 相关 shuffle 回归已验证，其它跨职责验收随后续任务继续保留和补充。
 
 - 点歌写入队列并启动 engine。
 - 恢复快照预热 engine，并停在暂停态。
