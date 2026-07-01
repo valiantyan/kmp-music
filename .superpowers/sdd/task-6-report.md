@@ -1,70 +1,115 @@
-# Task 6 Report: Extract Playback UI Sync And Restore Orchestration
+# Task 6 Report: Wire Collaborators Into PlaybackCoordinator
 
-## What I implemented
+## Status
 
-- Added `PlaybackUiStateSynchronizer` to project `PlaybackState` plus repository `QueueState` into `MusicAppUiState`.
-- Added `PlaybackRestoreOrchestrator` to coordinate saved queue ids, available song resolution, pending restore state, and the call into playback restoration.
-- Wired `MusicAppController` to delegate playback UI sync and snapshot restore orchestration while keeping the facade as the only Compose `mutableStateOf` owner.
-- Replaced controller-local preferred song collection with `MusicLibraryProjector.buildDetailSongs`.
-- Removed controller-local `buildRecentSongs`, `knownSongsForRecentPlayback`, `resolveAvailableSongsByIds`, and `buildFavoriteSongs` after their call sites moved to collaborators.
-- Added focused playback UI and restore orchestrator tests.
-- Updated Task 6 checkboxes in `docs/superpowers/plans/2026-06-30-codebase-architecture-optimization-phase1.md`.
+DONE
 
-## RED test evidence
+## Baseline
 
-Command:
+- Step 1 command:
+  - `./gradlew :composeApp:desktopTest --tests "com.yanhao.kmpmusic.domain.playback.PlaybackCoordinatorTest"`
+- Result:
+  - PASS before changes
 
-```bash
-./gradlew :composeApp:desktopTest --tests "com.yanhao.kmpmusic.feature.app.playback.MusicAppPlaybackUiStateSynchronizerTest" --tests "com.yanhao.kmpmusic.feature.app.playback.MusicAppPlaybackRestoreOrchestratorTest"
-```
+## Changes Made
 
-Relevant failure before production classes existed:
+### `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/domain/playback/PlaybackCoordinator.kt`
 
-```text
-Unresolved reference 'PlaybackUiStateSynchronizer'
-Unresolved reference 'PlaybackRestoreOrchestrator'
-```
+- Added internal collaborator fields for:
+  - `ShuffleQueuePolicy`
+  - `PlaybackQueueNavigator`
+  - `PlaybackFailurePolicy`
+  - `PlaybackSnapshotWriter`
+  - `PlaybackHistoryRecorder`
+- Removed duplicated coordinator-owned runtime state for:
+  - pending snapshot write tracking
+  - failure counters
+  - progress snapshot throttling timestamp
+- Replaced direct shuffle/history logic in:
+  - `playSong`
+  - `restoreSnapshot`
+- Delegated queue navigation behavior in:
+  - `moveNext`
+  - `movePrevious`
+  - `cyclePlaybackMode`
+  - `handleCurrentMediaChanged`
+  - `handleEnded`
+  - `handleFailure`
+  - `moveToIndex`
+- Added `moveToNavigationResult(...)` so exact-index, next/previous, ended, and failure recovery all share the same repository/engine transition path.
+- Delegated queue-removal transition to `PlaybackQueueNavigator.removeSong(...)` while preserving existing engine `setQueue` and play/pause behavior.
+- Delegated snapshot behavior to `PlaybackSnapshotWriter`:
+  - event-triggered persistence
+  - async save
+  - sync teardown save
+  - pending-write await
+- Delegated playback history writes to `PlaybackHistoryRecorder`.
+- Delegated successful-playback failure reset to `PlaybackFailurePolicy.reset()`.
+- Removed obsolete coordinator-local helper functions that duplicated collaborator behavior.
 
-Result: RED confirmed with the expected missing collaborator references.
+### `composeApp/src/commonTest/kotlin/com/yanhao/kmpmusic/domain/playback/PlaybackCoordinatorTest.kt`
 
-## GREEN test evidence
+- Added regression test:
+  - `nonLoopSingleSongFailureStaysErrorWithoutRetryingSameSong`
+- Added regression test:
+  - `removeCurrentSongKeepsRepositoryAndEngineQueueInSync`
 
-Command:
+## Compatibility Adaptation
 
-```bash
-./gradlew :composeApp:desktopTest --tests "com.yanhao.kmpmusic.feature.app.playback.MusicAppPlaybackUiStateSynchronizerTest" --tests "com.yanhao.kmpmusic.feature.app.playback.MusicAppPlaybackRestoreOrchestratorTest" --tests "com.yanhao.kmpmusic.feature.app.MusicAppControllerTest.restorePlaybackSnapshotAllowsResume" --tests "com.yanhao.kmpmusic.feature.app.MusicAppControllerTest.restorePlaybackSnapshotDoesNotAutoScanWhenLibraryIsEmpty" --tests "com.yanhao.kmpmusic.feature.app.MusicAppControllerTest.restorePlaybackSnapshotRestoresSavedSongOutsidePreviewWithoutFullLibraryLoad"
-```
+- The current `ShuffleQueuePolicy.buildInitialRemaining(...)` does not accept `playbackMode`.
+- I adapted Task 6 to the existing API exactly as requested by calling the current collaborator method only where the coordinator already needs shuffle-specific initialization.
+- No collaborator APIs were rewritten.
 
-Relevant output:
+## Verification
 
-```text
-BUILD SUCCESSFUL in 6s
-```
+### Focused command
 
-Notes:
+- `./gradlew :composeApp:desktopTest --tests "com.yanhao.kmpmusic.domain.playback.ShuffleQueuePolicyTest" --tests "com.yanhao.kmpmusic.domain.playback.PlaybackQueueNavigatorTest" --tests "com.yanhao.kmpmusic.domain.playback.PlaybackFailurePolicyTest" --tests "com.yanhao.kmpmusic.domain.playback.PlaybackSnapshotWriterTest" --tests "com.yanhao.kmpmusic.domain.playback.PlaybackHistoryRecorderTest" --tests "com.yanhao.kmpmusic.domain.playback.PlaybackCoordinatorTest"`
 
-- The command emitted existing Gradle MPP deprecation warnings.
-- The command emitted the existing `PlaybackCoordinator.kt` Elvis-operator warnings.
-- A first GREEN attempt exposed that writing `uiState = result.state` after `playbackCoordinator.restoreSnapshot` would overwrite the coordinator callback's restored playback fields. The final implementation merges only `queueSongsSnapshot` from the orchestrator result so pause status, current song, and restored position remain intact.
+### Result
 
-## Files changed
+- PASS
 
-- `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/app/playback/PlaybackUiStateSynchronizer.kt`
-- `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/app/playback/PlaybackRestoreOrchestrator.kt`
-- `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/app/MusicAppController.kt`
-- `composeApp/src/commonTest/kotlin/com/yanhao/kmpmusic/feature/app/playback/MusicAppPlaybackUiStateSynchronizerTest.kt`
-- `composeApp/src/commonTest/kotlin/com/yanhao/kmpmusic/feature/app/playback/MusicAppPlaybackRestoreOrchestratorTest.kt`
-- `docs/superpowers/plans/2026-06-30-codebase-architecture-optimization-phase1.md`
-- `.superpowers/sdd/task-6-report.md`
+## Issues Encountered
 
-## Self-review findings
+- First focused test run failed because `PlaybackCoordinator.kt` still needs `PlaybackSnapshot` for `restoreSnapshot(...)`, and I had removed that import while deleting obsolete snapshot-writing code.
+- Fixed by restoring the required import.
+- No additional source compatibility changes were needed outside the two owned Kotlin files.
 
-- `PlaybackUiStateSynchronizer` and `PlaybackRestoreOrchestrator` do not own Compose mutable state; they return immutable results.
-- `MusicAppController` remains the public facade and still publishes playback UI state after sync.
-- Snapshot restore still does not auto-scan when saved songs are unavailable; it marks restore as pending.
-- Snapshot restore still allows resume from restored paused position.
-- Controller helper deletion follows the task boundary: favorite and available-song resolution now live behind existing collaborators.
+## Self-Review
 
-## Concerns
+- Verified only the owned coordinator and coordinator test files were changed for code behavior.
+- Confirmed collaborator wiring preserves existing queue, shuffle, snapshot, and failure-recovery behavior through the focused test suite.
+- Confirmed the new regression coverage protects the two main Task 6 risks:
+  - single-song non-loop failure should not retry the same song
+  - removing the current song should keep repository state and engine queue aligned
 
-- The plan's example assigns `uiState = result.state` in `restorePlaybackSnapshot`; preserving existing behavior requires merging only the orchestrator-owned queue snapshot because `restoreSnapshot` synchronously publishes playback fields through the controller callback before the method returns.
+## Commit
+
+- Planned commit message from brief:
+  - `refactor: 播放协调器接入内部协作者`
+
+## Review Fix Follow-up
+
+- 修复了 reviewer 指出的 `shuffleRemaining` 回归：
+  - `PlaybackCoordinator.playSong(...)`
+  - `PlaybackCoordinator.restoreSnapshot(...)`
+- 处理方式保持在协调器内部，没有改动协作者 API：
+  - 新增本地 helper，只在 `PlaybackMode.Shuffle` 下调用 `ShuffleQueuePolicy.buildInitialRemaining(...)`
+  - `LoopAll` / `LoopOne` 明确保持 `shuffleRemaining = emptyList()`
+- 补强了非随机模式回归断言：
+  - `playSongUsesWholeCurrentListAsQueue`
+  - `restoreSnapshotPrimesEngineForResume`
+  - 两处都验证非随机模式不会预填 `shuffleRemaining`
+- 补强了 `removeCurrentSongKeepsRepositoryAndEngineQueueInSync` 的证据链：
+  - 先移除当前歌曲并停在暂停态
+  - 再调用 `moveNext()` 与 `advanceUntilIdle()`
+  - 断言 repository 当前歌曲推进到精简后队列中的下一首 `songs[2]`
+  - 该断言依赖 fake engine 发出的后续 `CurrentMediaChanged` / 状态事件，因此能够证明引擎内部队列也已同步替换，而不是只验证 repository 本地状态
+
+## Review Fix Verification
+
+- Focused command rerun after review fixes:
+  - `./gradlew :composeApp:desktopTest --tests "com.yanhao.kmpmusic.domain.playback.ShuffleQueuePolicyTest" --tests "com.yanhao.kmpmusic.domain.playback.PlaybackQueueNavigatorTest" --tests "com.yanhao.kmpmusic.domain.playback.PlaybackFailurePolicyTest" --tests "com.yanhao.kmpmusic.domain.playback.PlaybackSnapshotWriterTest" --tests "com.yanhao.kmpmusic.domain.playback.PlaybackHistoryRecorderTest" --tests "com.yanhao.kmpmusic.domain.playback.PlaybackCoordinatorTest"`
+- Result:
+  - PASS

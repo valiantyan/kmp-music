@@ -1312,7 +1312,7 @@ git commit -m "refactor: 抽出最近播放历史记录器"
 - Modify: `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/domain/playback/PlaybackCoordinator.kt`
 - Modify: `composeApp/src/commonTest/kotlin/com/yanhao/kmpmusic/domain/playback/PlaybackCoordinatorTest.kt`
 
-- [ ] **Step 1: Run current coordinator tests as the behavior baseline**
+- [x] **Step 1: Run current coordinator tests as the behavior baseline**
 
 Run:
 
@@ -1322,7 +1322,7 @@ Run:
 
 Expected: PASS before refactoring. If it fails, stop and fix the existing baseline before wiring collaborators.
 
-- [ ] **Step 2: Add collaborator fields and remove duplicated runtime state**
+- [x] **Step 2: Add collaborator fields and remove duplicated runtime state**
 
 Modify the top of `PlaybackCoordinator.kt` so imports no longer include `PlaybackHistory`, `PlaybackSnapshot`, `Deferred`, `async`, or `awaitAll`, and add collaborator fields immediately after constructor parameters:
 
@@ -1365,7 +1365,7 @@ private var lastFailedSongId: String? = null
 private var lastProgressSnapshotAt: Long? = null
 ```
 
-- [ ] **Step 3: Replace initial shuffle and history calls**
+- [x] **Step 3: Replace initial shuffle and history calls**
 
 In `playSong`, replace the `shuffleRemaining` and history lines with:
 
@@ -1394,7 +1394,7 @@ shuffleRemaining = shuffleQueuePolicy.buildInitialRemaining(
 ),
 ```
 
-- [ ] **Step 4: Clean invalid Elvis warnings in teardown methods**
+- [x] **Step 4: Clean invalid Elvis warnings in teardown methods**
 
 In both `persistSnapshotForServiceTeardown` and `persistSnapshotForProcessTeardown`, replace:
 
@@ -1410,7 +1410,7 @@ currentSongId = currentPlaybackState.currentSongId,
 
 The preceding guard already returns when `currentPlaybackState.currentSongId == null`, so this removes the useless Elvis expression without changing behavior.
 
-- [ ] **Step 5: Delegate next, previous, mode change, and engine transition**
+- [x] **Step 5: Delegate next, previous, mode change, and engine transition**
 
 Replace `moveNext` body with:
 
@@ -1458,7 +1458,7 @@ val nextQueueState: QueueState = queueNavigator.engineTransition(
 )?.queueState ?: queueState
 ```
 
-- [ ] **Step 6: Delegate ended, failure, and exact-index movement**
+- [x] **Step 6: Delegate ended, failure, and exact-index movement**
 
 Replace `handleEnded` body with:
 
@@ -1578,7 +1578,7 @@ private fun moveToNavigationResult(
 }
 ```
 
-- [ ] **Step 7: Delegate remove-from-queue transition**
+- [x] **Step 7: Delegate remove-from-queue transition**
 
 In `removeFromQueue`, after `nextQueueSongs` has been resolved and the empty branch handled, replace the current-index calculation and queue-state save with:
 
@@ -1611,7 +1611,7 @@ Keep the existing snapshot, callback, engine mode, `setQueue`, and play/pause lo
 startIndex = navigationResult.targetIndex,
 ```
 
-- [ ] **Step 8: Delegate snapshot writer and failure reset**
+- [x] **Step 8: Delegate snapshot writer and failure reset**
 
 Replace `saveSnapshotForEvent`, `saveSnapshotNow`, `saveSnapshotNowAndAwait`, and `awaitPendingSnapshotWrites` with:
 
@@ -1652,7 +1652,7 @@ buildInitialShuffleRemaining
 buildShuffleQueueState
 ```
 
-- [ ] **Step 9: Add coordinator regression tests for failure and queue removal**
+- [x] **Step 9: Add coordinator regression tests for failure and queue removal**
 
 Add these tests to `composeApp/src/commonTest/kotlin/com/yanhao/kmpmusic/domain/playback/PlaybackCoordinatorTest.kt`:
 
@@ -1720,7 +1720,7 @@ fun removeCurrentSongKeepsRepositoryAndEngineQueueInSync(): Unit = runTest {
 }
 ```
 
-- [ ] **Step 10: Run focused and coordinator tests**
+- [x] **Step 10: Run focused and coordinator tests**
 
 Run:
 
@@ -1730,7 +1730,7 @@ Run:
 
 Expected: PASS.
 
-- [ ] **Step 11: Commit**
+- [x] **Step 11: Commit**
 
 ```bash
 git add composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/domain/playback/PlaybackCoordinator.kt composeApp/src/commonTest/kotlin/com/yanhao/kmpmusic/domain/playback/PlaybackCoordinatorTest.kt

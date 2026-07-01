@@ -47,6 +47,7 @@ class PlaybackCoordinatorTest {
         val queue = repository.getQueueState()
         assertEquals(expected = songs.map { song -> song.id }, actual = queue.songIds)
         assertEquals(expected = 2, actual = queue.currentIndex)
+        assertEquals(expected = emptyList(), actual = queue.shuffleRemaining)
         assertEquals(expected = songs[2].id, actual = repository.getPlaybackState().currentSongId)
     }
 
@@ -346,6 +347,7 @@ class PlaybackCoordinatorTest {
         assertEquals(expected = PlaybackStatus.Paused, actual = repository.getPlaybackState().status)
         assertEquals(expected = restoredSong.id, actual = repository.getPlaybackState().currentSongId)
         assertEquals(expected = 18_000L, actual = repository.getPlaybackState().positionMs)
+        assertEquals(expected = emptyList(), actual = repository.getQueueState().shuffleRemaining)
 
         coordinator.togglePlayback()
         advanceUntilIdle()
@@ -516,6 +518,33 @@ class PlaybackCoordinatorTest {
     }
 
     /**
+     * 非单曲循环的单首坏文件没有可跳过目标时，应停留错误态而不是重试同一首。
+     */
+    @Test
+    fun nonLoopSingleSongFailureStaysErrorWithoutRetryingSameSong(): Unit = runTest {
+        val repository = InMemoryPlaybackRepository()
+        val coordinator = PlaybackCoordinator(
+            playbackRepository = repository,
+            audioPlayerEngine = FakeAudioPlayerEngine(),
+            snapshotWriteScope = backgroundScope,
+        )
+        val songs = buildSongs(count = 1)
+        val expectedError = PlaybackError(
+            type = PlaybackErrorType.Unknown,
+            songId = songs[0].id,
+            message = "坏文件",
+        )
+
+        coordinator.playSong(song = songs[0], queueSongs = songs)
+        coordinator.handleEngineEventForTest(PlaybackEngineEvent.Failed(error = expectedError))
+
+        assertEquals(expected = 0, actual = repository.getQueueState().currentIndex)
+        assertEquals(expected = songs[0].id, actual = repository.getPlaybackState().currentSongId)
+        assertEquals(expected = PlaybackStatus.Error, actual = repository.getPlaybackState().status)
+        assertEquals(expected = expectedError, actual = repository.getPlaybackState().error)
+    }
+
+    /**
      * 非阈值失败自动跳歌时，最近错误仍要保留到下一首真正恢复播放为止。
      */
     @Test
@@ -617,6 +646,44 @@ class PlaybackCoordinatorTest {
 
         assertEquals(expected = PlaybackStatus.Loading, actual = repository.getPlaybackState().status)
         assertEquals(expected = songs[3].id, actual = repository.getPlaybackState().currentSongId)
+    }
+
+    /**
+     * 移除当前歌曲后，repository 队列和引擎队列应同步到新的当前歌曲。
+     */
+    @Test
+    fun removeCurrentSongKeepsRepositoryAndEngineQueueInSync(): Unit = runTest {
+        val repository = InMemoryPlaybackRepository()
+        val engine = FakeAudioPlayerEngine()
+        val coordinator = PlaybackCoordinator(
+            playbackRepository = repository,
+            audioPlayerEngine = engine,
+            snapshotWriteScope = backgroundScope,
+        )
+        val songs = buildSongs(count = 3)
+
+        coordinator.start(scope = backgroundScope)
+        coordinator.playSong(song = songs[0], queueSongs = songs)
+        advanceUntilIdle()
+        coordinator.pause()
+        advanceUntilIdle()
+
+        coordinator.removeFromQueue(
+            songId = songs[0].id,
+            availableSongs = songs,
+        )
+        advanceUntilIdle()
+
+        assertEquals(expected = listOf(songs[1].id, songs[2].id), actual = repository.getQueueState().songIds)
+        assertEquals(expected = 0, actual = repository.getQueueState().currentIndex)
+        assertEquals(expected = songs[1].id, actual = repository.getPlaybackState().currentSongId)
+        assertEquals(expected = PlaybackStatus.Paused, actual = repository.getPlaybackState().status)
+        coordinator.moveNext()
+        advanceUntilIdle()
+
+        assertEquals(expected = 1, actual = repository.getQueueState().currentIndex)
+        assertEquals(expected = songs[2].id, actual = repository.getPlaybackState().currentSongId)
+        assertEquals(expected = PlaybackStatus.Playing, actual = repository.getPlaybackState().status)
     }
 
     /**
