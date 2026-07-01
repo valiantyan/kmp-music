@@ -1191,7 +1191,7 @@ git commit -m "refactor: 抽出播放快照写入器"
 - Create: `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/domain/playback/PlaybackHistoryRecorder.kt`
 - Create: `composeApp/src/commonTest/kotlin/com/yanhao/kmpmusic/domain/playback/PlaybackHistoryRecorderTest.kt`
 
-- [ ] **Step 1: Write the failing history-recorder tests**
+- [x] **Step 1: Write the failing history-recorder tests**
 
 Create `composeApp/src/commonTest/kotlin/com/yanhao/kmpmusic/domain/playback/PlaybackHistoryRecorderTest.kt`:
 
@@ -1244,7 +1244,7 @@ class PlaybackHistoryRecorderTest {
 }
 ```
 
-- [ ] **Step 2: Run the history-recorder test and verify it fails**
+- [x] **Step 2: Run the history-recorder test and verify it fails**
 
 Run:
 
@@ -1254,7 +1254,7 @@ Run:
 
 Expected: FAIL with unresolved reference `PlaybackHistoryRecorder`.
 
-- [ ] **Step 3: Add `PlaybackHistoryRecorder`**
+- [x] **Step 3: Add `PlaybackHistoryRecorder`**
 
 Create `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/domain/playback/PlaybackHistoryRecorder.kt`:
 
@@ -1287,7 +1287,7 @@ class PlaybackHistoryRecorder(
 }
 ```
 
-- [ ] **Step 4: Run the history-recorder test and verify it passes**
+- [x] **Step 4: Run the history-recorder test and verify it passes**
 
 Run:
 
@@ -1297,7 +1297,7 @@ Run:
 
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/domain/playback/PlaybackHistoryRecorder.kt composeApp/src/commonTest/kotlin/com/yanhao/kmpmusic/domain/playback/PlaybackHistoryRecorderTest.kt
