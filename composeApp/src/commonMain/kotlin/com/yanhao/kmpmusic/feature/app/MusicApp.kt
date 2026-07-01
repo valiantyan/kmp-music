@@ -26,29 +26,20 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.List
-import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material.icons.rounded.Home
-import androidx.compose.material.icons.rounded.LibraryMusic
-import androidx.compose.material.icons.rounded.MoreHoriz
 import androidx.compose.material.icons.rounded.Pause
 import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.SkipPrevious
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -81,8 +72,9 @@ import com.yanhao.kmpmusic.core.theme.scaledDp
 import com.yanhao.kmpmusic.core.theme.scaledSp
 import com.yanhao.kmpmusic.domain.model.LocalMusicScanRequest
 import com.yanhao.kmpmusic.domain.model.Song
+import com.yanhao.kmpmusic.feature.app.surfaces.AppDialogs
+import com.yanhao.kmpmusic.feature.app.surfaces.AppPanels
 import com.yanhao.kmpmusic.feature.components.CoverArtImage
-import com.yanhao.kmpmusic.feature.components.SongRow
 import com.yanhao.kmpmusic.feature.components.rememberMiniPlayerPalette
 import com.yanhao.kmpmusic.feature.screen.AlbumDetailScreen
 import com.yanhao.kmpmusic.feature.screen.ArtistDetailScreen
@@ -188,7 +180,8 @@ fun MusicApp(
                         onRootTab = controller::navigateToRoot,
                         modifier = Modifier.align(Alignment.BottomCenter),
                     )
-                    AppOverlays(state = state, controller = controller)
+                    AppDialogs(state = state, controller = controller)
+                    AppPanels(state = state, controller = controller)
                 }
             }
         }
@@ -758,136 +751,6 @@ private fun BottomNavigation(
                     onClick = { onRootTab(tab) },
                 )
             }
-        }
-    }
-}
-
-/**
- * 全局弹层。
- */
-@Composable
-@OptIn(ExperimentalMaterial3Api::class)
-internal fun AppOverlays(
-    state: MusicAppUiState,
-    controller: MusicAppController,
-) {
-    if (state.isQueueOpen) {
-        ModalBottomSheet(onDismissRequest = controller::closeQueue) {
-            val queueSongs: List<Song> = state.queueSongs
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .navigationBarsPadding(),
-                contentPadding = PaddingValues(all = 21.dp),
-                verticalArrangement = Arrangement.spacedBy(14.dp),
-            ) {
-                item(key = "queue-title") {
-                    Text(text = "播放队列", fontSize = 21.sp, fontWeight = FontWeight.ExtraBold)
-                }
-                items(
-                    items = queueSongs,
-                    key = { song: Song -> song.id },
-                    contentType = { "queue-song" },
-                ) { song: Song ->
-                    SongRow(
-                        song = song,
-                        isCurrentSong = song.id == state.currentSongId,
-                        currentPlaybackStatus = state.playbackStatus,
-                        onOpen = { selectedSong: Song ->
-                            controller.playSong(
-                                song = selectedSong,
-                                queueSongs = queueSongs,
-                            )
-                        },
-                        onPlay = { selectedSong: Song ->
-                            controller.playSong(
-                                song = selectedSong,
-                                queueSongs = queueSongs,
-                            )
-                        },
-                        onCurrentSongToggle = controller::togglePlayback,
-                        onMore = controller::openMore,
-                        dense = true,
-                    )
-                }
-            }
-        }
-    }
-    state.moreSongId?.let { songId ->
-        val song: Song? = state.currentSong?.takeIf { item -> item.id == songId }
-            ?: state.queueSongs.firstOrNull { item -> item.id == songId }
-            ?: state.localSongs.firstOrNull { item -> item.id == songId }
-            ?: state.homeLocalSongPreview.firstOrNull { item -> item.id == songId }
-            ?: state.favoriteSongs.firstOrNull { item -> item.id == songId }
-        if (song != null) {
-            ModalBottomSheet(onDismissRequest = controller::closeMore) {
-                Column(modifier = Modifier.padding(21.dp), verticalArrangement = Arrangement.spacedBy(18.dp)) {
-                    Text(
-                        text = song.title,
-                        fontSize = 19.sp,
-                        fontWeight = FontWeight.ExtraBold,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                    BottomSheetAction("加入收藏", Icons.Rounded.Favorite) { controller.toggleFavorite(song.id) }
-                    BottomSheetAction("查看专辑", Icons.Rounded.LibraryMusic) { controller.openAlbumFromSong(song) }
-                    BottomSheetAction("查看歌手", Icons.Rounded.Person) { controller.openArtistFromSong(song) }
-                }
-            }
-        }
-    }
-    if (state.isClearCacheDialogOpen) {
-        AlertDialog(
-            onDismissRequest = controller::closeClearCacheDialog,
-            confirmButton = {
-                Button(onClick = controller::confirmClearCache) {
-                    Text(text = "清理")
-                }
-            },
-            dismissButton = {
-                Button(onClick = controller::closeClearCacheDialog) {
-                    Text(text = "取消")
-                }
-            },
-            icon = { Icon(Icons.Rounded.Delete, contentDescription = null, tint = MusicColors.Danger) },
-            title = { Text(text = "清理 428 MB 缓存？") },
-            text = { Text(text = "只会删除封面缓存和临时文件，本地歌曲不会受到影响。") },
-        )
-    }
-    if (state.isPermissionSettingsDialogOpen) {
-        AlertDialog(
-            onDismissRequest = controller::closePermissionSettingsDialog,
-            confirmButton = {
-                Button(onClick = controller::confirmPermissionSettings) {
-                    Text(text = "去设置")
-                }
-            },
-            dismissButton = {
-                Button(onClick = controller::closePermissionSettingsDialog) {
-                    Text(text = "取消")
-                }
-            },
-            icon = { Icon(Icons.Rounded.LibraryMusic, contentDescription = null, tint = MusicColors.Accent) },
-            title = { Text(text = "开启音频权限") },
-            text = { Text(text = "需要在系统设置中开启音频权限，才能扫描本机歌曲。") },
-        )
-    }
-}
-
-/**
- * 更多操作行。
- */
-@Composable
-private fun BottomSheetAction(
-    label: String,
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    onClick: () -> Unit,
-) {
-    Surface(shape = RoundedCornerShape(16.dp), color = MusicColors.Soft, onClick = onClick) {
-        Row(modifier = Modifier.fillMaxWidth().padding(14.dp), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
-            Icon(icon, contentDescription = null)
-            Text(text = label, fontWeight = FontWeight.Bold)
-            Icon(Icons.Rounded.MoreHoriz, contentDescription = null, tint = MusicColors.Muted)
         }
     }
 }

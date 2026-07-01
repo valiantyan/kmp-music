@@ -17,12 +17,13 @@ import androidx.compose.ui.Modifier
 import com.yanhao.kmpmusic.core.theme.KmpMusicTheme
 import com.yanhao.kmpmusic.domain.model.LocalMusicScanRequest
 import com.yanhao.kmpmusic.domain.model.SearchContext
-import com.yanhao.kmpmusic.feature.app.AppOverlays
 import com.yanhao.kmpmusic.feature.app.LocalMusicSection
 import com.yanhao.kmpmusic.feature.app.MusicAppController
 import com.yanhao.kmpmusic.feature.app.MusicAppUiState
 import com.yanhao.kmpmusic.feature.app.RootTab
 import com.yanhao.kmpmusic.feature.app.SecondaryScreen
+import com.yanhao.kmpmusic.feature.app.surfaces.AppDialogs
+import com.yanhao.kmpmusic.feature.app.surfaces.AppPanels
 import kotlinx.coroutines.launch
 
 /**
@@ -80,7 +81,8 @@ fun DesktopMusicApp(
                         modifier = Modifier.fillMaxSize(),
                     )
                 }
-                AppOverlays(state = state, controller = controller)
+                AppDialogs(state = state, controller = controller)
+                AppPanels(state = state, controller = controller)
                 return@Box
             }
             Column(
@@ -154,7 +156,8 @@ fun DesktopMusicApp(
                     onQueue = controller::openQueue,
                 )
             }
-            AppOverlays(state = state, controller = controller)
+            AppDialogs(state = state, controller = controller)
+            AppPanels(state = state, controller = controller)
         }
     }
 }
