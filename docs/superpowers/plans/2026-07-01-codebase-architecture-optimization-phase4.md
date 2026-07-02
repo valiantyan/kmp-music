@@ -1349,7 +1349,7 @@ git commit -m "refactor: 拆分桌面事件规整和命令循环"
 - Modify imports only where final verification reveals stale references.
 - No new production behavior.
 
-- [ ] **Step 1: Verify forbidden platform leaks**
+- [x] **Step 1: Verify forbidden platform leaks**
 
 Run:
 
@@ -1359,7 +1359,7 @@ rg -n "androidx\\.media3|android\\.os|UIKit|AVFoundation|AVAudioSession|MPRemote
 
 Expected: no output.
 
-- [ ] **Step 2: Verify forbidden old Android aggregate names**
+- [x] **Step 2: Verify forbidden old Android aggregate names**
 
 Run:
 
@@ -1369,7 +1369,7 @@ rg -n "AndroidPlaybackMediaButtons|PlaybackMediaCommands" composeApp/src/android
 
 Expected: no output.
 
-- [ ] **Step 3: Verify platform session facades are thin**
+- [x] **Step 3: Verify platform session facades are thin**
 
 Run:
 
@@ -1380,7 +1380,7 @@ rg -n "PersistentFavoritesRepository|PersistentPlaybackRepository|MacosLibVlcRun
 
 Expected: both commands produce no output.
 
-- [ ] **Step 4: Verify iOS scope did not expand**
+- [x] **Step 4: Verify iOS scope did not expand**
 
 Run:
 
@@ -1390,7 +1390,7 @@ rg -n "IosPlaybackSession|IosAvAudioPlayerEngine|AVFoundation|AVAudioSession|MPR
 
 Expected: no output.
 
-- [ ] **Step 5: Run final automated verification**
+- [x] **Step 5: Run final automated verification**
 
 Run:
 
@@ -1400,9 +1400,11 @@ Run:
 
 Expected: PASS.
 
-- [ ] **Step 6: Manual platform checklist**
+- [x] **Step 6: Document manual platform checklist availability (not run in this environment)**
 
 Manually verify on available platforms:
+
+Note: no Android device/emulator and no GUI/manual desktop path were available in this environment, so this checklist was not executed here.
 
 ```text
 Android:
@@ -1419,7 +1421,7 @@ Desktop:
 - Playing, paused, ended, failed, and progress events still reach UI.
 ```
 
-- [ ] **Step 7: Commit final cleanup**
+- [x] **Step 7: Commit final cleanup**
 
 ```bash
 git add composeApp/src/androidMain composeApp/src/androidUnitTest composeApp/src/desktopMain composeApp/src/desktopTest composeApp/build.gradle.kts
@@ -1435,7 +1437,7 @@ Spec coverage:
 - Desktop session facade/controller factory/runtime/audio factory split is covered by Task 4.
 - Desktop engine command, state, ack, mapper, ticker, reducer, and command loop split is covered by Tasks 5-7.
 - iOS no-implementation boundary is covered by Task 8.
-- Compile, Android unit tests, desktop tests, and manual platform checks are covered by Task 8.
+- Compile, Android unit tests, and desktop tests are covered by Task 8; manual platform checks remain residual risk because no Android device/emulator or GUI/manual desktop path was available.
 
 Type consistency:
 
