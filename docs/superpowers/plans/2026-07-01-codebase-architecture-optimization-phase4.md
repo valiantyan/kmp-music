@@ -1191,7 +1191,7 @@ git commit -m "refactor: 拆分桌面媒体映射和进度轮询"
 - Modify: `composeApp/src/desktopMain/kotlin/com/yanhao/kmpmusic/playback/DesktopVlcjAudioPlayerEngine.kt`
 - Test: `composeApp/src/desktopTest/kotlin/com/yanhao/kmpmusic/playback/DesktopVlcjAudioPlayerEngineTest.kt`
 
-- [ ] **Step 1: Create reducer result models**
+- [x] **Step 1: Create reducer result models**
 
 Create `DesktopAdapterEventReducer.kt` with:
 
@@ -1235,7 +1235,7 @@ internal class DesktopAdapterEventReducer {
 
 Move the decision logic from `handleAdapterEvent`, `handlePrepared`, `handlePlaying`, `handlePaused`, `handleFinished`, and `handleFailed` into `reduce`. The reducer must not mutate `DesktopPlaybackEngineState`; it receives only `DesktopPlaybackEngineSnapshot` and returns `DesktopAdapterEventReduction`. It must not hold adapter, channels, ticker, or coroutine scope, and it must not call adapter methods.
 
-- [ ] **Step 2: Apply reducer output in engine**
+- [x] **Step 2: Apply reducer output in engine**
 
 In `DesktopVlcjAudioPlayerEngine`, replace the old adapter event handlers with:
 
@@ -1278,7 +1278,7 @@ private suspend fun handleAdapterEvent(event: DesktopMediaPlayerEvent) {
 
 The command loop remains the only place that calls this function and applies `DesktopEngineStateUpdate`, so runtime state mutation stays serialized in the command loop instead of moving into the reducer.
 
-- [ ] **Step 3: Create command loop class**
+- [x] **Step 3: Create command loop class**
 
 Create `DesktopPlaybackCommandLoop.kt`:
 
@@ -1312,7 +1312,7 @@ private val commandLoopJob: Job = engineScope.launch {
 }
 ```
 
-- [ ] **Step 4: Verify command loop remains the only state mutation path**
+- [x] **Step 4: Verify command loop remains the only state mutation path**
 
 Run:
 
@@ -1326,7 +1326,7 @@ Expected:
 - `progressTicker.start` and `progressTicker.stop` appear only in `DesktopVlcjAudioPlayerEngine.kt`.
 - `DesktopProgressTicker.kt` does not import or reference `PlaybackEngineEvent`.
 
-- [ ] **Step 5: Run engine tests**
+- [x] **Step 5: Run engine tests**
 
 Run:
 
@@ -1336,7 +1336,7 @@ Run:
 
 Expected: PASS.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add composeApp/src/desktopMain/kotlin/com/yanhao/kmpmusic/playback/DesktopVlcjAudioPlayerEngine.kt composeApp/src/desktopMain/kotlin/com/yanhao/kmpmusic/playback/DesktopAdapterEventReducer.kt composeApp/src/desktopMain/kotlin/com/yanhao/kmpmusic/playback/DesktopPlaybackCommandLoop.kt

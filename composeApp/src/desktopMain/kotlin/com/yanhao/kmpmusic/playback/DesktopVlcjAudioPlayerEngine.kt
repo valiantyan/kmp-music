@@ -52,6 +52,9 @@ class DesktopVlcjAudioPlayerEngine(
     // 跟踪所有待完成的 [setQueue] 确认，确保 release 与异常退出都能统一收口。
     private val setQueueAckTracker: DesktopSetQueueAckTracker = DesktopSetQueueAckTracker()
 
+    // 适配器回调规整器，只负责从快照推导副作用意图。
+    private val adapterEventReducer: DesktopAdapterEventReducer = DesktopAdapterEventReducer()
+
     // 适配器事件订阅任务，释放后取消以阻止 native 回调继续灌入命令通道。
     private val adapterEventJob: Job = engineScope.launch {
         adapter.events.collect { event: DesktopMediaPlayerEvent ->
@@ -63,13 +66,11 @@ class DesktopVlcjAudioPlayerEngine(
 
     // 串行命令循环任务，负责把所有状态变更压到同一条执行序列中。
     private val commandLoopJob: Job = engineScope.launch {
-        try {
-            for (command: DesktopPlaybackCommand in commandChannel) {
-                handle(command = command)
-            }
-        } finally {
-            setQueueAckTracker.completeAll()
-        }
+        DesktopPlaybackCommandLoop(
+            commands = commandChannel,
+            handleCommand = ::handle,
+            onFinally = setQueueAckTracker::completeAll,
+        ).run()
     }
 
     // 释放流程是否已开始；一旦开始就不再接受新的外部命令。
@@ -350,97 +351,36 @@ class DesktopVlcjAudioPlayerEngine(
 
     /** 只消费当前 generation 的有效回调，旧媒体与释放后的回调全部丢弃。 */
     private suspend fun handleAdapterEvent(event: DesktopMediaPlayerEvent) {
-        if (isReleased || event.generation != state.generation) {
-            return
-        }
-        if (!state.isPrepared &&
-            event !is DesktopMediaPlayerEvent.Prepared &&
-            event !is DesktopMediaPlayerEvent.Failed
-        ) {
-            return
-        }
-        when (event) {
-            is DesktopMediaPlayerEvent.Prepared -> handlePrepared(event = event)
-            is DesktopMediaPlayerEvent.Playing -> handlePlaying(event = event)
-            is DesktopMediaPlayerEvent.Paused -> handlePaused(event = event)
-            is DesktopMediaPlayerEvent.Finished -> handleFinished()
-            is DesktopMediaPlayerEvent.Failed -> handleFailed(event = event)
-        }
-    }
-
-    /** 准备完成后兑现待 seek 与待播放控制意图；没有控制意图时等待下一条命令。 */
-    private suspend fun handlePrepared(event: DesktopMediaPlayerEvent.Prepared) {
-        val snapshot: DesktopPlaybackEngineSnapshot = state.snapshot()
-        if (!snapshot.isCurrentIndexValid()) {
-            return
-        }
-        state.isPrepared = true
-        val seekMs: Long = snapshot.pendingSeekMs ?: 0L
-        if (seekMs > 0L) {
-            adapter.seekTo(
-                generation = snapshot.generation,
-                positionMs = seekMs,
-            )
-            eventChannel.send(
-                element = PlaybackEngineEvent.ProgressChanged(
-                    positionMs = seekMs,
-                    durationMs = event.durationMs ?: requireNotNull(snapshot.currentMedia()).durationMs,
-                ),
-            )
-        }
-        when (snapshot.playbackControlIntent) {
-            DesktopPlaybackControlIntent.Play -> {
-                adapter.play(generation = snapshot.generation)
-            }
-            DesktopPlaybackControlIntent.Pause -> {
-                adapter.pause(generation = snapshot.generation)
-            }
-            DesktopPlaybackControlIntent.None -> Unit
-        }
-    }
-
-    /** 播放开始后启动轮询，并把当前 position/duration 同步给协调器。 */
-    private suspend fun handlePlaying(event: DesktopMediaPlayerEvent.Playing) {
-        if (state.playbackControlIntent == DesktopPlaybackControlIntent.Pause) {
-            return
-        }
-        progressTicker.start()
-        eventChannel.send(
-            element = PlaybackEngineEvent.StatusChanged(
-                status = PlaybackStatus.Playing,
-                positionMs = event.positionMs,
-                durationMs = event.durationMs,
-            ),
+        val reduction: DesktopAdapterEventReduction = adapterEventReducer.reduce(
+            snapshot = state.snapshot(),
+            event = event,
         )
-    }
-
-    /** 暂停时立即停止轮询，避免暂停态继续上报进度噪音。 */
-    private suspend fun handlePaused(event: DesktopMediaPlayerEvent.Paused) {
-        if (state.playbackControlIntent != DesktopPlaybackControlIntent.Pause) {
-            return
+        reduction.stateUpdates.forEach { update: DesktopEngineStateUpdate ->
+            when (update) {
+                DesktopEngineStateUpdate.MarkPrepared -> state.isPrepared = true
+                DesktopEngineStateUpdate.ResetPlaybackFlags -> state.resetPlaybackFlags()
+                DesktopEngineStateUpdate.AdvanceGeneration -> state.nextGeneration()
+            }
         }
-        progressTicker.stop()
-        eventChannel.send(
-            element = PlaybackEngineEvent.StatusChanged(
-                status = PlaybackStatus.Paused,
-                positionMs = event.positionMs,
-                durationMs = event.durationMs,
-            ),
-        )
-    }
-
-    /** 自然结束后交回协调器决定是否继续下一首。 */
-    private suspend fun handleFinished() {
-        progressTicker.stop()
-        eventChannel.send(element = PlaybackEngineEvent.Ended)
-    }
-
-    /** 失败后停止轮询，并把底层统一错误形状透传给 common 层。 */
-    private suspend fun handleFailed(event: DesktopMediaPlayerEvent.Failed) {
-        progressTicker.stop()
-        state.nextGeneration()
-        state.resetPlaybackFlags()
-        eventChannel.send(element = PlaybackEngineEvent.Failed(error = event.error))
+        if (reduction.shouldStopProgressTicker) {
+            progressTicker.stop()
+        }
+        reduction.adapterActions.forEach { action: DesktopAdapterAction ->
+            when (action) {
+                is DesktopAdapterAction.SeekTo -> adapter.seekTo(
+                    generation = action.generation,
+                    positionMs = action.positionMs,
+                )
+                is DesktopAdapterAction.Play -> adapter.play(generation = action.generation)
+                is DesktopAdapterAction.Pause -> adapter.pause(generation = action.generation)
+            }
+        }
+        if (reduction.shouldStartProgressTicker) {
+            progressTicker.start()
+        }
+        reduction.events.forEach { reducedEvent: PlaybackEngineEvent ->
+            eventChannel.send(element = reducedEvent)
+        }
     }
 
     /** 轮询命中时读取适配器当前进度，保持桌面播放中的位置持续更新。 */
