@@ -203,14 +203,13 @@ fun PlayingGlyph(color: Color = MusicColors.Accent) {
 }
 
 /**
- * 歌曲行组件，所有列表共享当前播放红色规则。
+ * 歌曲行组件，所有列表共享当前播放红色规则，行主体点击只表达播放意图。
  */
 @Composable
 fun SongRow(
     song: Song,
     isCurrentSong: Boolean,
     currentPlaybackStatus: PlaybackStatus? = null,
-    onOpen: (Song) -> Unit,
     onPlay: (Song) -> Unit,
     onCurrentSongToggle: (() -> Unit)? = null,
     onMore: (Song) -> Unit,
@@ -237,7 +236,7 @@ fun SongRow(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Row(
-            modifier = Modifier.weight(weight = 1f).clickable { onOpen(song) },
+            modifier = Modifier.weight(weight = 1f).clickable { onPlay(song) },
             horizontalArrangement = Arrangement.spacedBy(scaledDp(if (dense) 12.dp else 15.dp)),
             verticalAlignment = Alignment.CenterVertically,
         ) {

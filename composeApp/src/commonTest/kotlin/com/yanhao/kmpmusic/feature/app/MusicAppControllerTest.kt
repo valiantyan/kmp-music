@@ -373,6 +373,33 @@ class MusicAppControllerTest {
     }
 
     /**
+     * 列表点击歌曲只应更新播放状态，播放页必须继续由迷你播放器等显式入口打开。
+     */
+    @Test
+    fun playSongDoesNotNavigateToPlayer(): Unit = runTest {
+        val controller = createController(controllerScope = backgroundScope)
+        controller.scanLocalMusic(request = LocalMusicScanRequest.Refresh)
+        val queueSongs: List<Song> = controller.uiState.homeLocalSongPreview
+        val firstSong: Song = queueSongs[0]
+        val secondSong: Song = queueSongs[1]
+
+        controller.navigateToRoot(tab = RootTab.Favorites)
+        controller.playSong(song = firstSong, queueSongs = queueSongs)
+
+        assertEquals(expected = RootTab.Favorites, actual = controller.uiState.navigationState.rootTab)
+        assertNull(actual = controller.uiState.navigationState.secondaryScreen)
+
+        controller.openLocalMusic(section = LocalMusicSection.Songs)
+        controller.playSong(song = secondSong, queueSongs = queueSongs)
+
+        assertEquals(
+            expected = SecondaryScreen.LocalMusic(initialSection = LocalMusicSection.Songs),
+            actual = controller.uiState.navigationState.secondaryScreen,
+        )
+        assertEquals(expected = secondSong.id, actual = controller.uiState.currentSongId)
+    }
+
+    /**
      * 队列弹层或系统入口只给歌曲时，应复用当前显式队列，避免退化成单曲队列。
      */
     @Test

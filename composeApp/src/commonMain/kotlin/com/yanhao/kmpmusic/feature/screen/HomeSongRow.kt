@@ -38,7 +38,7 @@ internal fun HomeSongRow(
     isCurrentSong: Boolean,
     currentPlaybackStatus: PlaybackStatus,
     queueSongs: List<Song>,
-    onSongOpen: (Song, List<Song>) -> Unit,
+    onSongPlay: (Song, List<Song>) -> Unit,
     onMore: (Song) -> Unit,
 ) {
     val rowStyle: HomeSongRowStyle = resolveHomeSongRowStyle(
@@ -54,7 +54,7 @@ internal fun HomeSongRow(
         color = rowStyle.containerColor,
         border = rowStyle.border,
         shadowElevation = rowStyle.shadowElevation,
-        onClick = { onSongOpen(song, queueSongs) },
+        onClick = { onSongPlay(song, queueSongs) },
     ) {
         Row(
             modifier = Modifier.padding(13.dp),

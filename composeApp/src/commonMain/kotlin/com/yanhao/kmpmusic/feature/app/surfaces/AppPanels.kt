@@ -65,12 +65,6 @@ fun AppPanels(
                         song = song,
                         isCurrentSong = song.id == state.currentSongId,
                         currentPlaybackStatus = state.playbackStatus,
-                        onOpen = { selectedSong: Song ->
-                            controller.playSong(
-                                song = selectedSong,
-                                queueSongs = queueSongs,
-                            )
-                        },
                         onPlay = { selectedSong: Song ->
                             controller.playSong(
                                 song = selectedSong,

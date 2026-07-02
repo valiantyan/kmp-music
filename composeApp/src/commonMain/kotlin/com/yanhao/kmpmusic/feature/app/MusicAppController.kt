@@ -334,12 +334,6 @@ class MusicAppController(
         }
     }
 
-    /** 打开播放页并播放歌曲。 */
-    fun openSong(song: Song, queueSongs: List<Song> = emptyList()) {
-        playSong(song = song, queueSongs = queueSongs)
-        openPlayer()
-    }
-
     // 队列弹层等入口只有歌曲本身时，复用当前显式队列，避免变成单曲队列。
     private fun resolvePlaybackQueueSongs(song: Song, queueSongs: List<Song>): List<Song> {
         if (queueSongs.any { candidate -> candidate.id == song.id }) {

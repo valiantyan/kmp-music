@@ -34,8 +34,8 @@ fun MobileRootScreenRoute(
             currentPlaybackStatus = state.playbackStatus,
             onSearch = controller::openSearch,
             onScan = onScanLocalMusic,
-            onSongOpen = { song: Song, queueSongs: List<Song> ->
-                controller.openSong(song = song, queueSongs = queueSongs)
+            onSongPlay = { song: Song, queueSongs: List<Song> ->
+                controller.playSong(song = song, queueSongs = queueSongs)
             },
             onMore = controller::openMore,
             modifier = modifier,
@@ -49,9 +49,6 @@ fun MobileRootScreenRoute(
             currentPlaybackStatus = state.playbackStatus,
             section = state.favoriteSection,
             onSection = controller::setFavoriteSection,
-            onSongOpen = { song: Song, queueSongs: List<Song> ->
-                controller.openSong(song = song, queueSongs = queueSongs)
-            },
             onSongPlay = { song: Song, queueSongs: List<Song> ->
                 controller.playSong(song = song, queueSongs = queueSongs)
             },

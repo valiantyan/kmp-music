@@ -43,9 +43,6 @@ fun MobileSecondaryScreenRoute(
             currentSongId = state.currentSongId,
             currentPlaybackStatus = state.playbackStatus,
             onBack = controller::navigateBack,
-            onSongOpen = { song: Song, queueSongs: List<Song> ->
-                controller.openSong(song = song, queueSongs = queueSongs)
-            },
             onSongPlay = { song: Song, queueSongs: List<Song> ->
                 controller.playSong(song = song, queueSongs = queueSongs)
             },
@@ -68,9 +65,6 @@ fun MobileSecondaryScreenRoute(
             onBack = controller::navigateBack,
             onQuery = controller::setSearchQuery,
             onScope = controller::setSearchScope,
-            onSongOpen = { song: Song, queueSongs: List<Song> ->
-                controller.openSong(song = song, queueSongs = queueSongs)
-            },
             onSongPlay = { song: Song, queueSongs: List<Song> ->
                 controller.playSong(song = song, queueSongs = queueSongs)
             },
@@ -108,9 +102,6 @@ fun MobileSecondaryScreenRoute(
                 currentSongId = state.currentSongId,
                 currentPlaybackStatus = state.playbackStatus,
                 onBack = controller::navigateBack,
-                onSongOpen = { song: Song, queueSongs: List<Song> ->
-                    controller.openSong(song = song, queueSongs = queueSongs)
-                },
                 onSongPlay = { song: Song, queueSongs: List<Song> ->
                     controller.playSong(song = song, queueSongs = queueSongs)
                 },
@@ -130,9 +121,6 @@ fun MobileSecondaryScreenRoute(
                 currentSongId = state.currentSongId,
                 currentPlaybackStatus = state.playbackStatus,
                 onBack = controller::navigateBack,
-                onSongOpen = { song: Song, queueSongs: List<Song> ->
-                    controller.openSong(song = song, queueSongs = queueSongs)
-                },
                 onSongPlay = { song: Song, queueSongs: List<Song> ->
                     controller.playSong(song = song, queueSongs = queueSongs)
                 },

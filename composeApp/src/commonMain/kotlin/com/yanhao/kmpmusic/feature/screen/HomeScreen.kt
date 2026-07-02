@@ -30,7 +30,7 @@ fun HomeScreen(
     currentPlaybackStatus: PlaybackStatus,
     onSearch: () -> Unit,
     onScan: () -> Unit,
-    onSongOpen: (Song, List<Song>) -> Unit,
+    onSongPlay: (Song, List<Song>) -> Unit,
     onMore: (Song) -> Unit,
     modifier: Modifier = Modifier,
     contentPadding: PaddingValues = PaddingValues(0.dp),
@@ -82,7 +82,7 @@ fun HomeScreen(
                         isCurrentSong = song.id == currentSongId,
                         currentPlaybackStatus = currentPlaybackStatus,
                         queueSongs = songs,
-                        onSongOpen = onSongOpen,
+                        onSongPlay = onSongPlay,
                         onMore = onMore,
                     )
                     Spacer(modifier = Modifier.height(12.dp))
