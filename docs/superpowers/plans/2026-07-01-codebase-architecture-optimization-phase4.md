@@ -784,7 +784,7 @@ git commit -m "refactor: 拆分 Android 播放会话运行时"
 - Modify: `composeApp/src/desktopMain/kotlin/com/yanhao/kmpmusic/DesktopPlaybackSession.kt`
 - Modify: `composeApp/src/desktopTest/kotlin/com/yanhao/kmpmusic/DesktopPlaybackSessionTest.kt`
 
-- [ ] **Step 1: Move desktop controller factory**
+- [x] **Step 1: Move desktop controller factory**
 
 Move `createDesktopPlaybackController` unchanged from `DesktopPlaybackSession.kt` to `DesktopPlaybackControllerFactory.kt`. Keep the function signature:
 
@@ -798,11 +798,11 @@ internal fun createDesktopPlaybackController(
 ): MusicAppController
 ```
 
-- [ ] **Step 2: Move desktop session runtime**
+- [x] **Step 2: Move desktop session runtime**
 
 Move `DesktopPlaybackSessionRuntime` unchanged from `DesktopPlaybackSession.kt` to `DesktopPlaybackSessionRuntime.kt`. Keep its primary constructor and `ensurePlaybackSnapshotRestoreRequested` / `close` behavior unchanged so existing `DesktopPlaybackSessionTest` keeps asserting the same lifecycle order.
 
-- [ ] **Step 3: Create desktop audio runtime factory**
+- [x] **Step 3: Create desktop audio runtime factory**
 
 Create `DesktopAudioRuntimeFactory.kt`:
 
@@ -840,7 +840,7 @@ internal object DesktopAudioRuntimeFactory {
 }
 ```
 
-- [ ] **Step 4: Thin `DesktopPlaybackSession.kt`**
+- [x] **Step 4: Thin `DesktopPlaybackSession.kt`**
 
 Keep only the facade and lazy runtime construction:
 
@@ -881,7 +881,7 @@ object DesktopPlaybackSession {
 }
 ```
 
-- [ ] **Step 5: Verify desktop session file is thin**
+- [x] **Step 5: Verify desktop session file is thin**
 
 Run:
 
@@ -891,7 +891,7 @@ rg -n "PersistentFavoritesRepository|PersistentPlaybackRepository|MacosLibVlcRun
 
 Expected: no output.
 
-- [ ] **Step 6: Run desktop session tests**
+- [x] **Step 6: Run desktop session tests**
 
 Run:
 
@@ -901,7 +901,7 @@ Run:
 
 Expected: PASS.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add composeApp/src/desktopMain/kotlin/com/yanhao/kmpmusic/DesktopPlaybackSession.kt composeApp/src/desktopMain/kotlin/com/yanhao/kmpmusic/DesktopPlaybackControllerFactory.kt composeApp/src/desktopMain/kotlin/com/yanhao/kmpmusic/DesktopPlaybackSessionRuntime.kt composeApp/src/desktopMain/kotlin/com/yanhao/kmpmusic/DesktopAudioRuntimeFactory.kt composeApp/src/desktopTest/kotlin/com/yanhao/kmpmusic/DesktopPlaybackSessionTest.kt
