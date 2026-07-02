@@ -1,70 +1,50 @@
-# Task 3 Report: Extract PlaybackFailurePolicy
+# Task 3 Report: Split Android Playback Session Runtime
 
 ## What I implemented
 
-- 新增 `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/domain/playback/PlaybackFailurePolicy.kt`
-  - 抽出纯失败恢复协作者 `PlaybackFailurePolicy`
-  - 提供 `onFailure(...)` 与 `reset()`
-  - 新增恢复决策枚举 `PlaybackFailureDecision`
-- 新增 `composeApp/src/commonTest/kotlin/com/yanhao/kmpmusic/domain/playback/PlaybackFailurePolicyTest.kt`
-  - 覆盖单曲循环同曲两次重试、第三次停留错误
-  - 覆盖单曲循环切到新歌后失败窗口独立重置
-  - 覆盖非单曲循环前两次跳过、第三次停留错误
-  - 覆盖无可恢复目标直接停留错误
-  - 覆盖成功恢复后的 `reset()` 清空失败窗口
+- 新增 `composeApp/src/androidMain/kotlin/com/yanhao/kmpmusic/AndroidUiBindingRegistry.kt`
+  - 把 `MutableLocalMusicScanner`、`MutablePermissionSettingsOpener` 和 `MissingAndroidLocalMusicScanner` 从 `AndroidPlaybackSession.kt` 拆出
+  - 保留原有缺省扫描异常：`LocalMusicScanErrorType.Unknown` + `Android 本地音乐扫描器尚未初始化`
+- 新增 `composeApp/src/androidMain/kotlin/com/yanhao/kmpmusic/AndroidPlaybackControllerFactory.kt`
+  - 把 Android Room database、持久化 repository、`RoomPlaybackSnapshotStore` 和 `MusicAppController` 的依赖图集中到工厂函数
+  - 保持 runtime attach 不在工厂中发生
+- 新增 `composeApp/src/androidMain/kotlin/com/yanhao/kmpmusic/AndroidPlaybackSessionRuntime.kt`
+  - 收口进程级 `CoroutineScope`、`PlaybackServiceConnector`、`AndroidPlaybackRuntime`
+  - 保留 bootstrap 时先 `attachContext(context.applicationContext)` 再 early return 的时序
+  - 保留同步初始化 controller、attach runtime、restore-once 状态与 UI 绑定接线
+- 精简 `composeApp/src/androidMain/kotlin/com/yanhao/kmpmusic/AndroidPlaybackSession.kt`
+  - 现在仅保留 public facade API，并把所有调用委托给 `AndroidPlaybackSessionRuntime`
+  - 保持原有 public 方法名和 `AndroidPlaybackSession 尚未 bootstrap` 错误消息不变
+- 更新 `docs/superpowers/plans/2026-07-01-codebase-architecture-optimization-phase4.md`
+  - 仅勾选 Task 3 Step 1-7
 
-## Adaptation to current source
+## What I tested and test results
 
-- 按当前 `domain/playback` 协作者风格使用 `internal`
-- KDoc 与注释保持中文语气，并维持纯 common-domain 边界
-- 严格未修改 `PlaybackCoordinator`，只为后续 facade 接线任务准备独立协作者
-
-## Tests run and results
-
-- RED:
-  - `./gradlew :composeApp:desktopTest --tests "com.yanhao.kmpmusic.domain.playback.PlaybackFailurePolicyTest"`
-  - 结果：失败，`PlaybackFailurePolicy` / `PlaybackFailureDecision` unresolved reference
-- GREEN:
-  - `./gradlew :composeApp:desktopTest --tests "com.yanhao.kmpmusic.domain.playback.PlaybackFailurePolicyTest"`
-  - 结果：通过，新增失败恢复策略测试全部成功
-
-## TDD Evidence
-
-### RED command/output summary
-
-- 命令：
-  - `./gradlew :composeApp:desktopTest --tests "com.yanhao.kmpmusic.domain.playback.PlaybackFailurePolicyTest"`
-- 摘要：
-  - `:composeApp:compileTestKotlinDesktop FAILED`
-  - 关键失败：`Unresolved reference 'PlaybackFailurePolicy'`
-  - 连带失败：`Unresolved reference 'PlaybackFailureDecision'`
-  - 说明测试先于实现建立，RED 证据成立
-
-### GREEN command/output summary
-
-- 命令：
-  - `./gradlew :composeApp:desktopTest --tests "com.yanhao.kmpmusic.domain.playback.PlaybackFailurePolicyTest"`
-- 摘要：
-  - `BUILD SUCCESSFUL`
-  - 新增 `PlaybackFailurePolicyTest` 全部通过
-  - 编译阶段仅出现与本任务无关的既有 warning，不影响结果
+- Thin-session 检查：
+  - 命令：`rg -n "PersistentFavoritesRepository|PersistentPlaybackRepository|PersistentMusicLibraryRepository|MutableLocalMusicScanner|MutablePermissionSettingsOpener|MissingAndroidLocalMusicScanner|SupervisorJob|PlaybackServiceConnector\\(" composeApp/src/androidMain/kotlin/com/yanhao/kmpmusic/AndroidPlaybackSession.kt`
+  - 结果：无输出，确认 `AndroidPlaybackSession.kt` 已变薄
+- Android 编译与单测：
+  - 命令：`./gradlew :composeApp:compileDebugKotlinAndroid :composeApp:testDebugUnitTest`
+  - 结果：`BUILD SUCCESSFUL`
 
 ## Files changed
 
-- `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/domain/playback/PlaybackFailurePolicy.kt`
-- `composeApp/src/commonTest/kotlin/com/yanhao/kmpmusic/domain/playback/PlaybackFailurePolicyTest.kt`
+- `composeApp/src/androidMain/kotlin/com/yanhao/kmpmusic/AndroidPlaybackSession.kt`
+- `composeApp/src/androidMain/kotlin/com/yanhao/kmpmusic/AndroidPlaybackControllerFactory.kt`
+- `composeApp/src/androidMain/kotlin/com/yanhao/kmpmusic/AndroidUiBindingRegistry.kt`
+- `composeApp/src/androidMain/kotlin/com/yanhao/kmpmusic/AndroidPlaybackSessionRuntime.kt`
+- `docs/superpowers/plans/2026-07-01-codebase-architecture-optimization-phase4.md`
 - `.superpowers/sdd/task-3-report.md`
 
 ## Self-review findings
 
-- `PlaybackFailurePolicy` 只持有运行时失败计数和最近失败歌曲标识，没有引入 repository、engine 或 coroutine 依赖
-- 单曲循环与非单曲循环的失败窗口拆分保存，避免两类恢复规则在调用方继续分散实现
-- `reset()` 显式同时清理两套计数和 `lastFailedSongId`，保证成功恢复后不会把旧窗口带到后续歌曲
-- 本任务未越界修改 `PlaybackCoordinator`，和 brief 的任务边界一致
+- facade 边界符合 brief：`AndroidPlaybackSession` 不再保留 controller 构图、UI 绑定代理、scope 或 runtime 初始化细节
+- 运行时时序保持一致：`bootstrap` 仍先 attach application context，再判断是否已有 controller
+- controller 构图保持一致：数据库、repository、`RoomPlaybackSnapshotStore`、`MusicAppController` 参数与原实现一致
+- restore 触发规则保持一致：仍只在首次 `attachLocalMusicScanner` 后请求一次恢复，避免 UI 重建干扰后台播放
+- `AndroidPlaybackRuntime.attachController(...)` 仍只在 controller 成功创建后调用，没有提前 attach 半初始化对象
 
-## Concerns, if any
+## Any issues or concerns
 
 - 无功能性阻塞
-- Gradle 仍输出与本任务无关的既有 warning：
-  - Kotlin MPP deprecated property 警告
-  - 其他测试文件中的既有 `No cast needed` / `Unnecessary safe call` warning
+- Gradle 仍有与本任务无关的既有 deprecated property warning，但不影响本次改动验证结果

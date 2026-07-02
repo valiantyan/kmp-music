@@ -640,7 +640,7 @@ git commit -m "refactor: 拆分 Android 媒体命令模块"
 - Create: `composeApp/src/androidMain/kotlin/com/yanhao/kmpmusic/AndroidPlaybackSessionRuntime.kt`
 - Modify: `composeApp/src/androidMain/kotlin/com/yanhao/kmpmusic/AndroidPlaybackSession.kt`
 
-- [ ] **Step 1: Create Android UI binding registry**
+- [x] **Step 1: Create Android UI binding registry**
 
 Move `MutableLocalMusicScanner`, `MutablePermissionSettingsOpener`, and `MissingAndroidLocalMusicScanner` out of `AndroidPlaybackSession.kt` into `AndroidUiBindingRegistry.kt`. The file must expose:
 
@@ -656,7 +656,7 @@ internal class AndroidUiBindingRegistry {
 
 `localMusicScanner` returns the mutable scanner proxy. `permissionSettingsOpener` returns the mutable opener proxy. The missing scanner keeps the current `LocalMusicScanException` with `LocalMusicScanErrorType.Unknown` and message `Android 本地音乐扫描器尚未初始化`.
 
-- [ ] **Step 2: Create Android controller factory**
+- [x] **Step 2: Create Android controller factory**
 
 Create `AndroidPlaybackControllerFactory.kt` and move the controller dependency graph from `AndroidPlaybackSession.bootstrap` into:
 
@@ -673,7 +673,7 @@ internal fun createAndroidPlaybackController(
 
 This function must create the Android Room database, repositories, `RoomPlaybackSnapshotStore`, and `MusicAppController` exactly as the current `bootstrap` does. It must not attach the controller to `AndroidPlaybackRuntime`; runtime attachment remains in `AndroidPlaybackSessionRuntime`.
 
-- [ ] **Step 3: Create Android playback session runtime**
+- [x] **Step 3: Create Android playback session runtime**
 
 Create `AndroidPlaybackSessionRuntime.kt`:
 
@@ -709,7 +709,7 @@ Implementation rules:
 - `attachLocalMusicScanner(scanner)` delegates to `uiBindings.attachLocalMusicScanner(scanner)` and then calls `ensurePlaybackSnapshotRestoreRequested()`.
 - `clearUiBindings()` delegates to `uiBindings.clear()`.
 
-- [ ] **Step 4: Thin `AndroidPlaybackSession.kt`**
+- [x] **Step 4: Thin `AndroidPlaybackSession.kt`**
 
 Replace object internals with:
 
@@ -748,7 +748,7 @@ object AndroidPlaybackSession {
 
 Keep the existing public method names and error message.
 
-- [ ] **Step 5: Verify Android session file is thin**
+- [x] **Step 5: Verify Android session file is thin**
 
 Run:
 
@@ -758,7 +758,7 @@ rg -n "PersistentFavoritesRepository|PersistentPlaybackRepository|PersistentMusi
 
 Expected: no output.
 
-- [ ] **Step 6: Compile Android**
+- [x] **Step 6: Compile Android**
 
 Run:
 
@@ -768,7 +768,7 @@ Run:
 
 Expected: PASS.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add composeApp/src/androidMain/kotlin/com/yanhao/kmpmusic/AndroidPlaybackSession.kt composeApp/src/androidMain/kotlin/com/yanhao/kmpmusic/AndroidPlaybackControllerFactory.kt composeApp/src/androidMain/kotlin/com/yanhao/kmpmusic/AndroidUiBindingRegistry.kt composeApp/src/androidMain/kotlin/com/yanhao/kmpmusic/AndroidPlaybackSessionRuntime.kt
