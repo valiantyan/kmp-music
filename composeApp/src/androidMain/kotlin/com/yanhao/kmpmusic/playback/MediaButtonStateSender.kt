@@ -13,12 +13,12 @@ internal object MediaButtonStateSender {
      */
     fun send(controller: MediaController, state: MediaButtonState?) {
         val safeState: MediaButtonState = state ?: return
-        if (!controller.isSessionCommandAvailable(AndroidPlaybackMediaButtons.updateButtonsCommand())) {
+        if (!controller.isSessionCommandAvailable(PlaybackMediaCommandCatalog.updateButtonsCommand())) {
             return
         }
         controller.sendCustomCommand(
-            AndroidPlaybackMediaButtons.updateButtonsCommand(),
-            AndroidPlaybackMediaButtons.createUpdateButtonsArgs(state = safeState),
+            PlaybackMediaCommandCatalog.updateButtonsCommand(),
+            MediaButtonStateCodec.createUpdateButtonsArgs(state = safeState),
         )
     }
 }

@@ -146,7 +146,7 @@ class DesktopPlaybackSessionTest {
             expected = listOf("release", "persist-start", "persist-end", "close-db:true", "close-returned"),
             actual = order,
         )
-        assertTrue(actual = sessionJob?.isCancelled == true)
+        assertTrue(actual = sessionJob.isCancelled)
     }
 
     @Test

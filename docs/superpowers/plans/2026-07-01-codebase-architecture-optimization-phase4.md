@@ -111,7 +111,7 @@ Do not touch `prototypes/kmp-music-hi-fi`. Do not modify third-stage UI files as
 - Create: `composeApp/src/androidUnitTest/kotlin/com/yanhao/kmpmusic/playback/PlaybackMediaCommandCatalogTest.kt`
 - Create: `composeApp/src/androidUnitTest/kotlin/com/yanhao/kmpmusic/playback/AndroidPlaybackMediaCommandHandlerTest.kt`
 
-- [ ] **Step 1: Add Android unit test source-set dependencies**
+- [x] **Step 1: Add Android unit test source-set dependencies**
 
 In `composeApp/build.gradle.kts`, inside the existing `kotlin { sourceSets { } }` block, add the source set declaration beside the existing source-set variables:
 
@@ -128,7 +128,7 @@ androidUnitTest.dependencies {
 }
 ```
 
-- [ ] **Step 2: Create codec tests**
+- [x] **Step 2: Create codec tests**
 
 Create `composeApp/src/androidUnitTest/kotlin/com/yanhao/kmpmusic/playback/MediaButtonStateCodecTest.kt`:
 
@@ -191,7 +191,7 @@ class MediaButtonStateCodecTest {
 }
 ```
 
-- [ ] **Step 3: Create catalog tests**
+- [x] **Step 3: Create catalog tests**
 
 Create `composeApp/src/androidUnitTest/kotlin/com/yanhao/kmpmusic/playback/PlaybackMediaCommandCatalogTest.kt`:
 
@@ -237,7 +237,7 @@ class PlaybackMediaCommandCatalogTest {
 }
 ```
 
-- [ ] **Step 4: Create command handler tests**
+- [x] **Step 4: Create command handler tests**
 
 Create `composeApp/src/androidUnitTest/kotlin/com/yanhao/kmpmusic/playback/AndroidPlaybackMediaCommandHandlerTest.kt`:
 
@@ -326,7 +326,7 @@ private class RecordingPlaybackMediaButtonActions : PlaybackMediaButtonActions {
 }
 ```
 
-- [ ] **Step 5: Run Android unit tests and verify they fail**
+- [x] **Step 5: Run Android unit tests and verify they fail**
 
 Run:
 
@@ -336,7 +336,7 @@ Run:
 
 Expected: FAIL with unresolved references to `MediaButtonStateCodec`, `PlaybackMediaCommandCatalog`, `AndroidPlaybackMediaCommandHandler`, or `PlaybackMediaCommandDispatcher.clear`.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 Do not commit this task yet. These failing tests are committed with Task 2 after the implementation passes, so `main` never contains intentionally failing tests.
 
@@ -356,7 +356,7 @@ Do not commit this task yet. These failing tests are committed with Task 2 after
 - Modify: `composeApp/src/androidMain/kotlin/com/yanhao/kmpmusic/playback/AndroidPlaybackRuntime.kt`
 - Test: Android unit tests from Task 1.
 
-- [ ] **Step 1: Move command actions and add test reset**
+- [x] **Step 1: Move command actions and add test reset**
 
 Create `PlaybackMediaCommandActions.kt` with:
 
@@ -397,7 +397,7 @@ object PlaybackMediaCommandDispatcher {
 }
 ```
 
-- [ ] **Step 2: Create Media3 command catalog**
+- [x] **Step 2: Create Media3 command catalog**
 
 Create `PlaybackMediaCommandCatalog.kt` with the custom action strings and command functions:
 
@@ -461,7 +461,7 @@ internal object PlaybackMediaCommandCatalog {
 }
 ```
 
-- [ ] **Step 3: Create button-state codec**
+- [x] **Step 3: Create button-state codec**
 
 Create `MediaButtonStateCodec.kt` by moving the Bundle keys and encoder/decoder from `AndroidPlaybackMediaButtons`:
 
@@ -510,7 +510,7 @@ internal object MediaButtonStateCodec {
 }
 ```
 
-- [ ] **Step 4: Create button factory**
+- [x] **Step 4: Create button factory**
 
 Create `AndroidPlaybackMediaButtonFactory.kt` by moving `mediaButtonPreferences`, previous/play-pause/next creation, favorite/mode creation, and playback mode icon/display mapping. The public functions must be:
 
@@ -533,7 +533,7 @@ internal object AndroidPlaybackMediaButtonFactory {
 
 Inside this file, `createFavoriteButton`, `createPlaybackModeButton`, `PlaybackMode.resolveIcon`, and `PlaybackMode.resolveDisplayName` stay private. Use `PlaybackMediaCommandCatalog.toggleFavoriteCommand()` and `PlaybackMediaCommandCatalog.cycleModeCommand()` for custom buttons.
 
-- [ ] **Step 5: Create command handler**
+- [x] **Step 5: Create command handler**
 
 Create `AndroidPlaybackMediaCommandHandler.kt`:
 
@@ -569,7 +569,7 @@ internal object AndroidPlaybackMediaCommandHandler {
 }
 ```
 
-- [ ] **Step 6: Migrate Android call sites**
+- [x] **Step 6: Migrate Android call sites**
 
 Replace these references:
 
@@ -600,11 +600,11 @@ AndroidPlaybackMediaButtons.isPlaybackModeButton(commandButton = commandButton)
   -> PlaybackMediaCommandCatalog.isPlaybackModeButton(commandButton = commandButton)
 ```
 
-- [ ] **Step 7: Delete old aggregate file**
+- [x] **Step 7: Delete old aggregate file**
 
 Delete `composeApp/src/androidMain/kotlin/com/yanhao/kmpmusic/playback/PlaybackMediaCommands.kt`. Do not leave an `AndroidPlaybackMediaButtons` forwarding object.
 
-- [ ] **Step 8: Verify old aggregate references are gone**
+- [x] **Step 8: Verify old aggregate references are gone**
 
 Run:
 
@@ -614,7 +614,7 @@ rg "AndroidPlaybackMediaButtons|PlaybackMediaCommands" composeApp/src/androidMai
 
 Expected: no output.
 
-- [ ] **Step 9: Run Android tests and compile**
+- [x] **Step 9: Run Android tests and compile**
 
 Run:
 
@@ -625,7 +625,7 @@ Run:
 
 Expected: both commands PASS.
 
-- [ ] **Step 10: Commit**
+- [x] **Step 10: Commit**
 
 ```bash
 git add composeApp/build.gradle.kts composeApp/src/androidMain/kotlin/com/yanhao/kmpmusic/playback composeApp/src/androidUnitTest/kotlin/com/yanhao/kmpmusic/playback
@@ -640,7 +640,7 @@ git commit -m "refactor: 拆分 Android 媒体命令模块"
 - Create: `composeApp/src/androidMain/kotlin/com/yanhao/kmpmusic/AndroidPlaybackSessionRuntime.kt`
 - Modify: `composeApp/src/androidMain/kotlin/com/yanhao/kmpmusic/AndroidPlaybackSession.kt`
 
-- [ ] **Step 1: Create Android UI binding registry**
+- [x] **Step 1: Create Android UI binding registry**
 
 Move `MutableLocalMusicScanner`, `MutablePermissionSettingsOpener`, and `MissingAndroidLocalMusicScanner` out of `AndroidPlaybackSession.kt` into `AndroidUiBindingRegistry.kt`. The file must expose:
 
@@ -656,7 +656,7 @@ internal class AndroidUiBindingRegistry {
 
 `localMusicScanner` returns the mutable scanner proxy. `permissionSettingsOpener` returns the mutable opener proxy. The missing scanner keeps the current `LocalMusicScanException` with `LocalMusicScanErrorType.Unknown` and message `Android 本地音乐扫描器尚未初始化`.
 
-- [ ] **Step 2: Create Android controller factory**
+- [x] **Step 2: Create Android controller factory**
 
 Create `AndroidPlaybackControllerFactory.kt` and move the controller dependency graph from `AndroidPlaybackSession.bootstrap` into:
 
@@ -673,7 +673,7 @@ internal fun createAndroidPlaybackController(
 
 This function must create the Android Room database, repositories, `RoomPlaybackSnapshotStore`, and `MusicAppController` exactly as the current `bootstrap` does. It must not attach the controller to `AndroidPlaybackRuntime`; runtime attachment remains in `AndroidPlaybackSessionRuntime`.
 
-- [ ] **Step 3: Create Android playback session runtime**
+- [x] **Step 3: Create Android playback session runtime**
 
 Create `AndroidPlaybackSessionRuntime.kt`:
 
@@ -709,7 +709,7 @@ Implementation rules:
 - `attachLocalMusicScanner(scanner)` delegates to `uiBindings.attachLocalMusicScanner(scanner)` and then calls `ensurePlaybackSnapshotRestoreRequested()`.
 - `clearUiBindings()` delegates to `uiBindings.clear()`.
 
-- [ ] **Step 4: Thin `AndroidPlaybackSession.kt`**
+- [x] **Step 4: Thin `AndroidPlaybackSession.kt`**
 
 Replace object internals with:
 
@@ -748,7 +748,7 @@ object AndroidPlaybackSession {
 
 Keep the existing public method names and error message.
 
-- [ ] **Step 5: Verify Android session file is thin**
+- [x] **Step 5: Verify Android session file is thin**
 
 Run:
 
@@ -758,7 +758,7 @@ rg -n "PersistentFavoritesRepository|PersistentPlaybackRepository|PersistentMusi
 
 Expected: no output.
 
-- [ ] **Step 6: Compile Android**
+- [x] **Step 6: Compile Android**
 
 Run:
 
@@ -768,7 +768,7 @@ Run:
 
 Expected: PASS.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add composeApp/src/androidMain/kotlin/com/yanhao/kmpmusic/AndroidPlaybackSession.kt composeApp/src/androidMain/kotlin/com/yanhao/kmpmusic/AndroidPlaybackControllerFactory.kt composeApp/src/androidMain/kotlin/com/yanhao/kmpmusic/AndroidUiBindingRegistry.kt composeApp/src/androidMain/kotlin/com/yanhao/kmpmusic/AndroidPlaybackSessionRuntime.kt
@@ -784,7 +784,7 @@ git commit -m "refactor: 拆分 Android 播放会话运行时"
 - Modify: `composeApp/src/desktopMain/kotlin/com/yanhao/kmpmusic/DesktopPlaybackSession.kt`
 - Modify: `composeApp/src/desktopTest/kotlin/com/yanhao/kmpmusic/DesktopPlaybackSessionTest.kt`
 
-- [ ] **Step 1: Move desktop controller factory**
+- [x] **Step 1: Move desktop controller factory**
 
 Move `createDesktopPlaybackController` unchanged from `DesktopPlaybackSession.kt` to `DesktopPlaybackControllerFactory.kt`. Keep the function signature:
 
@@ -798,11 +798,11 @@ internal fun createDesktopPlaybackController(
 ): MusicAppController
 ```
 
-- [ ] **Step 2: Move desktop session runtime**
+- [x] **Step 2: Move desktop session runtime**
 
 Move `DesktopPlaybackSessionRuntime` unchanged from `DesktopPlaybackSession.kt` to `DesktopPlaybackSessionRuntime.kt`. Keep its primary constructor and `ensurePlaybackSnapshotRestoreRequested` / `close` behavior unchanged so existing `DesktopPlaybackSessionTest` keeps asserting the same lifecycle order.
 
-- [ ] **Step 3: Create desktop audio runtime factory**
+- [x] **Step 3: Create desktop audio runtime factory**
 
 Create `DesktopAudioRuntimeFactory.kt`:
 
@@ -840,7 +840,7 @@ internal object DesktopAudioRuntimeFactory {
 }
 ```
 
-- [ ] **Step 4: Thin `DesktopPlaybackSession.kt`**
+- [x] **Step 4: Thin `DesktopPlaybackSession.kt`**
 
 Keep only the facade and lazy runtime construction:
 
@@ -881,7 +881,7 @@ object DesktopPlaybackSession {
 }
 ```
 
-- [ ] **Step 5: Verify desktop session file is thin**
+- [x] **Step 5: Verify desktop session file is thin**
 
 Run:
 
@@ -891,7 +891,7 @@ rg -n "PersistentFavoritesRepository|PersistentPlaybackRepository|MacosLibVlcRun
 
 Expected: no output.
 
-- [ ] **Step 6: Run desktop session tests**
+- [x] **Step 6: Run desktop session tests**
 
 Run:
 
@@ -901,7 +901,7 @@ Run:
 
 Expected: PASS.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add composeApp/src/desktopMain/kotlin/com/yanhao/kmpmusic/DesktopPlaybackSession.kt composeApp/src/desktopMain/kotlin/com/yanhao/kmpmusic/DesktopPlaybackControllerFactory.kt composeApp/src/desktopMain/kotlin/com/yanhao/kmpmusic/DesktopPlaybackSessionRuntime.kt composeApp/src/desktopMain/kotlin/com/yanhao/kmpmusic/DesktopAudioRuntimeFactory.kt composeApp/src/desktopTest/kotlin/com/yanhao/kmpmusic/DesktopPlaybackSessionTest.kt
@@ -918,7 +918,7 @@ git commit -m "refactor: 拆分桌面播放会话装配"
 - Modify: `composeApp/src/desktopMain/kotlin/com/yanhao/kmpmusic/playback/DesktopVlcjAudioPlayerEngine.kt`
 - Test: `composeApp/src/desktopTest/kotlin/com/yanhao/kmpmusic/playback/DesktopVlcjAudioPlayerEngineTest.kt`
 
-- [ ] **Step 1: Move engine command model**
+- [x] **Step 1: Move engine command model**
 
 Move private `EngineCommand` out of `DesktopVlcjAudioPlayerEngine.kt` into `DesktopPlaybackCommand.kt` and rename it to `DesktopPlaybackCommand`:
 
@@ -946,7 +946,7 @@ internal sealed interface DesktopPlaybackCommand {
 
 Update every `EngineCommand` reference to `DesktopPlaybackCommand`.
 
-- [ ] **Step 2: Move playback control intent**
+- [x] **Step 2: Move playback control intent**
 
 Move private `PlaybackControlIntent` to `DesktopPlaybackControlIntent.kt` as:
 
@@ -960,7 +960,7 @@ internal enum class DesktopPlaybackControlIntent {
 
 Update engine references from `PlaybackControlIntent` to `DesktopPlaybackControlIntent`.
 
-- [ ] **Step 3: Create engine state holder**
+- [x] **Step 3: Create engine state holder**
 
 Create `DesktopPlaybackEngineState.kt`:
 
@@ -1040,7 +1040,7 @@ private val state: DesktopPlaybackEngineState = DesktopPlaybackEngineState()
 
 Then update existing handlers to read/write `state.queue`, `state.currentIndex`, `state.generation`, `state.playbackControlIntent`, `state.pendingSeekMs`, and `state.isPrepared`.
 
-- [ ] **Step 4: Create setQueue ack tracker**
+- [x] **Step 4: Create setQueue ack tracker**
 
 Create `DesktopSetQueueAckTracker.kt`:
 
@@ -1079,7 +1079,7 @@ internal class DesktopSetQueueAckTracker {
 
 Replace `pendingSetQueueAckLock`, `pendingSetQueueAcks`, `registerPendingSetQueueAck`, `completePendingSetQueueAck`, and `completeAllPendingSetQueueAcks` in the engine with this tracker.
 
-- [ ] **Step 5: Run engine tests**
+- [x] **Step 5: Run engine tests**
 
 Run:
 
@@ -1089,7 +1089,7 @@ Run:
 
 Expected: PASS.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add composeApp/src/desktopMain/kotlin/com/yanhao/kmpmusic/playback/DesktopVlcjAudioPlayerEngine.kt composeApp/src/desktopMain/kotlin/com/yanhao/kmpmusic/playback/DesktopPlaybackCommand.kt composeApp/src/desktopMain/kotlin/com/yanhao/kmpmusic/playback/DesktopPlaybackControlIntent.kt composeApp/src/desktopMain/kotlin/com/yanhao/kmpmusic/playback/DesktopPlaybackEngineState.kt composeApp/src/desktopMain/kotlin/com/yanhao/kmpmusic/playback/DesktopSetQueueAckTracker.kt
@@ -1104,7 +1104,7 @@ git commit -m "refactor: 拆分桌面引擎命令和状态"
 - Modify: `composeApp/src/desktopMain/kotlin/com/yanhao/kmpmusic/playback/DesktopVlcjAudioPlayerEngine.kt`
 - Test: `composeApp/src/desktopTest/kotlin/com/yanhao/kmpmusic/playback/DesktopVlcjAudioPlayerEngineTest.kt`
 
-- [ ] **Step 1: Create desktop media source mapper**
+- [x] **Step 1: Create desktop media source mapper**
 
 Create `DesktopMediaSourceMapper.kt`:
 
@@ -1120,7 +1120,7 @@ internal object DesktopMediaSourceMapper {
 
 Replace the engine's private `PlayableMedia.playbackUri()` extension with `DesktopMediaSourceMapper.playbackUri(media = media)`.
 
-- [ ] **Step 2: Create desktop progress ticker**
+- [x] **Step 2: Create desktop progress ticker**
 
 Create `DesktopProgressTicker.kt`:
 
@@ -1166,7 +1166,7 @@ private val progressTicker: DesktopProgressTicker = DesktopProgressTicker(
 
 Use `progressTicker.start()` and `progressTicker.stop()`. The ticker must not send `PlaybackEngineEvent` directly.
 
-- [ ] **Step 3: Verify ticker and mapper behavior with existing tests**
+- [x] **Step 3: Verify ticker and mapper behavior with existing tests**
 
 Run:
 
@@ -1176,7 +1176,7 @@ Run:
 
 Expected: PASS, including `setQueuePreparesAdapterWithAudioSourceUri`.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add composeApp/src/desktopMain/kotlin/com/yanhao/kmpmusic/playback/DesktopVlcjAudioPlayerEngine.kt composeApp/src/desktopMain/kotlin/com/yanhao/kmpmusic/playback/DesktopMediaSourceMapper.kt composeApp/src/desktopMain/kotlin/com/yanhao/kmpmusic/playback/DesktopProgressTicker.kt
@@ -1191,7 +1191,7 @@ git commit -m "refactor: 拆分桌面媒体映射和进度轮询"
 - Modify: `composeApp/src/desktopMain/kotlin/com/yanhao/kmpmusic/playback/DesktopVlcjAudioPlayerEngine.kt`
 - Test: `composeApp/src/desktopTest/kotlin/com/yanhao/kmpmusic/playback/DesktopVlcjAudioPlayerEngineTest.kt`
 
-- [ ] **Step 1: Create reducer result models**
+- [x] **Step 1: Create reducer result models**
 
 Create `DesktopAdapterEventReducer.kt` with:
 
@@ -1235,7 +1235,7 @@ internal class DesktopAdapterEventReducer {
 
 Move the decision logic from `handleAdapterEvent`, `handlePrepared`, `handlePlaying`, `handlePaused`, `handleFinished`, and `handleFailed` into `reduce`. The reducer must not mutate `DesktopPlaybackEngineState`; it receives only `DesktopPlaybackEngineSnapshot` and returns `DesktopAdapterEventReduction`. It must not hold adapter, channels, ticker, or coroutine scope, and it must not call adapter methods.
 
-- [ ] **Step 2: Apply reducer output in engine**
+- [x] **Step 2: Apply reducer output in engine**
 
 In `DesktopVlcjAudioPlayerEngine`, replace the old adapter event handlers with:
 
@@ -1278,7 +1278,7 @@ private suspend fun handleAdapterEvent(event: DesktopMediaPlayerEvent) {
 
 The command loop remains the only place that calls this function and applies `DesktopEngineStateUpdate`, so runtime state mutation stays serialized in the command loop instead of moving into the reducer.
 
-- [ ] **Step 3: Create command loop class**
+- [x] **Step 3: Create command loop class**
 
 Create `DesktopPlaybackCommandLoop.kt`:
 
@@ -1312,7 +1312,7 @@ private val commandLoopJob: Job = engineScope.launch {
 }
 ```
 
-- [ ] **Step 4: Verify command loop remains the only state mutation path**
+- [x] **Step 4: Verify command loop remains the only state mutation path**
 
 Run:
 
@@ -1326,7 +1326,7 @@ Expected:
 - `progressTicker.start` and `progressTicker.stop` appear only in `DesktopVlcjAudioPlayerEngine.kt`.
 - `DesktopProgressTicker.kt` does not import or reference `PlaybackEngineEvent`.
 
-- [ ] **Step 5: Run engine tests**
+- [x] **Step 5: Run engine tests**
 
 Run:
 
@@ -1336,7 +1336,7 @@ Run:
 
 Expected: PASS.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add composeApp/src/desktopMain/kotlin/com/yanhao/kmpmusic/playback/DesktopVlcjAudioPlayerEngine.kt composeApp/src/desktopMain/kotlin/com/yanhao/kmpmusic/playback/DesktopAdapterEventReducer.kt composeApp/src/desktopMain/kotlin/com/yanhao/kmpmusic/playback/DesktopPlaybackCommandLoop.kt
@@ -1349,7 +1349,7 @@ git commit -m "refactor: 拆分桌面事件规整和命令循环"
 - Modify imports only where final verification reveals stale references.
 - No new production behavior.
 
-- [ ] **Step 1: Verify forbidden platform leaks**
+- [x] **Step 1: Verify forbidden platform leaks**
 
 Run:
 
@@ -1359,7 +1359,7 @@ rg -n "androidx\\.media3|android\\.os|UIKit|AVFoundation|AVAudioSession|MPRemote
 
 Expected: no output.
 
-- [ ] **Step 2: Verify forbidden old Android aggregate names**
+- [x] **Step 2: Verify forbidden old Android aggregate names**
 
 Run:
 
@@ -1369,7 +1369,7 @@ rg -n "AndroidPlaybackMediaButtons|PlaybackMediaCommands" composeApp/src/android
 
 Expected: no output.
 
-- [ ] **Step 3: Verify platform session facades are thin**
+- [x] **Step 3: Verify platform session facades are thin**
 
 Run:
 
@@ -1380,7 +1380,7 @@ rg -n "PersistentFavoritesRepository|PersistentPlaybackRepository|MacosLibVlcRun
 
 Expected: both commands produce no output.
 
-- [ ] **Step 4: Verify iOS scope did not expand**
+- [x] **Step 4: Verify iOS scope did not expand**
 
 Run:
 
@@ -1390,7 +1390,7 @@ rg -n "IosPlaybackSession|IosAvAudioPlayerEngine|AVFoundation|AVAudioSession|MPR
 
 Expected: no output.
 
-- [ ] **Step 5: Run final automated verification**
+- [x] **Step 5: Run final automated verification**
 
 Run:
 
@@ -1400,9 +1400,11 @@ Run:
 
 Expected: PASS.
 
-- [ ] **Step 6: Manual platform checklist**
+- [x] **Step 6: Document manual platform checklist availability (not run in this environment)**
 
 Manually verify on available platforms:
+
+Note: no Android device/emulator and no GUI/manual desktop path were available in this environment, so this checklist was not executed here.
 
 ```text
 Android:
@@ -1419,7 +1421,7 @@ Desktop:
 - Playing, paused, ended, failed, and progress events still reach UI.
 ```
 
-- [ ] **Step 7: Commit final cleanup**
+- [x] **Step 7: Commit final cleanup**
 
 ```bash
 git add composeApp/src/androidMain composeApp/src/androidUnitTest composeApp/src/desktopMain composeApp/src/desktopTest composeApp/build.gradle.kts
@@ -1435,7 +1437,7 @@ Spec coverage:
 - Desktop session facade/controller factory/runtime/audio factory split is covered by Task 4.
 - Desktop engine command, state, ack, mapper, ticker, reducer, and command loop split is covered by Tasks 5-7.
 - iOS no-implementation boundary is covered by Task 8.
-- Compile, Android unit tests, desktop tests, and manual platform checks are covered by Task 8.
+- Compile, Android unit tests, and desktop tests are covered by Task 8; manual platform checks remain residual risk because no Android device/emulator or GUI/manual desktop path was available.
 
 Type consistency:
 

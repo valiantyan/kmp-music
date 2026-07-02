@@ -1,90 +1,55 @@
-# Task 4 Report - Extract PlaybackSnapshotWriter
+# Task 4 Report - Split Desktop Session Wiring
 
-## Status
+## What You Implemented
 
-DONE
+- Created `DesktopPlaybackControllerFactory.kt` and moved `createDesktopPlaybackController` out of `DesktopPlaybackSession.kt` without changing its signature or controller wiring behavior.
+- Created `DesktopPlaybackSessionRuntime.kt` and moved `DesktopPlaybackSessionRuntime` out unchanged in lifecycle semantics, including restore-once guarding and the close order of audio release, session cancellation, snapshot persistence, and database close.
+- Created `DesktopAudioRuntimeFactory.kt` to centralize Desktop libVLC runtime resolution and `DesktopVlcjAudioPlayerEngine` construction.
+- Thinned `DesktopPlaybackSession.kt` down to the public facade plus lazy runtime assembly using the new collaborators.
+- Updated `DesktopPlaybackSessionTest.kt` only to remove an unnecessary safe-call warning in an assertion; behavior coverage stayed the same.
 
-## Scope
+## What You Tested And Test Results
 
-- Created [PlaybackSnapshotWriter] as a standalone playback-domain collaborator.
-- Added focused tests for snapshot throttling, async write tracking, teardown waiting, and error propagation.
-- Did not modify [PlaybackCoordinator], per task boundary.
-
-## Files Changed
-
-- `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/domain/playback/PlaybackSnapshotWriter.kt`
-- `composeApp/src/commonTest/kotlin/com/yanhao/kmpmusic/domain/playback/PlaybackSnapshotWriterTest.kt`
-
-## TDD Record
-
-### RED
-
-Command:
+- Thin-session check:
 
 ```bash
-./gradlew :composeApp:desktopTest --tests "com.yanhao.kmpmusic.domain.playback.PlaybackSnapshotWriterTest"
+rg -n "PersistentFavoritesRepository|PersistentPlaybackRepository|MacosLibVlcRuntime|VlcjMediaPlayerAdapter|UnavailableDesktopMediaPlayerAdapter|class DesktopPlaybackSessionRuntime|fun createDesktopPlaybackController" composeApp/src/desktopMain/kotlin/com/yanhao/kmpmusic/DesktopPlaybackSession.kt
 ```
 
 Result:
 
-- `:composeApp:compileTestKotlinDesktop FAILED`
-- Unresolved reference `PlaybackSnapshotWriter`
-- Follow-on unresolved references for `saveForEvent`, `saveAsync`, `awaitPendingWrites`, and `saveNowAndAwait`
+- No output, which confirms `DesktopPlaybackSession.kt` no longer owns the extracted wiring/runtime declarations.
 
-Key evidence:
-
-```text
-e: .../PlaybackSnapshotWriterTest.kt:33:21 Unresolved reference 'PlaybackSnapshotWriter'.
-e: .../PlaybackSnapshotWriterTest.kt:42:16 Unresolved reference 'saveForEvent'.
-e: .../PlaybackSnapshotWriterTest.kt:117:16 Unresolved reference 'saveAsync'.
-e: .../PlaybackSnapshotWriterTest.kt:121:20 Unresolved reference 'awaitPendingWrites'.
-e: .../PlaybackSnapshotWriterTest.kt:144:20 Unresolved reference 'saveNowAndAwait'.
-```
-
-### GREEN
-
-Command:
+- Focused desktop session test:
 
 ```bash
-./gradlew :composeApp:desktopTest --tests "com.yanhao.kmpmusic.domain.playback.PlaybackSnapshotWriterTest"
+./gradlew :composeApp:desktopTest --tests com.yanhao.kmpmusic.DesktopPlaybackSessionTest
 ```
 
 Result:
 
 - `BUILD SUCCESSFUL`
-- Focused test target passed after adding [PlaybackSnapshotWriter]
+- `DesktopPlaybackSessionTest` passed after the split.
 
-## Implementation Notes
+## Files Changed
 
-- Extracted snapshot-writing behavior into [PlaybackSnapshotWriter] with `internal` visibility to match neighboring playback collaborators.
-- Preserved the current rules from [PlaybackCoordinator]:
-  - first progress event writes immediately
-  - progress writes are throttled by `snapshotThrottleMs`
-  - non-progress engine events bypass throttling
-  - async writes are tracked in a pending set
-  - teardown can await all pending writes
-  - synchronous teardown save propagates store failures
-- Kept repository access synchronous via [PlaybackRepository], and snapshot persistence behind [PlaybackSnapshotStore].
+- `composeApp/src/desktopMain/kotlin/com/yanhao/kmpmusic/DesktopPlaybackSession.kt`
+- `composeApp/src/desktopMain/kotlin/com/yanhao/kmpmusic/DesktopPlaybackControllerFactory.kt`
+- `composeApp/src/desktopMain/kotlin/com/yanhao/kmpmusic/DesktopPlaybackSessionRuntime.kt`
+- `composeApp/src/desktopMain/kotlin/com/yanhao/kmpmusic/DesktopAudioRuntimeFactory.kt`
+- `composeApp/src/desktopTest/kotlin/com/yanhao/kmpmusic/DesktopPlaybackSessionTest.kt`
+- `docs/superpowers/plans/2026-07-01-codebase-architecture-optimization-phase4.md`
+- `.superpowers/sdd/task-4-report.md`
 
-## Focused Test Coverage Added
+## Self-Review Findings
 
-- `firstProgressEventPersistsSnapshot`
-- `progressEventsInsideThrottleWindowAreSkipped`
-- `nonProgressEventsAreNotThrottled`
-- `awaitPendingWritesWaitsForAsyncSaveCompletion`
-- `saveNowAndAwaitPropagatesSnapshotStoreFailure`
+- Verified the public facade API of `DesktopPlaybackSession` remains `controller`, `ensurePlaybackSnapshotRestoreRequested`, and `close`.
+- Verified `DesktopPlaybackSessionRuntime.close()` still preserves the original teardown order required by the existing lifecycle assertions.
+- Verified `ensurePlaybackSnapshotRestoreRequested()` still allows restore exactly once per process runtime.
+- Verified this task did not touch Task 5 desktop engine command/state/reducer/ticker files.
+- Cleaned the task-owned desktop test warning so the focused verification is free of new Kotlin compiler warnings from this scope.
 
-## Self Review
+## Issues Or Concerns
 
-- Confirmed only the two task-owned files were modified.
-- Confirmed [PlaybackCoordinator] was not changed or wired to the new collaborator.
-- Confirmed the extracted collaborator keeps the existing snapshot rules intact instead of introducing a partial patch.
-- Confirmed the focused desktop test command passes after the extraction.
-
-## Commit
-
-- `refactor: 抽出播放快照写入器`
-
-## Concerns
-
-- None for this task scope.
+- No functional concerns for Task 4 scope.
+- The Gradle run still reports pre-existing deprecated Kotlin/AGP property warnings from project configuration, unrelated to this task.
