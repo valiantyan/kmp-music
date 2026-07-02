@@ -918,7 +918,7 @@ git commit -m "refactor: 拆分桌面播放会话装配"
 - Modify: `composeApp/src/desktopMain/kotlin/com/yanhao/kmpmusic/playback/DesktopVlcjAudioPlayerEngine.kt`
 - Test: `composeApp/src/desktopTest/kotlin/com/yanhao/kmpmusic/playback/DesktopVlcjAudioPlayerEngineTest.kt`
 
-- [ ] **Step 1: Move engine command model**
+- [x] **Step 1: Move engine command model**
 
 Move private `EngineCommand` out of `DesktopVlcjAudioPlayerEngine.kt` into `DesktopPlaybackCommand.kt` and rename it to `DesktopPlaybackCommand`:
 
@@ -946,7 +946,7 @@ internal sealed interface DesktopPlaybackCommand {
 
 Update every `EngineCommand` reference to `DesktopPlaybackCommand`.
 
-- [ ] **Step 2: Move playback control intent**
+- [x] **Step 2: Move playback control intent**
 
 Move private `PlaybackControlIntent` to `DesktopPlaybackControlIntent.kt` as:
 
@@ -960,7 +960,7 @@ internal enum class DesktopPlaybackControlIntent {
 
 Update engine references from `PlaybackControlIntent` to `DesktopPlaybackControlIntent`.
 
-- [ ] **Step 3: Create engine state holder**
+- [x] **Step 3: Create engine state holder**
 
 Create `DesktopPlaybackEngineState.kt`:
 
@@ -1040,7 +1040,7 @@ private val state: DesktopPlaybackEngineState = DesktopPlaybackEngineState()
 
 Then update existing handlers to read/write `state.queue`, `state.currentIndex`, `state.generation`, `state.playbackControlIntent`, `state.pendingSeekMs`, and `state.isPrepared`.
 
-- [ ] **Step 4: Create setQueue ack tracker**
+- [x] **Step 4: Create setQueue ack tracker**
 
 Create `DesktopSetQueueAckTracker.kt`:
 
@@ -1079,7 +1079,7 @@ internal class DesktopSetQueueAckTracker {
 
 Replace `pendingSetQueueAckLock`, `pendingSetQueueAcks`, `registerPendingSetQueueAck`, `completePendingSetQueueAck`, and `completeAllPendingSetQueueAcks` in the engine with this tracker.
 
-- [ ] **Step 5: Run engine tests**
+- [x] **Step 5: Run engine tests**
 
 Run:
 
@@ -1089,7 +1089,7 @@ Run:
 
 Expected: PASS.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add composeApp/src/desktopMain/kotlin/com/yanhao/kmpmusic/playback/DesktopVlcjAudioPlayerEngine.kt composeApp/src/desktopMain/kotlin/com/yanhao/kmpmusic/playback/DesktopPlaybackCommand.kt composeApp/src/desktopMain/kotlin/com/yanhao/kmpmusic/playback/DesktopPlaybackControlIntent.kt composeApp/src/desktopMain/kotlin/com/yanhao/kmpmusic/playback/DesktopPlaybackEngineState.kt composeApp/src/desktopMain/kotlin/com/yanhao/kmpmusic/playback/DesktopSetQueueAckTracker.kt
