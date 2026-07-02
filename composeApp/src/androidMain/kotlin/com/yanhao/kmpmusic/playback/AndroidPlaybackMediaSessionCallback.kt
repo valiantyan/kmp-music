@@ -29,7 +29,7 @@ internal class AndroidPlaybackMediaSessionCallback(
     ): MediaSession.ConnectionResult {
         val builder: MediaSession.ConnectionResult.AcceptedResultBuilder =
             MediaSession.ConnectionResult.AcceptedResultBuilder(session)
-                .setAvailableSessionCommands(AndroidPlaybackMediaButtons.availableSessionCommands())
+                .setAvailableSessionCommands(PlaybackMediaCommandCatalog.availableSessionCommands())
         if (session.isMediaNotificationController(controller)) {
             builder.setMediaButtonPreferences(mediaButtonPreferencesProvider())
         }
@@ -58,7 +58,7 @@ internal class AndroidPlaybackMediaSessionCallback(
         customCommand: SessionCommand,
         args: Bundle,
     ): ListenableFuture<SessionResult> {
-        if (AndroidPlaybackMediaButtons.isUpdateButtonsCommand(customAction = customCommand.customAction)) {
+        if (PlaybackMediaCommandCatalog.isUpdateButtonsCommand(customAction = customCommand.customAction)) {
             return handleUpdateButtonsCommand(
                 session = session,
                 args = args,
@@ -66,7 +66,7 @@ internal class AndroidPlaybackMediaSessionCallback(
         }
         return Futures.immediateFuture(
             SessionResult(
-                AndroidPlaybackMediaButtons.handleCustomCommand(
+                AndroidPlaybackMediaCommandHandler.handleCustomCommand(
                     customAction = customCommand.customAction,
                 ),
             ),
@@ -78,7 +78,7 @@ internal class AndroidPlaybackMediaSessionCallback(
         session: MediaSession,
         args: Bundle,
     ): ListenableFuture<SessionResult> {
-        val state: MediaButtonState = AndroidPlaybackMediaButtons.resolveUpdateButtonsState(args = args)
+        val state: MediaButtonState = MediaButtonStateCodec.resolveUpdateButtonsState(args = args)
             ?: return Futures.immediateFuture(SessionResult(SessionResult.RESULT_ERROR_BAD_VALUE))
         updateMediaButtonPreferences(state)
         if (state.playbackStatus == PlaybackStatus.Idle && !state.hasActivePlaybackSession) {

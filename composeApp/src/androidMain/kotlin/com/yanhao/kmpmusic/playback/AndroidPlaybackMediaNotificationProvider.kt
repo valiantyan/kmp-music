@@ -34,20 +34,20 @@ internal class AndroidPlaybackMediaNotificationProvider(
         showPauseButton: Boolean,
     ): ImmutableList<CommandButton> {
         val orderedButtons: ImmutableList.Builder<CommandButton> = ImmutableList.builder()
-        mediaButtonPreferences.firstOrNull(AndroidPlaybackMediaButtons::isToggleFavoriteButton)
+        mediaButtonPreferences.firstOrNull(PlaybackMediaCommandCatalog::isToggleFavoriteButton)
             ?.let { favoriteButton: CommandButton -> orderedButtons.add(favoriteButton) }
         if (playerCommands.hasPreviousCommand()) {
-            orderedButtons.add(AndroidPlaybackMediaButtons.createPreviousButton())
+            orderedButtons.add(AndroidPlaybackMediaButtonFactory.createPreviousButton())
         }
         if (playerCommands.contains(Player.COMMAND_PLAY_PAUSE)) {
             orderedButtons.add(
-                AndroidPlaybackMediaButtons.createPlayPauseButton(shouldShowPauseButton = showPauseButton),
+                AndroidPlaybackMediaButtonFactory.createPlayPauseButton(shouldShowPauseButton = showPauseButton),
             )
         }
         if (playerCommands.hasNextCommand()) {
-            orderedButtons.add(AndroidPlaybackMediaButtons.createNextButton())
+            orderedButtons.add(AndroidPlaybackMediaButtonFactory.createNextButton())
         }
-        mediaButtonPreferences.firstOrNull(AndroidPlaybackMediaButtons::isPlaybackModeButton)
+        mediaButtonPreferences.firstOrNull(PlaybackMediaCommandCatalog::isPlaybackModeButton)
             ?.let { playbackModeButton: CommandButton -> orderedButtons.add(playbackModeButton) }
         return orderedButtons.build()
     }
@@ -95,7 +95,7 @@ internal class AndroidPlaybackMediaNotificationProvider(
 
     // 紧凑态最多 3 个位置；收藏缺失时回退到上一首，避免兼容控制器出现空位。
     private fun ImmutableList<CommandButton>.resolveCompactViewIndices(): IntArray {
-        val firstIndex: Int = indexOfFirst(AndroidPlaybackMediaButtons::isToggleFavoriteButton)
+        val firstIndex: Int = indexOfFirst(PlaybackMediaCommandCatalog::isToggleFavoriteButton)
             .takeIf { index: Int -> index >= 0 }
             ?: indexOfFirst { commandButton: CommandButton -> commandButton.hasPreviousCommand() }
         val playPauseIndex: Int = indexOfFirst { commandButton: CommandButton ->

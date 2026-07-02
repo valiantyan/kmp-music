@@ -48,6 +48,7 @@ kotlin {
 
     sourceSets {
         val desktopMain by getting
+        val androidUnitTest by getting
         val iosArm64Main by getting
         val iosSimulatorArm64Main by getting
 
@@ -67,6 +68,11 @@ kotlin {
         commonTest.dependencies {
             implementation(libs.kotlin.test)
             implementation(libs.kotlinx.coroutines.test)
+        }
+        androidUnitTest.dependencies {
+            implementation(libs.kotlin.test)
+            implementation(libs.kotlinx.coroutines.test)
+            implementation("org.robolectric:robolectric:4.11.1")
         }
         androidMain.dependencies {
             implementation(compose.preview)
@@ -133,6 +139,10 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
+    }
+
+    testOptions {
+        unitTests.isIncludeAndroidResources = false
     }
 }
 

@@ -111,7 +111,7 @@ Do not touch `prototypes/kmp-music-hi-fi`. Do not modify third-stage UI files as
 - Create: `composeApp/src/androidUnitTest/kotlin/com/yanhao/kmpmusic/playback/PlaybackMediaCommandCatalogTest.kt`
 - Create: `composeApp/src/androidUnitTest/kotlin/com/yanhao/kmpmusic/playback/AndroidPlaybackMediaCommandHandlerTest.kt`
 
-- [ ] **Step 1: Add Android unit test source-set dependencies**
+- [x] **Step 1: Add Android unit test source-set dependencies**
 
 In `composeApp/build.gradle.kts`, inside the existing `kotlin { sourceSets { } }` block, add the source set declaration beside the existing source-set variables:
 
@@ -128,7 +128,7 @@ androidUnitTest.dependencies {
 }
 ```
 
-- [ ] **Step 2: Create codec tests**
+- [x] **Step 2: Create codec tests**
 
 Create `composeApp/src/androidUnitTest/kotlin/com/yanhao/kmpmusic/playback/MediaButtonStateCodecTest.kt`:
 
@@ -191,7 +191,7 @@ class MediaButtonStateCodecTest {
 }
 ```
 
-- [ ] **Step 3: Create catalog tests**
+- [x] **Step 3: Create catalog tests**
 
 Create `composeApp/src/androidUnitTest/kotlin/com/yanhao/kmpmusic/playback/PlaybackMediaCommandCatalogTest.kt`:
 
@@ -237,7 +237,7 @@ class PlaybackMediaCommandCatalogTest {
 }
 ```
 
-- [ ] **Step 4: Create command handler tests**
+- [x] **Step 4: Create command handler tests**
 
 Create `composeApp/src/androidUnitTest/kotlin/com/yanhao/kmpmusic/playback/AndroidPlaybackMediaCommandHandlerTest.kt`:
 
@@ -326,7 +326,7 @@ private class RecordingPlaybackMediaButtonActions : PlaybackMediaButtonActions {
 }
 ```
 
-- [ ] **Step 5: Run Android unit tests and verify they fail**
+- [x] **Step 5: Run Android unit tests and verify they fail**
 
 Run:
 
@@ -336,7 +336,7 @@ Run:
 
 Expected: FAIL with unresolved references to `MediaButtonStateCodec`, `PlaybackMediaCommandCatalog`, `AndroidPlaybackMediaCommandHandler`, or `PlaybackMediaCommandDispatcher.clear`.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 Do not commit this task yet. These failing tests are committed with Task 2 after the implementation passes, so `main` never contains intentionally failing tests.
 
@@ -356,7 +356,7 @@ Do not commit this task yet. These failing tests are committed with Task 2 after
 - Modify: `composeApp/src/androidMain/kotlin/com/yanhao/kmpmusic/playback/AndroidPlaybackRuntime.kt`
 - Test: Android unit tests from Task 1.
 
-- [ ] **Step 1: Move command actions and add test reset**
+- [x] **Step 1: Move command actions and add test reset**
 
 Create `PlaybackMediaCommandActions.kt` with:
 
@@ -397,7 +397,7 @@ object PlaybackMediaCommandDispatcher {
 }
 ```
 
-- [ ] **Step 2: Create Media3 command catalog**
+- [x] **Step 2: Create Media3 command catalog**
 
 Create `PlaybackMediaCommandCatalog.kt` with the custom action strings and command functions:
 
@@ -461,7 +461,7 @@ internal object PlaybackMediaCommandCatalog {
 }
 ```
 
-- [ ] **Step 3: Create button-state codec**
+- [x] **Step 3: Create button-state codec**
 
 Create `MediaButtonStateCodec.kt` by moving the Bundle keys and encoder/decoder from `AndroidPlaybackMediaButtons`:
 
@@ -510,7 +510,7 @@ internal object MediaButtonStateCodec {
 }
 ```
 
-- [ ] **Step 4: Create button factory**
+- [x] **Step 4: Create button factory**
 
 Create `AndroidPlaybackMediaButtonFactory.kt` by moving `mediaButtonPreferences`, previous/play-pause/next creation, favorite/mode creation, and playback mode icon/display mapping. The public functions must be:
 
@@ -533,7 +533,7 @@ internal object AndroidPlaybackMediaButtonFactory {
 
 Inside this file, `createFavoriteButton`, `createPlaybackModeButton`, `PlaybackMode.resolveIcon`, and `PlaybackMode.resolveDisplayName` stay private. Use `PlaybackMediaCommandCatalog.toggleFavoriteCommand()` and `PlaybackMediaCommandCatalog.cycleModeCommand()` for custom buttons.
 
-- [ ] **Step 5: Create command handler**
+- [x] **Step 5: Create command handler**
 
 Create `AndroidPlaybackMediaCommandHandler.kt`:
 
@@ -569,7 +569,7 @@ internal object AndroidPlaybackMediaCommandHandler {
 }
 ```
 
-- [ ] **Step 6: Migrate Android call sites**
+- [x] **Step 6: Migrate Android call sites**
 
 Replace these references:
 
@@ -600,11 +600,11 @@ AndroidPlaybackMediaButtons.isPlaybackModeButton(commandButton = commandButton)
   -> PlaybackMediaCommandCatalog.isPlaybackModeButton(commandButton = commandButton)
 ```
 
-- [ ] **Step 7: Delete old aggregate file**
+- [x] **Step 7: Delete old aggregate file**
 
 Delete `composeApp/src/androidMain/kotlin/com/yanhao/kmpmusic/playback/PlaybackMediaCommands.kt`. Do not leave an `AndroidPlaybackMediaButtons` forwarding object.
 
-- [ ] **Step 8: Verify old aggregate references are gone**
+- [x] **Step 8: Verify old aggregate references are gone**
 
 Run:
 
@@ -614,7 +614,7 @@ rg "AndroidPlaybackMediaButtons|PlaybackMediaCommands" composeApp/src/androidMai
 
 Expected: no output.
 
-- [ ] **Step 9: Run Android tests and compile**
+- [x] **Step 9: Run Android tests and compile**
 
 Run:
 
@@ -625,7 +625,7 @@ Run:
 
 Expected: both commands PASS.
 
-- [ ] **Step 10: Commit**
+- [x] **Step 10: Commit**
 
 ```bash
 git add composeApp/build.gradle.kts composeApp/src/androidMain/kotlin/com/yanhao/kmpmusic/playback composeApp/src/androidUnitTest/kotlin/com/yanhao/kmpmusic/playback

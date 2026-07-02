@@ -30,7 +30,7 @@ class MusicPlaybackService : MediaSessionService() {
 
     // 最近一次给系统媒体通知控制器声明的按钮偏好。
     private var latestMediaButtonPreferences: List<CommandButton> =
-        AndroidPlaybackMediaButtons.mediaButtonPreferences(
+        AndroidPlaybackMediaButtonFactory.mediaButtonPreferences(
             shouldShowPauseButton = false,
             isFavorite = false,
             playbackMode = PlaybackMode.LoopAll,
@@ -100,7 +100,7 @@ class MusicPlaybackService : MediaSessionService() {
 
     /** 依据 shared 状态刷新 Media3 媒体按钮偏好。 */
     private fun refreshMediaButtonPreferences(state: MediaButtonState) {
-        latestMediaButtonPreferences = AndroidPlaybackMediaButtons.mediaButtonPreferences(
+        latestMediaButtonPreferences = AndroidPlaybackMediaButtonFactory.mediaButtonPreferences(
             shouldShowPauseButton = state.shouldShowPauseButton,
             isFavorite = state.isFavorite,
             playbackMode = state.playbackMode,
