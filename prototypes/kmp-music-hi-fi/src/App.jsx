@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowLeftIcon as ArrowLeft,
   ArrowsClockwiseIcon as ArrowsClockwise,
+  CaretLeftIcon as CaretLeft,
   CaretRightIcon as CaretRight,
   CheckCircleIcon as CheckCircle,
   DesktopIcon as Desktop,
@@ -247,6 +248,19 @@ const navItems = [
 
 const topLevelViews = ["home", "favorites", "me"];
 
+const homeVariants = [
+  { key: "A1", label: "继续听优先" },
+  { key: "A2", label: "曲库仪表盘" },
+  { key: "A3", label: "双入口平衡" },
+];
+
+const librarySummary = {
+  songCount: 113,
+  albumCount: 41,
+  artistCount: 42,
+  updatedAt: "刚刚完成扫描",
+};
+
 function formatSongCount(count) {
   return `${count} 首`;
 }
@@ -386,37 +400,75 @@ function AlbumCard({ album, onOpen }) {
   );
 }
 
-function HomeView({ songs, currentSong, currentSongId, onSearch, onScan, onLocalFolder, onSongOpen, onSongPlay, onMore, onAlbumOpen }) {
-  const recent = songs.slice(0, 2);
+function HomeView({ songs, currentSong, currentSongId, homeVariant, onHomeVariant, onSearch, onScan, onLocalFolder, onSongOpen, onSongPlay, onMore, onAlbumOpen, onArtistOpen }) {
+  const recent = songs.slice(0, 4);
+  const variant = homeVariants.some((item) => item.key === homeVariant) ? homeVariant : "A1";
 
   return (
     <>
-      <AppHeader title="首页" subtitle="本地音乐 · 随时随地畅听" onSearch={onSearch} />
+      {variant === "A1" ? (
+        <HomeVariantListenFirst
+          songs={songs}
+          recent={recent}
+          currentSong={currentSong}
+          currentSongId={currentSongId}
+          onSearch={onSearch}
+          onScan={onScan}
+          onLocalFolder={onLocalFolder}
+          onSongOpen={onSongOpen}
+          onSongPlay={onSongPlay}
+          onMore={onMore}
+          onAlbumOpen={onAlbumOpen}
+          onArtistOpen={onArtistOpen}
+        />
+      ) : null}
+      {variant === "A2" ? (
+        <HomeVariantLibraryDashboard
+          songs={songs}
+          recent={recent}
+          currentSong={currentSong}
+          currentSongId={currentSongId}
+          onSearch={onSearch}
+          onScan={onScan}
+          onLocalFolder={onLocalFolder}
+          onSongOpen={onSongOpen}
+          onSongPlay={onSongPlay}
+          onMore={onMore}
+          onAlbumOpen={onAlbumOpen}
+          onArtistOpen={onArtistOpen}
+        />
+      ) : null}
+      {variant === "A3" ? (
+        <HomeVariantBalanced
+          songs={songs}
+          recent={recent}
+          currentSong={currentSong}
+          currentSongId={currentSongId}
+          onSearch={onSearch}
+          onScan={onScan}
+          onLocalFolder={onLocalFolder}
+          onSongOpen={onSongOpen}
+          onSongPlay={onSongPlay}
+          onMore={onMore}
+          onAlbumOpen={onAlbumOpen}
+          onArtistOpen={onArtistOpen}
+        />
+      ) : null}
+      <PrototypeSwitcher variants={homeVariants} current={variant} onChange={onHomeVariant} />
+    </>
+  );
+}
 
-      <section className="library-card">
-        <div className="library-copy">
-          <span>本地音乐库</span>
-          <div className="library-count">
-            <strong>1,248</strong>
-            <b>首歌曲</b>
-          </div>
-          <p>86 张专辑 · 128 位歌手</p>
-          <div className="library-actions">
-            <button className="primary-pill" type="button" onClick={onScan}>
-              <Scan size={22} weight="bold" />
-              扫描本地音乐
-            </button>
-            <button className="soft-pill" type="button" onClick={onLocalFolder} aria-label="打开本地文件夹">
-              <FolderOpen size={23} />
-            </button>
-          </div>
-        </div>
-        <img className="folder-art" src={heroLocalFolder} alt="本地音乐库文件夹插画" />
-      </section>
-
+function HomeVariantListenFirst({ recent, currentSong, currentSongId, onSearch, onScan, onLocalFolder, onSongOpen, onSongPlay, onMore, onAlbumOpen, onArtistOpen }) {
+  return (
+    <>
+      <AppHeader title="首页" subtitle="继续听 · 本机曲库已就绪" onSearch={onSearch} />
+      <ContinuePanel song={currentSong} onOpen={onSongOpen} onPlay={onSongPlay} />
+      <LibraryStatusStrip onScan={onScan} onLocalFolder={onLocalFolder} />
+      <QuickLibraryGrid onSongs={onLocalFolder} onAlbums={() => onAlbumOpen(albums[0])} onArtists={() => onArtistOpen(artists[0])} />
       <SectionTitle title="最近播放" actionLabel="全部" actionAriaLabel="查看全部最近播放歌曲" onAction={onSearch} />
-      <div className="stack-list">
-        {recent.map((song) => (
+      <div className="stack-list compact-home-list">
+        {recent.slice(0, 3).map((song) => (
           <SongRow
             key={song.id}
             song={song}
@@ -425,17 +477,233 @@ function HomeView({ songs, currentSong, currentSongId, onSearch, onScan, onLocal
             onOpen={onSongOpen}
             onPlay={onSongPlay}
             onMore={onMore}
+            dense
           />
         ))}
       </div>
+    </>
+  );
+}
 
-      <SectionTitle title="本地专辑" actionLabel="更多" actionAriaLabel="查看更多本地专辑" onAction={() => onAlbumOpen(albums[0])} />
-      <div className="album-strip">
-        {albums.slice(0, 3).map((album) => (
-          <AlbumCard key={album.id} album={album} onOpen={onAlbumOpen} />
+function HomeVariantLibraryDashboard({ songs, recent, currentSong, currentSongId, onSearch, onScan, onLocalFolder, onSongOpen, onSongPlay, onMore, onAlbumOpen, onArtistOpen }) {
+  return (
+    <>
+      <AppHeader title="首页" subtitle="本机扫描 · 本地播放" onSearch={onSearch} />
+      <LibraryDashboard onScan={onScan} onLocalFolder={onLocalFolder} onAlbumOpen={onAlbumOpen} onArtistOpen={onArtistOpen} />
+      <SectionTitle title="继续播放" actionLabel="队列" actionAriaLabel="打开当前播放队列" onAction={() => onSongOpen(currentSong)} />
+      <NowPlayingSlim song={currentSong} onOpen={onSongOpen} onPlay={onSongPlay} />
+      <SectionTitle title="本地歌曲" meta={`${songs.length} 首已载入`} actionLabel="全部" actionAriaLabel="查看全部本地歌曲" onAction={onLocalFolder} />
+      <div className="stack-list compact-home-list">
+        {recent.slice(0, 3).map((song) => (
+          <SongRow
+            key={song.id}
+            song={song}
+            active={currentSong.id === song.id}
+            currentSongId={currentSongId}
+            onOpen={onSongOpen}
+            onPlay={onSongPlay}
+            onMore={onMore}
+            dense
+          />
         ))}
       </div>
     </>
+  );
+}
+
+function HomeVariantBalanced({ recent, currentSong, currentSongId, onSearch, onScan, onLocalFolder, onSongOpen, onSongPlay, onMore, onAlbumOpen, onArtistOpen }) {
+  return (
+    <>
+      <AppHeader title="首页" subtitle="继续听 · 管理本机曲库" onSearch={onSearch} />
+      <section className="home-split-grid" aria-label="首页主要入口">
+        <button className="split-card listen" type="button" onClick={() => onSongOpen(currentSong)}>
+          <span>继续播放</span>
+          <strong>{currentSong.title}</strong>
+          <small>{currentSong.artist} · {currentSong.duration}</small>
+          <Play size={28} weight="fill" />
+        </button>
+        <button className="split-card library" type="button" onClick={onLocalFolder}>
+          <span>本机曲库</span>
+          <strong>{librarySummary.songCount}</strong>
+          <small>{librarySummary.albumCount} 专辑 · {librarySummary.artistCount} 歌手</small>
+          <FolderOpen size={28} weight="bold" />
+        </button>
+      </section>
+      <LibraryStatusStrip onScan={onScan} onLocalFolder={onLocalFolder} quiet />
+      <SectionTitle title="最近播放" meta="仅保留 3 首" actionLabel="全部" actionAriaLabel="查看全部最近播放歌曲" onAction={onSearch} />
+      <div className="stack-list compact-home-list">
+        {recent.slice(0, 3).map((song) => (
+          <SongRow
+            key={song.id}
+            song={song}
+            active={currentSong.id === song.id}
+            currentSongId={currentSongId}
+            onOpen={onSongOpen}
+            onPlay={onSongPlay}
+            onMore={onMore}
+            dense
+          />
+        ))}
+      </div>
+      <section className="album-preview-row" aria-label="本地专辑预览">
+        <SectionTitle title="本地专辑" actionLabel="更多" actionAriaLabel="查看更多本地专辑" onAction={() => onAlbumOpen(albums[0])} />
+        <div>
+          {albums.slice(0, 3).map((album) => (
+            <button key={album.id} type="button" onClick={() => onAlbumOpen(album)}>
+              <img src={album.cover} alt={`${album.title} 专辑封面`} />
+            </button>
+          ))}
+        </div>
+      </section>
+    </>
+  );
+}
+
+function ContinuePanel({ song, onOpen, onPlay }) {
+  return (
+    <section className="continue-panel">
+      <button className="continue-art" type="button" onClick={() => onOpen(song)} aria-label={`打开 ${song.title} 播放页`}>
+        <img src={song.cover} alt={`${song.title} 封面`} />
+      </button>
+      <div className="continue-copy">
+        <span>继续听</span>
+        <h2>{song.title}</h2>
+        <p>{song.artist} · {song.album}</p>
+        <div>
+          <button className="primary-pill" type="button" onClick={() => onPlay(song)}>
+            <Play size={18} weight="fill" />
+            继续播放
+          </button>
+          <small>{song.duration}</small>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function LibraryStatusStrip({ onScan, onLocalFolder, quiet = false }) {
+  return (
+    <section className={`library-status-strip ${quiet ? "quiet" : ""}`} aria-label="本机曲库扫描状态">
+      <button className="library-status-main" type="button" onClick={onLocalFolder}>
+        <MusicNotes size={22} weight="bold" />
+        <span>
+          <strong>本机曲库 {librarySummary.songCount} 首</strong>
+          <small>{librarySummary.albumCount} 专辑 · {librarySummary.artistCount} 歌手 · {librarySummary.updatedAt}</small>
+        </span>
+      </button>
+      <button className="scan-chip" type="button" onClick={onScan}>
+        <Scan size={17} weight="bold" />
+        重新扫描
+      </button>
+    </section>
+  );
+}
+
+function QuickLibraryGrid({ onSongs, onAlbums, onArtists }) {
+  const items = [
+    { label: "全部歌曲", value: librarySummary.songCount, icon: MusicNotes, onClick: onSongs },
+    { label: "专辑", value: librarySummary.albumCount, icon: VinylRecord, onClick: onAlbums },
+    { label: "歌手", value: librarySummary.artistCount, icon: MicrophoneStage, onClick: onArtists },
+  ];
+
+  return (
+    <section className="quick-library-grid" aria-label="本地曲库快捷入口">
+      {items.map((item) => {
+        const Icon = item.icon;
+
+        return (
+          <button key={item.label} type="button" onClick={item.onClick}>
+            <Icon size={21} weight="bold" />
+            <strong>{item.value}</strong>
+            <span>{item.label}</span>
+          </button>
+        );
+      })}
+    </section>
+  );
+}
+
+function LibraryDashboard({ onScan, onLocalFolder, onAlbumOpen, onArtistOpen }) {
+  return (
+    <section className="library-dashboard" aria-label="本机曲库仪表盘">
+      <div className="library-dashboard-header">
+        <div>
+          <span>本地音乐库</span>
+          <strong>{librarySummary.songCount} 首</strong>
+          <p>{librarySummary.updatedAt} · 只播放本机文件</p>
+        </div>
+        <img src={heroLocalFolder} alt="本地音乐库文件夹插画" />
+      </div>
+      <div className="library-dashboard-actions">
+        <button type="button" onClick={onScan}>
+          <Scan size={18} weight="bold" />
+          重新扫描
+        </button>
+        <button type="button" onClick={onLocalFolder}>
+          <FolderOpen size={18} weight="bold" />
+          文件夹
+        </button>
+      </div>
+      <QuickLibraryGrid onSongs={onLocalFolder} onAlbums={() => onAlbumOpen(albums[0])} onArtists={() => onArtistOpen(artists[0])} />
+    </section>
+  );
+}
+
+function NowPlayingSlim({ song, onOpen, onPlay }) {
+  return (
+    <article className="now-playing-slim">
+      <button type="button" onClick={() => onOpen(song)}>
+        <img src={song.cover} alt={`${song.title} 封面`} />
+        <span>
+          <strong>{song.title}</strong>
+          <small>{song.artist} · 播放中</small>
+        </span>
+      </button>
+      <button type="button" onClick={() => onPlay(song)} aria-label={`播放 ${song.title}`}>
+        <Play size={20} weight="fill" />
+      </button>
+    </article>
+  );
+}
+
+function PrototypeSwitcher({ variants, current, onChange }) {
+  const currentIndex = variants.findIndex((variant) => variant.key === current);
+  const safeIndex = currentIndex >= 0 ? currentIndex : 0;
+  const currentVariant = variants[safeIndex];
+
+  function cycle(direction) {
+    const nextIndex = (safeIndex + direction + variants.length) % variants.length;
+    onChange(variants[nextIndex].key);
+  }
+
+  useEffect(() => {
+    function onKeyDown(event) {
+      const target = event.target;
+      const isEditing = target?.tagName === "INPUT" || target?.tagName === "TEXTAREA" || target?.isContentEditable;
+
+      if (isEditing) return;
+      if (event.key === "ArrowLeft") {
+        cycle(-1);
+      }
+      if (event.key === "ArrowRight") {
+        cycle(1);
+      }
+    }
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [safeIndex, variants, onChange]);
+
+  return (
+    <aside className="prototype-switcher" aria-label="首页原型方案切换器">
+      <button type="button" onClick={() => cycle(-1)} aria-label="上一个首页方案">
+        <CaretLeft size={18} weight="bold" />
+      </button>
+      <span>{currentVariant.key} · {currentVariant.label}</span>
+      <button type="button" onClick={() => cycle(1)} aria-label="下一个首页方案">
+        <CaretRight size={18} weight="bold" />
+      </button>
+    </aside>
   );
 }
 
@@ -1283,6 +1551,10 @@ function ClearCacheDialog({ open, onCancel, onConfirm }) {
 
 export function App() {
   const [view, setView] = useState("home");
+  const [homeVariant, setHomeVariant] = useState(() => {
+    const variant = new URLSearchParams(window.location.search).get("homeVariant");
+    return homeVariants.some((item) => item.key === variant) ? variant : "A1";
+  });
   const [previousView, setPreviousView] = useState("home");
   const [songs, setSongs] = useState(initialSongs);
   const [queueIds, setQueueIds] = useState(initialQueueIds);
@@ -1333,6 +1605,13 @@ export function App() {
       phoneAppRef.current.scrollTop = 0;
     }
   }, [view, hasOpenOverlay]);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    params.set("homeVariant", homeVariant);
+    const nextSearch = params.toString();
+    window.history.replaceState(null, "", `${window.location.pathname}?${nextSearch}${window.location.hash}`);
+  }, [homeVariant]);
 
   function navigate(nextView) {
     setPreviousView(topLevelViews.includes(view) ? view : previousView);
@@ -1458,6 +1737,8 @@ export function App() {
     songs,
     currentSong,
     currentSongId,
+    homeVariant,
+    onHomeVariant: setHomeVariant,
     onSearch: () => navigate("search"),
     onScan: openScan,
     onLocalFolder: () => navigate("local"),
