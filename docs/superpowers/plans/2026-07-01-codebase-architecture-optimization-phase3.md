@@ -127,7 +127,7 @@ The implementation must not touch `prototypes/kmp-music-hi-fi`.
 - Modify: `composeApp/src/commonTest/kotlin/com/yanhao/kmpmusic/feature/app/MusicAppControllerTest.kt`
 - Modify: `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/app/MusicApp.kt`
 
-- [ ] **Step 1: Update navigation tests to the new names**
+- [x] **Step 1: Update navigation tests to the new names**
 
 Change imports in `MusicAppNavigationControllerTest.kt`:
 
@@ -195,7 +195,7 @@ assertEquals(
 )
 ```
 
-- [ ] **Step 2: Run the focused tests and verify they fail**
+- [x] **Step 2: Run the focused tests and verify they fail**
 
 Run:
 
@@ -205,7 +205,7 @@ Run:
 
 Expected: FAIL with unresolved references to `MobileFixedBarMode`, `MobileFixedBarPlacement`, or `fixedBarMode`.
 
-- [ ] **Step 3: Rename the model types and properties**
+- [x] **Step 3: Rename the model types and properties**
 
 In `MusicAppModels.kt`, rename the declarations and properties to:
 
@@ -306,7 +306,7 @@ placement: MobileFixedBarPlacement,
 
 and its `when` branches to `MobileFixedBarPlacement.TopLevel`, `MiniPlayerOnly`, and `Hidden`.
 
-- [ ] **Step 4: Search for old names**
+- [x] **Step 4: Search for old names**
 
 Run:
 
@@ -316,7 +316,7 @@ rg "AppChromeMode|BottomChromePlacement|chromeMode|bottomChromePlacement" compos
 
 Expected: no output.
 
-- [ ] **Step 5: Run focused tests and Android compile**
+- [x] **Step 5: Run focused tests and Android compile**
 
 Run:
 
@@ -327,7 +327,7 @@ Run:
 
 Expected: both commands PASS.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/app/MusicAppModels.kt composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/app/MusicApp.kt composeApp/src/commonTest/kotlin/com/yanhao/kmpmusic/feature/app/navigation/MusicAppNavigationControllerTest.kt composeApp/src/commonTest/kotlin/com/yanhao/kmpmusic/feature/app/MusicAppControllerTest.kt
@@ -342,7 +342,7 @@ git commit -m "refactor: 重命名手机端固定底栏状态"
 - Modify: `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/app/MusicApp.kt`
 - Modify: `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/desktop/DesktopMusicApp.kt`
 
-- [ ] **Step 1: Create `AppDialogs.kt`**
+- [x] **Step 1: Create `AppDialogs.kt`**
 
 Move the two `AlertDialog` branches from `AppOverlays` into:
 
@@ -408,7 +408,7 @@ fun AppDialogs(
 }
 ```
 
-- [ ] **Step 2: Create `AppPanels.kt`**
+- [x] **Step 2: Create `AppPanels.kt`**
 
 Move the queue sheet, more sheet, and `BottomSheetAction` into:
 
@@ -548,7 +548,7 @@ private fun BottomSheetAction(
 }
 ```
 
-- [ ] **Step 3: Replace `AppOverlays` call sites**
+- [x] **Step 3: Replace `AppOverlays` call sites**
 
 In `MusicApp.kt`, replace:
 
@@ -572,7 +572,7 @@ import com.yanhao.kmpmusic.feature.app.surfaces.AppPanels
 
 In `DesktopMusicApp.kt`, replace both `AppOverlays` call sites with the same two calls and replace its import with the same two surface imports.
 
-- [ ] **Step 4: Delete old overlay functions from `MusicApp.kt`**
+- [x] **Step 4: Delete old overlay functions from `MusicApp.kt`**
 
 Remove these declarations from `MusicApp.kt`:
 
@@ -581,7 +581,7 @@ internal fun AppOverlays
 private fun BottomSheetAction
 ```
 
-- [ ] **Step 5: Verify old overlay name is gone**
+- [x] **Step 5: Verify old overlay name is gone**
 
 Run:
 
@@ -591,7 +591,7 @@ rg "AppOverlays|BottomSheetAction" composeApp/src/commonMain composeApp/src/comm
 
 Expected: no output for `AppOverlays`; one output for `BottomSheetAction` is allowed only in `feature/app/surfaces/AppPanels.kt`.
 
-- [ ] **Step 6: Compile**
+- [x] **Step 6: Compile**
 
 Run:
 
@@ -601,7 +601,7 @@ Run:
 
 Expected: PASS.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/app/MusicApp.kt composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/app/surfaces/AppDialogs.kt composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/app/surfaces/AppPanels.kt composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/desktop/DesktopMusicApp.kt
@@ -620,7 +620,7 @@ git commit -m "refactor: 拆分全局弹窗和面板"
 - Create: `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/app/playerbar/MobileBottomNavigation.kt`
 - Modify: `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/app/MusicApp.kt`
 
-- [ ] **Step 1: Create `MobileAppLayout` public API**
+- [x] **Step 1: Create `MobileAppLayout` public API**
 
 Create this shell and then move the current `BoxWithConstraints` body from `MusicApp.kt` into the function:
 
@@ -646,7 +646,7 @@ fun MobileAppLayout(
 
 Use the `BoxWithConstraints` expression currently inside `KmpMusicTheme` in `MusicApp.kt` as this function body. In the same task, update that moved body so it calls `MobileContentLayout`, `MobileFixedPlayerBar`, `AppDialogs`, and `AppPanels`.
 
-- [ ] **Step 2: Reduce `MusicApp.kt` to the public entry**
+- [x] **Step 2: Reduce `MusicApp.kt` to the public entry**
 
 After moving layout code, `MusicApp.kt` should keep this shape:
 
@@ -677,7 +677,7 @@ fun MusicApp(
 }
 ```
 
-- [ ] **Step 3: Create `MobileContentLayout`**
+- [x] **Step 3: Create `MobileContentLayout`**
 
 Move current `AppContent` and `getContentBottomPadding` into `MobileContentLayout.kt`. Rename the public function:
 
@@ -741,7 +741,7 @@ fun MobileContentLayout(
 
 This preserves the current root-page and non-local-secondary wrapper: status bar padding, navigation bar padding, vertical scroll, and `pagePadding` must stay outside `MobileRootScreenRoute` and non-local secondary routes. `LocalMusicScreen` remains the only mobile route mounted outside the vertical-scroll `Column`, matching the current list-screen behavior.
 
-- [ ] **Step 4: Create `MobileRootScreenRoute`**
+- [x] **Step 4: Create `MobileRootScreenRoute`**
 
 Move current `RootScreen` from `MusicApp.kt` into `MobileRootScreenRoute.kt` and rename it:
 
@@ -758,7 +758,7 @@ Move the full `when (state.navigationState.rootTab)` expression from the existin
 
 Do not add status bar padding, navigation bar padding, vertical scroll, or bottom content padding inside `MobileRootScreenRoute`; `MobileContentLayout` owns that wrapper so every root tab keeps the current shared layout behavior.
 
-- [ ] **Step 5: Create `MobileSecondaryScreenRoute`**
+- [x] **Step 5: Create `MobileSecondaryScreenRoute`**
 
 Move the secondary `when` branches from `AppContent` into:
 
@@ -776,7 +776,7 @@ fun MobileSecondaryScreenRoute(
 
 Move the full `when (secondaryScreen)` expression from the existing `AppContent` function into `MobileSecondaryScreenRoute`. Keep the `LocalMusicScreen`, `SearchScreen`, `PlayerScreen`, `AlbumDetailScreen`, `ArtistDetailScreen`, `SettingsScreen`, `LoginScreen`, and `MissingLibraryItemScreen` branches with the same argument and controller callback mapping.
 
-- [ ] **Step 6: Create mobile playerbar files**
+- [x] **Step 6: Create mobile playerbar files**
 
 Move these functions from `MusicApp.kt`:
 
@@ -814,7 +814,7 @@ fun MobileFixedPlayerBar(
 
 Use the former `BottomChrome` body adapted to the new function names. Rename animation labels from `"BottomChromePlacement"` and `"BottomChromeOffset"` to `"MobileFixedBarPlacement"` and `"MobileFixedBarOffset"`.
 
-- [ ] **Step 7: Wire new mobile files**
+- [x] **Step 7: Wire new mobile files**
 
 In `MobileAppLayout`, call:
 
@@ -845,7 +845,7 @@ AppDialogs(state = state, controller = controller)
 AppPanels(state = state, controller = controller)
 ```
 
-- [ ] **Step 8: Verify `MusicApp.kt` no longer owns moved UI**
+- [x] **Step 8: Verify `MusicApp.kt` no longer owns moved UI**
 
 Run:
 
@@ -855,7 +855,7 @@ rg "private fun AppContent|private fun RootScreen|BottomChrome|MiniPlayer|Bottom
 
 Expected: output contains only imports or call sites for `MobileAppLayout`; it must not contain old function declarations.
 
-- [ ] **Step 9: Compile**
+- [x] **Step 9: Compile**
 
 Run:
 
@@ -865,7 +865,7 @@ Run:
 
 Expected: PASS.
 
-- [ ] **Step 10: Commit**
+- [x] **Step 10: Commit**
 
 ```bash
 git add composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/app/MusicApp.kt composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/app/layout composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/app/routes composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/app/playerbar
@@ -885,7 +885,7 @@ git commit -m "refactor: 拆分手机端 App 布局和固定底栏"
 - Modify: `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/desktop/DesktopMusicScreens.kt`
 - Modify: `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/desktop/DesktopMusicComponents.kt`
 
-- [ ] **Step 1: Create `DesktopAppLayout`**
+- [x] **Step 1: Create `DesktopAppLayout`**
 
 Move the themed `Box` body from `DesktopMusicApp.kt` into:
 
@@ -902,7 +902,7 @@ fun DesktopAppLayout(
 
 Use the `Box` expression currently inside `KmpMusicTheme` in `DesktopMusicApp.kt` as this function body. In the same task, update that moved body so it calls `DesktopWorkspaceLayout`, `DesktopBottomPlayer`, `AppDialogs`, and `AppPanels`.
 
-- [ ] **Step 2: Keep `SecondaryScreen.Player` only in `DesktopAppLayout`**
+- [x] **Step 2: Keep `SecondaryScreen.Player` only in `DesktopAppLayout`**
 
 In `DesktopAppLayout`, keep the full-screen branch:
 
@@ -934,7 +934,7 @@ if (state.navigationState.secondaryScreen == SecondaryScreen.Player) {
 }
 ```
 
-- [ ] **Step 3: Reduce `DesktopMusicApp.kt` to the public entry**
+- [x] **Step 3: Reduce `DesktopMusicApp.kt` to the public entry**
 
 `DesktopMusicApp.kt` should keep this shape:
 
@@ -977,7 +977,7 @@ fun DesktopMusicApp(
 }
 ```
 
-- [ ] **Step 4: Create `DesktopWorkspaceLayout`**
+- [x] **Step 4: Create `DesktopWorkspaceLayout`**
 
 Move current `DesktopWorkspace` into:
 
@@ -1014,7 +1014,7 @@ saveableStateHolder.SaveableStateProvider(key = state.navigationState.scrollStat
 
 `DesktopAppLayout` must pass the same `saveableStateHolder` it receives into `DesktopWorkspaceLayout`. This preserves the current desktop scroll/state isolation for non-player pages; the full-screen player branch keeps its own top-level `SaveableStateProvider`.
 
-- [ ] **Step 5: Create desktop route files**
+- [x] **Step 5: Create desktop route files**
 
 Create `DesktopRootScreenRoute`:
 
@@ -1040,7 +1040,7 @@ fun DesktopSecondaryScreenRoute(
 
 Move the existing root and secondary route branches with their argument lists and controller callback mappings. The `SecondaryScreen.Player -> Unit` branch is intentional because `DesktopAppLayout` owns the player full-screen route.
 
-- [ ] **Step 6: Move title bar and rail**
+- [x] **Step 6: Move title bar and rail**
 
 Move from `DesktopMusicComponents.kt`:
 
@@ -1063,7 +1063,7 @@ Move from `DesktopMusicApp.kt` to `DesktopAppLayout.kt`:
 MusicAppUiState.shouldShowLibrarySidebar
 ```
 
-- [ ] **Step 7: Verify player double-route is gone**
+- [x] **Step 7: Verify player double-route is gone**
 
 Run:
 
@@ -1073,7 +1073,7 @@ rg -n "SecondaryScreen.Player" composeApp/src/commonMain/kotlin/com/yanhao/kmpmu
 
 Expected: `SecondaryScreen.Player` appears in `layout/DesktopAppLayout.kt` and in `navigation/DesktopSecondaryScreenRoute.kt` only as the no-op branch. It must not create `DesktopPlayerDetailScreen` inside `DesktopSecondaryScreenRoute.kt`.
 
-- [ ] **Step 8: Compile**
+- [x] **Step 8: Compile**
 
 Run:
 
@@ -1083,7 +1083,7 @@ Run:
 
 Expected: PASS.
 
-- [ ] **Step 9: Commit**
+- [x] **Step 9: Commit**
 
 ```bash
 git add composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/desktop/DesktopMusicApp.kt composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/desktop/DesktopMusicScreens.kt composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/desktop/DesktopMusicComponents.kt composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/desktop/layout composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/desktop/navigation
@@ -1100,7 +1100,7 @@ git commit -m "refactor: 拆分桌面布局和路由"
 - Modify: `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/desktop/navigation/DesktopRootScreenRoute.kt`
 - Modify: `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/desktop/navigation/DesktopSecondaryScreenRoute.kt`
 
-- [ ] **Step 1: Move home screen**
+- [x] **Step 1: Move home screen**
 
 Move these declarations to `screens/DesktopHomeScreen.kt`:
 
@@ -1116,7 +1116,7 @@ normalizeDesktopLookupKey
 
 Keep `DesktopLocalMusicRootScreen` public.
 
-- [ ] **Step 2: Move favorites and me screens**
+- [x] **Step 2: Move favorites and me screens**
 
 Move:
 
@@ -1127,7 +1127,7 @@ DesktopMeRootScreen -> screens/DesktopMeScreen.kt
 
 Keep both public because route files call them.
 
-- [ ] **Step 3: Move search screen**
+- [x] **Step 3: Move search screen**
 
 Move these declarations to `screens/DesktopSearchScreen.kt`:
 
@@ -1141,7 +1141,7 @@ DesktopSearchResultsSection
 
 Keep `DesktopSearchScreen` public. Move `DesktopTinyTextButton` directly to `components/DesktopButtons.kt` in this task because it is shared UI, not part of the search screen's page implementation. If `components/DesktopButtons.kt` does not exist yet, create it now with only `DesktopTinyTextButton`; Task 6 will add the remaining button declarations to the same file.
 
-- [ ] **Step 4: Move detail, settings, login, local music, and empty screens**
+- [x] **Step 4: Move detail, settings, login, local music, and empty screens**
 
 Move:
 
@@ -1162,11 +1162,11 @@ formatDesktopSourceScanDate -> screens/DesktopLocalMusicScreen.kt
 
 Move `DesktopSectionEmptyMessage` directly to `components/DesktopSections.kt` in this task because it is used by search, home, favorites, me, and local sections. If `components/DesktopSections.kt` does not exist yet, create it now with only `DesktopSectionEmptyMessage`; Task 6 will add the remaining section declarations to the same file.
 
-- [ ] **Step 5: Remove old router**
+- [x] **Step 5: Remove old router**
 
 Delete the old `DesktopSecondaryScreen` function from `DesktopMusicScreens.kt`. Route files must call the new screen files directly.
 
-- [ ] **Step 6: Verify `DesktopMusicScreens.kt` is drained**
+- [x] **Step 6: Verify `DesktopMusicScreens.kt` is drained**
 
 Run:
 
@@ -1176,7 +1176,7 @@ rg -n "fun Desktop|private fun|@Composable" composeApp/src/commonMain/kotlin/com
 
 Expected: no output. If the file is empty except package/imports, delete `DesktopMusicScreens.kt`.
 
-- [ ] **Step 7: Compile**
+- [x] **Step 7: Compile**
 
 Run:
 
@@ -1186,7 +1186,7 @@ Run:
 
 Expected: PASS.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/desktop/DesktopMusicScreens.kt composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/desktop/screens composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/desktop/components/DesktopButtons.kt composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/desktop/components/DesktopSections.kt composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/desktop/navigation
@@ -1200,7 +1200,7 @@ git commit -m "refactor: 拆分桌面页面"
 - Modify or delete: `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/desktop/DesktopMusicComponents.kt`
 - Modify imports in desktop layout, navigation, and screens files created in Tasks 4 and 5.
 
-- [ ] **Step 1: Move buttons and forms**
+- [x] **Step 1: Move buttons and forms**
 
 Move to `components/DesktopButtons.kt`:
 
@@ -1220,7 +1220,7 @@ DesktopTextInput
 DesktopSegmentedControl
 ```
 
-- [ ] **Step 2: Move tables**
+- [x] **Step 2: Move tables**
 
 Move to `components/DesktopTables.kt`:
 
@@ -1237,7 +1237,7 @@ CivilDate
 
 Keep `DesktopSongTable` public. Keep helper functions private unless another file calls them.
 
-- [ ] **Step 3: Move cards and rows**
+- [x] **Step 3: Move cards and rows**
 
 Move to `components/DesktopCards.kt`:
 
@@ -1247,7 +1247,7 @@ DesktopProfilePanel
 DesktopContentRow
 ```
 
-- [ ] **Step 4: Move sections**
+- [x] **Step 4: Move sections**
 
 Move to `components/DesktopSections.kt`:
 
@@ -1262,7 +1262,7 @@ DesktopArtistStrip
 
 `DesktopSectionEmptyMessage` should already be in `components/DesktopSections.kt` from Task 5; keep it there and add the remaining section declarations beside it. Keep `DesktopAlbumGrid` and `DesktopAlbumCard` in the same file to preserve high cohesion.
 
-- [ ] **Step 5: Verify old component file is drained**
+- [x] **Step 5: Verify old component file is drained**
 
 Run:
 
@@ -1272,7 +1272,7 @@ rg -n "fun Desktop|private fun|data class CivilDate|@Composable" composeApp/src/
 
 Expected: no output. If the file is empty except package/imports, delete `DesktopMusicComponents.kt`.
 
-- [ ] **Step 6: Compile**
+- [x] **Step 6: Compile**
 
 Run:
 
@@ -1282,7 +1282,7 @@ Run:
 
 Expected: PASS.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/desktop/DesktopMusicComponents.kt composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/desktop/components composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/desktop/layout composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/desktop/navigation composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/desktop/screens
@@ -1297,7 +1297,7 @@ git commit -m "refactor: 拆分桌面复用组件"
 - Modify or move: `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/desktop/DesktopPlayerDetailScreen.kt`
 - Modify imports in `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/desktop/layout/DesktopAppLayout.kt`
 
-- [ ] **Step 1: Move bottom player entry and track**
+- [x] **Step 1: Move bottom player entry and track**
 
 Move to `player/DesktopBottomPlayer.kt`:
 
@@ -1315,7 +1315,7 @@ DesktopOpenPlayerButton
 
 Keep `DesktopBottomPlayer` public.
 
-- [ ] **Step 2: Move bottom player controls and progress**
+- [x] **Step 2: Move bottom player controls and progress**
 
 Move to `player/DesktopBottomPlayerControls.kt`:
 
@@ -1334,7 +1334,7 @@ formatTime
 
 If detail player can share the same formatter after Task 7 Step 4, rename `formatTime` to `formatDesktopPlayerTime` and use it from both bottom and detail player.
 
-- [ ] **Step 3: Move detail player screen file path**
+- [x] **Step 3: Move detail player screen file path**
 
 Move `DesktopPlayerDetailScreen.kt` to:
 
@@ -1372,7 +1372,7 @@ fun DesktopPlayerDetailScreen(
 )
 ```
 
-- [ ] **Step 4: Split detail player internals**
+- [x] **Step 4: Split detail player internals**
 
 Move from `player/DesktopPlayerDetailScreen.kt` into focused files:
 
@@ -1397,7 +1397,7 @@ DesktopPlayerTimeText -> DesktopPlayerProgress.kt
 
 Keep `DesktopPlayerShared.kt` only if both bottom player and detail player use the same icon model after this split.
 
-- [ ] **Step 5: Remove old player files**
+- [x] **Step 5: Remove old player files**
 
 Run:
 
@@ -1407,7 +1407,7 @@ rg -n "fun Desktop|private fun|internal fun|@Composable" composeApp/src/commonMa
 
 Expected: no output because both old files are deleted or drained. If files are empty except package/imports, delete them.
 
-- [ ] **Step 6: Compile**
+- [x] **Step 6: Compile**
 
 Run:
 
@@ -1417,7 +1417,7 @@ Run:
 
 Expected: PASS.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/desktop/DesktopMusicPlayer.kt composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/desktop/DesktopPlayerDetailScreen.kt composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/desktop/player composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/desktop/layout/DesktopAppLayout.kt
@@ -1430,7 +1430,7 @@ git commit -m "refactor: 拆分桌面播放器 UI"
 - Modify imports or delete empty files discovered by the verification commands.
 - No production behavior changes are allowed in this task.
 
-- [ ] **Step 1: Verify forbidden old names**
+- [x] **Step 1: Verify forbidden old names**
 
 Run:
 
@@ -1440,7 +1440,7 @@ rg "BottomChrome|AppChromeMode|BottomChromePlacement|chromeMode|bottomChromePlac
 
 Expected: no output.
 
-- [ ] **Step 2: Verify entry files are thin**
+- [x] **Step 2: Verify entry files are thin**
 
 Run:
 
@@ -1457,7 +1457,7 @@ composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/desktop/DesktopMusi
 
 Only the public entry composables should appear.
 
-- [ ] **Step 3: Verify no old desktop aggregate files still own UI**
+- [x] **Step 3: Verify no old desktop aggregate files still own UI**
 
 Run this check only for files that still exist. If a file was deleted intentionally, verify deletion with `rg --files` first and skip that path:
 
@@ -1476,7 +1476,7 @@ done
 
 Expected: no output.
 
-- [ ] **Step 4: Run final automated verification**
+- [x] **Step 4: Run final automated verification**
 
 Run:
 
@@ -1486,7 +1486,7 @@ Run:
 
 Expected: PASS.
 
-- [ ] **Step 5: Manual visual checklist**
+- [x] **Step 5: Manual visual checklist**
 
 Run the app on the available platform and check these screens:
 
@@ -1506,7 +1506,7 @@ Current playing song remains highlighted.
 Search, more menu, favorite, play all, open detail, and back still call controller behavior correctly.
 ```
 
-- [ ] **Step 6: Commit final cleanup**
+- [x] **Step 6: Commit final cleanup**
 
 ```bash
 git add composeApp/src/commonMain composeApp/src/commonTest

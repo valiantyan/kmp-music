@@ -1,13 +1,6 @@
 package com.yanhao.kmpmusic.feature.desktop
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.rememberCoroutineScope
@@ -16,17 +9,14 @@ import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.ui.Modifier
 import com.yanhao.kmpmusic.core.theme.KmpMusicTheme
 import com.yanhao.kmpmusic.domain.model.LocalMusicScanRequest
-import com.yanhao.kmpmusic.domain.model.SearchContext
-import com.yanhao.kmpmusic.feature.app.AppOverlays
-import com.yanhao.kmpmusic.feature.app.LocalMusicSection
 import com.yanhao.kmpmusic.feature.app.MusicAppController
 import com.yanhao.kmpmusic.feature.app.MusicAppUiState
 import com.yanhao.kmpmusic.feature.app.RootTab
-import com.yanhao.kmpmusic.feature.app.SecondaryScreen
+import com.yanhao.kmpmusic.feature.desktop.layout.DesktopAppLayout
 import kotlinx.coroutines.launch
 
 /**
- * Desktop-only app surface. Mobile Android/iOS continue to call MusicApp.
+ * 桌面端公开入口，仅负责主题、扫描回调和首屏资料库加载。
  */
 @Composable
 fun DesktopMusicApp(
@@ -55,221 +45,12 @@ fun DesktopMusicApp(
         }
     }
     KmpMusicTheme(themeMode = state.themeMode) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize(),
-        ) {
-            if (state.navigationState.secondaryScreen == SecondaryScreen.Player) {
-                saveableStateHolder.SaveableStateProvider(key = state.navigationState.scrollStateKey) {
-                    DesktopPlayerDetailScreen(
-                        song = state.currentSong,
-                        queueSongs = state.queueSongs,
-                        isPlaying = state.shouldShowPauseControl,
-                        playbackPositionMs = state.playbackPositionMs,
-                        playbackDurationMs = state.playbackDurationMs,
-                        playbackMode = state.playbackMode,
-                        volume = state.playbackVolume,
-                        onBack = controller::navigateBack,
-                        onToggle = controller::togglePlayback,
-                        onPrev = { controller.moveTrack(direction = -1) },
-                        onNext = { controller.moveTrack(direction = 1) },
-                        onMode = controller::cyclePlaybackMode,
-                        onLike = controller::toggleFavorite,
-                        onSeek = controller::seekTo,
-                        onVolumeChange = controller::setVolume,
-                        modifier = Modifier.fillMaxSize(),
-                    )
-                }
-                AppOverlays(state = state, controller = controller)
-                return@Box
-            }
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(DesktopMusicColors.WindowBackground),
-            ) {
-                DesktopTitleBar(
-                    showSearch = state.shouldShowTitlebarMusicSearch,
-                    onSearch = {
-                        val context: SearchContext = when (state.navigationState.rootTab) {
-                            RootTab.Favorites -> SearchContext.Favorites
-                            RootTab.Home,
-                            RootTab.Me,
-                            -> SearchContext.LocalLibrary
-                        }
-                        controller.openSearch(context = context)
-                    },
-                )
-                Row(modifier = Modifier.weight(1f)) {
-                    DesktopRail(
-                        activeDestination = state.desktopRailDestination(),
-                        onRootTab = controller::navigateToRoot,
-                        onSettings = { controller.navigateToSecondary(SecondaryScreen.Settings) },
-                    )
-                    if (state.shouldShowLibrarySidebar()) {
-                        DesktopLibrarySidebar(
-                            libraryStats = state.libraryStats,
-                            recentSongs = state.recentSongs,
-                            onSection = controller::openLocalMusic,
-                            onSongPlay = { song, queueSongs ->
-                                controller.playSong(
-                                    song = song,
-                                    queueSongs = queueSongs,
-                                )
-                            },
-                            onRecentClear = controller::clearRecentPlaybackHistory,
-                        )
-                    }
-                    Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .fillMaxHeight()
-                            .background(DesktopMusicColors.Paper),
-                    ) {
-                        saveableStateHolder.SaveableStateProvider(key = state.navigationState.scrollStateKey) {
-                            DesktopWorkspace(
-                                state = state,
-                                controller = controller,
-                                onScanLocalMusic = scanLocalMusic,
-                                modifier = Modifier.fillMaxSize(),
-                            )
-                        }
-                    }
-                }
-                DesktopBottomPlayer(
-                    song = state.currentSong,
-                    isPlaying = state.shouldShowPauseControl,
-                    playbackPositionMs = state.playbackPositionMs,
-                    playbackDurationMs = state.playbackDurationMs,
-                    playbackMode = state.playbackMode,
-                    volume = state.playbackVolume,
-                    onOpen = controller::openPlayer,
-                    onToggle = controller::togglePlayback,
-                    onPrev = { controller.moveTrack(direction = -1) },
-                    onNext = { controller.moveTrack(direction = 1) },
-                    onMode = controller::cyclePlaybackMode,
-                    onLike = controller::toggleFavorite,
-                    onSeek = controller::seekTo,
-                    onVolumeChange = controller::setVolume,
-                    onQueue = controller::openQueue,
-                )
-            }
-            AppOverlays(state = state, controller = controller)
-        }
+        DesktopAppLayout(
+            state = state,
+            controller = controller,
+            saveableStateHolder = saveableStateHolder,
+            onScanLocalMusic = scanLocalMusic,
+            modifier = Modifier.fillMaxSize(),
+        )
     }
-}
-
-/**
- * 桌面工作区统一承接一级页和二级页，保持外层 shell 不需要感知具体页面细节。
- */
-@Composable
-private fun DesktopWorkspace(
-    state: MusicAppUiState,
-    controller: MusicAppController,
-    onScanLocalMusic: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    BoxWithConstraints(modifier = modifier.fillMaxSize()) {
-        val horizontalPadding = desktopPageHorizontalPadding(maxWidth)
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(DesktopMusicColors.Paper)
-                .padding(
-                    start = horizontalPadding,
-                    top = DesktopMusicDimens.PagePaddingTop,
-                    end = horizontalPadding,
-                ),
-        ) {
-            if (state.navigationState.secondaryScreen == null) {
-                when (state.navigationState.rootTab) {
-                    RootTab.Home -> DesktopLocalMusicRootScreen(
-                        songs = state.songs,
-                        albums = state.albums,
-                        recentSongs = state.recentSongs,
-                        libraryStats = state.libraryStats,
-                        currentSongId = state.currentSongId,
-                        currentPlaybackStatus = state.playbackStatus,
-                        onScan = onScanLocalMusic,
-                        onBrowseLibrary = {
-                            controller.openLocalMusic(section = LocalMusicSection.Songs)
-                        },
-                        onBrowseAlbums = {
-                            controller.openLocalMusic(section = LocalMusicSection.Albums)
-                        },
-                        onSongPlay = { song, queueSongs ->
-                            controller.playSong(
-                                song = song,
-                                queueSongs = queueSongs,
-                            )
-                        },
-                        onCurrentSongToggle = controller::togglePlayback,
-                        onMore = controller::openMore,
-                        onAlbumOpen = controller::openAlbum,
-                    )
-                    RootTab.Favorites -> DesktopFavoritesRootScreen(
-                        songs = state.favoriteSongs,
-                        albums = state.favoriteAlbums,
-                        artists = state.favoriteArtists,
-                        section = state.favoriteSection,
-                        currentSongId = state.currentSongId,
-                        currentPlaybackStatus = state.playbackStatus,
-                        onSection = controller::setFavoriteSection,
-                        onSongPlay = { song, queueSongs ->
-                            controller.playSong(
-                                song = song,
-                                queueSongs = queueSongs,
-                            )
-                        },
-                        onCurrentSongToggle = controller::togglePlayback,
-                        onMore = controller::openMore,
-                        onLike = controller::toggleFavorite,
-                        onAlbumOpen = controller::openAlbum,
-                        onArtistOpen = controller::openArtist,
-                    )
-                    RootTab.Me -> DesktopMeRootScreen(
-                        albums = state.albums,
-                        recentSongs = state.recentSongs,
-                        artists = state.artists,
-                        libraryStats = state.libraryStats,
-                        favoriteCount = state.likedSongIds.size,
-                        onLogin = { controller.navigateToSecondary(SecondaryScreen.Login) },
-                        onFavorites = { controller.navigateToRoot(RootTab.Favorites) },
-                        onFolders = {
-                            controller.openLocalMusic(section = LocalMusicSection.Sources)
-                        },
-                        onSettings = { controller.navigateToSecondary(SecondaryScreen.Settings) },
-                        onBrowseAlbums = {
-                            controller.openLocalMusic(section = LocalMusicSection.Albums)
-                        },
-                        onAlbumOpen = controller::openAlbum,
-                        onArtistOpen = controller::openArtist,
-                    )
-                }
-                return@BoxWithConstraints
-            }
-            DesktopSecondaryScreen(
-                state = state,
-                controller = controller,
-                onScanLocalMusic = onScanLocalMusic,
-            )
-        }
-    }
-}
-
-/** 桌面左侧 rail 需要把根页面与设置页映射成唯一选中态。 */
-private fun MusicAppUiState.desktopRailDestination(): DesktopRailDestination {
-    return when (navigationState.secondaryScreen) {
-        SecondaryScreen.Settings -> DesktopRailDestination.Settings
-        else -> when (navigationState.rootTab) {
-            RootTab.Home -> DesktopRailDestination.Home
-            RootTab.Favorites -> DesktopRailDestination.Favorites
-            RootTab.Me -> DesktopRailDestination.Me
-        }
-    }
-}
-
-/** 首页保持效果图中的资料库侧栏，二级页让内容区获得完整宽度。 */
-private fun MusicAppUiState.shouldShowLibrarySidebar(): Boolean {
-    return navigationState.secondaryScreen == null && navigationState.rootTab == RootTab.Home
 }

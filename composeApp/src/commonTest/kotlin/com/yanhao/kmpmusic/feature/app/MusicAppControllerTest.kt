@@ -66,7 +66,7 @@ class MusicAppControllerTest {
      * 查看全部应进入本地音乐二级页，底部 Tab 隐藏但 mini-player 策略保持普通二级页。
      */
     @Test
-    fun openLocalMusicUsesSecondaryChrome(): Unit {
+    fun openLocalMusicUsesSecondaryFixedBarMode(): Unit {
         val controller = createController()
         controller.openLocalMusic(section = LocalMusicSection.Songs)
         assertEquals(
@@ -74,8 +74,8 @@ class MusicAppControllerTest {
             actual = controller.uiState.navigationState.secondaryScreen,
         )
         assertEquals(
-            expected = AppChromeMode.SecondaryWithMiniPlayer,
-            actual = controller.uiState.navigationState.chromeMode,
+            expected = MobileFixedBarMode.SecondaryWithMiniPlayer,
+            actual = controller.uiState.navigationState.fixedBarMode,
         )
     }
 
@@ -962,8 +962,8 @@ class MusicAppControllerTest {
             actual = controller.uiState.navigationState.previousRootTab,
         )
         assertEquals(
-            expected = AppChromeMode.SecondaryFullscreen,
-            actual = controller.uiState.navigationState.chromeMode,
+            expected = MobileFixedBarMode.SecondaryFullscreen,
+            actual = controller.uiState.navigationState.fixedBarMode,
         )
     }
 
