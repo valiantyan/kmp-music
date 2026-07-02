@@ -88,10 +88,10 @@ class MusicAppNavigationControllerTest {
     }
 
     /**
-     * 页面 chrome 策略应由导航状态纯派生，避免 facade 层重复维护同一规则。
+     * 页面 fixed-bar 策略应由导航状态纯派生，避免 facade 层重复维护同一规则。
      */
     @Test
-    fun navigationStateProvidesChromeMode(): Unit {
+    fun navigationStateProvidesFixedBarMode(): Unit {
         val topLevelState: NavigationState = NavigationState()
         assertEquals(expected = MobileFixedBarMode.TopLevel, actual = topLevelState.fixedBarMode)
         assertTrue(actual = topLevelState.fixedBarMode.showsBottomNavigation)

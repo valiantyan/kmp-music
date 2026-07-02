@@ -46,7 +46,7 @@ enum class DesktopRailDestination {
 }
 
 /**
- * 桌面左侧导航栏承接一级页和设置页入口，保持 shell 只关心 destination。
+ * 桌面左侧导航栏承接一级页和设置页入口，保持桌面导航入口只关心导航目标。
  */
 @Composable
 fun DesktopRail(

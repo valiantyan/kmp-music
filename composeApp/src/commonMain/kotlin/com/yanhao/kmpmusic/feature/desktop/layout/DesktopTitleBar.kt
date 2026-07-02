@@ -29,7 +29,7 @@ import com.yanhao.kmpmusic.feature.desktop.DesktopMusicDimens
 import com.yanhao.kmpmusic.feature.desktop.DesktopMusicType
 
 /**
- * 桌面标题栏保留全局标题和可选搜索入口，避免 shell 文件混入具体视觉实现。
+ * 桌面标题栏保留全局标题和可选搜索入口，避免桌面布局入口混入具体视觉实现。
  */
 @Composable
 fun DesktopTitleBar(
