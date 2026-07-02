@@ -1,6 +1,5 @@
 package com.yanhao.kmpmusic.playback
 
-import com.yanhao.kmpmusic.domain.model.AudioSource
 import com.yanhao.kmpmusic.domain.model.PlayableMedia
 import com.yanhao.kmpmusic.domain.model.PlaybackError
 import com.yanhao.kmpmusic.domain.model.PlaybackErrorType
@@ -15,11 +14,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.receiveAsFlow
-import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
 /**
@@ -83,8 +80,14 @@ class DesktopVlcjAudioPlayerEngine(
     @Volatile
     private var isReleased: Boolean = false
 
-    // 进度轮询任务，便于在暂停/切歌/释放时精准取消。
-    private var progressJob: Job? = null
+    // 进度轮询协作者，只负责把采样节拍折返成串行命令。
+    private val progressTicker: DesktopProgressTicker = DesktopProgressTicker(
+        scope = engineScope,
+        intervalMs = progressIntervalMs,
+        sendTick = {
+            commandChannel.send(element = DesktopPlaybackCommand.ProgressTick)
+        },
+    )
 
     // 仅供桌面测试精确编排 release/setQueue 竞态，不参与生产流程判断。
     private var testHooks: DesktopVlcjAudioPlayerEngineTestHooks = DesktopVlcjAudioPlayerEngineTestHooks()
@@ -232,7 +235,7 @@ class DesktopVlcjAudioPlayerEngine(
     private suspend fun handleSetQueue(command: DesktopPlaybackCommand.SetQueue) {
         try {
             state.resetForNewQueue(items = command.items)
-            stopProgressPolling()
+            progressTicker.stop()
             if (state.queue.isEmpty()) {
                 state.currentIndex = -1
                 state.nextGeneration()
@@ -321,7 +324,7 @@ class DesktopVlcjAudioPlayerEngine(
         val activeGeneration: Long = state.generation
         state.nextGeneration()
         state.resetPlaybackFlags()
-        stopProgressPolling()
+        progressTicker.stop()
         adapter.stop(generation = activeGeneration)
         eventChannel.send(
             element = PlaybackEngineEvent.StatusChanged(
@@ -337,7 +340,7 @@ class DesktopVlcjAudioPlayerEngine(
         state.nextGeneration()
         state.resetPlaybackFlags()
         isReleased = true
-        stopProgressPolling()
+        progressTicker.stop()
         setQueueAckTracker.completeAll()
         adapterEventJob.cancel()
         adapter.release()
@@ -401,7 +404,7 @@ class DesktopVlcjAudioPlayerEngine(
         if (state.playbackControlIntent == DesktopPlaybackControlIntent.Pause) {
             return
         }
-        startProgressPolling()
+        progressTicker.start()
         eventChannel.send(
             element = PlaybackEngineEvent.StatusChanged(
                 status = PlaybackStatus.Playing,
@@ -416,7 +419,7 @@ class DesktopVlcjAudioPlayerEngine(
         if (state.playbackControlIntent != DesktopPlaybackControlIntent.Pause) {
             return
         }
-        stopProgressPolling()
+        progressTicker.stop()
         eventChannel.send(
             element = PlaybackEngineEvent.StatusChanged(
                 status = PlaybackStatus.Paused,
@@ -428,13 +431,13 @@ class DesktopVlcjAudioPlayerEngine(
 
     /** 自然结束后交回协调器决定是否继续下一首。 */
     private suspend fun handleFinished() {
-        stopProgressPolling()
+        progressTicker.stop()
         eventChannel.send(element = PlaybackEngineEvent.Ended)
     }
 
     /** 失败后停止轮询，并把底层统一错误形状透传给 common 层。 */
     private suspend fun handleFailed(event: DesktopMediaPlayerEvent.Failed) {
-        stopProgressPolling()
+        progressTicker.stop()
         state.nextGeneration()
         state.resetPlaybackFlags()
         eventChannel.send(element = PlaybackEngineEvent.Failed(error = event.error))
@@ -458,7 +461,7 @@ class DesktopVlcjAudioPlayerEngine(
         val media: PlayableMedia = state.currentMedia() ?: return
         val activeGeneration: Long = state.nextGeneration()
         state.isPrepared = false
-        stopProgressPolling()
+        progressTicker.stop()
         eventChannel.send(
             element = PlaybackEngineEvent.CurrentMediaChanged(
                 songId = media.songId,
@@ -475,38 +478,11 @@ class DesktopVlcjAudioPlayerEngine(
         )
         adapter.prepare(
             songId = media.songId,
-            mediaUri = media.playbackUri(),
+            mediaUri = DesktopMediaSourceMapper.playbackUri(media = media),
             generation = activeGeneration,
             startPositionMs = startPositionMs,
             pluginPath = libVlcPluginPath,
         )
-    }
-
-    // phase 1 只支持本地播放来源；网络来源进入模型时必须在桌面适配层显式处理。
-    private fun PlayableMedia.playbackUri(): String {
-        return when (val source: AudioSource = audioSource) {
-            is AudioSource.Local -> source.uri
-        }
-    }
-
-    /** 启动单个协程轮询，把真实时间上的进度采样折返到串行命令循环。 */
-    private fun startProgressPolling() {
-        stopProgressPolling()
-        if (progressIntervalMs <= 0L) {
-            return
-        }
-        progressJob = engineScope.launch {
-            while (isActive) {
-                delay(timeMillis = progressIntervalMs)
-                commandChannel.send(element = DesktopPlaybackCommand.ProgressTick)
-            }
-        }
-    }
-
-    /** 取消进度轮询，避免切歌/暂停后的旧 tick 混入新状态。 */
-    private fun stopProgressPolling() {
-        progressJob?.cancel()
-        progressJob = null
     }
 }
 

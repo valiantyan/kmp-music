@@ -1104,7 +1104,7 @@ git commit -m "refactor: 拆分桌面引擎命令和状态"
 - Modify: `composeApp/src/desktopMain/kotlin/com/yanhao/kmpmusic/playback/DesktopVlcjAudioPlayerEngine.kt`
 - Test: `composeApp/src/desktopTest/kotlin/com/yanhao/kmpmusic/playback/DesktopVlcjAudioPlayerEngineTest.kt`
 
-- [ ] **Step 1: Create desktop media source mapper**
+- [x] **Step 1: Create desktop media source mapper**
 
 Create `DesktopMediaSourceMapper.kt`:
 
@@ -1120,7 +1120,7 @@ internal object DesktopMediaSourceMapper {
 
 Replace the engine's private `PlayableMedia.playbackUri()` extension with `DesktopMediaSourceMapper.playbackUri(media = media)`.
 
-- [ ] **Step 2: Create desktop progress ticker**
+- [x] **Step 2: Create desktop progress ticker**
 
 Create `DesktopProgressTicker.kt`:
 
@@ -1166,7 +1166,7 @@ private val progressTicker: DesktopProgressTicker = DesktopProgressTicker(
 
 Use `progressTicker.start()` and `progressTicker.stop()`. The ticker must not send `PlaybackEngineEvent` directly.
 
-- [ ] **Step 3: Verify ticker and mapper behavior with existing tests**
+- [x] **Step 3: Verify ticker and mapper behavior with existing tests**
 
 Run:
 
@@ -1176,7 +1176,7 @@ Run:
 
 Expected: PASS, including `setQueuePreparesAdapterWithAudioSourceUri`.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add composeApp/src/desktopMain/kotlin/com/yanhao/kmpmusic/playback/DesktopVlcjAudioPlayerEngine.kt composeApp/src/desktopMain/kotlin/com/yanhao/kmpmusic/playback/DesktopMediaSourceMapper.kt composeApp/src/desktopMain/kotlin/com/yanhao/kmpmusic/playback/DesktopProgressTicker.kt
