@@ -1,8 +1,6 @@
 package com.yanhao.kmpmusic.feature.screen
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -11,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -24,8 +23,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
@@ -36,35 +33,14 @@ import androidx.compose.ui.unit.sp
 import com.yanhao.kmpmusic.domain.model.Artist
 import com.yanhao.kmpmusic.feature.components.CoverArtImage
 
-// 背景使用当前歌手真实封面数据做柔化氛围，缺失时自然回退到应用内占位图。
-@Composable
-internal fun ArtistDetailBackground(artist: Artist) {
-    Box(modifier = Modifier.fillMaxSize()) {
-        CoverArtImage(
-            coverArt = artist.coverArt,
-            coverImageUri = artist.coverImageUri,
-            contentDescription = null,
-            modifier = Modifier
-                .fillMaxSize()
-                .alpha(alpha = 0.20f)
-                .blur(radius = 50.dp),
-            contentScale = ContentScale.Crop,
-        )
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(color = Color.White.copy(alpha = 0.74f)),
-        )
-    }
-}
-
-// 顶部只保留返回动作，让页面标题由歌手头像区承担。
+// 顶部只保留返回动作，状态栏避让留在内容层以保证背景整屏铺满。
 @Composable
 internal fun ArtistDetailTopBar(onBack: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .height(height = 64.dp)
+            .statusBarsPadding()
             .padding(horizontal = 20.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {

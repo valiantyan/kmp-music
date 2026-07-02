@@ -12,9 +12,11 @@ import coil3.SingletonImageLoader
 import coil3.compose.LocalPlatformContext
 import coil3.request.ImageRequest
 import coil3.request.SuccessResult
+import com.yanhao.kmpmusic.core.theme.ArtistDetailPalette
 import com.yanhao.kmpmusic.core.theme.MiniPlayerPalette
 import com.yanhao.kmpmusic.core.theme.MusicColors
 import com.yanhao.kmpmusic.core.theme.PlayerPagePalette
+import com.yanhao.kmpmusic.core.theme.extractArtistDetailPalette
 import com.yanhao.kmpmusic.core.theme.extractMiniPlayerPalette
 import com.yanhao.kmpmusic.core.theme.extractPlayerPagePalette
 import com.yanhao.kmpmusic.domain.model.CoverArt
@@ -27,6 +29,16 @@ import org.jetbrains.compose.resources.ExperimentalResourceApi
 fun defaultMiniPlayerPalette(): MiniPlayerPalette {
     return MiniPlayerPalette(
         containerColor = MusicColors.Paper.copy(alpha = 0.92f),
+    )
+}
+
+/**
+ * 歌手详情页 palette 默认值，图片加载或取色失败时使用。
+ */
+fun defaultArtistDetailPalette(): ArtistDetailPalette {
+    return ArtistDetailPalette(
+        backgroundColor = MusicColors.Paper,
+        ambientColor = MusicColors.Accent.copy(alpha = 0.16f),
     )
 }
 
@@ -53,6 +65,22 @@ fun rememberMiniPlayerPalette(
         coverImageUri = coverImageUri,
         defaultPalette = defaultMiniPlayerPalette(),
         extractPalette = ::extractMiniPlayerPalette,
+    )
+}
+
+/**
+ * 使用与歌手头像显示相同的 Coil 来源顺序提取详情页背景配色。
+ */
+@Composable
+fun rememberArtistDetailPalette(
+    coverArt: CoverArt,
+    coverImageUri: String?,
+): ArtistDetailPalette {
+    return rememberCoverPalette(
+        coverArt = coverArt,
+        coverImageUri = coverImageUri,
+        defaultPalette = defaultArtistDetailPalette(),
+        extractPalette = ::extractArtistDetailPalette,
     )
 }
 

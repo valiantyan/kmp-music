@@ -15,6 +15,16 @@ data class MiniPlayerPalette(
 )
 
 /**
+ * 歌手详情页从头像提取出的视觉配色。
+ *
+ * @property backgroundColor 页面底色，保留轻量头像色调。
+ * @property ambientColor 顶部氛围色，用于强化沉浸式头像区域。
+ */
+data class ArtistDetailPalette(
+    val backgroundColor: Color, val ambientColor: Color,
+)
+
+/**
  * 播放详情页从封面提取出的视觉配色。
  *
  * @property backgroundColor 页面底色，必须保留足够亮度以承载深色文字。
@@ -29,6 +39,12 @@ data class PlayerPagePalette(
  * 容器背景中主题纸色的混入比例。
  */
 private const val MINI_PLAYER_CONTAINER_PAPER_WEIGHT = 0.84f
+
+/** 歌手详情页背景中主题纸色的混入比例。 */
+private const val ARTIST_DETAIL_BACKGROUND_PAPER_WEIGHT = 0.76f
+
+/** 歌手详情页氛围色中主题纸色的混入比例。 */
+private const val ARTIST_DETAIL_AMBIENT_PAPER_WEIGHT = 0.56f
 
 /**
  * 播放页背景中主题纸色的混入比例。
@@ -63,6 +79,22 @@ fun extractMiniPlayerPalette(imageBitmap: ImageBitmap): MiniPlayerPalette {
     )
 }
 
+/** 根据歌手头像提取详情页背景配色，比迷你播放器更沉浸，但不能压重正文背景。 */
+fun extractArtistDetailPalette(imageBitmap: ImageBitmap): ArtistDetailPalette {
+    if (imageBitmap.width <= 1 || imageBitmap.height <= 1) {
+        return ArtistDetailPalette(
+            backgroundColor = MusicColors.Paper,
+            ambientColor = MusicColors.Accent.copy(alpha = 0.16f),
+        )
+    }
+    val sampledPixels: IntArray = readSampledPixels(imageBitmap = imageBitmap)
+    val seedColor: Color = selectCoverSeedColor(pixels = sampledPixels)
+    return ArtistDetailPalette(
+        backgroundColor = createArtistDetailBackgroundColor(seedColor = seedColor),
+        ambientColor = createArtistDetailAmbientColor(seedColor = seedColor),
+    )
+}
+
 /**
  * 根据封面图片提取播放详情页配色。
  *
@@ -89,6 +121,24 @@ internal fun createMiniPlayerContainerColor(seedColor: Color): Color {
         start = seedColor,
         end = MusicColors.Paper,
         endWeight = MINI_PLAYER_CONTAINER_PAPER_WEIGHT,
+    )
+}
+
+// 把头像种子色转成歌手详情页底色，保持低透明度取色感。
+internal fun createArtistDetailBackgroundColor(seedColor: Color): Color {
+    return blendColors(
+        start = seedColor,
+        end = MusicColors.Paper,
+        endWeight = ARTIST_DETAIL_BACKGROUND_PAPER_WEIGHT,
+    )
+}
+
+// 歌手详情页顶部氛围色比底色更接近头像色，用于沉浸式渐变。
+internal fun createArtistDetailAmbientColor(seedColor: Color): Color {
+    return blendColors(
+        start = seedColor,
+        end = MusicColors.Paper,
+        endWeight = ARTIST_DETAIL_AMBIENT_PAPER_WEIGHT,
     )
 }
 

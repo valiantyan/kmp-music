@@ -128,7 +128,6 @@ fun MobileSecondaryScreenRoute(
                 onLike = controller::toggleFavorite,
                 modifier = modifier
                     .fillMaxSize()
-                    .statusBarsPadding()
                     .navigationBarsPadding(),
                 contentPadding = contentPadding,
             )

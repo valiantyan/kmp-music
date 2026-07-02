@@ -35,6 +35,18 @@ class CoverPaletteTest {
     }
 
     @Test
+    fun createArtistDetailBackgroundColorKeepsAvatarTintLight(): Unit {
+        val backgroundColor: Color = createArtistDetailBackgroundColor(
+            seedColor = Color(red = 107, green = 150, blue = 168),
+        )
+        val ambientColor: Color = createArtistDetailAmbientColor(
+            seedColor = Color(red = 107, green = 150, blue = 168),
+        )
+        assertEquals(expected = "#D8E4E9", actual = backgroundColor.toHexColor())
+        assertEquals(expected = "#BCCFD8", actual = ambientColor.toHexColor())
+    }
+
+    @Test
     fun createPlayerPageBackgroundColorKeepsStrongerCoverTint(): Unit {
         val backgroundColor: Color = createPlayerPageBackgroundColor(
             seedColor = Color(red = 107, green = 150, blue = 168),
