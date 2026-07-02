@@ -1,6 +1,7 @@
 package com.yanhao.kmpmusic.feature.screen
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -18,10 +19,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.yanhao.kmpmusic.feature.app.HomeContentSection
 
-// 分段 chip 先复刻歌曲页视觉，后续再接入专辑、歌手和文件夹页面状态。
+// 分段 chip 由首页状态驱动，未接入的入口只保留 Figma 视觉占位。
 @Composable
-internal fun HomeFilterChips() {
+internal fun HomeFilterChips(
+    selectedSection: HomeContentSection,
+    onSection: (HomeContentSection) -> Unit,
+) {
     LazyRow(
         modifier = Modifier
             .fillMaxWidth()
@@ -30,10 +35,18 @@ internal fun HomeFilterChips() {
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         item(key = "songs-chip") {
-            HomeFilterChip(label = "歌曲", selected = true)
+            HomeFilterChip(
+                label = "歌曲",
+                selected = selectedSection == HomeContentSection.Songs,
+                onClick = { onSection(HomeContentSection.Songs) },
+            )
         }
         item(key = "albums-chip") {
-            HomeFilterChip(label = "专辑", selected = false)
+            HomeFilterChip(
+                label = "专辑",
+                selected = selectedSection == HomeContentSection.Albums,
+                onClick = { onSection(HomeContentSection.Albums) },
+            )
         }
         item(key = "artists-chip") {
             HomeFilterChip(label = "歌手", selected = false)
@@ -49,12 +62,19 @@ internal fun HomeFilterChips() {
 private fun HomeFilterChip(
     label: String,
     selected: Boolean,
+    onClick: (() -> Unit)? = null,
 ) {
+    val clickModifier: Modifier = if (onClick != null) {
+        Modifier.clickable(onClick = onClick)
+    } else {
+        Modifier
+    }
     Box(
         modifier = Modifier
             .height(32.dp)
             .clip(RoundedCornerShape(999.dp))
             .background(if (selected) homeAccentColor else homeChipColor)
+            .then(clickModifier)
             .padding(horizontal = 20.dp),
         contentAlignment = Alignment.Center,
     ) {

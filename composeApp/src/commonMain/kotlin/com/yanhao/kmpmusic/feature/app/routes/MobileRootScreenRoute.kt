@@ -28,16 +28,20 @@ fun MobileRootScreenRoute(
     when (state.navigationState.rootTab) {
         RootTab.Home -> HomeScreen(
             songs = state.songs,
+            albums = state.localAlbums,
             libraryStats = state.libraryStats,
             scanState = state.scanState,
+            selectedSection = state.homeContentSection,
             currentSongId = state.currentSongId,
             currentPlaybackStatus = state.playbackStatus,
             onSearch = controller::openSearch,
             onScan = onScanLocalMusic,
+            onSection = controller::setHomeContentSection,
             onSongPlay = { song: Song, queueSongs: List<Song> ->
                 controller.playSong(song = song, queueSongs = queueSongs)
             },
             onMore = controller::openMore,
+            onAlbumOpen = controller::openAlbum,
             modifier = modifier,
             contentPadding = contentPadding,
         )

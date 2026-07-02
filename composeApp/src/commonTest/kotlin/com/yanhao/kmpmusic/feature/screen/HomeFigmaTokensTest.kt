@@ -66,6 +66,18 @@ class HomeFigmaTokensTest {
         assertEquals(expected = MusicColors.PlayingRed, actual = style.textColor)
         assertFalse(actual = style.showsCoverPlaybackBadge)
     }
+
+    /**
+     * 专辑页签网格必须锁住 Figma 节点 `883:514` 的双列节奏和当前专辑标识。
+     */
+    @Test
+    fun albumGridTokensMatchFigmaNode(): Unit {
+        assertEquals(expected = Color(0xFFE1E3E4), actual = homeAlbumCoverBackgroundColor)
+        assertEquals(expected = Color(0x1A006A62), actual = homeActiveAlbumOverlayColor)
+        assertEquals(expected = 24.dp, actual = homeAlbumGridGap)
+        assertEquals(expected = 24.dp, actual = homeAlbumCoverRadius)
+        assertEquals(expected = 4.dp, actual = homeAlbumActiveBorderHeight)
+    }
 }
 
 // 测试只比较最终显示色，避免把透明度 token 和视觉验收色混在一起。

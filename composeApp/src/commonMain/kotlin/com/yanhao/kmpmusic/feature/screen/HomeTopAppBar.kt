@@ -27,6 +27,7 @@ import androidx.compose.ui.unit.sp
 // 顶部栏按 Figma 固定在歌曲列表上方，不参与列表滚动。
 @Composable
 internal fun HomeTopAppBar(
+    title: String,
     onSearch: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -44,7 +45,7 @@ internal fun HomeTopAppBar(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
-                text = "歌曲",
+                text = title,
                 color = homeAccentColor,
                 fontSize = 24.sp,
                 lineHeight = 32.sp,

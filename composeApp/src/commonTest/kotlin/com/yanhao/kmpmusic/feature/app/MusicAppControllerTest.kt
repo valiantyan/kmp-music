@@ -93,6 +93,35 @@ class MusicAppControllerTest {
     }
 
     /**
+     * 首页专辑页签应读取本地音乐专辑分段同源的全量专辑数据，且不能跳出首页。
+     */
+    @Test
+    fun homeAlbumSectionLoadsAllLocalAlbumsWithoutLeavingHome(): Unit {
+        val repository = SeededMusicLibraryRepository(seedCount = 8)
+        val controller = createController(musicLibraryRepository = repository)
+        assertTrue(actual = controller.uiState.localAlbums.isEmpty())
+        assertEquals(expected = 0, actual = repository.fullLibraryReads)
+        controller.setHomeContentSection(section = HomeContentSection.Albums)
+        assertEquals(expected = HomeContentSection.Albums, actual = controller.uiState.homeContentSection)
+        assertEquals(expected = listOf("album:album"), actual = controller.uiState.localAlbums.map { album: Album -> album.id })
+        assertEquals(expected = 1, actual = repository.fullLibraryReads)
+        assertTrue(actual = controller.uiState.navigationState.isTopLevel)
+    }
+
+    /**
+     * 用户停留在首页专辑页签时，扫描完成必须同步专辑网格，而不是只刷新歌曲预览。
+     */
+    @Test
+    fun scanRefreshesHomeAlbumSectionAlbums(): Unit = runBlocking {
+        val controller = createController()
+        controller.setHomeContentSection(section = HomeContentSection.Albums)
+        controller.scanLocalMusic(request = LocalMusicScanRequest.Refresh)
+        assertEquals(expected = HomeContentSection.Albums, actual = controller.uiState.homeContentSection)
+        assertTrue(actual = controller.uiState.localAlbums.isNotEmpty())
+        assertEquals(expected = controller.uiState.libraryStats.albumCount, actual = controller.uiState.localAlbums.size)
+    }
+
+    /**
      * 扫描完成只应填充本地歌曲预览，不应把扫描结果冒充最近播放。
      */
     @Test

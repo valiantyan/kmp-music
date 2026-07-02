@@ -9,6 +9,7 @@ import com.yanhao.kmpmusic.domain.model.Song
 import com.yanhao.kmpmusic.domain.repository.FavoritesRepository
 import com.yanhao.kmpmusic.domain.repository.MusicLibraryRepository
 import com.yanhao.kmpmusic.domain.repository.PlaybackRepository
+import com.yanhao.kmpmusic.feature.app.HomeContentSection
 import com.yanhao.kmpmusic.feature.app.MusicAppUiState
 import com.yanhao.kmpmusic.feature.app.SecondaryScreen
 
@@ -60,6 +61,7 @@ class LibraryStateSynchronizer(
             song.copy(isLiked = likedSongIds.contains(element = song.id) || song.isLiked)
         }
         val shouldRefreshFullLibrary: Boolean = state.localSongs.isNotEmpty() ||
+            state.homeContentSection == HomeContentSection.Albums ||
             state.navigationState.secondaryScreen is SecondaryScreen.LocalMusic
         val fullSongsWithLikes: List<Song> = if (shouldRefreshFullLibrary) {
             musicLibraryRepository.getAllAvailableSongs().map { song: Song ->

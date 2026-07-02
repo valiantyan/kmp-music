@@ -7,31 +7,38 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import com.yanhao.kmpmusic.domain.model.Album
 import com.yanhao.kmpmusic.domain.model.LibraryStats
 import com.yanhao.kmpmusic.domain.model.LocalMusicScanState
 import com.yanhao.kmpmusic.domain.model.PlaybackStatus
 import com.yanhao.kmpmusic.domain.model.Song
+import com.yanhao.kmpmusic.feature.app.HomeContentSection
 
 /**
- * 手机首页歌曲页，按 Figma 节点 `871:477` 复刻歌曲分段的首个完成状态。
+ * 手机首页，歌曲与专辑内容页签分别按 Figma 节点 `871:477` 和 `883:514` 渲染。
  */
 @Composable
 fun HomeScreen(
     songs: List<Song>,
+    albums: List<Album>,
     libraryStats: LibraryStats,
     scanState: LocalMusicScanState,
+    selectedSection: HomeContentSection,
     currentSongId: String?,
     currentPlaybackStatus: PlaybackStatus,
     onSearch: () -> Unit,
     onScan: () -> Unit,
+    onSection: (HomeContentSection) -> Unit,
     onSongPlay: (Song, List<Song>) -> Unit,
     onMore: (Song) -> Unit,
+    onAlbumOpen: (Album) -> Unit,
     modifier: Modifier = Modifier,
     contentPadding: PaddingValues = PaddingValues(0.dp),
 ) {
@@ -48,51 +55,113 @@ fun HomeScreen(
             ),
         ) {
             item(key = "home-filter-chips") {
-                HomeFilterChips()
-            }
-            item(key = "home-filter-title-gap") {
-                Spacer(modifier = Modifier.height(16.dp))
-            }
-            item(key = "home-title-row") {
-                HomeSongSectionHeader(
-                    songCountText = formatHomeSongCount(
-                        songs = songs,
-                        libraryStats = libraryStats,
-                    ),
+                HomeFilterChips(
+                    selectedSection = selectedSection,
+                    onSection = onSection,
                 )
             }
-            item(key = "home-song-list-gap") {
-                Spacer(modifier = Modifier.height(16.dp))
-            }
-            if (songs.isEmpty()) {
-                item(key = "home-empty-songs") {
-                    HomeEmptySongsCard(
-                        scanState = scanState,
-                        onScan = onScan,
-                    )
-                }
-            } else {
-                items(
-                    items = songs,
-                    key = { song: Song -> song.id },
-                    contentType = { "home-song" },
-                ) { song: Song ->
-                    HomeSongRow(
-                        song = song,
-                        isCurrentSong = song.id == currentSongId,
-                        currentPlaybackStatus = currentPlaybackStatus,
-                        queueSongs = songs,
-                        onSongPlay = onSongPlay,
-                        onMore = onMore,
-                    )
-                    Spacer(modifier = Modifier.height(12.dp))
-                }
+            when (selectedSection) {
+                HomeContentSection.Songs -> homeSongItems(
+                    songs = songs,
+                    libraryStats = libraryStats,
+                    scanState = scanState,
+                    currentSongId = currentSongId,
+                    currentPlaybackStatus = currentPlaybackStatus,
+                    onScan = onScan,
+                    onSongPlay = onSongPlay,
+                    onMore = onMore,
+                )
+                HomeContentSection.Albums -> homeAlbumItems(
+                    albums = albums,
+                    songs = songs,
+                    currentSongId = currentSongId,
+                    scanState = scanState,
+                    onScan = onScan,
+                    onAlbumOpen = onAlbumOpen,
+                )
             }
         }
         HomeTopAppBar(
+            title = selectedSection.title(),
             onSearch = onSearch,
             modifier = Modifier.align(Alignment.TopCenter),
         )
+    }
+}
+
+// 歌曲页签保留既有 Figma 歌曲列表节奏。
+private fun LazyListScope.homeSongItems(
+    songs: List<Song>,
+    libraryStats: LibraryStats,
+    scanState: LocalMusicScanState,
+    currentSongId: String?,
+    currentPlaybackStatus: PlaybackStatus,
+    onScan: () -> Unit,
+    onSongPlay: (Song, List<Song>) -> Unit,
+    onMore: (Song) -> Unit,
+) {
+    item(key = "home-filter-title-gap") {
+        Spacer(modifier = Modifier.height(16.dp))
+    }
+    item(key = "home-title-row") {
+        HomeSongSectionHeader(
+            songCountText = formatHomeSongCount(
+                songs = songs,
+                libraryStats = libraryStats,
+            ),
+        )
+    }
+    item(key = "home-song-list-gap") {
+        Spacer(modifier = Modifier.height(16.dp))
+    }
+    if (songs.isEmpty()) {
+        item(key = "home-empty-songs") {
+            HomeEmptySongsCard(
+                scanState = scanState,
+                onScan = onScan,
+            )
+        }
+        return
+    }
+    items(
+        items = songs,
+        key = { song: Song -> song.id },
+        contentType = { "home-song" },
+    ) { song: Song ->
+        HomeSongRow(
+            song = song,
+            isCurrentSong = song.id == currentSongId,
+            currentPlaybackStatus = currentPlaybackStatus,
+            queueSongs = songs,
+            onSongPlay = onSongPlay,
+            onMore = onMore,
+        )
+        Spacer(modifier = Modifier.height(12.dp))
+    }
+}
+
+// 专辑页签复刻 Figma 双列网格，与本地音乐专辑分段共享同一份专辑数据。
+private fun LazyListScope.homeAlbumItems(
+    albums: List<Album>,
+    songs: List<Song>,
+    currentSongId: String?,
+    scanState: LocalMusicScanState,
+    onScan: () -> Unit,
+    onAlbumOpen: (Album) -> Unit,
+) {
+    item(key = "home-album-grid-top-gap") {
+        Spacer(modifier = Modifier.height(24.dp))
+    }
+    homeAlbumGridItems(
+        albums = albums,
+        songs = songs,
+        currentSongId = currentSongId,
+        scanState = scanState,
+        onScan = onScan,
+        onAlbumOpen = onAlbumOpen,
+    )
+    item(key = "home-album-grid-bottom-gap") {
+        Spacer(modifier = Modifier.height(24.dp))
     }
 }
 
@@ -107,4 +176,12 @@ private fun formatHomeSongCount(
         songs.size
     }
     return "$songCount 首歌曲"
+}
+
+// 顶部栏标题随首页内容页签切换，保持 Figma 页面语义一致。
+private fun HomeContentSection.title(): String {
+    return when (this) {
+        HomeContentSection.Songs -> "歌曲"
+        HomeContentSection.Albums -> "专辑"
+    }
 }

@@ -213,6 +213,14 @@ class MusicAppController(
         uiState = NavigationStateController.navigateBack(state = uiState)
     }
 
+    /** 切换首页内容页签，专辑页签按需加载完整本地曲库。 */
+    fun setHomeContentSection(section: HomeContentSection) {
+        if (section == HomeContentSection.Albums) {
+            loadLocalMusicLibrary()
+        }
+        uiState = uiState.copy(homeContentSection = section)
+    }
+
     /**
      * 处理 Android 系统返回键，优先关闭临时浮层，最后才退出二级页面。
      */

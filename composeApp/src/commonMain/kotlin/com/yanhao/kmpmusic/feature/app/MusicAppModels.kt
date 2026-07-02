@@ -30,6 +30,14 @@ enum class RootTab {
 }
 
 /**
+ * 手机版首页内容页签。
+ */
+enum class HomeContentSection {
+    Songs,
+    Albums,
+}
+
+/**
  * 收藏页面分段类型。
  */
 enum class FavoriteSection {
@@ -186,6 +194,7 @@ data class MusicAppUiState(
     val recentSongs: List<Song> = emptyList(),
     val scanState: LocalMusicScanState = LocalMusicScanState.Idle,
     val navigationState: NavigationState = NavigationState(),
+    val homeContentSection: HomeContentSection = HomeContentSection.Songs,
     val favoriteSection: FavoriteSection = FavoriteSection.Songs,
     val selectedAlbumId: String = "river-year",
     val selectedArtistId: String = "trip",
