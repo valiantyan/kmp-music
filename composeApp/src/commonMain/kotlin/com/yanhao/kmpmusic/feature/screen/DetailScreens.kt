@@ -4,7 +4,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -17,10 +16,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.yanhao.kmpmusic.core.theme.MusicColors
 import com.yanhao.kmpmusic.domain.model.Album
-import com.yanhao.kmpmusic.domain.model.Artist
 import com.yanhao.kmpmusic.domain.model.PlaybackStatus
 import com.yanhao.kmpmusic.domain.model.Song
-import com.yanhao.kmpmusic.feature.components.AlbumCard
 import com.yanhao.kmpmusic.feature.components.AppHeader
 import com.yanhao.kmpmusic.feature.components.CoverArtImage
 import com.yanhao.kmpmusic.feature.components.PrimaryPill
@@ -83,65 +80,6 @@ fun AlbumDetailScreen(
                     onLike = onLike,
                     dense = true,
                 )
-            }
-        }
-    }
-}
-
-/**
- * 歌手详情页。
- */
-@Composable
-fun ArtistDetailScreen(
-    artist: Artist,
-    songs: List<Song>,
-    albums: List<Album>,
-    currentSongId: String?,
-    currentPlaybackStatus: PlaybackStatus,
-    onBack: () -> Unit,
-    onSongPlay: (Song, List<Song>) -> Unit,
-    onCurrentSongToggle: () -> Unit,
-    onMore: (Song) -> Unit,
-    onLike: (String) -> Unit,
-    onAlbumOpen: (Album) -> Unit,
-) {
-    val artistSongs: List<Song> = songs.filter { song -> song.artist == artist.name }
-    val displayedArtistSongs: List<Song> = artistSongs.take(n = 5)
-    Column(verticalArrangement = Arrangement.spacedBy(20.dp)) {
-        AppHeader(title = "歌手", onBack = onBack)
-        DetailHero(
-            title = artist.name,
-            subtitle = "${artist.songCount} 首 · 本地收藏",
-            tag = artist.tag,
-            cover = {
-                CoverArtImage(
-                    coverArt = artist.coverArt,
-                    coverImageUri = artist.coverImageUri,
-                    contentDescription = "${artist.name} 图片",
-                    modifier = Modifier.size(126.dp).clip(CircleShape),
-                    contentScale = ContentScale.Crop,
-                )
-            },
-        )
-        SectionTitle(title = "热门歌曲")
-        Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-            displayedArtistSongs.forEach { song ->
-                SongRow(
-                    song = song,
-                    isCurrentSong = song.id == currentSongId,
-                    currentPlaybackStatus = currentPlaybackStatus,
-                    onPlay = { selectedSong: Song -> onSongPlay(selectedSong, displayedArtistSongs) },
-                    onCurrentSongToggle = onCurrentSongToggle,
-                    onMore = onMore,
-                    onLike = onLike,
-                    dense = true,
-                )
-            }
-        }
-        SectionTitle(title = "相关专辑")
-        Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-            albums.filter { album -> album.artist == artist.name || artist.name == "旅行团乐队" }.take(3).forEach { album ->
-                AlbumCard(album = album, onOpen = onAlbumOpen, modifier = Modifier.weight(weight = 1f))
             }
         }
     }

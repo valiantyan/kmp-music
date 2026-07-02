@@ -117,7 +117,6 @@ fun MobileSecondaryScreenRoute(
             ArtistDetailScreen(
                 artist = artist,
                 songs = state.localSongs,
-                albums = state.localAlbums,
                 currentSongId = state.currentSongId,
                 currentPlaybackStatus = state.playbackStatus,
                 onBack = controller::navigateBack,
@@ -127,7 +126,11 @@ fun MobileSecondaryScreenRoute(
                 onCurrentSongToggle = controller::togglePlayback,
                 onMore = controller::openMore,
                 onLike = controller::toggleFavorite,
-                onAlbumOpen = controller::openAlbum,
+                modifier = modifier
+                    .fillMaxSize()
+                    .statusBarsPadding()
+                    .navigationBarsPadding(),
+                contentPadding = contentPadding,
             )
         } ?: MissingLibraryItemScreen(
             title = "歌手不可用",

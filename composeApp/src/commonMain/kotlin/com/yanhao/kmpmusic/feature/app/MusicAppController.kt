@@ -26,6 +26,7 @@ import com.yanhao.kmpmusic.domain.model.SearchContext
 import com.yanhao.kmpmusic.domain.model.SearchScope
 import com.yanhao.kmpmusic.domain.model.Song
 import com.yanhao.kmpmusic.domain.model.ThemeMode
+import com.yanhao.kmpmusic.domain.model.hasSameArtistName
 import com.yanhao.kmpmusic.domain.persistence.InMemoryPlaybackSnapshotStore
 import com.yanhao.kmpmusic.domain.persistence.PlaybackSnapshotStore
 import com.yanhao.kmpmusic.domain.playback.AudioPlayerEngine
@@ -482,7 +483,12 @@ class MusicAppController(
     /** 从歌曲打开歌手详情。 */
     fun openArtistFromSong(song: Song) {
         loadLocalMusicLibrary()
-        uiState.detailArtists.firstOrNull { artist -> artist.name == song.artist }?.let { artist ->
+        uiState.detailArtists.firstOrNull { artist: Artist ->
+            hasSameArtistName(
+                firstName = artist.name,
+                secondName = song.artist,
+            )
+        }?.let { artist: Artist ->
             uiState = uiState.copy(moreSongId = null)
             openArtist(artist = artist)
         }

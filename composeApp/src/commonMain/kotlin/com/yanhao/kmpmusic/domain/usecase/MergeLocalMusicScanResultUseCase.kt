@@ -10,6 +10,7 @@ import com.yanhao.kmpmusic.domain.model.LocalMusicScanResult
 import com.yanhao.kmpmusic.domain.model.LocalMusicScanState
 import com.yanhao.kmpmusic.domain.model.MusicFileMetadata
 import com.yanhao.kmpmusic.domain.model.Song
+import com.yanhao.kmpmusic.domain.model.normalizeArtistName
 
 /**
  * 合并扫描结果的请求对象，集中传入旧快照和用户状态。
@@ -143,12 +144,14 @@ class MergeLocalMusicScanResultUseCaseImpl : MergeLocalMusicScanResultUseCase {
 
     // 从歌曲按歌手名称聚合收藏页、搜索页和详情页共用的歌手模型。
     private fun buildArtists(songs: List<Song>): List<Artist> {
-        return songs.groupBy { song -> normalizeKey(value = song.artist) }
-            .values
-            .map { artistSongs ->
+        return songs.groupBy { song -> normalizeArtistName(value = song.artist) }
+            .entries
+            .map { entry ->
+                val normalizedArtist: String = entry.key
+                val artistSongs: List<Song> = entry.value
                 val firstSong: Song = artistSongs.first()
                 Artist(
-                    id = "artist:${normalizeKey(value = firstSong.artist)}",
+                    id = "artist:$normalizedArtist",
                     name = firstSong.artist,
                     songCount = artistSongs.size,
                     albumCount = countArtistAlbums(songs = artistSongs),

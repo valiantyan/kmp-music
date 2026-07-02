@@ -743,6 +743,20 @@ class MusicAppControllerTest {
     }
 
     /**
+     * 从歌曲进入歌手详情时，应复用歌手归属规则，避免本地元数据大小写或空白差异导致入口失效。
+     */
+    @Test
+    fun openArtistFromSongUsesNormalizedArtistName(): Unit {
+        val controller = createController(
+            musicLibraryRepository = ArtistVariantMusicLibraryRepository(),
+        )
+        val targetSong: Song = controller.uiState.homeLocalSongPreview.first()
+        controller.openArtistFromSong(song = targetSong)
+        assertEquals(expected = SecondaryScreen.ArtistDetail, actual = controller.uiState.navigationState.secondaryScreen)
+        assertEquals(expected = "artist:jay chou", actual = controller.uiState.selectedArtist?.id)
+    }
+
+    /**
      * 收藏状态应同时同步到集合和歌曲列表。
      */
     @Test
@@ -1227,6 +1241,72 @@ private class SeededMusicLibraryRepository(seedCount: Int) : com.yanhao.kmpmusic
 
     override fun getLibraryStats(): LibraryStats {
         return LibraryStats(songCount = seededSongs.size, albumCount = 1, artistCount = 1)
+    }
+
+    override fun applyScanResult(
+        request: LocalMusicScanRequest,
+        scanResult: LocalMusicScanResult,
+        likedSongIds: Set<String>,
+    ): LibrarySnapshot {
+        return getSnapshot()
+    }
+}
+
+private class ArtistVariantMusicLibraryRepository : MusicLibraryRepository {
+    private val seededSongs: List<Song> = listOf(
+        testSong(
+            id = "variant:1",
+            title = "Variant One",
+            modifiedAt = 1L,
+        ).copy(artist = " JAY   CHOU "),
+        testSong(
+            id = "variant:2",
+            title = "Variant Two",
+            modifiedAt = 2L,
+        ).copy(artist = "jay chou"),
+    )
+
+    override fun getSnapshot(): LibrarySnapshot {
+        return LibrarySnapshot(
+            songs = seededSongs,
+            albums = emptyList(),
+            artists = listOf(
+                Artist(
+                    id = "artist:jay chou",
+                    name = "Jay Chou",
+                    songCount = seededSongs.size,
+                    albumCount = 0,
+                    coverArt = CoverArt.HeroLocalMusic,
+                    tag = "本地音乐",
+                ),
+            ),
+            stats = getLibraryStats(),
+            sources = emptyList(),
+            scanState = LocalMusicScanState.Idle,
+            lastScanSummary = null,
+            problems = emptyList(),
+        )
+    }
+
+    override fun getHomePreview(limit: Int): List<Song> {
+        return seededSongs.take(n = limit)
+    }
+
+    override fun getAllAvailableSongs(): List<Song> {
+        return seededSongs
+    }
+
+    override fun getAvailableSongsByIds(songIds: List<String>): List<Song> {
+        val requestedIds: Set<String> = songIds.toSet()
+        return seededSongs.filter { song: Song -> requestedIds.contains(element = song.id) }
+    }
+
+    override fun getLibraryStats(): LibraryStats {
+        return LibraryStats(
+            songCount = seededSongs.size,
+            albumCount = 0,
+            artistCount = 1,
+        )
     }
 
     override fun applyScanResult(

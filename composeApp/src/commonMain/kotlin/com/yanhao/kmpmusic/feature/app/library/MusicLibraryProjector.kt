@@ -3,6 +3,7 @@ package com.yanhao.kmpmusic.feature.app.library
 import com.yanhao.kmpmusic.domain.model.Album
 import com.yanhao.kmpmusic.domain.model.Artist
 import com.yanhao.kmpmusic.domain.model.Song
+import com.yanhao.kmpmusic.domain.model.normalizeArtistName
 
 /**
  * 纯投影助手，集中维护歌曲到专辑、歌手和详情列表的派生规则。
@@ -36,7 +37,7 @@ object MusicLibraryProjector {
      * 统一歌手分组规则，避免首页、收藏和详情页各自维护一份实现。
      */
     fun buildArtists(songs: List<Song>): List<Artist> {
-        return songs.groupBy { song: Song -> song.artist.trim().lowercase() }
+        return songs.groupBy { song: Song -> normalizeArtistName(value = song.artist) }
             .entries
             .map { entry: Map.Entry<String, List<Song>> ->
                 val normalizedArtist: String = entry.key

@@ -110,6 +110,16 @@ class MusicAppNavigationControllerTest {
             actual = secondaryState.fixedBarMode.fixedBarPlacement,
         )
 
+        val artistDetailState: NavigationState = NavigationState(
+            secondaryScreen = SecondaryScreen.ArtistDetail,
+        )
+        assertEquals(expected = MobileFixedBarMode.SecondaryWithMiniPlayer, actual = artistDetailState.fixedBarMode)
+        assertFalse(actual = artistDetailState.fixedBarMode.showsBottomNavigation)
+        assertEquals(
+            expected = MobileFixedBarPlacement.MiniPlayerOnly,
+            actual = artistDetailState.fixedBarMode.fixedBarPlacement,
+        )
+
         val fullscreenPlayerState: NavigationState = NavigationState(
             secondaryScreen = SecondaryScreen.Player,
         )

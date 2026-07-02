@@ -14,6 +14,7 @@ import com.yanhao.kmpmusic.domain.model.LocalMusicSourceKind
 import com.yanhao.kmpmusic.domain.model.LocalMusicSourceSummary
 import com.yanhao.kmpmusic.domain.model.MusicFileMetadata
 import com.yanhao.kmpmusic.domain.model.Song
+import com.yanhao.kmpmusic.domain.model.normalizeArtistName
 import com.yanhao.kmpmusic.domain.persistence.FavoriteSongDao
 import com.yanhao.kmpmusic.domain.persistence.LocalSongDao
 import com.yanhao.kmpmusic.domain.persistence.LocalSongEntity
@@ -301,12 +302,14 @@ class PersistentMusicLibraryRepository(
 
     /** 按歌手聚合歌曲，保证统计和二级页读到同一来源事实。 */
     private fun buildArtists(songs: List<Song>): List<Artist> {
-        return songs.groupBy { song: Song -> song.artist.trim().lowercase() }
-            .values
-            .map { artistSongs: List<Song> ->
+        return songs.groupBy { song: Song -> normalizeArtistName(value = song.artist) }
+            .entries
+            .map { entry: Map.Entry<String, List<Song>> ->
+                val normalizedArtist: String = entry.key
+                val artistSongs: List<Song> = entry.value
                 val firstSong: Song = artistSongs.first()
                 Artist(
-                    id = "artist:${firstSong.artist.trim().lowercase()}",
+                    id = "artist:$normalizedArtist",
                     name = firstSong.artist,
                     songCount = artistSongs.size,
                     albumCount = countArtistAlbums(songs = artistSongs),

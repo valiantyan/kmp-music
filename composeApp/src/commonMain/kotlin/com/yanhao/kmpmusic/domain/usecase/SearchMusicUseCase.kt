@@ -4,6 +4,7 @@ import com.yanhao.kmpmusic.domain.model.Album
 import com.yanhao.kmpmusic.domain.model.Artist
 import com.yanhao.kmpmusic.domain.model.SearchScope
 import com.yanhao.kmpmusic.domain.model.Song
+import com.yanhao.kmpmusic.domain.model.normalizeArtistName
 import com.yanhao.kmpmusic.domain.repository.MusicLibraryRepository
 
 /**
@@ -98,10 +99,12 @@ private fun buildAlbums(songs: List<Song>): List<Album> {
 
 // 歌手搜索同样从完整曲库重建聚合，避免依赖仓库里的缓存列表时机。
 private fun buildArtists(songs: List<Song>): List<Artist> {
-    return songs.groupBy { song -> song.artist.trim().lowercase() }.values.map { artistSongs ->
+    return songs.groupBy { song -> normalizeArtistName(value = song.artist) }.entries.map { entry ->
+        val normalizedArtist: String = entry.key
+        val artistSongs: List<Song> = entry.value
         val firstSong: Song = artistSongs.first()
         Artist(
-            id = "artist:${firstSong.artist.trim().lowercase()}",
+            id = "artist:$normalizedArtist",
             name = firstSong.artist,
             songCount = artistSongs.size,
             albumCount = countArtistAlbums(songs = artistSongs),
