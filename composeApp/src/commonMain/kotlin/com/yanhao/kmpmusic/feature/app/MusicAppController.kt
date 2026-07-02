@@ -213,9 +213,9 @@ class MusicAppController(
         uiState = NavigationStateController.navigateBack(state = uiState)
     }
 
-    /** 切换首页内容页签，专辑页签按需加载完整本地曲库。 */
+    /** 切换首页内容页签，聚合型页签按需加载完整本地曲库。 */
     fun setHomeContentSection(section: HomeContentSection) {
-        if (section == HomeContentSection.Albums) {
+        if (section == HomeContentSection.Albums || section == HomeContentSection.Artists) {
             loadLocalMusicLibrary()
         }
         uiState = uiState.copy(homeContentSection = section)

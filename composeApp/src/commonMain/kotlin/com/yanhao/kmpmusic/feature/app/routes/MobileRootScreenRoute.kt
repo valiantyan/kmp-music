@@ -29,6 +29,7 @@ fun MobileRootScreenRoute(
         RootTab.Home -> HomeScreen(
             songs = state.songs,
             albums = state.localAlbums,
+            artists = state.localArtists,
             libraryStats = state.libraryStats,
             scanState = state.scanState,
             selectedSection = state.homeContentSection,
@@ -42,6 +43,7 @@ fun MobileRootScreenRoute(
             },
             onMore = controller::openMore,
             onAlbumOpen = controller::openAlbum,
+            onArtistOpen = controller::openArtist,
             modifier = modifier,
             contentPadding = contentPadding,
         )

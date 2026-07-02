@@ -15,6 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.yanhao.kmpmusic.domain.model.Album
+import com.yanhao.kmpmusic.domain.model.Artist
 import com.yanhao.kmpmusic.domain.model.LibraryStats
 import com.yanhao.kmpmusic.domain.model.LocalMusicScanState
 import com.yanhao.kmpmusic.domain.model.PlaybackStatus
@@ -22,12 +23,13 @@ import com.yanhao.kmpmusic.domain.model.Song
 import com.yanhao.kmpmusic.feature.app.HomeContentSection
 
 /**
- * 手机首页，歌曲与专辑内容页签分别按 Figma 节点 `871:477` 和 `883:514` 渲染。
+ * 手机首页，歌曲、专辑和歌手内容页签分别按 Figma 节点渲染。
  */
 @Composable
 fun HomeScreen(
     songs: List<Song>,
     albums: List<Album>,
+    artists: List<Artist>,
     libraryStats: LibraryStats,
     scanState: LocalMusicScanState,
     selectedSection: HomeContentSection,
@@ -39,6 +41,7 @@ fun HomeScreen(
     onSongPlay: (Song, List<Song>) -> Unit,
     onMore: (Song) -> Unit,
     onAlbumOpen: (Album) -> Unit,
+    onArtistOpen: (Artist) -> Unit,
     modifier: Modifier = Modifier,
     contentPadding: PaddingValues = PaddingValues(0.dp),
 ) {
@@ -78,6 +81,12 @@ fun HomeScreen(
                     scanState = scanState,
                     onScan = onScan,
                     onAlbumOpen = onAlbumOpen,
+                )
+                HomeContentSection.Artists -> homeArtistItems(
+                    artists = artists,
+                    scanState = scanState,
+                    onScan = onScan,
+                    onArtistOpen = onArtistOpen,
                 )
             }
         }
@@ -165,6 +174,27 @@ private fun LazyListScope.homeAlbumItems(
     }
 }
 
+// 歌手页签复刻 Figma 圆形头像列表，与本地音乐歌手分段共享同一份歌手数据。
+private fun LazyListScope.homeArtistItems(
+    artists: List<Artist>,
+    scanState: LocalMusicScanState,
+    onScan: () -> Unit,
+    onArtistOpen: (Artist) -> Unit,
+) {
+    item(key = "home-artist-list-top-gap") {
+        Spacer(modifier = Modifier.height(24.dp))
+    }
+    homeArtistListItems(
+        artists = artists,
+        scanState = scanState,
+        onScan = onScan,
+        onArtistOpen = onArtistOpen,
+    )
+    item(key = "home-artist-list-bottom-gap") {
+        Spacer(modifier = Modifier.height(24.dp))
+    }
+}
+
 // 首页歌曲统计优先使用曲库统计，扫描前或测试数据缺失时退回当前列表数量。
 private fun formatHomeSongCount(
     songs: List<Song>,
@@ -183,5 +213,6 @@ private fun HomeContentSection.title(): String {
     return when (this) {
         HomeContentSection.Songs -> "歌曲"
         HomeContentSection.Albums -> "专辑"
+        HomeContentSection.Artists -> "歌手"
     }
 }

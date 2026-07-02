@@ -278,6 +278,7 @@ internal fun buildFrequentArtists(
                     id = "artist:${entry.key}",
                     name = recentArtist.name,
                     songCount = recentArtist.recentCount,
+                    albumCount = 0,
                     coverArt = recentArtist.coverArt,
                     coverImageUri = recentArtist.coverImageUri,
                     tag = "最近播放",

@@ -104,11 +104,20 @@ private fun buildArtists(songs: List<Song>): List<Artist> {
             id = "artist:${firstSong.artist.trim().lowercase()}",
             name = firstSong.artist,
             songCount = artistSongs.size,
+            albumCount = countArtistAlbums(songs = artistSongs),
             coverArt = firstSong.coverArt,
             coverImageUri = firstSong.coverImageUri,
             tag = "本地音乐",
         )
     }.sortedBy { artist -> artist.name.lowercase() }
+}
+
+// 歌手搜索结果复用首页歌手副标题所需的专辑聚合口径。
+private fun countArtistAlbums(songs: List<Song>): Int {
+    return songs
+        .map { song: Song -> song.album.trim().lowercase() }
+        .distinct()
+        .size
 }
 
 // 空查询代表浏览全部本地内容。

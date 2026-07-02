@@ -35,6 +35,7 @@ enum class RootTab {
 enum class HomeContentSection {
     Songs,
     Albums,
+    Artists,
 }
 
 /**

@@ -62,6 +62,7 @@ class LibraryStateSynchronizer(
         }
         val shouldRefreshFullLibrary: Boolean = state.localSongs.isNotEmpty() ||
             state.homeContentSection == HomeContentSection.Albums ||
+            state.homeContentSection == HomeContentSection.Artists ||
             state.navigationState.secondaryScreen is SecondaryScreen.LocalMusic
         val fullSongsWithLikes: List<Song> = if (shouldRefreshFullLibrary) {
             musicLibraryRepository.getAllAvailableSongs().map { song: Song ->

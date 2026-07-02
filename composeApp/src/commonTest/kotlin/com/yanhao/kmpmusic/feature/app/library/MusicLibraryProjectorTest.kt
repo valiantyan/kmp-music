@@ -35,6 +35,7 @@ class MusicLibraryProjectorTest {
 
         assertEquals(expected = listOf("artist:aki", "artist:trip"), actual = artists.map { artist -> artist.id })
         assertEquals(expected = listOf(1, 2), actual = artists.map { artist -> artist.songCount })
+        assertEquals(expected = listOf(1, 2), actual = artists.map { artist -> artist.albumCount })
         assertEquals(expected = "file://third.png", actual = artists.first().coverImageUri)
         assertEquals(expected = "本地音乐", actual = artists.first().tag)
     }

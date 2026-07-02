@@ -46,12 +46,21 @@ object MusicLibraryProjector {
                     id = "artist:$normalizedArtist",
                     name = firstSong.artist,
                     songCount = artistSongs.size,
+                    albumCount = countArtistAlbums(songs = artistSongs),
                     coverArt = firstSong.coverArt,
                     coverImageUri = firstSong.coverImageUri,
                     tag = "本地音乐",
                 )
             }
             .sortedBy { artist: Artist -> artist.id }
+    }
+
+    // 歌手专辑数按同一组歌曲去重专辑名，保证首页和本地音乐分段口径一致。
+    private fun countArtistAlbums(songs: List<Song>): Int {
+        return songs
+            .map { song: Song -> song.album.trim().lowercase() }
+            .distinct()
+            .size
     }
 
     /**

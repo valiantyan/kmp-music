@@ -6,6 +6,7 @@ package com.yanhao.kmpmusic.domain.model
  * @property id 歌手稳定标识。
  * @property name 歌手名称。
  * @property songCount 本地曲目数。
+ * @property albumCount 本地专辑数。
  * @property coverArt 歌手视觉资源标识。
  * @property coverImageUri 歌手首曲扫描封面 URI，缺失时使用 [coverArt]。
  * @property tag 歌手分类标签。
@@ -14,6 +15,7 @@ data class Artist(
     val id: String,
     val name: String,
     val songCount: Int,
+    val albumCount: Int = 0,
     val coverArt: CoverArt,
     val coverImageUri: String? = null,
     val tag: String,

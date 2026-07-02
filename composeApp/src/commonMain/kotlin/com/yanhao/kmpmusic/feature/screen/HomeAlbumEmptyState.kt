@@ -24,6 +24,33 @@ internal fun HomeEmptyAlbumsCard(
     scanState: LocalMusicScanState,
     onScan: () -> Unit,
 ) {
+    HomeEmptyLibraryAggregationCard(
+        message = "扫描后会按专辑自动聚合。",
+        scanState = scanState,
+        onScan = onScan,
+    )
+}
+
+// 歌手为空时仍复用扫描入口，保证未扫描设备不会出现空白页签。
+@Composable
+internal fun HomeEmptyArtistsCard(
+    scanState: LocalMusicScanState,
+    onScan: () -> Unit,
+) {
+    HomeEmptyLibraryAggregationCard(
+        message = "扫描后会按歌手自动聚合。",
+        scanState = scanState,
+        onScan = onScan,
+    )
+}
+
+// 首页聚合型页签共用空态卡片，避免专辑和歌手权限文案分叉。
+@Composable
+private fun HomeEmptyLibraryAggregationCard(
+    message: String,
+    scanState: LocalMusicScanState,
+    onScan: () -> Unit,
+) {
     Surface(
         modifier = Modifier
             .fillMaxWidth()
@@ -39,7 +66,7 @@ internal fun HomeEmptyAlbumsCard(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
-                text = "扫描后会按专辑自动聚合。",
+                text = message,
                 color = homeMutedColor,
                 fontSize = 14.sp,
                 lineHeight = 20.sp,
@@ -51,7 +78,7 @@ internal fun HomeEmptyAlbumsCard(
                 onClick = onScan,
             ) {
                 Text(
-                    text = albumScanActionLabel(scanState = scanState),
+                    text = aggregationScanActionLabel(scanState = scanState),
                     color = Color.White,
                     fontSize = 14.sp,
                     lineHeight = 16.sp,
@@ -66,20 +93,20 @@ internal fun HomeEmptyAlbumsCard(
     }
 }
 
-// 专辑空态按钮沿用歌曲空态的权限语义，避免权限永久拒绝时误导用户普通重试。
-private fun albumScanActionLabel(scanState: LocalMusicScanState): String {
+// 聚合型页签空态按钮沿用歌曲空态的权限语义，避免权限永久拒绝时误导用户普通重试。
+private fun aggregationScanActionLabel(scanState: LocalMusicScanState): String {
     return when (scanState) {
         LocalMusicScanState.Idle -> "扫描本地音乐"
         LocalMusicScanState.WaitingForPermission -> "继续授权"
         is LocalMusicScanState.Importing -> "导入中"
         is LocalMusicScanState.Scanning -> "扫描中"
         is LocalMusicScanState.Done -> "重新扫描"
-        is LocalMusicScanState.Error -> albumScanErrorActionLabel(scanState = scanState)
+        is LocalMusicScanState.Error -> aggregationScanErrorActionLabel(scanState = scanState)
     }
 }
 
 // 权限类错误需要区分普通重试和系统设置入口，避免重复触发无效弹窗。
-private fun albumScanErrorActionLabel(scanState: LocalMusicScanState.Error): String {
+private fun aggregationScanErrorActionLabel(scanState: LocalMusicScanState.Error): String {
     return when (scanState.error.type) {
         LocalMusicScanErrorType.PermissionDenied -> "继续授权"
         LocalMusicScanErrorType.PermissionPermanentlyDenied -> "打开权限设置"

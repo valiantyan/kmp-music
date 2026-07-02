@@ -151,12 +151,21 @@ class MergeLocalMusicScanResultUseCaseImpl : MergeLocalMusicScanResultUseCase {
                     id = "artist:${normalizeKey(value = firstSong.artist)}",
                     name = firstSong.artist,
                     songCount = artistSongs.size,
+                    albumCount = countArtistAlbums(songs = artistSongs),
                     coverArt = firstSong.coverArt,
                     coverImageUri = firstSong.coverImageUri,
                     tag = "本地音乐",
                 )
             }
             .sortedBy { artist -> artist.name.lowercase() }
+    }
+
+    // 歌手专辑数由扫描歌曲聚合得到，避免后续 UI 再按页面重复计算。
+    private fun countArtistAlbums(songs: List<Song>): Int {
+        return songs
+            .map { song -> normalizeKey(value = song.album) }
+            .distinct()
+            .size
     }
 
     // 统一聚合 key，避免大小写和空白造成重复专辑或歌手。

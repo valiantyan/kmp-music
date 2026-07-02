@@ -3,6 +3,7 @@ package com.yanhao.kmpmusic.feature.screen
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.yanhao.kmpmusic.core.theme.MusicColors
 import com.yanhao.kmpmusic.domain.model.PlaybackStatus
 import kotlin.test.Test
@@ -77,6 +78,23 @@ class HomeFigmaTokensTest {
         assertEquals(expected = 24.dp, actual = homeAlbumGridGap)
         assertEquals(expected = 24.dp, actual = homeAlbumCoverRadius)
         assertEquals(expected = 4.dp, actual = homeAlbumActiveBorderHeight)
+    }
+
+    /**
+     * 歌手页签列表必须锁住 Figma 节点 `886:592` 的圆形头像和列表节奏。
+     */
+    @Test
+    fun artistListTokensMatchFigmaNode(): Unit {
+        assertEquals(expected = 84.dp, actual = homeArtistRowHeight)
+        assertEquals(expected = 10.dp, actual = homeArtistRowVerticalPadding)
+        assertEquals(expected = 0.dp, actual = homeArtistListGap)
+        assertEquals(expected = 20.sp, actual = homeArtistNameFontSize)
+        assertEquals(expected = 28.sp, actual = homeArtistNameLineHeight)
+        assertEquals(expected = 64.dp, actual = homeArtistAvatarOuterSize)
+        assertEquals(expected = 2.dp, actual = homeArtistAvatarBorderWidth)
+        assertEquals(expected = 2.dp, actual = homeArtistAvatarInset)
+        assertEquals(expected = Color(0x3326A69A), actual = homeArtistAvatarBorderColor)
+        assertEquals(expected = Color(0xFFB8C7C4), actual = homeArtistChevronColor)
     }
 }
 

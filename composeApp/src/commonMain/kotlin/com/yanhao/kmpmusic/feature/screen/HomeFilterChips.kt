@@ -49,7 +49,11 @@ internal fun HomeFilterChips(
             )
         }
         item(key = "artists-chip") {
-            HomeFilterChip(label = "歌手", selected = false)
+            HomeFilterChip(
+                label = "歌手",
+                selected = selectedSection == HomeContentSection.Artists,
+                onClick = { onSection(HomeContentSection.Artists) },
+            )
         }
         item(key = "folders-chip") {
             HomeFilterChip(label = "文件夹", selected = false)

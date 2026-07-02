@@ -109,6 +109,23 @@ class MusicAppControllerTest {
     }
 
     /**
+     * 首页歌手页签应读取本地音乐歌手分段同源的全量歌手数据，且不能跳出首页。
+     */
+    @Test
+    fun homeArtistSectionLoadsAllLocalArtistsWithoutLeavingHome(): Unit {
+        val repository = SeededMusicLibraryRepository(seedCount = 8)
+        val controller = createController(musicLibraryRepository = repository)
+        assertTrue(actual = controller.uiState.localArtists.isEmpty())
+        assertEquals(expected = 0, actual = repository.fullLibraryReads)
+        controller.setHomeContentSection(section = HomeContentSection.Artists)
+        assertEquals(expected = HomeContentSection.Artists, actual = controller.uiState.homeContentSection)
+        assertEquals(expected = listOf("artist:artist"), actual = controller.uiState.localArtists.map { artist: Artist -> artist.id })
+        assertEquals(expected = listOf(1), actual = controller.uiState.localArtists.map { artist: Artist -> artist.albumCount })
+        assertEquals(expected = 1, actual = repository.fullLibraryReads)
+        assertTrue(actual = controller.uiState.navigationState.isTopLevel)
+    }
+
+    /**
      * 用户停留在首页专辑页签时，扫描完成必须同步专辑网格，而不是只刷新歌曲预览。
      */
     @Test
@@ -119,6 +136,19 @@ class MusicAppControllerTest {
         assertEquals(expected = HomeContentSection.Albums, actual = controller.uiState.homeContentSection)
         assertTrue(actual = controller.uiState.localAlbums.isNotEmpty())
         assertEquals(expected = controller.uiState.libraryStats.albumCount, actual = controller.uiState.localAlbums.size)
+    }
+
+    /**
+     * 用户停留在首页歌手页签时，扫描完成必须同步歌手列表，而不是只刷新歌曲预览。
+     */
+    @Test
+    fun scanRefreshesHomeArtistSectionArtists(): Unit = runBlocking {
+        val controller = createController()
+        controller.setHomeContentSection(section = HomeContentSection.Artists)
+        controller.scanLocalMusic(request = LocalMusicScanRequest.Refresh)
+        assertEquals(expected = HomeContentSection.Artists, actual = controller.uiState.homeContentSection)
+        assertTrue(actual = controller.uiState.localArtists.isNotEmpty())
+        assertEquals(expected = controller.uiState.libraryStats.artistCount, actual = controller.uiState.localArtists.size)
     }
 
     /**
@@ -1159,6 +1189,7 @@ private class SeededMusicLibraryRepository(seedCount: Int) : com.yanhao.kmpmusic
                 id = "artist:artist",
                 name = "Artist",
                 songCount = seededSongs.size,
+                albumCount = 1,
                 coverArt = CoverArt.HeroLocalMusic,
                 tag = "本地音乐",
             ),

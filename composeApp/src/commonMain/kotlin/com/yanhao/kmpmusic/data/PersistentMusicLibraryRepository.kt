@@ -309,12 +309,21 @@ class PersistentMusicLibraryRepository(
                     id = "artist:${firstSong.artist.trim().lowercase()}",
                     name = firstSong.artist,
                     songCount = artistSongs.size,
+                    albumCount = countArtistAlbums(songs = artistSongs),
                     coverArt = firstSong.coverArt,
                     coverImageUri = firstSong.coverImageUri,
                     tag = "本地音乐",
                 )
             }
             .sortedBy { artist: Artist -> artist.name.lowercase() }
+    }
+
+    /** 按歌手歌曲去重专辑名，保证持久曲库和内存投影一致。 */
+    private fun countArtistAlbums(songs: List<Song>): Int {
+        return songs
+            .map { song: Song -> song.album.trim().lowercase() }
+            .distinct()
+            .size
     }
 
     /** 生成 UI 需要的分秒时长文案。 */
