@@ -1,6 +1,9 @@
 package com.yanhao.kmpmusic.feature.app.routes
 
 import androidx.compose.runtime.Composable
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import com.yanhao.kmpmusic.domain.model.Song
 import com.yanhao.kmpmusic.feature.app.LocalMusicSection
 import com.yanhao.kmpmusic.feature.app.MusicAppController
@@ -19,29 +22,24 @@ fun MobileRootScreenRoute(
     state: MusicAppUiState,
     controller: MusicAppController,
     onScanLocalMusic: () -> Unit,
+    modifier: Modifier = Modifier,
+    contentPadding: PaddingValues = PaddingValues(0.dp),
 ) {
     when (state.navigationState.rootTab) {
         RootTab.Home -> HomeScreen(
-            songs = state.homeLocalSongPreview,
-            albums = state.localAlbums,
+            songs = state.songs,
             libraryStats = state.libraryStats,
             scanState = state.scanState,
-            recentSongs = state.recentSongs,
-            localSongPreview = state.homeLocalSongPreview,
             currentSongId = state.currentSongId,
             currentPlaybackStatus = state.playbackStatus,
             onSearch = controller::openSearch,
             onScan = onScanLocalMusic,
-            onLocalMusic = { controller.openLocalMusic(section = LocalMusicSection.Songs) },
             onSongOpen = { song: Song, queueSongs: List<Song> ->
                 controller.openSong(song = song, queueSongs = queueSongs)
             },
-            onSongPlay = { song: Song, queueSongs: List<Song> ->
-                controller.playSong(song = song, queueSongs = queueSongs)
-            },
-            onCurrentSongToggle = controller::togglePlayback,
             onMore = controller::openMore,
-            onAlbumOpen = controller::openAlbum,
+            modifier = modifier,
+            contentPadding = contentPadding,
         )
         RootTab.Favorites -> FavoritesScreen(
             songs = state.favoriteSongs,

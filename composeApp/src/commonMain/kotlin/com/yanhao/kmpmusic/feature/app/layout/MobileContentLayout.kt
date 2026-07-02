@@ -18,6 +18,7 @@ import com.yanhao.kmpmusic.feature.app.ContentBottomSpace
 import com.yanhao.kmpmusic.feature.app.MobileFixedBarMode
 import com.yanhao.kmpmusic.feature.app.MusicAppController
 import com.yanhao.kmpmusic.feature.app.MusicAppUiState
+import com.yanhao.kmpmusic.feature.app.RootTab
 import com.yanhao.kmpmusic.feature.app.SecondaryScreen
 import com.yanhao.kmpmusic.feature.app.routes.MobileRootScreenRoute
 import com.yanhao.kmpmusic.feature.app.routes.MobileSecondaryScreenRoute
@@ -43,6 +44,7 @@ fun MobileContentLayout(
     val saveableStateHolder = rememberSaveableStateHolder()
     saveableStateHolder.SaveableStateProvider(key = state.navigationState.scrollStateKey) {
         val secondaryScreen: SecondaryScreen? = state.navigationState.secondaryScreen
+        val isHomeRoot: Boolean = secondaryScreen == null && state.navigationState.rootTab == RootTab.Home
         if (secondaryScreen is SecondaryScreen.LocalMusic) {
             MobileSecondaryScreenRoute(
                 secondaryScreen = secondaryScreen,
@@ -51,6 +53,17 @@ fun MobileContentLayout(
                 onScanLocalMusic = onScanLocalMusic,
                 modifier = modifier,
                 contentPadding = pagePadding,
+            )
+        } else if (isHomeRoot) {
+            MobileRootScreenRoute(
+                state = state,
+                controller = controller,
+                onScanLocalMusic = onScanLocalMusic,
+                modifier = modifier
+                    .fillMaxSize()
+                    .statusBarsPadding()
+                    .navigationBarsPadding(),
+                contentPadding = PaddingValues(bottom = bottomPadding),
             )
         } else {
             Column(
