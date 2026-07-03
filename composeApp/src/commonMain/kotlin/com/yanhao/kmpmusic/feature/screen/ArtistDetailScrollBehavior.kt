@@ -18,8 +18,8 @@ internal val artistDetailMaxPullStretchHeight: Dp = 96.dp
 // 展开态歌手名的一行标题估算高度，用于把列表 item 位置转成连续滚动距离。
 internal val artistDetailExpandedTitleScrollHeight: Dp = 64.dp
 
-// 旧头图播放入口移除后保留的锚点高度，避免正文组突然上跳。
-internal val artistDetailPlayAllScrollHeight: Dp = 48.dp
+// 播放入口上移 20dp 后保留的锚点高度，避免正文组和头图折叠关系脱节。
+internal val artistDetailPlayAllScrollHeight: Dp = 28.dp
 
 // 播放全部标题行固定视觉高度，参与歌手图跟随滚动的距离换算。
 internal val artistDetailSectionTitleScrollHeight: Dp = 80.dp

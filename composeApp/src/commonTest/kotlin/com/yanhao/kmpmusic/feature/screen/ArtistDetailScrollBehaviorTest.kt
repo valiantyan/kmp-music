@@ -263,7 +263,7 @@ class ArtistDetailScrollBehaviorTest {
             scrollSpec = spec,
         )
 
-        assertEquals(expected = 307.2.dp, actual = scrollOffset)
+        assertEquals(expected = 287.2.dp, actual = scrollOffset)
     }
 
     /**
