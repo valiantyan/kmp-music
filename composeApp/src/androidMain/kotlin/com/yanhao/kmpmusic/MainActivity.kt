@@ -10,12 +10,16 @@ import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.SideEffect
 import androidx.core.content.ContextCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.ViewModelProvider
 import com.yanhao.kmpmusic.data.AndroidMediaStoreScanner
+import com.yanhao.kmpmusic.feature.app.MusicAppUiState
 import com.yanhao.kmpmusic.feature.app.PermissionSettingsOpener
+import com.yanhao.kmpmusic.feature.app.SecondaryScreen
 
 /**
  * Android 入口 Activity。
@@ -65,7 +69,17 @@ class MainActivity : ComponentActivity() {
         )
         handlePlaybackIntent(intent = intent)
         setContent {
+            SyncStatusBarAppearance(state = musicAppViewModel.controller.uiState)
             App(controller = musicAppViewModel.controller)
+        }
+    }
+
+    /** 按当前页面亮暗切换状态栏图标，避免沉浸式歌手详情 Toolbar 压低可读性。 */
+    @Composable
+    private fun SyncStatusBarAppearance(state: MusicAppUiState) {
+        val useDarkStatusBarIcons: Boolean = state.navigationState.secondaryScreen != SecondaryScreen.ArtistDetail
+        SideEffect {
+            WindowInsetsControllerCompat(window, window.decorView).isAppearanceLightStatusBars = useDarkStatusBarIcons
         }
     }
 
