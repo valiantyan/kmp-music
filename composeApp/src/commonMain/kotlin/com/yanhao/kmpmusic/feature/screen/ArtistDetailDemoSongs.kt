@@ -7,7 +7,7 @@ import com.yanhao.kmpmusic.domain.model.Song
 /**
  * 歌手详情页热门歌曲测试数据数量。
  */
-internal const val ARTIST_DETAIL_DEMO_SONG_COUNT = 30
+internal const val ARTIST_DETAIL_DEMO_SONG_COUNT = 100
 
 /**
  * 只为歌手详情页滚动和播放态测试追加 demo 歌曲，不污染全局本地曲库。

@@ -79,10 +79,10 @@ class ArtistDetailContentTest {
     }
 
     /**
-     * 测试模式下歌手详情页可以追加 30 条 demo 热门歌曲，且不改变默认真实数据规则。
+     * 测试模式下歌手详情页可以追加压力测试 demo 热门歌曲，且不改变默认真实数据规则。
      */
     @Test
-    fun artistDetailContentCanAppendThirtyDemoSongs(): Unit {
+    fun artistDetailContentCanAppendDemoSongsForScrollStress(): Unit {
         val artist = testArtist(name = "Camila")
         val realSong: Song = testSong(
             id = "camila:mientes",
@@ -95,13 +95,14 @@ class ArtistDetailContentTest {
             songs = listOf(realSong),
             currentSongId = null,
             currentPlaybackStatus = PlaybackStatus.Paused,
-            demoSongCount = 30,
+            demoSongCount = ARTIST_DETAIL_DEMO_SONG_COUNT,
         )
+        val expectedSongCount: Int = ARTIST_DETAIL_DEMO_SONG_COUNT + 1
 
-        assertEquals(expected = 31, actual = content.artistSongs.size)
+        assertEquals(expected = expectedSongCount, actual = content.artistSongs.size)
         assertEquals(expected = "播放全部", actual = content.playAllText)
-        assertEquals(expected = "31 首歌曲", actual = content.playAllCountText)
-        assertEquals(expected = "31", actual = content.songRows.last().indexLabel)
+        assertEquals(expected = "$expectedSongCount 首歌曲", actual = content.playAllCountText)
+        assertEquals(expected = expectedSongCount.toString(), actual = content.songRows.last().indexLabel)
         assertTrue(actual = content.artistSongs.drop(n = 1).all { song: Song -> song.title.startsWith(prefix = "热门歌曲 Demo ") })
         assertTrue(actual = content.artistSongs.drop(n = 1).all { song: Song -> song.artist == artist.name })
     }

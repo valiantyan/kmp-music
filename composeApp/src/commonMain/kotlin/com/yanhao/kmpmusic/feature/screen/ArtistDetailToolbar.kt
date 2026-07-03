@@ -3,6 +3,7 @@ package com.yanhao.kmpmusic.feature.screen
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -13,13 +14,15 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.State
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
@@ -27,16 +30,24 @@ import androidx.compose.ui.unit.sp
 @Composable
 internal fun ArtistDetailToolbar(
     artistName: String,
-    scrollState: ArtistDetailScrollState,
+    scrollState: State<ArtistDetailScrollState>,
+    collapsedToolbarHeight: Dp,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .height(height = scrollState.collapsedToolbarHeight)
-            .background(color = artistDetailToolbarColor.copy(alpha = scrollState.toolbarAlpha)),
+            .height(height = collapsedToolbarHeight),
     ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .graphicsLayer {
+                    alpha = scrollState.value.toolbarAlpha
+                }
+                .background(color = artistDetailToolbarColor),
+        )
         Row(
             modifier = Modifier
                 .align(alignment = Alignment.BottomCenter)
@@ -65,7 +76,9 @@ internal fun ArtistDetailToolbar(
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier
                     .weight(weight = 1f)
-                    .alpha(alpha = scrollState.toolbarTitleAlpha),
+                    .graphicsLayer {
+                        alpha = scrollState.value.toolbarTitleAlpha
+                    },
             )
         }
     }

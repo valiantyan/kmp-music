@@ -99,6 +99,29 @@ class ArtistDetailScrollBehaviorTest {
     }
 
     /**
+     * 列表普通滚动不应改变 LazyColumn 布局尺寸，避免快速滑动时重组整页内容。
+     */
+    @Test
+    fun layoutStateMatchesScrollStateWithoutListScrollOffset(): Unit {
+        val spec: ArtistDetailScrollSpec = testScrollSpec(maxPullStretchHeight = 96.dp)
+        val layoutState: ArtistDetailLayoutState = calculateArtistDetailLayoutState(
+            spec = spec,
+            pullOffset = 120.dp,
+        )
+        val scrollState: ArtistDetailScrollState = calculateArtistDetailScrollState(
+            spec = spec,
+            scrollOffset = 240.dp,
+            pullOffset = 120.dp,
+        )
+
+        assertEquals(expected = scrollState.collapsedToolbarHeight, actual = layoutState.collapsedToolbarHeight)
+        assertEquals(expected = scrollState.pullStretchHeight, actual = layoutState.pullStretchHeight)
+        assertEquals(expected = scrollState.heroImageHeight, actual = layoutState.heroImageHeight)
+        assertEquals(expected = scrollState.contentTopBarrier, actual = layoutState.contentTopBarrier)
+        assertEquals(expected = scrollState.contentGroupSpacerHeight, actual = layoutState.contentGroupSpacerHeight)
+    }
+
+    /**
      * 展开头图高度由视口驱动，保证首屏视觉约占屏幕一半。
      */
     @Test

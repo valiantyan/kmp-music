@@ -5,8 +5,8 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.State
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.drawWithContent
@@ -17,6 +17,9 @@ import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.yanhao.kmpmusic.core.theme.ArtistDetailPalette
 import com.yanhao.kmpmusic.core.theme.MusicColors
@@ -42,7 +45,8 @@ private const val ARTIST_DETAIL_HERO_FADE_START_FRACTION = 0.75f
 internal fun ArtistDetailHeroChrome(
     artist: Artist,
     palette: ArtistDetailPalette,
-    scrollState: ArtistDetailScrollState,
+    scrollState: State<ArtistDetailScrollState>,
+    layoutState: ArtistDetailLayoutState,
     modifier: Modifier = Modifier,
 ) {
     Box(modifier = modifier.fillMaxWidth()) {
@@ -50,6 +54,7 @@ internal fun ArtistDetailHeroChrome(
             artist = artist,
             palette = palette,
             scrollState = scrollState,
+            layoutState = layoutState,
         )
     }
 }
@@ -59,17 +64,19 @@ internal fun ArtistDetailHeroChrome(
 private fun ArtistDetailHeroImage(
     artist: Artist,
     palette: ArtistDetailPalette,
-    scrollState: ArtistDetailScrollState,
+    scrollState: State<ArtistDetailScrollState>,
+    layoutState: ArtistDetailLayoutState,
 ) {
-    val stretchFraction: Float = calculateStretchFraction(scrollState = scrollState)
+    val density: Density = LocalDensity.current
+    val stretchFraction: Float = calculateStretchFraction(layoutState = layoutState)
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .offset(y = scrollState.heroImageOffset)
-            .height(height = scrollState.heroImageHeight)
+            .height(height = layoutState.heroImageHeight)
             .clipToBounds()
             .graphicsLayer {
                 compositingStrategy = CompositingStrategy.Offscreen
+                translationY = with(density) { scrollState.value.heroImageOffset.toPx() }
             }
             .drawWithContent {
                 drawContent()
@@ -100,7 +107,7 @@ private fun ArtistDetailHeroImage(
         )
         ArtistDetailHeroScrim(
             palette = palette,
-            scrollState = scrollState,
+            collapsedToolbarHeight = layoutState.collapsedToolbarHeight,
         )
     }
 }
@@ -109,7 +116,7 @@ private fun ArtistDetailHeroImage(
 @Composable
 private fun ArtistDetailHeroScrim(
     palette: ArtistDetailPalette,
-    scrollState: ArtistDetailScrollState,
+    collapsedToolbarHeight: Dp,
 ) {
     Box(
         modifier = Modifier
@@ -129,7 +136,7 @@ private fun ArtistDetailHeroScrim(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(height = scrollState.collapsedToolbarHeight + 72.dp)
+            .height(height = collapsedToolbarHeight + 72.dp)
             .background(
                 brush = Brush.verticalGradient(
                     colors = listOf(
@@ -142,8 +149,8 @@ private fun ArtistDetailHeroScrim(
 }
 
 // 把下拉高度归一化成图片缩放比例，最大值来自 [artistDetailMaxPullStretchHeight]。
-private fun calculateStretchFraction(scrollState: ArtistDetailScrollState): Float {
-    return (scrollState.pullStretchHeight.value / artistDetailMaxPullStretchHeight.value).coerceIn(
+private fun calculateStretchFraction(layoutState: ArtistDetailLayoutState): Float {
+    return (layoutState.pullStretchHeight.value / artistDetailMaxPullStretchHeight.value).coerceIn(
         minimumValue = 0f,
         maximumValue = 1f,
     )

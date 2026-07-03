@@ -14,6 +14,9 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.State
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.input.nestedscroll.nestedScroll
@@ -46,13 +49,21 @@ fun ArtistDetailScreen(
     contentPadding: PaddingValues = PaddingValues(),
     demoSongCount: Int = 0,
 ) {
-    val content: ArtistDetailContent = buildArtistDetailContent(
-        artist = artist,
-        songs = songs,
-        currentSongId = currentSongId,
-        currentPlaybackStatus = currentPlaybackStatus,
-        demoSongCount = demoSongCount,
-    )
+    val content: ArtistDetailContent = remember(
+        artist,
+        songs,
+        currentSongId,
+        currentPlaybackStatus,
+        demoSongCount,
+    ) {
+        buildArtistDetailContent(
+            artist = artist,
+            songs = songs,
+            currentSongId = currentSongId,
+            currentPlaybackStatus = currentPlaybackStatus,
+            demoSongCount = demoSongCount,
+        )
+    }
     val listState: LazyListState = rememberLazyListState()
     val density: Density = LocalDensity.current
     val statusBarInset: Dp = with(density) {
@@ -75,14 +86,15 @@ fun ArtistDetailScreen(
             listState = listState,
             maxPullStretchHeight = scrollSpec.maxPullStretchHeight,
         )
-        val scrollState: ArtistDetailScrollState = calculateArtistDetailScrollState(
+        val layoutState: ArtistDetailLayoutState = calculateArtistDetailLayoutState(
             spec = scrollSpec,
-            scrollOffset = calculateArtistDetailScrollOffset(
-                listState = listState,
-                density = density,
-                scrollSpec = scrollSpec,
-            ),
             pullOffset = pullStretchState.pullStretchHeight,
+        )
+        val scrollState: State<ArtistDetailScrollState> = rememberArtistDetailScrollState(
+            listState = listState,
+            density = density,
+            scrollSpec = scrollSpec,
+            pullOffset = layoutState.pullStretchHeight,
         )
         ArtistDetailBackground(
             artist = artist,
@@ -92,13 +104,14 @@ fun ArtistDetailScreen(
             artist = artist,
             palette = palette,
             scrollState = scrollState,
+            layoutState = layoutState,
             modifier = Modifier.zIndex(zIndex = 0f),
         )
         LazyColumn(
             state = listState,
             modifier = Modifier
                 .fillMaxSize()
-                .padding(top = scrollState.contentTopBarrier)
+                .padding(top = layoutState.contentTopBarrier)
                 .clipToBounds()
                 .zIndex(zIndex = 1f)
                 .nestedScroll(connection = pullStretchState.nestedScrollConnection),
@@ -107,12 +120,12 @@ fun ArtistDetailScreen(
             ),
         ) {
             item(key = "artist-content-spacer", contentType = "artist-detail-content-spacer") {
-                Spacer(modifier = Modifier.height(height = scrollState.contentGroupSpacerHeight))
+                Spacer(modifier = Modifier.height(height = layoutState.contentGroupSpacerHeight))
             }
             item(key = "artist-expanded-title") {
                 ArtistDetailExpandedTitle(
                     artistName = artist.name,
-                    alpha = scrollState.expandedContentAlpha,
+                    scrollState = scrollState,
                 )
             }
             item(key = "artist-play-all-anchor-spacer") {
@@ -150,9 +163,38 @@ fun ArtistDetailScreen(
         ArtistDetailToolbar(
             artistName = artist.name,
             scrollState = scrollState,
+            collapsedToolbarHeight = layoutState.collapsedToolbarHeight,
             onBack = onBack,
             modifier = Modifier.zIndex(zIndex = 2f),
         )
+    }
+}
+
+// 列表滚动偏移只驱动头图和 Toolbar，避免普通滚动重组整页和歌曲列表。
+@Composable
+private fun rememberArtistDetailScrollState(
+    listState: LazyListState,
+    density: Density,
+    scrollSpec: ArtistDetailScrollSpec,
+    pullOffset: Dp,
+): State<ArtistDetailScrollState> {
+    return remember(
+        listState,
+        density,
+        scrollSpec,
+        pullOffset,
+    ) {
+        derivedStateOf {
+            calculateArtistDetailScrollState(
+                spec = scrollSpec,
+                scrollOffset = calculateArtistDetailScrollOffset(
+                    listState = listState,
+                    density = density,
+                    scrollSpec = scrollSpec,
+                ),
+                pullOffset = pullOffset,
+            )
+        }
     }
 }
 
