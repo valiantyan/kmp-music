@@ -90,6 +90,7 @@ fun MobileSecondaryScreenRoute(
                 onMode = controller::cyclePlaybackMode,
                 onLike = controller::toggleFavorite,
                 onQueue = controller::openQueue,
+                modifier = modifier.fillMaxSize(),
             )
         } ?: MissingLibraryItemScreen(
             title = "暂无播放",

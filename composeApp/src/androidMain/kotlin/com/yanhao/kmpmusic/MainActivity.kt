@@ -10,12 +10,28 @@ import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import androidx.core.content.ContextCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.ViewModelProvider
+import com.yanhao.kmpmusic.core.theme.MusicColors
 import com.yanhao.kmpmusic.data.AndroidMediaStoreScanner
+import com.yanhao.kmpmusic.domain.model.Song
+import com.yanhao.kmpmusic.feature.app.MusicAppController
+import com.yanhao.kmpmusic.feature.app.MusicAppUiState
 import com.yanhao.kmpmusic.feature.app.PermissionSettingsOpener
+import com.yanhao.kmpmusic.feature.app.SecondaryScreen
+import com.yanhao.kmpmusic.feature.components.rememberPlayerPagePalette
+
+// Android 系统导航栏跟随播放页背景的动画时长，与播放页自身背景过渡保持一致。
+private const val ANDROID_NAVIGATION_BAR_COLOR_ANIMATION_MILLIS = 260
 
 /**
  * Android 入口 Activity。
@@ -45,11 +61,7 @@ class MainActivity : ComponentActivity() {
             ),
         )
         super.onCreate(savedInstanceState)
-        WindowCompat.setDecorFitsSystemWindows(window, false)
-        WindowInsetsControllerCompat(window, window.decorView).apply {
-            isAppearanceLightStatusBars = true
-            isAppearanceLightNavigationBars = true
-        }
+        configureEdgeToEdgeSystemBars()
         audioPermissionRequester = AndroidAudioPermissionRequester(activity = this)
         musicAppViewModel = ViewModelProvider(this)[MusicAppViewModel::class.java]
         requestPlaybackNotificationPermissionIfNeeded()
@@ -65,6 +77,7 @@ class MainActivity : ComponentActivity() {
         )
         handlePlaybackIntent(intent = intent)
         setContent {
+            AndroidNavigationBarColorEffect(controller = musicAppViewModel.controller)
             App(controller = musicAppViewModel.controller)
         }
     }
@@ -87,6 +100,56 @@ class MainActivity : ComponentActivity() {
         ) {
             notificationPermissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
         }
+    }
+
+    /** 保持 edge-to-edge 基础设置，具体导航栏底色由 Android 页面状态副作用负责。 */
+    @Suppress("DEPRECATION")
+    private fun configureEdgeToEdgeSystemBars() {
+        WindowCompat.setDecorFitsSystemWindows(window, false)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            window.isNavigationBarContrastEnforced = false
+        }
+        WindowInsetsControllerCompat(window, window.decorView).apply {
+            isAppearanceLightStatusBars = true
+            isAppearanceLightNavigationBars = true
+        }
+    }
+
+    /** Android 三键导航栏不属于 Compose 根视图，播放页需要在 Activity 层同步底色。 */
+    @Composable
+    private fun AndroidNavigationBarColorEffect(controller: MusicAppController) {
+        val state: MusicAppUiState = controller.uiState
+        val song: Song? = state.currentSong
+        val playerNavigationBarColor: Color = if (
+            state.navigationState.secondaryScreen == SecondaryScreen.Player &&
+            song != null
+        ) {
+            rememberPlayerPagePalette(
+                coverArt = song.coverArt,
+                coverImageUri = song.coverImageUri,
+            ).backgroundColor
+        } else {
+            MusicColors.Paper
+        }
+        val navigationBarColor: Color by animateColorAsState(
+            targetValue = playerNavigationBarColor,
+            animationSpec = tween(durationMillis = ANDROID_NAVIGATION_BAR_COLOR_ANIMATION_MILLIS),
+            label = "AndroidNavigationBarColor",
+        )
+        LaunchedEffect(navigationBarColor) {
+            applyAndroidNavigationBarColor(color = navigationBarColor)
+        }
+    }
+
+    /** 将当前页面底色写入 Android 系统导航栏，避免播放页底部出现独立白条。 */
+    @Suppress("DEPRECATION")
+    private fun applyAndroidNavigationBarColor(color: Color) {
+        WindowCompat.setDecorFitsSystemWindows(window, false)
+        window.navigationBarColor = color.toArgb()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            window.isNavigationBarContrastEnforced = false
+        }
+        WindowInsetsControllerCompat(window, window.decorView).isAppearanceLightNavigationBars = true
     }
 
     /** 把 Android 通知入口 action 翻译成共享控制器导航，页面决策不散落到 service。 */

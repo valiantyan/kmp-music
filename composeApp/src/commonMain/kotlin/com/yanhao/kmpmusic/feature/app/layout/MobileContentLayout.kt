@@ -45,13 +45,17 @@ fun MobileContentLayout(
     saveableStateHolder.SaveableStateProvider(key = state.navigationState.scrollStateKey) {
         val secondaryScreen: SecondaryScreen? = state.navigationState.secondaryScreen
         val isHomeRoot: Boolean = secondaryScreen == null && state.navigationState.rootTab == RootTab.Home
-        if (secondaryScreen is SecondaryScreen.LocalMusic || secondaryScreen == SecondaryScreen.ArtistDetail) {
+        if (
+            secondaryScreen is SecondaryScreen.LocalMusic ||
+            secondaryScreen == SecondaryScreen.ArtistDetail ||
+            secondaryScreen == SecondaryScreen.Player
+        ) {
             MobileSecondaryScreenRoute(
                 secondaryScreen = secondaryScreen,
                 state = state,
                 controller = controller,
                 onScanLocalMusic = onScanLocalMusic,
-                modifier = modifier,
+                modifier = modifier.fillMaxSize(),
                 contentPadding = pagePadding,
             )
         } else if (isHomeRoot) {
