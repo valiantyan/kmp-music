@@ -19,6 +19,7 @@ import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Density
@@ -114,6 +115,9 @@ fun ArtistDetailScreen(
                 .padding(top = layoutState.contentTopBarrier)
                 .clipToBounds()
                 .zIndex(zIndex = 1f)
+                .graphicsLayer {
+                    translationY = with(density) { -pullStretchState.bottomBounceOffset.toPx() }
+                }
                 .nestedScroll(connection = pullStretchState.nestedScrollConnection),
             contentPadding = PaddingValues(
                 bottom = contentPadding.calculateBottomPadding(),
