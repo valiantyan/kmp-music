@@ -103,8 +103,8 @@ fun MobileMiniPlayer(
                     ) {
                         Text(
                             text = song.title,
-                            fontSize = scaledSp(15.sp),
-                            lineHeight = scaledSp(19.sp),
+                            fontSize = scaledSp(20.sp),
+                            lineHeight = scaledSp(24.sp),
                             fontWeight = FontWeight.ExtraBold,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
@@ -112,8 +112,8 @@ fun MobileMiniPlayer(
                         Text(
                             text = song.artist,
                             color = MusicColors.Muted,
-                            fontSize = scaledSp(13.sp),
-                            lineHeight = scaledSp(16.sp),
+                            fontSize = scaledSp(16.sp),
+                            lineHeight = scaledSp(19.sp),
                             fontWeight = FontWeight.Medium,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
