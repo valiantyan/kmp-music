@@ -15,18 +15,15 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import com.yanhao.kmpmusic.core.theme.ArtistDetailPalette
-import com.yanhao.kmpmusic.core.theme.MusicColors
 import com.yanhao.kmpmusic.domain.model.Artist
 import com.yanhao.kmpmusic.feature.components.CoverArtImage
-import com.yanhao.kmpmusic.feature.components.rememberArtistDetailPalette
 
 // 背景从当前歌手头像取色，再以低透明度渐变承载沉浸式二级页。
 @Composable
-internal fun ArtistDetailBackground(artist: Artist) {
-    val palette: ArtistDetailPalette = rememberArtistDetailPalette(
-        coverArt = artist.coverArt,
-        coverImageUri = artist.coverImageUri,
-    )
+internal fun ArtistDetailBackground(
+    artist: Artist,
+    palette: ArtistDetailPalette,
+) {
     val backgroundColor: Color by animateColorAsState(
         targetValue = palette.backgroundColor,
         animationSpec = tween(durationMillis = 260),
@@ -36,6 +33,11 @@ internal fun ArtistDetailBackground(artist: Artist) {
         targetValue = palette.ambientColor,
         animationSpec = tween(durationMillis = 260),
         label = "ArtistDetailAmbientColor",
+    )
+    val contentColor: Color by animateColorAsState(
+        targetValue = palette.contentColor,
+        animationSpec = tween(durationMillis = 260),
+        label = "ArtistDetailContentColor",
     )
     Box(
         modifier = Modifier
@@ -57,10 +59,11 @@ internal fun ArtistDetailBackground(artist: Artist) {
                 .fillMaxSize()
                 .background(
                     brush = Brush.verticalGradient(
-                        colors = listOf(
-                            ambientColor.copy(alpha = 0.36f),
-                            backgroundColor.copy(alpha = 0.92f),
-                            MusicColors.Paper.copy(alpha = 0.88f),
+                        colorStops = arrayOf(
+                            0f to ambientColor.copy(alpha = 0.08f),
+                            0.08f to contentColor.copy(alpha = 0.92f),
+                            0.48f to contentColor.copy(alpha = 0.96f),
+                            1f to contentColor,
                         ),
                     ),
                 ),

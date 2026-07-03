@@ -37,8 +37,10 @@ fun defaultMiniPlayerPalette(): MiniPlayerPalette {
  */
 fun defaultArtistDetailPalette(): ArtistDetailPalette {
     return ArtistDetailPalette(
-        backgroundColor = MusicColors.Paper,
-        ambientColor = MusicColors.Accent.copy(alpha = 0.16f),
+        backgroundColor = MusicColors.DarkPaper,
+        ambientColor = MusicColors.DarkSoft,
+        contentColor = MusicColors.Soft,
+        heroScrimColor = MusicColors.Ink,
     )
 }
 

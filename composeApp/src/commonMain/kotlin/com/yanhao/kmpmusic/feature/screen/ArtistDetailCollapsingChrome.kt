@@ -2,55 +2,54 @@ package com.yanhao.kmpmusic.feature.screen
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Text
+import androidx.compose.foundation.layout.offset
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Shadow
+import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import com.yanhao.kmpmusic.core.theme.ArtistDetailPalette
+import com.yanhao.kmpmusic.core.theme.MusicColors
 import com.yanhao.kmpmusic.domain.model.Artist
 import com.yanhao.kmpmusic.feature.components.CoverArtImage
 
-// 折叠 Toolbar 使用深色遮罩接管状态栏，确保系统图标和标题始终可读。
-internal val artistDetailToolbarColor: Color = Color(0xFF050607)
+// 折叠 Toolbar 使用浅色背景贴合当前 App 视觉体系。
+internal val artistDetailToolbarColor: Color = MusicColors.Paper
+
+// 浅色 Toolbar 上的按钮和标题使用深色前景，保证状态栏区域可读。
+internal val artistDetailToolbarContentColor: Color = MusicColors.Ink
+
+// 头图顶部使用浅色遮罩承接深色返回按钮。
+private val artistDetailHeroTopScrimColor: Color = MusicColors.Paper
+
+// 头图最后 1/4 从完全可见渐隐到透明，露出正文背景。
+private const val ARTIST_DETAIL_HERO_FADE_START_FRACTION = 0.75f
 
 /**
- * 歌手详情页顶部折叠 chrome，承载沉浸头图、返回按钮、更多按钮和折叠标题。
+ * 歌手详情页沉浸头图层，只负责图片和遮罩，Toolbar 在页面根部单独置顶。
  */
 @Composable
-internal fun ArtistDetailCollapsingChrome(
+internal fun ArtistDetailHeroChrome(
     artist: Artist,
+    palette: ArtistDetailPalette,
     scrollState: ArtistDetailScrollState,
-    onBack: () -> Unit,
-    onMore: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Box(modifier = modifier.fillMaxWidth()) {
         ArtistDetailHeroImage(
             artist = artist,
+            palette = palette,
             scrollState = scrollState,
-        )
-        ArtistDetailToolbar(
-            artistName = artist.name,
-            scrollState = scrollState,
-            onBack = onBack,
-            onMore = onMore,
         )
     }
 }
@@ -59,14 +58,32 @@ internal fun ArtistDetailCollapsingChrome(
 @Composable
 private fun ArtistDetailHeroImage(
     artist: Artist,
+    palette: ArtistDetailPalette,
     scrollState: ArtistDetailScrollState,
 ) {
     val stretchFraction: Float = calculateStretchFraction(scrollState = scrollState)
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(height = scrollState.headerVisibleHeight)
-            .clipToBounds(),
+            .offset(y = scrollState.heroImageOffset)
+            .height(height = scrollState.heroImageHeight)
+            .clipToBounds()
+            .graphicsLayer {
+                compositingStrategy = CompositingStrategy.Offscreen
+            }
+            .drawWithContent {
+                drawContent()
+                drawRect(
+                    brush = Brush.verticalGradient(
+                        colorStops = arrayOf(
+                            0f to Color.White,
+                            ARTIST_DETAIL_HERO_FADE_START_FRACTION to Color.White,
+                            1f to Color.Transparent,
+                        ),
+                    ),
+                    blendMode = BlendMode.DstIn,
+                )
+            },
     ) {
         CoverArtImage(
             coverArt = artist.coverArt,
@@ -81,26 +98,30 @@ private fun ArtistDetailHeroImage(
                 },
             contentScale = ContentScale.Crop,
         )
-        ArtistDetailHeroScrim(scrollState = scrollState)
-        ArtistDetailExpandedIdentity(
-            artistName = artist.name,
+        ArtistDetailHeroScrim(
+            palette = palette,
             scrollState = scrollState,
         )
     }
 }
 
-// 顶部和底部渐变分别保护状态栏按钮、歌手名和列表入口的可读性。
+// 从图片中线附近开始压暗，保护展开态标题和按钮的可读性。
 @Composable
-private fun ArtistDetailHeroScrim(scrollState: ArtistDetailScrollState) {
+private fun ArtistDetailHeroScrim(
+    palette: ArtistDetailPalette,
+    scrollState: ArtistDetailScrollState,
+) {
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(
                 brush = Brush.verticalGradient(
-                    colors = listOf(
-                        artistDetailToolbarColor.copy(alpha = 0.48f),
-                        Color.Transparent,
-                        artistDetailToolbarColor.copy(alpha = 0.58f),
+                    colorStops = arrayOf(
+                        0f to artistDetailHeroTopScrimColor.copy(alpha = 0.50f),
+                        0.22f to Color.Transparent,
+                        0.58f to Color.Transparent,
+                        0.78f to palette.heroScrimColor.copy(alpha = 0.34f),
+                        1f to palette.heroScrimColor.copy(alpha = 0.48f),
                     ),
                 ),
             ),
@@ -112,39 +133,11 @@ private fun ArtistDetailHeroScrim(scrollState: ArtistDetailScrollState) {
             .background(
                 brush = Brush.verticalGradient(
                     colors = listOf(
-                        artistDetailToolbarColor.copy(alpha = 0.46f),
+                        artistDetailHeroTopScrimColor.copy(alpha = 0.54f),
                         Color.Transparent,
                     ),
                 ),
             ),
-    )
-}
-
-// 展开态歌手名放在头图底部，折叠时让位给 Toolbar 标题。
-@Composable
-private fun BoxScope.ArtistDetailExpandedIdentity(
-    artistName: String,
-    scrollState: ArtistDetailScrollState,
-) {
-    Text(
-        text = artistName,
-        color = Color.White,
-        fontSize = 34.sp,
-        lineHeight = 42.sp,
-        fontWeight = FontWeight.SemiBold,
-        maxLines = 2,
-        overflow = TextOverflow.Ellipsis,
-        style = TextStyle(
-            shadow = Shadow(
-                color = Color.Black.copy(alpha = 0.38f),
-                blurRadius = 10f,
-            ),
-        ),
-        modifier = Modifier
-            .fillMaxWidth()
-            .align(alignment = Alignment.BottomStart)
-            .alpha(alpha = scrollState.expandedContentAlpha)
-            .padding(start = 20.dp, end = 20.dp, bottom = 34.dp),
     )
 }
 

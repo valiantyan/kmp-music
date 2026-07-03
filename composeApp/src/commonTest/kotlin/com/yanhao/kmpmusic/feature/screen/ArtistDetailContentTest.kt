@@ -16,7 +16,7 @@ import kotlin.test.assertTrue
  */
 class ArtistDetailContentTest {
     /**
-     * “热门歌曲”标题下应展示当前歌手名下全部歌曲，并忽略轻微空白和英文大小写差异。
+     * 播放入口下应展示当前歌手名下全部歌曲，并忽略轻微空白和英文大小写差异。
      */
     @Test
     fun artistDetailContentUsesAllNormalizedArtistSongs(): Unit {
@@ -42,7 +42,8 @@ class ArtistDetailContentTest {
         )
 
         assertEquals(expected = artistSongs.map { song: Song -> song.id }, actual = content.artistSongs.map { song: Song -> song.id })
-        assertEquals(expected = "播放全部 7", actual = content.playAllText)
+        assertEquals(expected = "播放全部", actual = content.playAllText)
+        assertEquals(expected = "7 首歌曲", actual = content.playAllCountText)
         assertEquals(expected = "02", actual = content.songRows[1].indexLabel)
         assertEquals(expected = MusicColors.PlayingRed, actual = content.songRows[1].titleColor)
         assertEquals(expected = MusicColors.PlayingRed, actual = content.songRows[1].metaColor)
@@ -98,7 +99,8 @@ class ArtistDetailContentTest {
         )
 
         assertEquals(expected = 31, actual = content.artistSongs.size)
-        assertEquals(expected = "播放全部 31", actual = content.playAllText)
+        assertEquals(expected = "播放全部", actual = content.playAllText)
+        assertEquals(expected = "31 首歌曲", actual = content.playAllCountText)
         assertEquals(expected = "31", actual = content.songRows.last().indexLabel)
         assertTrue(actual = content.artistSongs.drop(n = 1).all { song: Song -> song.title.startsWith(prefix = "热门歌曲 Demo ") })
         assertTrue(actual = content.artistSongs.drop(n = 1).all { song: Song -> song.artist == artist.name })

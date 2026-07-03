@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.ArrowBackIosNew
-import androidx.compose.material.icons.rounded.MoreVert
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
@@ -17,7 +16,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -31,10 +29,10 @@ internal fun ArtistDetailToolbar(
     artistName: String,
     scrollState: ArtistDetailScrollState,
     onBack: () -> Unit,
-    onMore: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     Box(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .height(height = scrollState.collapsedToolbarHeight)
             .background(color = artistDetailToolbarColor.copy(alpha = scrollState.toolbarAlpha)),
@@ -54,12 +52,12 @@ internal fun ArtistDetailToolbar(
                 Icon(
                     imageVector = Icons.Rounded.ArrowBackIosNew,
                     contentDescription = null,
-                    tint = Color.White,
+                    tint = artistDetailToolbarContentColor,
                 )
             }
             Text(
                 text = artistName,
-                color = Color.White,
+                color = artistDetailToolbarContentColor,
                 fontSize = 18.sp,
                 lineHeight = 24.sp,
                 fontWeight = FontWeight.SemiBold,
@@ -69,16 +67,6 @@ internal fun ArtistDetailToolbar(
                     .weight(weight = 1f)
                     .alpha(alpha = scrollState.toolbarTitleAlpha),
             )
-            ArtistDetailToolbarIconButton(
-                contentDescription = "更多",
-                onClick = onMore,
-            ) {
-                Icon(
-                    imageVector = Icons.Rounded.MoreVert,
-                    contentDescription = null,
-                    tint = Color.White,
-                )
-            }
         }
     }
 }

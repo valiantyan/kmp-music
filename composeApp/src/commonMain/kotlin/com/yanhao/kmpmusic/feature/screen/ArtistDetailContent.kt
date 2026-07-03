@@ -8,15 +8,17 @@ import com.yanhao.kmpmusic.domain.model.Song
 import com.yanhao.kmpmusic.domain.model.isSongByArtist
 
 /**
- * 歌手详情页渲染内容，隔离“热门歌曲标题下展示全部歌手歌曲”的页面规则。
+ * 歌手详情页渲染内容，隔离播放入口下展示全部歌手歌曲的页面规则。
  *
  * @property artistSongs 当前歌手名下全部歌曲。
  * @property playAllText 主行动按钮文案。
+ * @property playAllCountText 主行动按钮右侧的歌曲数量文案。
  * @property songRows 歌曲列表逐行样式和交互状态。
  */
 internal data class ArtistDetailContent(
     val artistSongs: List<Song>,
     val playAllText: String,
+    val playAllCountText: String,
     val songRows: List<ArtistDetailSongRowState>,
 )
 
@@ -68,7 +70,7 @@ internal val artistDetailActiveRowColor: Color = Color.White.copy(alpha = 0.52f)
 internal val artistDetailTransparentRowColor: Color = Color.Transparent
 
 /**
- * 构建歌手详情页内容，确保标题为“热门歌曲”时仍展示当前歌手全部歌曲。
+ * 构建歌手详情页内容，确保播放入口下仍展示当前歌手全部歌曲。
  */
 internal fun buildArtistDetailContent(
     artist: Artist,
@@ -98,7 +100,8 @@ internal fun buildArtistDetailContent(
     }
     return ArtistDetailContent(
         artistSongs = artistSongs,
-        playAllText = "播放全部 ${artistSongs.size}",
+        playAllText = "播放全部",
+        playAllCountText = "${artistSongs.size} 首歌曲",
         songRows = songRows,
     )
 }

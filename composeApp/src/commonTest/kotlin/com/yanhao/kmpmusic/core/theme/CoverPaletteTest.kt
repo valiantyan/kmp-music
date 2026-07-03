@@ -35,15 +35,24 @@ class CoverPaletteTest {
     }
 
     @Test
-    fun createArtistDetailBackgroundColorKeepsAvatarTintLight(): Unit {
+    fun createArtistDetailPaletteUsesSmokyRootAndReadableContentTint(): Unit {
         val backgroundColor: Color = createArtistDetailBackgroundColor(
             seedColor = Color(red = 107, green = 150, blue = 168),
         )
         val ambientColor: Color = createArtistDetailAmbientColor(
             seedColor = Color(red = 107, green = 150, blue = 168),
         )
-        assertEquals(expected = "#D8E4E9", actual = backgroundColor.toHexColor())
-        assertEquals(expected = "#BCCFD8", actual = ambientColor.toHexColor())
+        val contentColor: Color = createArtistDetailContentColor(
+            seedColor = Color(red = 107, green = 150, blue = 168),
+        )
+        val heroScrimColor: Color = createArtistDetailHeroScrimColor(
+            seedColor = Color(red = 107, green = 150, blue = 168),
+        )
+
+        assertEquals(expected = "#2A3C44", actual = backgroundColor.toHexColor())
+        assertEquals(expected = "#3C5560", actual = ambientColor.toHexColor())
+        assertEquals(expected = "#C4D5DD", actual = contentColor.toHexColor())
+        assertEquals(expected = "#1B262A", actual = heroScrimColor.toHexColor())
     }
 
     @Test
