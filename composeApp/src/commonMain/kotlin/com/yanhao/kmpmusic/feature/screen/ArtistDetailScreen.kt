@@ -3,12 +3,24 @@ package com.yanhao.kmpmusic.feature.screen
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.zIndex
 import com.yanhao.kmpmusic.domain.model.Artist
 import com.yanhao.kmpmusic.domain.model.PlaybackStatus
 import com.yanhao.kmpmusic.domain.model.Song
@@ -27,14 +39,36 @@ fun ArtistDetailScreen(
     onCurrentSongToggle: () -> Unit,
     onMore: (Song) -> Unit,
     onLike: (String) -> Unit,
+    onArtistMore: () -> Unit = {},
     modifier: Modifier = Modifier,
     contentPadding: PaddingValues = PaddingValues(),
+    demoSongCount: Int = 0,
 ) {
     val content: ArtistDetailContent = buildArtistDetailContent(
         artist = artist,
         songs = songs,
         currentSongId = currentSongId,
         currentPlaybackStatus = currentPlaybackStatus,
+        demoSongCount = demoSongCount,
+    )
+    val listState: LazyListState = rememberLazyListState()
+    val density: Density = LocalDensity.current
+    val statusBarInset: Dp = with(density) {
+        WindowInsets.statusBars.getTop(density = this).toDp()
+    }
+    val scrollSpec: ArtistDetailScrollSpec = createArtistDetailScrollSpec(statusBarInset = statusBarInset)
+    val pullStretchState: ArtistDetailPullStretchState = rememberArtistDetailPullStretchState(
+        listState = listState,
+        maxPullStretchHeight = scrollSpec.maxPullStretchHeight,
+    )
+    val scrollState: ArtistDetailScrollState = calculateArtistDetailScrollState(
+        spec = scrollSpec,
+        scrollOffset = calculateArtistDetailScrollOffset(
+            listState = listState,
+            density = density,
+            scrollSpec = scrollSpec,
+        ),
+        pullOffset = pullStretchState.pullStretchHeight,
     )
     Box(
         modifier = modifier
@@ -43,15 +77,17 @@ fun ArtistDetailScreen(
     ) {
         ArtistDetailBackground(artist = artist)
         LazyColumn(
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(bottom = contentPadding.calculateBottomPadding()),
+            state = listState,
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(top = scrollState.contentTopBarrier)
+                .clipToBounds()
+                .nestedScroll(connection = pullStretchState.nestedScrollConnection),
+            contentPadding = PaddingValues(
+                top = scrollState.listContentTopPadding,
+                bottom = contentPadding.calculateBottomPadding(),
+            ),
         ) {
-            item(key = "artist-top-bar") {
-                ArtistDetailTopBar(onBack = onBack)
-            }
-            item(key = "artist-header") {
-                ArtistDetailHeader(artist = artist)
-            }
             item(key = "artist-play-all") {
                 ArtistDetailPlayAllButton(
                     text = content.playAllText,
@@ -83,5 +119,37 @@ fun ArtistDetailScreen(
                 )
             }
         }
+        ArtistDetailCollapsingChrome(
+            artist = artist,
+            scrollState = scrollState,
+            onBack = onBack,
+            onMore = onArtistMore,
+            modifier = Modifier.zIndex(zIndex = 2f),
+        )
     }
+}
+
+// 只需要折叠区间内的滚动距离，超过后模型会保持完全折叠。
+private fun calculateArtistDetailScrollOffset(
+    listState: LazyListState,
+    density: Density,
+    scrollSpec: ArtistDetailScrollSpec,
+): Dp {
+    val collapseDistancePx: Float = with(density) {
+        calculateArtistDetailCollapseDistance(scrollSpec = scrollSpec).toPx()
+    }
+    val scrollOffsetPx: Float = if (listState.firstVisibleItemIndex > 0) {
+        collapseDistancePx
+    } else {
+        listState.firstVisibleItemScrollOffset.toFloat()
+    }
+    return with(density) { scrollOffsetPx.toDp() }
+}
+
+// UI 层只用这个距离判断是否完全折叠，具体状态仍交给纯滚动模型计算。
+private fun calculateArtistDetailCollapseDistance(scrollSpec: ArtistDetailScrollSpec): Dp {
+    val collapsedToolbarHeight: Dp = scrollSpec.statusBarInset + scrollSpec.toolbarContentHeight
+    return (scrollSpec.expandedHeaderHeight - collapsedToolbarHeight).coerceAtLeast(
+        minimumValue = 1.dp,
+    )
 }
