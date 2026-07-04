@@ -167,13 +167,14 @@ class LibraryStateSynchronizer(
         if (songIds.isEmpty()) {
             return emptyList()
         }
+        val requestedIds: Set<String> = songIds.toSet()
         val preferredById: Map<String, Song> = preferredSongs.associateBy { song: Song -> song.id }
         val fetchedSongs: List<Song> = musicLibraryRepository.getAvailableSongsByIds(songIds = songIds)
         val fetchedSongIds: Set<String> = fetchedSongs.map { song: Song -> song.id }.toSet()
         return (
             fetchedSongs.map { song: Song -> preferredById[song.id] ?: song } +
                 preferredSongs.filter { song: Song ->
-                    songIds.contains(element = song.id) && !fetchedSongIds.contains(element = song.id)
+                    requestedIds.contains(element = song.id) && !fetchedSongIds.contains(element = song.id)
                 }
             )
             .distinctBy { song: Song -> song.id }

@@ -12,14 +12,15 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.yanhao.kmpmusic.domain.model.Album
 import com.yanhao.kmpmusic.domain.model.Artist
 import com.yanhao.kmpmusic.domain.model.Song
-import com.yanhao.kmpmusic.domain.model.isSongInAlbum
 import com.yanhao.kmpmusic.feature.app.FavoriteSection
+import com.yanhao.kmpmusic.feature.app.library.MusicLibraryProjector
 
 /**
  * 收藏页，按 Figma 节点 899:1147 还原一级页面视觉。
@@ -27,8 +28,6 @@ import com.yanhao.kmpmusic.feature.app.FavoriteSection
 @Composable
 fun FavoritesScreen(
     songs: List<Song>,
-    albums: List<Album>,
-    artists: List<Artist>,
     currentSongId: String?,
     section: FavoriteSection,
     onSection: (FavoriteSection) -> Unit,
@@ -41,12 +40,22 @@ fun FavoritesScreen(
     modifier: Modifier = Modifier,
     contentPadding: PaddingValues = PaddingValues(0.dp),
 ) {
-    val likedSongs: List<Song> = songs.filter { song: Song -> song.isLiked }
-    val likedAlbums: List<Album> = albums.filter { album: Album ->
-        likedSongs.any { song: Song -> isSongInAlbum(song = song, album = album) }
+    val likedSongs: List<Song> = remember(songs) {
+        songs.filter { song: Song -> song.isLiked }
     }
-    val likedArtists: List<Artist> = artists.filter { artist: Artist ->
-        likedSongs.any { song: Song -> song.artist == artist.name }
+    val likedAlbums: List<Album> = remember(likedSongs, section) {
+        if (section == FavoriteSection.Albums) {
+            MusicLibraryProjector.buildAlbums(songs = likedSongs)
+        } else {
+            emptyList()
+        }
+    }
+    val likedArtists: List<Artist> = remember(likedSongs, section) {
+        if (section == FavoriteSection.Artists) {
+            MusicLibraryProjector.buildArtists(songs = likedSongs)
+        } else {
+            emptyList()
+        }
     }
     Box(
         modifier = modifier

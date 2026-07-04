@@ -743,6 +743,51 @@ class MusicAppControllerTest {
     }
 
     /**
+     * 已加载完整曲库后，连续收藏/取消 500 首歌应只更新内存态，不能每次都反查仓库。
+     */
+    @Test
+    fun favoriteStressToggleUsesLoadedLibraryWithoutRepeatedIdLookup(): Unit = runTest {
+        val repository = SeededMusicLibraryRepository(seedCount = 500)
+        val controller = createController(
+            musicLibraryRepository = repository,
+            favoritesRepository = InMemoryFavoritesRepository(initialLikedSongIds = emptySet()),
+            controllerScope = backgroundScope,
+        )
+        controller.loadLocalMusicLibrary()
+        repository.songsByIdsReads = 0
+        val stressSongs: List<Song> = controller.uiState.localSongs.take(n = 500)
+
+        stressSongs.forEach { song: Song ->
+            controller.toggleFavorite(songId = song.id)
+        }
+
+        assertEquals(expected = 500, actual = controller.uiState.likedSongIds.size)
+        assertEquals(expected = 500, actual = controller.uiState.favoriteSongs.size)
+
+        stressSongs.forEach { song: Song ->
+            controller.toggleFavorite(songId = song.id)
+        }
+
+        assertTrue(actual = controller.uiState.likedSongIds.isEmpty())
+        assertTrue(actual = controller.uiState.favoriteSongs.isEmpty())
+        assertEquals(expected = 0, actual = repository.songsByIdsReads)
+    }
+
+    /**
+     * common 默认 fake 演示入口扫描后应直接得到 500 条收藏歌曲，方便收藏页压力测试。
+     */
+    @Test
+    fun defaultFakeScannerSeedsFiveHundredFavoriteSongsForStress(): Unit = runBlocking {
+        val controller = MusicAppController(controllerScope = testControllerScope())
+
+        controller.scanLocalMusic(request = LocalMusicScanRequest.Refresh)
+
+        assertEquals(expected = 500, actual = controller.uiState.libraryStats.songCount)
+        assertEquals(expected = 500, actual = controller.uiState.likedSongIds.size)
+        assertEquals(expected = 500, actual = controller.uiState.favoriteSongs.size)
+    }
+
+    /**
      * 从歌曲进入歌手详情时，应复用歌手归属规则，避免本地元数据大小写或空白差异导致入口失效。
      */
     @Test
@@ -1212,7 +1257,7 @@ private fun testControllerScope(): CoroutineScope {
 
 private object FakeControllerLocalMusicScanner : LocalMusicScanner {
     override suspend fun scan(request: LocalMusicScanRequest): LocalMusicScanResult {
-        return com.yanhao.kmpmusic.data.FakeLocalMusicScanner().scan(request = request)
+        return com.yanhao.kmpmusic.data.FakeLocalMusicScanner(demoSongCount = 8).scan(request = request)
     }
 }
 
@@ -1389,7 +1434,7 @@ private class RecordingLocalMusicScanner : LocalMusicScanner {
     /** 记录请求后直接复用 fake scanner 结果，避免测试依赖 Android 平台实现。 */
     override suspend fun scan(request: LocalMusicScanRequest): LocalMusicScanResult {
         requests += request
-        return com.yanhao.kmpmusic.data.FakeLocalMusicScanner().scan(request = request)
+        return com.yanhao.kmpmusic.data.FakeLocalMusicScanner(demoSongCount = 8).scan(request = request)
     }
 }
 

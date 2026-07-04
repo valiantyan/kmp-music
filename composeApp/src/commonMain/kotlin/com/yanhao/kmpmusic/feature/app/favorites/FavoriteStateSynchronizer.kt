@@ -20,12 +20,26 @@ class FavoriteStateSynchronizer(
      */
     fun toggleFavorite(state: MusicAppUiState, songId: String): MusicAppUiState {
         val likedSongIds: Set<String> = toggleFavoriteUseCase(songId = songId)
-        val homePreview: List<Song> = state.homeLocalSongPreview.map { song: Song -> song.withFavorite(likedSongIds = likedSongIds) }
-        val localSongs: List<Song> = state.localSongs.map { song: Song -> song.withFavorite(likedSongIds = likedSongIds) }
-        val queueSnapshot: List<Song> = state.queueSongsSnapshot.map { song: Song -> song.withFavorite(likedSongIds = likedSongIds) }
-        val favoriteSongs: List<Song> = favoriteSongsResolver(
-            likedSongIds,
-            homePreview + localSongs + queueSnapshot + state.favoriteSongs,
+        val isLiked: Boolean = likedSongIds.contains(element = songId)
+        val homePreview: List<Song> = state.homeLocalSongPreview.updateFavoriteFlag(
+            songId = songId,
+            isLiked = isLiked,
+        )
+        val localSongs: List<Song> = state.localSongs.updateFavoriteFlag(
+            songId = songId,
+            isLiked = isLiked,
+        )
+        val queueSnapshot: List<Song> = state.queueSongsSnapshot.updateFavoriteFlag(
+            songId = songId,
+            isLiked = isLiked,
+        )
+        val preferredSongs: List<Song> = homePreview + localSongs + queueSnapshot + state.favoriteSongs
+        val favoriteSongs: List<Song> = resolveFavoriteSongs(
+            likedSongIds = likedSongIds,
+            songId = songId,
+            isLiked = isLiked,
+            currentFavoriteSongs = state.favoriteSongs,
+            preferredSongs = preferredSongs,
         )
         val stateWithUpdatedCollections: MusicAppUiState = state.copy(
             likedSongIds = likedSongIds,
@@ -42,8 +56,51 @@ class FavoriteStateSynchronizer(
         )
     }
 
-    // 用同一条规则覆盖可见歌曲源，避免每个集合单独写 liked 判断。
-    private fun Song.withFavorite(likedSongIds: Set<String>): Song {
-        return copy(isLiked = likedSongIds.contains(element = id))
+    // 已知歌曲足以覆盖收藏集合时，直接用内存投影，避免 500 次增删触发 500 次仓库回查。
+    private fun resolveFavoriteSongs(
+        likedSongIds: Set<String>,
+        songId: String,
+        isLiked: Boolean,
+        currentFavoriteSongs: List<Song>,
+        preferredSongs: List<Song>,
+    ): List<Song> {
+        if (likedSongIds.isEmpty()) {
+            return emptyList()
+        }
+        if (!isLiked) {
+            return currentFavoriteSongs.filterNot { song: Song -> song.id == songId }
+        }
+        val knownFavoriteSongs: List<Song> = buildKnownFavoriteSongs(
+            likedSongIds = likedSongIds,
+            preferredSongs = preferredSongs,
+        )
+        if (knownFavoriteSongs.size == likedSongIds.size) {
+            return knownFavoriteSongs
+        }
+        return favoriteSongsResolver(likedSongIds, preferredSongs)
+    }
+
+    // 从当前 UI 已知歌曲里派生收藏列表，保持来源顺序并强制收藏态为 true。
+    private fun buildKnownFavoriteSongs(
+        likedSongIds: Set<String>,
+        preferredSongs: List<Song>,
+    ): List<Song> {
+        return preferredSongs
+            .asSequence()
+            .filter { song: Song -> likedSongIds.contains(element = song.id) }
+            .distinctBy { song: Song -> song.id }
+            .map { song: Song -> song.copy(isLiked = true) }
+            .toList()
+    }
+
+    // 只复制被切换的一首歌，减少 500 条列表连续操作时的对象分配。
+    private fun List<Song>.updateFavoriteFlag(songId: String, isLiked: Boolean): List<Song> {
+        val songIndex: Int = indexOfFirst { song: Song -> song.id == songId }
+        if (songIndex < 0 || this[songIndex].isLiked == isLiked) {
+            return this
+        }
+        val updatedSongs: MutableList<Song> = toMutableList()
+        updatedSongs[songIndex] = this[songIndex].copy(isLiked = isLiked)
+        return updatedSongs
     }
 }

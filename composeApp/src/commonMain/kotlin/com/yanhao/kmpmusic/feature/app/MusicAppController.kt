@@ -264,9 +264,10 @@ class MusicAppController(
             moreSongId = null,
         )
         try {
+            val likedSongIdsForScan: Set<String> = resolveLikedSongIdsForScan()
             val snapshot: LibrarySnapshot = scanLocalMusicUseCase(
                 request = request,
-                likedSongIds = uiState.likedSongIds,
+                likedSongIds = likedSongIdsForScan,
             )
             syncLibrarySnapshot(snapshot = snapshot)
         } catch (scanException: LocalMusicScanException) {
@@ -718,6 +719,18 @@ class MusicAppController(
     // 永久拒绝后首页按钮表示“打开权限设置”，再次点击时先弹确认框。
     private fun shouldConfirmPermissionSettingsBeforeScan(): Boolean {
         return libraryStateSynchronizer.shouldConfirmPermissionSettingsBeforeScan(state = uiState)
+    }
+
+    // common fake 演示环境自动填充收藏压力数据；真实平台使用注入仓库，不写入演示收藏。
+    private fun resolveLikedSongIdsForScan(): Set<String> {
+        if (injectedFavoritesRepository != null || uiState.likedSongIds.isNotEmpty()) {
+            return uiState.likedSongIds
+        }
+        val fakeScanner: FakeLocalMusicScanner = localMusicScanner as? FakeLocalMusicScanner
+            ?: return uiState.likedSongIds
+        val demoFavoriteSongIds: Set<String> = fakeScanner.demoFavoriteSongIds()
+        favoritesRepository.replaceLikedSongIds(songIds = demoFavoriteSongIds)
+        return demoFavoriteSongIds
     }
 
     // 持久层已有歌曲时，冷启动首页应表达“已有曲库，可重新扫描”，但不为此读取全量歌曲。
