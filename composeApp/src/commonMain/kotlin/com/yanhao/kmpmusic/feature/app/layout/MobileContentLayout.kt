@@ -71,7 +71,8 @@ fun MobileContentLayout(
     val saveableStateHolder = rememberSaveableStateHolder()
     saveableStateHolder.SaveableStateProvider(key = state.navigationState.chromeUnderlayScrollStateKey) {
         val secondaryScreen: SecondaryScreen? = state.navigationState.chromeUnderlaySecondaryScreen
-        val isHomeRoot: Boolean = secondaryScreen == null && state.navigationState.rootTab == RootTab.Home
+        val isFigmaFullBleedRoot: Boolean = secondaryScreen == null &&
+            (state.navigationState.rootTab == RootTab.Home || state.navigationState.rootTab == RootTab.Favorites)
         if (
             secondaryScreen is SecondaryScreen.LocalMusic ||
             secondaryScreen == SecondaryScreen.AlbumDetail ||
@@ -86,7 +87,7 @@ fun MobileContentLayout(
                 modifier = modifier.fillMaxSize(),
                 contentPadding = pagePadding,
             )
-        } else if (isHomeRoot) {
+        } else if (isFigmaFullBleedRoot) {
             MobileRootScreenRoute(
                 state = state,
                 controller = controller,

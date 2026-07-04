@@ -4,6 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.yanhao.kmpmusic.domain.model.SearchContext
 import com.yanhao.kmpmusic.domain.model.Song
 import com.yanhao.kmpmusic.feature.app.LocalMusicSection
 import com.yanhao.kmpmusic.feature.app.MusicAppController
@@ -52,17 +53,18 @@ fun MobileRootScreenRoute(
             albums = state.favoriteAlbums,
             artists = state.favoriteArtists,
             currentSongId = state.currentSongId,
-            currentPlaybackStatus = state.playbackStatus,
             section = state.favoriteSection,
             onSection = controller::setFavoriteSection,
             onSongPlay = { song: Song, queueSongs: List<Song> ->
                 controller.playSong(song = song, queueSongs = queueSongs)
             },
-            onCurrentSongToggle = controller::togglePlayback,
             onMore = controller::openMore,
             onLike = controller::toggleFavorite,
+            onSearch = { controller.openSearch(context = SearchContext.Favorites) },
             onAlbumOpen = controller::openAlbum,
             onArtistOpen = controller::openArtist,
+            modifier = modifier,
+            contentPadding = contentPadding,
         )
         RootTab.Me -> MeScreen(
             albums = state.albums,

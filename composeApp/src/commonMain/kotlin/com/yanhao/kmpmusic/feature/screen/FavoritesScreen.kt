@@ -1,27 +1,28 @@
 package com.yanhao.kmpmusic.feature.screen
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.Text
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.foundation.lazy.items
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.yanhao.kmpmusic.domain.model.Album
 import com.yanhao.kmpmusic.domain.model.Artist
-import com.yanhao.kmpmusic.domain.model.PlaybackStatus
 import com.yanhao.kmpmusic.domain.model.Song
 import com.yanhao.kmpmusic.domain.model.isSongInAlbum
 import com.yanhao.kmpmusic.feature.app.FavoriteSection
-import com.yanhao.kmpmusic.feature.components.AlbumCard
-import com.yanhao.kmpmusic.feature.components.AppHeader
-import com.yanhao.kmpmusic.feature.components.ArtistRow
-import com.yanhao.kmpmusic.feature.components.SongRow
 
 /**
- * 收藏页，聚合收藏歌曲、专辑和歌手。
+ * 收藏页，按 Figma 节点 899:1147 还原一级页面视觉。
  */
 @Composable
 fun FavoritesScreen(
@@ -29,68 +30,108 @@ fun FavoritesScreen(
     albums: List<Album>,
     artists: List<Artist>,
     currentSongId: String?,
-    currentPlaybackStatus: PlaybackStatus,
     section: FavoriteSection,
     onSection: (FavoriteSection) -> Unit,
     onSongPlay: (Song, List<Song>) -> Unit,
-    onCurrentSongToggle: () -> Unit,
     onMore: (Song) -> Unit,
     onLike: (String) -> Unit,
+    onSearch: () -> Unit,
     onAlbumOpen: (Album) -> Unit,
     onArtistOpen: (Artist) -> Unit,
+    modifier: Modifier = Modifier,
+    contentPadding: PaddingValues = PaddingValues(0.dp),
 ) {
-    val likedSongs: List<Song> = songs.filter { song -> song.isLiked }
-    val likedAlbums: List<Album> = albums.filter { album ->
+    val likedSongs: List<Song> = songs.filter { song: Song -> song.isLiked }
+    val likedAlbums: List<Album> = albums.filter { album: Album ->
         likedSongs.any { song: Song -> isSongInAlbum(song = song, album = album) }
     }
-    val likedArtists: List<Artist> = artists.filter { artist ->
-        likedSongs.any { song -> song.artist == artist.name }
+    val likedArtists: List<Artist> = artists.filter { artist: Artist ->
+        likedSongs.any { song: Song -> song.artist == artist.name }
     }
-    Column(verticalArrangement = Arrangement.spacedBy(20.dp)) {
-        AppHeader(title = "收藏", subtitle = "喜欢的音乐都在这里")
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            FavoriteSection.entries.forEach { item ->
-                FilterChip(
-                    selected = section == item,
-                    onClick = { onSection(item) },
-                    label = { Text(text = item.label()) },
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .background(color = favoritesBackgroundColor),
+    ) {
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(
+                top = favoritesContentTopPadding,
+                bottom = contentPadding.calculateBottomPadding() + 40.dp,
+            ),
+        ) {
+            item(key = "favorites-action-header", contentType = "favorites-action-header") {
+                FavoritesActionHeader(
+                    songCount = likedSongs.size,
+                    section = section,
+                    onPlayAll = {
+                        likedSongs.firstOrNull()?.let { song: Song ->
+                            onSongPlay(song, likedSongs)
+                        }
+                    },
+                    onSection = onSection,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = favoritesHorizontalPadding),
+                )
+            }
+            item(key = "favorites-action-list-gap", contentType = "favorites-gap") {
+                Spacer(modifier = Modifier.height(height = favoritesActionToListGap))
+            }
+            when (section) {
+                FavoriteSection.Songs -> favoriteSongItems(
+                    likedSongs = likedSongs,
+                    currentSongId = currentSongId,
+                    onSongPlay = onSongPlay,
+                    onMore = onMore,
+                    onLike = onLike,
+                )
+                FavoriteSection.Albums -> favoriteAlbumItems(
+                    likedAlbums = likedAlbums,
+                    onAlbumOpen = onAlbumOpen,
+                )
+                FavoriteSection.Artists -> favoriteArtistItems(
+                    likedArtists = likedArtists,
+                    onArtistOpen = onArtistOpen,
                 )
             }
         }
-        when (section) {
-            FavoriteSection.Songs -> Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                likedSongs.forEach { song ->
-                    SongRow(
-                        song = song,
-                        isCurrentSong = song.id == currentSongId,
-                        currentPlaybackStatus = currentPlaybackStatus,
-                        onPlay = { selectedSong: Song -> onSongPlay(selectedSong, likedSongs) },
-                        onCurrentSongToggle = onCurrentSongToggle,
-                        onMore = onMore,
-                        onLike = onLike,
-                        dense = true,
-                    )
-                }
-            }
-            FavoriteSection.Albums -> Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-                likedAlbums.take(2).forEach { album ->
-                    AlbumCard(album = album, onOpen = onAlbumOpen, modifier = Modifier.weight(weight = 1f))
-                }
-            }
-            FavoriteSection.Artists -> Column(modifier = Modifier.padding(top = 8.dp)) {
-                likedArtists.forEach { artist -> ArtistRow(artist = artist, onOpen = onArtistOpen) }
-            }
-        }
+        HomeTopAppBar(
+            title = "收藏",
+            onSearch = onSearch,
+            modifier = Modifier.align(alignment = Alignment.TopCenter),
+        )
     }
 }
 
-/**
- * 收藏分段中文名。
- */
-private fun FavoriteSection.label(): String {
-    return when (this) {
-        FavoriteSection.Songs -> "歌曲"
-        FavoriteSection.Albums -> "专辑"
-        FavoriteSection.Artists -> "歌手"
+// 歌曲分段是 Figma 的主还原对象，列表尺寸直接跟随节点 899:1161。
+private fun LazyListScope.favoriteSongItems(
+    likedSongs: List<Song>,
+    currentSongId: String?,
+    onSongPlay: (Song, List<Song>) -> Unit,
+    onMore: (Song) -> Unit,
+    onLike: (String) -> Unit,
+) {
+    if (likedSongs.isEmpty()) {
+        item(key = "favorites-empty-songs", contentType = "favorites-empty") {
+            FavoritesEmptyState(message = "收藏喜欢的歌曲后会显示在这里")
+        }
+        return
+    }
+    items(
+        items = likedSongs,
+        key = { song: Song -> song.id },
+        contentType = { "favorites-song" },
+    ) { song: Song ->
+        FavoritesSongRow(
+            song = song,
+            isCurrentSong = song.id == currentSongId,
+            queueSongs = likedSongs,
+            onSongPlay = onSongPlay,
+            onMore = onMore,
+            onLike = onLike,
+            modifier = Modifier.padding(horizontal = favoritesHorizontalPadding),
+        )
+        Spacer(modifier = Modifier.height(height = favoritesSongRowGap))
     }
 }
