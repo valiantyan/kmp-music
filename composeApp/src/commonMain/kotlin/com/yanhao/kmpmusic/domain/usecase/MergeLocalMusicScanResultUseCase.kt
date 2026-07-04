@@ -10,6 +10,7 @@ import com.yanhao.kmpmusic.domain.model.LocalMusicScanResult
 import com.yanhao.kmpmusic.domain.model.LocalMusicScanState
 import com.yanhao.kmpmusic.domain.model.MusicFileMetadata
 import com.yanhao.kmpmusic.domain.model.Song
+import com.yanhao.kmpmusic.domain.model.normalizeAlbumTitle
 import com.yanhao.kmpmusic.domain.model.normalizeArtistName
 
 /**
@@ -124,12 +125,12 @@ class MergeLocalMusicScanResultUseCaseImpl : MergeLocalMusicScanResultUseCase {
 
     // 从歌曲按专辑名称聚合首页和详情页共用的专辑模型。
     private fun buildAlbums(songs: List<Song>): List<Album> {
-        return songs.groupBy { song -> normalizeKey(value = song.album) }
+        return songs.groupBy { song: Song -> normalizeAlbumTitle(value = song.album) }
             .values
-            .map { albumSongs ->
+            .map { albumSongs: List<Song> ->
                 val firstSong: Song = albumSongs.first()
                 Album(
-                    id = "album:${normalizeKey(value = firstSong.album)}",
+                    id = "album:${normalizeAlbumTitle(value = firstSong.album)}",
                     title = firstSong.album,
                     artist = firstSong.artist,
                     songCount = albumSongs.size,
@@ -166,14 +167,9 @@ class MergeLocalMusicScanResultUseCaseImpl : MergeLocalMusicScanResultUseCase {
     // 歌手专辑数由扫描歌曲聚合得到，避免后续 UI 再按页面重复计算。
     private fun countArtistAlbums(songs: List<Song>): Int {
         return songs
-            .map { song -> normalizeKey(value = song.album) }
+            .map { song: Song -> normalizeAlbumTitle(value = song.album) }
             .distinct()
             .size
-    }
-
-    // 统一聚合 key，避免大小写和空白造成重复专辑或歌手。
-    private fun normalizeKey(value: String): String {
-        return value.trim().lowercase()
     }
 
     // 将毫秒时长转换为 UI 已有的 m:ss 文案。

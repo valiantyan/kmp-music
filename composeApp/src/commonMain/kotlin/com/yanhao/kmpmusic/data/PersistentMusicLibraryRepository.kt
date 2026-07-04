@@ -14,6 +14,7 @@ import com.yanhao.kmpmusic.domain.model.LocalMusicSourceKind
 import com.yanhao.kmpmusic.domain.model.LocalMusicSourceSummary
 import com.yanhao.kmpmusic.domain.model.MusicFileMetadata
 import com.yanhao.kmpmusic.domain.model.Song
+import com.yanhao.kmpmusic.domain.model.normalizeAlbumTitle
 import com.yanhao.kmpmusic.domain.model.normalizeArtistName
 import com.yanhao.kmpmusic.domain.persistence.FavoriteSongDao
 import com.yanhao.kmpmusic.domain.persistence.LocalSongDao
@@ -282,12 +283,12 @@ class PersistentMusicLibraryRepository(
 
     /** 按专辑聚合歌曲，保持首页和详情页读取一致的分组规则。 */
     private fun buildAlbums(songs: List<Song>): List<Album> {
-        return songs.groupBy { song: Song -> song.album.trim().lowercase() }
+        return songs.groupBy { song: Song -> normalizeAlbumTitle(value = song.album) }
             .values
             .map { albumSongs: List<Song> ->
                 val firstSong: Song = albumSongs.first()
                 Album(
-                    id = "album:${firstSong.album.trim().lowercase()}",
+                    id = "album:${normalizeAlbumTitle(value = firstSong.album)}",
                     title = firstSong.album,
                     artist = firstSong.artist,
                     songCount = albumSongs.size,
@@ -324,7 +325,7 @@ class PersistentMusicLibraryRepository(
     /** 按歌手歌曲去重专辑名，保证持久曲库和内存投影一致。 */
     private fun countArtistAlbums(songs: List<Song>): Int {
         return songs
-            .map { song: Song -> song.album.trim().lowercase() }
+            .map { song: Song -> normalizeAlbumTitle(value = song.album) }
             .distinct()
             .size
     }

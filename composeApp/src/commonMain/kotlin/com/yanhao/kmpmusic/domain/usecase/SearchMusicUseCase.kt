@@ -4,6 +4,7 @@ import com.yanhao.kmpmusic.domain.model.Album
 import com.yanhao.kmpmusic.domain.model.Artist
 import com.yanhao.kmpmusic.domain.model.SearchScope
 import com.yanhao.kmpmusic.domain.model.Song
+import com.yanhao.kmpmusic.domain.model.normalizeAlbumTitle
 import com.yanhao.kmpmusic.domain.model.normalizeArtistName
 import com.yanhao.kmpmusic.domain.repository.MusicLibraryRepository
 
@@ -82,10 +83,10 @@ fun buildSearchResult(
 
 // 搜索需要和控制器详情页使用同一套聚合规则，避免同歌库下结果口径不一致。
 private fun buildAlbums(songs: List<Song>): List<Album> {
-    return songs.groupBy { song -> song.album.trim().lowercase() }.values.map { albumSongs ->
+    return songs.groupBy { song: Song -> normalizeAlbumTitle(value = song.album) }.values.map { albumSongs: List<Song> ->
         val firstSong: Song = albumSongs.first()
         Album(
-            id = "album:${firstSong.album.trim().lowercase()}",
+            id = "album:${normalizeAlbumTitle(value = firstSong.album)}",
             title = firstSong.album,
             artist = firstSong.artist,
             songCount = albumSongs.size,
@@ -118,7 +119,7 @@ private fun buildArtists(songs: List<Song>): List<Artist> {
 // 歌手搜索结果复用首页歌手副标题所需的专辑聚合口径。
 private fun countArtistAlbums(songs: List<Song>): Int {
     return songs
-        .map { song: Song -> song.album.trim().lowercase() }
+        .map { song: Song -> normalizeAlbumTitle(value = song.album) }
         .distinct()
         .size
 }

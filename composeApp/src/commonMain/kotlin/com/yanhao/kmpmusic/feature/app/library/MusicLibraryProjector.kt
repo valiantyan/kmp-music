@@ -3,6 +3,7 @@ package com.yanhao.kmpmusic.feature.app.library
 import com.yanhao.kmpmusic.domain.model.Album
 import com.yanhao.kmpmusic.domain.model.Artist
 import com.yanhao.kmpmusic.domain.model.Song
+import com.yanhao.kmpmusic.domain.model.normalizeAlbumTitle
 import com.yanhao.kmpmusic.domain.model.normalizeArtistName
 
 /**
@@ -13,7 +14,7 @@ object MusicLibraryProjector {
      * 统一专辑分组规则，保证不同入口看到一致的专辑聚合结果。
      */
     fun buildAlbums(songs: List<Song>): List<Album> {
-        return songs.groupBy { song: Song -> song.album.trim().lowercase() }
+        return songs.groupBy { song: Song -> normalizeAlbumTitle(value = song.album) }
             .entries
             .map { entry: Map.Entry<String, List<Song>> ->
                 val normalizedAlbum: String = entry.key
@@ -59,7 +60,7 @@ object MusicLibraryProjector {
     // 歌手专辑数按同一组歌曲去重专辑名，保证首页和本地音乐分段口径一致。
     private fun countArtistAlbums(songs: List<Song>): Int {
         return songs
-            .map { song: Song -> song.album.trim().lowercase() }
+            .map { song: Song -> normalizeAlbumTitle(value = song.album) }
             .distinct()
             .size
     }

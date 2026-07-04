@@ -10,6 +10,7 @@ import com.yanhao.kmpmusic.domain.model.Album
 import com.yanhao.kmpmusic.domain.model.Artist
 import com.yanhao.kmpmusic.domain.model.PlaybackStatus
 import com.yanhao.kmpmusic.domain.model.Song
+import com.yanhao.kmpmusic.domain.model.isSongInAlbum
 import com.yanhao.kmpmusic.feature.desktop.components.DesktopPageHeader
 import com.yanhao.kmpmusic.feature.desktop.components.DesktopPrimaryButton
 import com.yanhao.kmpmusic.feature.desktop.components.DesktopSongTable
@@ -28,7 +29,12 @@ internal fun DesktopAlbumDetailScreen(
     onMore: (Song) -> Unit,
 ) {
     val albumSongs: List<Song> = album?.let { selectedAlbum: Album ->
-        songs.filter { song: Song -> song.album == selectedAlbum.title }
+        songs.filter { song: Song ->
+            isSongInAlbum(
+                song = song,
+                album = selectedAlbum,
+            )
+        }
     }.orEmpty()
     Column(
         modifier = Modifier

@@ -29,6 +29,7 @@ import androidx.compose.ui.unit.sp
 import com.yanhao.kmpmusic.domain.model.Album
 import com.yanhao.kmpmusic.domain.model.LocalMusicScanState
 import com.yanhao.kmpmusic.domain.model.Song
+import com.yanhao.kmpmusic.domain.model.hasSameAlbumTitle
 import com.yanhao.kmpmusic.feature.components.CoverArtImage
 
 /**
@@ -85,7 +86,10 @@ private fun HomeAlbumRow(
         rowAlbums.forEach { album: Album ->
             HomeAlbumItem(
                 album = album,
-                isActive = album.title == currentAlbumTitle,
+                isActive = isHomeAlbumActive(
+                    album = album,
+                    currentAlbumTitle = currentAlbumTitle,
+                ),
                 onAlbumOpen = onAlbumOpen,
                 modifier = Modifier.weight(weight = 1f),
             )
@@ -171,4 +175,18 @@ private fun resolveCurrentAlbumTitle(
         return null
     }
     return songs.firstOrNull { song: Song -> song.id == currentSongId }?.album
+}
+
+// 首页专辑高亮复用专辑归属规则，避免大小写或空白差异导致当前播放专辑漏标。
+internal fun isHomeAlbumActive(
+    album: Album,
+    currentAlbumTitle: String?,
+): Boolean {
+    if (currentAlbumTitle == null) {
+        return false
+    }
+    return hasSameAlbumTitle(
+        firstTitle = album.title,
+        secondTitle = currentAlbumTitle,
+    )
 }

@@ -74,6 +74,7 @@ fun MobileContentLayout(
         val isHomeRoot: Boolean = secondaryScreen == null && state.navigationState.rootTab == RootTab.Home
         if (
             secondaryScreen is SecondaryScreen.LocalMusic ||
+            secondaryScreen == SecondaryScreen.AlbumDetail ||
             secondaryScreen == SecondaryScreen.ArtistDetail ||
             secondaryScreen == SecondaryScreen.Player
         ) {

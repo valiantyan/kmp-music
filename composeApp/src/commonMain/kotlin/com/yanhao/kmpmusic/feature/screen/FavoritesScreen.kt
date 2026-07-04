@@ -13,6 +13,7 @@ import com.yanhao.kmpmusic.domain.model.Album
 import com.yanhao.kmpmusic.domain.model.Artist
 import com.yanhao.kmpmusic.domain.model.PlaybackStatus
 import com.yanhao.kmpmusic.domain.model.Song
+import com.yanhao.kmpmusic.domain.model.isSongInAlbum
 import com.yanhao.kmpmusic.feature.app.FavoriteSection
 import com.yanhao.kmpmusic.feature.components.AlbumCard
 import com.yanhao.kmpmusic.feature.components.AppHeader
@@ -40,7 +41,7 @@ fun FavoritesScreen(
 ) {
     val likedSongs: List<Song> = songs.filter { song -> song.isLiked }
     val likedAlbums: List<Album> = albums.filter { album ->
-        likedSongs.any { song -> song.album == album.title }
+        likedSongs.any { song: Song -> isSongInAlbum(song = song, album = album) }
     }
     val likedArtists: List<Artist> = artists.filter { artist ->
         likedSongs.any { song -> song.artist == artist.name }
