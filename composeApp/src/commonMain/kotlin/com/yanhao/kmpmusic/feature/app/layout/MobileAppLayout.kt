@@ -15,6 +15,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import com.yanhao.kmpmusic.core.theme.LocalMusicScale
@@ -77,12 +78,19 @@ fun MobileAppLayout(
                     )
                     .background(MaterialTheme.colorScheme.background.copy(alpha = 0.96f)),
             ) {
-                val fixedBarMode: MobileFixedBarMode = state.navigationState.fixedBarMode
+                val fixedBarMode: MobileFixedBarMode = state.navigationState.chromeUnderlayFixedBarMode
+                val hasChromeOverlay: Boolean = state.navigationState.chromeOverlayScreen != null
+                val underlayModifier: Modifier = if (hasChromeOverlay) {
+                    Modifier.clearAndSetSemantics {}
+                } else {
+                    Modifier
+                }
                 MobileContentLayout(
                     state = state,
                     controller = controller,
                     fixedBarMode = fixedBarMode,
                     onScanLocalMusic = onScanLocalMusic,
+                    modifier = underlayModifier,
                 )
                 MobileFixedPlayerBar(
                     song = state.currentSong,
@@ -97,7 +105,13 @@ fun MobileAppLayout(
                     onPrev = { controller.moveTrack(direction = -1) },
                     onQueue = controller::openQueue,
                     onRootTab = controller::navigateToRoot,
-                    modifier = Modifier.align(Alignment.BottomCenter),
+                    modifier = underlayModifier.align(Alignment.BottomCenter),
+                )
+                MobileChromeOverlay(
+                    state = state,
+                    controller = controller,
+                    onScanLocalMusic = onScanLocalMusic,
+                    modifier = Modifier.fillMaxSize(),
                 )
                 AppDialogs(state = state, controller = controller)
                 AppPanels(state = state, controller = controller)

@@ -9,6 +9,7 @@ import com.yanhao.kmpmusic.feature.app.MobileFixedBarPlacement
 import com.yanhao.kmpmusic.feature.app.MusicAppUiState
 import com.yanhao.kmpmusic.feature.app.NavigationState
 import com.yanhao.kmpmusic.feature.app.RootTab
+import com.yanhao.kmpmusic.feature.app.SecondaryStackEntry
 import com.yanhao.kmpmusic.feature.app.SecondaryScreen
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -39,8 +40,40 @@ class MusicAppNavigationControllerTest {
         assertEquals(expected = RootTab.Favorites, actual = nextState.navigationState.previousRootTab)
         assertEquals(expected = SecondaryScreen.Search(context = SearchContext.Favorites), actual = nextState.navigationState.secondaryScreen)
         assertEquals(expected = 1, actual = nextState.navigationState.secondaryEntryId)
+        assertEquals(expected = emptyList(), actual = nextState.navigationState.secondaryBackStack)
         assertFalse(actual = nextState.isQueueOpen)
         assertNull(actual = nextState.moreSongId)
+    }
+
+    /**
+     * 从二级页继续打开二级页时应压栈，返回才能恢复上一层 chrome 与内容。
+     */
+    @Test
+    fun navigateToSecondaryFromSecondaryPushesPreviousScreen(): Unit {
+        val state = testState().copy(
+            navigationState = NavigationState(
+                rootTab = RootTab.Me,
+                previousRootTab = RootTab.Me,
+                secondaryScreen = SecondaryScreen.Settings,
+                secondaryEntryId = 4,
+            ),
+        )
+
+        val nextState = NavigationStateController.navigateToSecondary(
+            state = state,
+            screen = SecondaryScreen.About,
+        )
+
+        assertEquals(expected = SecondaryScreen.About, actual = nextState.navigationState.secondaryScreen)
+        assertEquals(expected = 5, actual = nextState.navigationState.secondaryEntryId)
+        assertEquals(
+            expected = listOf(SecondaryStackEntry(screen = SecondaryScreen.Settings, entryId = 4)),
+            actual = nextState.navigationState.secondaryBackStack,
+        )
+        assertEquals(
+            expected = MobileFixedBarMode.SecondaryWithMiniPlayer,
+            actual = nextState.navigationState.chromeUnderlayFixedBarMode,
+        )
     }
 
     /**
@@ -88,6 +121,31 @@ class MusicAppNavigationControllerTest {
     }
 
     /**
+     * 栈内返回应先恢复上一层二级页，而不是直接退回一级页。
+     */
+    @Test
+    fun navigateBackFromStackRestoresPreviousSecondary(): Unit {
+        val state = testState().copy(
+            navigationState = NavigationState(
+                rootTab = RootTab.Me,
+                previousRootTab = RootTab.Me,
+                secondaryScreen = SecondaryScreen.About,
+                secondaryEntryId = 5,
+                secondaryBackStack = listOf(
+                    SecondaryStackEntry(screen = SecondaryScreen.Settings, entryId = 4),
+                ),
+            ),
+        )
+
+        val nextState = NavigationStateController.navigateBack(state = state)
+
+        assertEquals(expected = SecondaryScreen.Settings, actual = nextState.navigationState.secondaryScreen)
+        assertEquals(expected = 4, actual = nextState.navigationState.secondaryEntryId)
+        assertEquals(expected = emptyList(), actual = nextState.navigationState.secondaryBackStack)
+        assertEquals(expected = RootTab.Me, actual = nextState.navigationState.rootTab)
+    }
+
+    /**
      * 页面 fixed-bar 策略应由导航状态纯派生，避免 facade 层重复维护同一规则。
      */
     @Test
@@ -123,20 +181,29 @@ class MusicAppNavigationControllerTest {
         val fullscreenPlayerState: NavigationState = NavigationState(
             secondaryScreen = SecondaryScreen.Player,
         )
-        assertEquals(expected = MobileFixedBarMode.SecondaryFullscreen, actual = fullscreenPlayerState.fixedBarMode)
+        assertEquals(expected = MobileFixedBarMode.Player, actual = fullscreenPlayerState.fixedBarMode)
         assertFalse(actual = fullscreenPlayerState.fixedBarMode.showsBottomNavigation)
         assertEquals(
             expected = MobileFixedBarPlacement.Hidden,
             actual = fullscreenPlayerState.fixedBarMode.fixedBarPlacement,
         )
 
-        val fullscreenSettingsState: NavigationState = NavigationState(
+        val settingsState: NavigationState = NavigationState(
             secondaryScreen = SecondaryScreen.Settings,
         )
-        assertEquals(expected = MobileFixedBarMode.SecondaryFullscreen, actual = fullscreenSettingsState.fixedBarMode)
+        assertEquals(expected = MobileFixedBarMode.SecondaryWithMiniPlayer, actual = settingsState.fixedBarMode)
+        assertEquals(
+            expected = MobileFixedBarPlacement.MiniPlayerOnly,
+            actual = settingsState.fixedBarMode.fixedBarPlacement,
+        )
+
+        val aboutState: NavigationState = NavigationState(
+            secondaryScreen = SecondaryScreen.About,
+        )
+        assertEquals(expected = MobileFixedBarMode.SecondaryWithoutChrome, actual = aboutState.fixedBarMode)
         assertEquals(
             expected = MobileFixedBarPlacement.Hidden,
-            actual = fullscreenSettingsState.fixedBarMode.fixedBarPlacement,
+            actual = aboutState.fixedBarMode.fixedBarPlacement,
         )
     }
 

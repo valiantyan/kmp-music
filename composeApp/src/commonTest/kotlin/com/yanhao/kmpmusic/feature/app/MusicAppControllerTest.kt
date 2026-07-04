@@ -1062,7 +1062,45 @@ class MusicAppControllerTest {
             actual = controller.uiState.navigationState.previousRootTab,
         )
         assertEquals(
-            expected = MobileFixedBarMode.SecondaryFullscreen,
+            expected = MobileFixedBarMode.Player,
+            actual = controller.uiState.navigationState.fixedBarMode,
+        )
+    }
+
+    /**
+     * 设置页打开关于页时应保留设置页作为底层页面，让 mini-player 只被覆盖而不执行隐藏动画。
+     */
+    @Test
+    fun aboutScreenCoversSettingsWithoutChangingUnderlayChrome(): Unit {
+        val controller = createController()
+        controller.navigateToRoot(tab = RootTab.Me)
+        controller.navigateToSecondary(screen = SecondaryScreen.Settings)
+        assertEquals(
+            expected = MobileFixedBarMode.SecondaryWithMiniPlayer,
+            actual = controller.uiState.navigationState.fixedBarMode,
+        )
+
+        controller.navigateToSecondary(screen = SecondaryScreen.About)
+
+        assertEquals(expected = SecondaryScreen.About, actual = controller.uiState.navigationState.secondaryScreen)
+        assertEquals(
+            expected = MobileFixedBarMode.SecondaryWithoutChrome,
+            actual = controller.uiState.navigationState.fixedBarMode,
+        )
+        assertEquals(
+            expected = SecondaryScreen.Settings,
+            actual = controller.uiState.navigationState.chromeUnderlaySecondaryScreen,
+        )
+        assertEquals(
+            expected = MobileFixedBarMode.SecondaryWithMiniPlayer,
+            actual = controller.uiState.navigationState.chromeUnderlayFixedBarMode,
+        )
+
+        controller.navigateBack()
+
+        assertEquals(expected = SecondaryScreen.Settings, actual = controller.uiState.navigationState.secondaryScreen)
+        assertEquals(
+            expected = MobileFixedBarMode.SecondaryWithMiniPlayer,
             actual = controller.uiState.navigationState.fixedBarMode,
         )
     }

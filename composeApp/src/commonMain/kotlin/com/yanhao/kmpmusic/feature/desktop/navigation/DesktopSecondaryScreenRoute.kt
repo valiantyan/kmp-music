@@ -107,6 +107,10 @@ fun DesktopSecondaryScreenRoute(
             },
             onClearCache = controller::openClearCacheDialog,
         )
+        SecondaryScreen.About -> DesktopEmptyStateScreen(
+            title = "关于 KMP Music",
+            subtitle = "版本 1.0 · 本地音乐优先",
+        )
         SecondaryScreen.Login -> DesktopLoginScreen(
             email = state.email,
             isMailSent = state.isMailSent,

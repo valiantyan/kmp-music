@@ -16,6 +16,7 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Folder
+import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.Mail
 import androidx.compose.material.icons.rounded.Security
 import androidx.compose.material.icons.rounded.Timer
@@ -53,6 +54,7 @@ fun SettingsScreen(
     onScan: () -> Unit,
     onLocalMusicSources: () -> Unit,
     onClearCache: () -> Unit,
+    onAbout: () -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(scaledDp(18.dp))) {
         AppHeader(title = "设置", subtitle = "播放、扫描与外观", onBack = onBack)
@@ -81,7 +83,35 @@ fun SettingsScreen(
         SectionTitle(title = "账号与安全")
         SettingsGroup {
             SettingsListRow("隐私保护", "本地音乐不会上传到云端", {})
+            SettingsDivider()
+            SettingsListRow("关于 KMP Music", "版本 1.0 · 本地优先", onAbout)
         }
+    }
+}
+
+/**
+ * 关于页，作为无迷你播放器普通二级页验证覆盖关系。
+ */
+@Composable
+fun AboutScreen(
+    onBack: () -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(scaledDp(18.dp))) {
+        AppHeader(title = "关于", subtitle = "KMP Music", onBack = onBack)
+        SettingsGroup {
+            AboutInfoRow(title = "产品", detail = "KMP Music")
+            SettingsDivider()
+            AboutInfoRow(title = "版本", detail = "1.0")
+            SettingsDivider()
+            AboutInfoRow(title = "模式", detail = "本地音乐优先")
+        }
+        Text(
+            text = "KMP Music 使用 Kotlin Multiplatform 构建，当前版本聚焦本地曲库、播放控制和跨端一致体验。",
+            color = MusicColors.Muted,
+            fontSize = scaledSp(15.sp),
+            lineHeight = scaledSp(22.sp),
+            fontWeight = FontWeight.SemiBold,
+        )
     }
 }
 
@@ -299,6 +329,11 @@ private fun SettingsListRow(
     detail: String,
     onClick: () -> Unit,
 ) {
+    val rowIcon = when {
+        title.contains("关于") -> Icons.Rounded.Info
+        title.contains("定时") -> Icons.Rounded.Timer
+        else -> Icons.Rounded.Folder
+    }
     Surface(
         modifier = Modifier.fillMaxWidth(),
         color = Color.Transparent,
@@ -316,7 +351,7 @@ private fun SettingsListRow(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Icon(
-                imageVector = if (title.contains("定时")) Icons.Rounded.Timer else Icons.Rounded.Folder,
+                imageVector = rowIcon,
                 contentDescription = null,
                 modifier = Modifier.size(scaledDp(MusicDimens.SettingsRowIconSize)),
                 tint = MusicColors.Accent,
@@ -352,6 +387,42 @@ private fun SettingsListRow(
                 fontWeight = FontWeight.SemiBold,
             )
         }
+    }
+}
+
+/**
+ * 关于页信息行不提供跳转，避免和设置页入口行混淆。
+ */
+@Composable
+private fun AboutInfoRow(
+    title: String,
+    detail: String,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = scaledDp(MusicDimens.SettingsRowMinHeight))
+            .padding(
+                horizontal = scaledDp(MusicDimens.SettingsRowHorizontalPadding),
+                vertical = scaledDp(MusicDimens.SettingsRowVerticalPadding),
+            ),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = title,
+            color = MusicColors.Muted,
+            fontSize = scaledSp(15.sp),
+            lineHeight = scaledSp(19.sp),
+            fontWeight = FontWeight.SemiBold,
+        )
+        Text(
+            text = detail,
+            color = MaterialTheme.colorScheme.onSurface,
+            fontSize = scaledSp(18.sp),
+            lineHeight = scaledSp(22.sp),
+            fontWeight = FontWeight.ExtraBold,
+        )
     }
 }
 

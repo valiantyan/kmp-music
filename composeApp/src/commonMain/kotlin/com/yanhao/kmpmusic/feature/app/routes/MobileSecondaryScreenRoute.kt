@@ -13,6 +13,7 @@ import com.yanhao.kmpmusic.feature.app.MusicAppUiState
 import com.yanhao.kmpmusic.feature.app.SecondaryScreen
 import com.yanhao.kmpmusic.feature.screen.AlbumDetailScreen
 import com.yanhao.kmpmusic.feature.screen.ARTIST_DETAIL_DEMO_SONG_COUNT
+import com.yanhao.kmpmusic.feature.screen.AboutScreen
 import com.yanhao.kmpmusic.feature.screen.ArtistDetailScreen
 import com.yanhao.kmpmusic.feature.screen.LocalMusicScreen
 import com.yanhao.kmpmusic.feature.screen.LoginScreen
@@ -147,6 +148,10 @@ fun MobileSecondaryScreenRoute(
                 controller.openLocalMusic(section = LocalMusicSection.Sources)
             },
             onClearCache = controller::openClearCacheDialog,
+            onAbout = { controller.navigateToSecondary(screen = SecondaryScreen.About) },
+        )
+        SecondaryScreen.About -> AboutScreen(
+            onBack = controller::navigateBack,
         )
         SecondaryScreen.Login -> LoginScreen(
             email = state.email,

@@ -82,21 +82,31 @@ enum class MobileFixedBarMode(
     val showsBottomNavigation: Boolean,
     val fixedBarPlacement: MobileFixedBarPlacement,
     val contentBottomSpace: ContentBottomSpace,
+    val coversUnderlyingChrome: Boolean,
 ) {
     TopLevel(
         showsBottomNavigation = true,
         fixedBarPlacement = MobileFixedBarPlacement.TopLevel,
         contentBottomSpace = ContentBottomSpace.TopLevel,
+        coversUnderlyingChrome = false,
     ),
     SecondaryWithMiniPlayer(
         showsBottomNavigation = false,
         fixedBarPlacement = MobileFixedBarPlacement.MiniPlayerOnly,
         contentBottomSpace = ContentBottomSpace.SecondaryWithMiniPlayer,
+        coversUnderlyingChrome = false,
     ),
-    SecondaryFullscreen(
+    SecondaryWithoutChrome(
         showsBottomNavigation = false,
         fixedBarPlacement = MobileFixedBarPlacement.Hidden,
         contentBottomSpace = ContentBottomSpace.Fullscreen,
+        coversUnderlyingChrome = true,
+    ),
+    Player(
+        showsBottomNavigation = false,
+        fixedBarPlacement = MobileFixedBarPlacement.Hidden,
+        contentBottomSpace = ContentBottomSpace.Fullscreen,
+        coversUnderlyingChrome = true,
     ),
 }
 
@@ -109,9 +119,18 @@ sealed interface SecondaryScreen {
     data object AlbumDetail : SecondaryScreen
     data object ArtistDetail : SecondaryScreen
     data object Settings : SecondaryScreen
+    data object About : SecondaryScreen
     data object Login : SecondaryScreen
     data class LocalMusic(val initialSection: LocalMusicSection = LocalMusicSection.Songs) : SecondaryScreen
 }
+
+/**
+ * 二级页面栈条目，保存页面和它自己的滚动隔离 id。
+ */
+data class SecondaryStackEntry(
+    val screen: SecondaryScreen,
+    val entryId: Int,
+)
 
 /**
  * App 当前展示页面。
@@ -121,6 +140,7 @@ data class NavigationState(
     val secondaryScreen: SecondaryScreen? = null,
     val previousRootTab: RootTab = RootTab.Home,
     val secondaryEntryId: Int = 0,
+    val secondaryBackStack: List<SecondaryStackEntry> = emptyList(),
 ) {
     /**
      * 是否处于一级页面。
@@ -133,25 +153,88 @@ data class NavigationState(
      * 这里是二级页面到底部固定栏表现的唯一配置入口：新增页面时优先在这里归类，
      * 不要在页面 Composable 或固定底栏周围散写显示/隐藏判断。
      */
-    val fixedBarMode: MobileFixedBarMode = when (secondaryScreen) {
-        null -> MobileFixedBarMode.TopLevel
-        SecondaryScreen.Player,
-        SecondaryScreen.Settings,
-        -> MobileFixedBarMode.SecondaryFullscreen
-        is SecondaryScreen.Search,
-        SecondaryScreen.AlbumDetail,
-        SecondaryScreen.ArtistDetail,
-        SecondaryScreen.Login,
-        is SecondaryScreen.LocalMusic,
-        -> MobileFixedBarMode.SecondaryWithMiniPlayer
+    val fixedBarMode: MobileFixedBarMode = mobileFixedBarModeFor(screen = secondaryScreen)
+
+    /**
+     * 当前需要压在底层 chrome 上方的页面；为空时说明当前页自身承载 chrome。
+     */
+    val chromeOverlayScreen: SecondaryScreen? = secondaryScreen.takeIf {
+        fixedBarMode.coversUnderlyingChrome
     }
+
+    /**
+     * 覆盖页下方真正承载固定底栏的二级页；没有二级页时由一级页承载。
+     */
+    val chromeUnderlaySecondaryScreen: SecondaryScreen? = if (chromeOverlayScreen == null) {
+        secondaryScreen
+    } else {
+        secondaryBackStack.lastOrNull()?.screen
+    }
+
+    /**
+     * 覆盖页下方页面的滚动隔离 id，保证返回时不会丢失上一层状态。
+     */
+    val chromeUnderlayEntryId: Int = if (chromeOverlayScreen == null) {
+        secondaryEntryId
+    } else {
+        secondaryBackStack.lastOrNull()?.entryId ?: 0
+    }
+
+    /**
+     * 固定底栏按底层页面计算，避免无 chrome 覆盖页触发底栏下滑隐藏动画。
+     */
+    val chromeUnderlayFixedBarMode: MobileFixedBarMode = mobileFixedBarModeFor(
+        screen = chromeUnderlaySecondaryScreen,
+    )
 
     /**
      * 当前页面滚动状态隔离 key，一级页按 Tab 保留，二级页每次进入都从顶部重新开始。
      */
-    val scrollStateKey: String = when (secondaryScreen) {
+    val scrollStateKey: String = buildScrollStateKey(
+        rootTab = rootTab,
+        secondaryScreen = secondaryScreen,
+        entryId = secondaryEntryId,
+    )
+
+    /**
+     * 底层页面滚动状态 key，供覆盖页打开时继续渲染上一层页面。
+     */
+    val chromeUnderlayScrollStateKey: String = buildScrollStateKey(
+        rootTab = rootTab,
+        secondaryScreen = chromeUnderlaySecondaryScreen,
+        entryId = chromeUnderlayEntryId,
+    )
+}
+
+/**
+ * 页面到手机端底部 chrome 的唯一归类入口。
+ */
+private fun mobileFixedBarModeFor(screen: SecondaryScreen?): MobileFixedBarMode {
+    return when (screen) {
+        null -> MobileFixedBarMode.TopLevel
+        SecondaryScreen.Player -> MobileFixedBarMode.Player
+        SecondaryScreen.About -> MobileFixedBarMode.SecondaryWithoutChrome
+        is SecondaryScreen.Search,
+        SecondaryScreen.AlbumDetail,
+        SecondaryScreen.ArtistDetail,
+        SecondaryScreen.Settings,
+        SecondaryScreen.Login,
+        is SecondaryScreen.LocalMusic,
+        -> MobileFixedBarMode.SecondaryWithMiniPlayer
+    }
+}
+
+/**
+ * 构造页面滚动状态 key，一级页按 Tab，二级页按进入次数隔离。
+ */
+private fun buildScrollStateKey(
+    rootTab: RootTab,
+    secondaryScreen: SecondaryScreen?,
+    entryId: Int,
+): String {
+    return when (secondaryScreen) {
         null -> "root:${rootTab.name}"
-        else -> "secondary:${secondaryScreen.routeName()}:$secondaryEntryId"
+        else -> "secondary:${secondaryScreen.routeName()}:$entryId"
     }
 }
 
@@ -165,6 +248,7 @@ private fun SecondaryScreen.routeName(): String {
         SecondaryScreen.AlbumDetail -> "AlbumDetail"
         SecondaryScreen.ArtistDetail -> "ArtistDetail"
         SecondaryScreen.Settings -> "Settings"
+        SecondaryScreen.About -> "About"
         SecondaryScreen.Login -> "Login"
         is SecondaryScreen.LocalMusic -> "LocalMusic:${initialSection.name}"
     }
