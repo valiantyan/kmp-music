@@ -30,17 +30,14 @@ fun AlbumDetailScreen(
     onMore: (Song) -> Unit,
     modifier: Modifier = Modifier,
     contentPadding: PaddingValues = PaddingValues(),
-    demoSongCount: Int = 0,
 ) {
     val albumSongs: List<Song> = remember(
         album,
         songs,
-        demoSongCount,
     ) {
         buildAlbumDetailSongs(
             album = album,
             songs = songs,
-            demoSongCount = demoSongCount,
         )
     }
     val content: AlbumDetailContent = remember(

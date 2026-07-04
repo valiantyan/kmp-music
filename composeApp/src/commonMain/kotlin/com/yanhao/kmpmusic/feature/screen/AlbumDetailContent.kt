@@ -70,32 +70,24 @@ internal val albumDetailBackgroundColor: Color = Color.White
 internal fun buildAlbumDetailContent(
     album: Album,
     songs: List<Song>,
-    demoSongCount: Int = 0,
 ): AlbumDetailContent {
     val albumSongs: List<Song> = buildAlbumDetailSongs(
         album = album,
         songs = songs,
-        demoSongCount = demoSongCount,
     )
     return buildAlbumDetailContent(albumSongs = albumSongs)
 }
 
 /**
- * 构建专辑详情页稳定歌曲队列，让播放态变化时不重复做专辑过滤和 demo 生成。
+ * 构建专辑详情页稳定歌曲队列，让播放态变化时不重复做专辑过滤。
  */
 internal fun buildAlbumDetailSongs(
     album: Album,
     songs: List<Song>,
-    demoSongCount: Int = 0,
 ): List<Song> {
-    val realAlbumSongs: List<Song> = songs
+    return songs
         .filter { song: Song -> isSongInAlbum(song = song, album = album) }
         .sortedBy { song: Song -> albumTrackSortKey(song = song) }
-    return appendAlbumDetailDemoSongs(
-        album = album,
-        albumSongs = realAlbumSongs,
-        demoSongCount = demoSongCount,
-    )
 }
 
 /**

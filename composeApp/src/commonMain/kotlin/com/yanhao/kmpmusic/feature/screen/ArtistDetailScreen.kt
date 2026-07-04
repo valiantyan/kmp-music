@@ -48,21 +48,18 @@ fun ArtistDetailScreen(
     onLike: (String) -> Unit,
     modifier: Modifier = Modifier,
     contentPadding: PaddingValues = PaddingValues(),
-    demoSongCount: Int = 0,
 ) {
     val content: ArtistDetailContent = remember(
         artist,
         songs,
         currentSongId,
         currentPlaybackStatus,
-        demoSongCount,
     ) {
         buildArtistDetailContent(
             artist = artist,
             songs = songs,
             currentSongId = currentSongId,
             currentPlaybackStatus = currentPlaybackStatus,
-            demoSongCount = demoSongCount,
         )
     }
     val listState: LazyListState = rememberLazyListState()

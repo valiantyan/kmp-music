@@ -88,40 +88,7 @@ class AlbumDetailContentTest {
     }
 
     /**
-     * 测试模式下专辑详情页可以追加 500 条 demo 曲目，用于滚动、掉帧和重组压力验证。
-     */
-    @Test
-    fun albumDetailContentCanAppendFiveHundredDemoSongsForScrollStress(): Unit {
-        val album: Album = testAlbum(title = "River Year")
-        val realSong: Song = testSong(
-            id = "river:01",
-            title = "Real Track",
-            album = "River Year",
-            trackNumber = 1,
-        )
-
-        val content: AlbumDetailContent = buildAlbumDetailContent(
-            album = album,
-            songs = listOf(realSong),
-            demoSongCount = ALBUM_DETAIL_DEMO_SONG_COUNT,
-        )
-        val expectedSongCount: Int = ALBUM_DETAIL_DEMO_SONG_COUNT + 1
-        val lastRowState: AlbumDetailSongRowState = buildAlbumDetailSongRowState(
-            index = expectedSongCount - 1,
-            song = content.albumSongs.last(),
-            isCurrentSong = false,
-        )
-
-        assertEquals(expected = 500, actual = ALBUM_DETAIL_DEMO_SONG_COUNT)
-        assertEquals(expected = expectedSongCount, actual = content.albumSongs.size)
-        assertEquals(expected = "${expectedSongCount}首", actual = content.playAllCountText)
-        assertEquals(expected = expectedSongCount.toString(), actual = lastRowState.indexLabel)
-        assertTrue(actual = content.albumSongs.drop(n = 1).all { song: Song -> song.title.startsWith(prefix = "专辑曲目 Demo ") })
-        assertTrue(actual = content.albumSongs.drop(n = 1).all { song: Song -> song.album == album.title })
-    }
-
-    /**
-     * 当前播放歌曲变化只应重建行状态，不应重新生成 500 条专辑队列。
+     * 当前播放歌曲变化只应重建行状态，不应重新过滤专辑队列。
      */
     @Test
     fun albumDetailContentReusesResolvedSongsWhenCurrentSongChanges(): Unit {
@@ -135,7 +102,6 @@ class AlbumDetailContentTest {
         val albumSongs: List<Song> = buildAlbumDetailSongs(
             album = album,
             songs = listOf(realSong),
-            demoSongCount = ALBUM_DETAIL_DEMO_SONG_COUNT,
         )
 
         val content: AlbumDetailContent = buildAlbumDetailContent(albumSongs = albumSongs)

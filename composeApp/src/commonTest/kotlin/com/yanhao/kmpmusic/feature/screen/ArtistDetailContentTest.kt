@@ -9,7 +9,6 @@ import com.yanhao.kmpmusic.domain.model.Song
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
-import kotlin.test.assertTrue
 
 /**
  * 歌手详情页内容测试，锁住与 Figma 文案不同的真实数据规则。
@@ -78,34 +77,6 @@ class ArtistDetailContentTest {
         )
     }
 
-    /**
-     * 测试模式下歌手详情页可以追加压力测试 demo 热门歌曲，且不改变默认真实数据规则。
-     */
-    @Test
-    fun artistDetailContentCanAppendDemoSongsForScrollStress(): Unit {
-        val artist = testArtist(name = "Camila")
-        val realSong: Song = testSong(
-            id = "camila:mientes",
-            title = "Mientes",
-            artist = "Camila",
-        )
-
-        val content: ArtistDetailContent = buildArtistDetailContent(
-            artist = artist,
-            songs = listOf(realSong),
-            currentSongId = null,
-            currentPlaybackStatus = PlaybackStatus.Paused,
-            demoSongCount = ARTIST_DETAIL_DEMO_SONG_COUNT,
-        )
-        val expectedSongCount: Int = ARTIST_DETAIL_DEMO_SONG_COUNT + 1
-
-        assertEquals(expected = expectedSongCount, actual = content.artistSongs.size)
-        assertEquals(expected = "播放全部", actual = content.playAllText)
-        assertEquals(expected = "$expectedSongCount 首歌曲", actual = content.playAllCountText)
-        assertEquals(expected = expectedSongCount.toString(), actual = content.songRows.last().indexLabel)
-        assertTrue(actual = content.artistSongs.drop(n = 1).all { song: Song -> song.title.startsWith(prefix = "热门歌曲 Demo ") })
-        assertTrue(actual = content.artistSongs.drop(n = 1).all { song: Song -> song.artist == artist.name })
-    }
 }
 
 // 构造歌手详情页内容测试使用的歌手。

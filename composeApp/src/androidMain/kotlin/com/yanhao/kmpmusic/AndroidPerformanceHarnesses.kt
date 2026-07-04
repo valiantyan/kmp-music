@@ -18,7 +18,6 @@ import com.yanhao.kmpmusic.domain.model.PlaybackStatus
 import com.yanhao.kmpmusic.domain.model.Song
 import com.yanhao.kmpmusic.domain.model.ThemeMode
 import com.yanhao.kmpmusic.feature.app.FavoriteSection
-import com.yanhao.kmpmusic.feature.screen.ALBUM_DETAIL_DEMO_SONG_COUNT
 import com.yanhao.kmpmusic.feature.screen.AlbumDetailScreen
 import com.yanhao.kmpmusic.feature.screen.FavoritesScreen
 
@@ -28,7 +27,7 @@ import com.yanhao.kmpmusic.feature.screen.FavoritesScreen
 @Composable
 internal fun AndroidAlbumDetailPerformanceHarness(onBack: () -> Unit) {
     val album: Album = remember { createAlbumDetailPerformanceAlbum() }
-    val songs: List<Song> = remember { listOf(createAlbumDetailPerformanceSong(album = album)) }
+    val songs: List<Song> = remember { createAlbumDetailPerformanceSongs(album = album) }
     KmpMusicTheme(themeMode = ThemeMode.Light) {
         AlbumDetailScreen(
             album = album,
@@ -43,7 +42,6 @@ internal fun AndroidAlbumDetailPerformanceHarness(onBack: () -> Unit) {
                 .fillMaxSize()
                 .statusBarsPadding()
                 .navigationBarsPadding(),
-            demoSongCount = ALBUM_DETAIL_DEMO_SONG_COUNT,
         )
     }
 }
@@ -82,18 +80,32 @@ private fun createAlbumDetailPerformanceAlbum(): Album {
         id = "album:performance-river-year",
         title = "River Year Performance",
         artist = "Trip",
-        songCount = ALBUM_DETAIL_DEMO_SONG_COUNT + 1,
+        songCount = ALBUM_DETAIL_PERFORMANCE_SONG_COUNT,
         coverArt = CoverArt.AlbumRiverYear,
         mood = "性能监控",
         year = "Debug",
     )
 }
 
-// 构造滑动性能监控使用的真实种子曲目，剩余曲目由专辑详情 demo 生成器追加。
-private fun createAlbumDetailPerformanceSong(album: Album): Song {
+// 构造滑动性能监控使用的固定专辑歌曲，避免真实详情页组件携带 demo 追加逻辑。
+private fun createAlbumDetailPerformanceSongs(album: Album): List<Song> {
+    return (1..ALBUM_DETAIL_PERFORMANCE_SONG_COUNT).map { index: Int ->
+        createAlbumDetailPerformanceSong(
+            album = album,
+            index = index,
+        )
+    }
+}
+
+// 构造滑动性能监控使用的单首专辑歌曲。
+private fun createAlbumDetailPerformanceSong(
+    album: Album,
+    index: Int,
+): Song {
+    val sourceId: String = index.toString().padStart(length = 3, padChar = '0')
     return Song(
-        id = "album-performance:001",
-        title = "Performance Seed Track",
+        id = "album-performance:$sourceId",
+        title = "Performance Track $sourceId",
         artist = album.artist,
         album = album.title,
         duration = "3:00",
@@ -101,12 +113,12 @@ private fun createAlbumDetailPerformanceSong(album: Album): Song {
         isLiked = false,
         lastPlayed = "测试数据",
         quality = "Debug",
-        lyric = "专辑详情滑动性能监控种子歌曲",
-        trackNumber = 1,
+        lyric = "专辑详情滑动性能监控歌曲",
+        trackNumber = index,
         durationMs = 180_000L,
-        sourceId = "album-performance:001",
+        sourceId = sourceId,
         sourceKind = LocalMusicSourceKind.FakeScanner,
-        localUri = "fake://album-detail-performance/001",
+        localUri = "fake://album-detail-performance/$sourceId",
     )
 }
 
@@ -138,3 +150,8 @@ private fun createFavoritesPerformanceSongs(): List<Song> {
  * 收藏页压力测试歌曲数量。
  */
 private const val FAVORITES_PERFORMANCE_SONG_COUNT: Int = 500
+
+/**
+ * 专辑详情性能监控固定歌曲数量。
+ */
+private const val ALBUM_DETAIL_PERFORMANCE_SONG_COUNT: Int = 500

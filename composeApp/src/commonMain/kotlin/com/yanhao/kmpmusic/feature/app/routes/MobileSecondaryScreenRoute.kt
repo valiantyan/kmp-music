@@ -11,9 +11,7 @@ import com.yanhao.kmpmusic.feature.app.LocalMusicSection
 import com.yanhao.kmpmusic.feature.app.MusicAppController
 import com.yanhao.kmpmusic.feature.app.MusicAppUiState
 import com.yanhao.kmpmusic.feature.app.SecondaryScreen
-import com.yanhao.kmpmusic.feature.screen.ALBUM_DETAIL_DEMO_SONG_COUNT
 import com.yanhao.kmpmusic.feature.screen.AlbumDetailScreen
-import com.yanhao.kmpmusic.feature.screen.ARTIST_DETAIL_DEMO_SONG_COUNT
 import com.yanhao.kmpmusic.feature.screen.AboutScreen
 import com.yanhao.kmpmusic.feature.screen.ArtistDetailScreen
 import com.yanhao.kmpmusic.feature.screen.LocalMusicScreen
@@ -116,7 +114,6 @@ fun MobileSecondaryScreenRoute(
                     .statusBarsPadding()
                     .navigationBarsPadding(),
                 contentPadding = contentPadding,
-                demoSongCount = ALBUM_DETAIL_DEMO_SONG_COUNT,
             )
         } ?: MissingLibraryItemScreen(
             title = "专辑不可用",
@@ -139,7 +136,6 @@ fun MobileSecondaryScreenRoute(
                     .fillMaxSize()
                     .navigationBarsPadding(),
                 contentPadding = contentPadding,
-                demoSongCount = ARTIST_DETAIL_DEMO_SONG_COUNT,
             )
         } ?: MissingLibraryItemScreen(
             title = "歌手不可用",

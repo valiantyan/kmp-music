@@ -77,19 +77,13 @@ internal fun buildArtistDetailContent(
     songs: List<Song>,
     currentSongId: String?,
     currentPlaybackStatus: PlaybackStatus,
-    demoSongCount: Int = 0,
 ): ArtistDetailContent {
-    val realArtistSongs: List<Song> = songs.filter { song: Song ->
+    val artistSongs: List<Song> = songs.filter { song: Song ->
         isSongByArtist(
             song = song,
             artist = artist,
         )
     }
-    val artistSongs: List<Song> = appendArtistDetailDemoSongs(
-        artist = artist,
-        artistSongs = realArtistSongs,
-        demoSongCount = demoSongCount,
-    )
     val songRows: List<ArtistDetailSongRowState> = artistSongs.mapIndexed { index: Int, song: Song ->
         buildArtistDetailSongRowState(
             index = index,
