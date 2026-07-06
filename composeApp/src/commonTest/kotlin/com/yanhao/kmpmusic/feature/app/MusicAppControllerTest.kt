@@ -32,12 +32,16 @@ import com.yanhao.kmpmusic.domain.repository.MusicLibraryRepository
 import com.yanhao.kmpmusic.domain.repository.SearchHistoryRepository
 import com.yanhao.kmpmusic.domain.playback.AudioPlayerEngine
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.advanceTimeBy
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -227,6 +231,81 @@ class MusicAppControllerTest {
         assertEquals(expected = LocalMusicScanState.WaitingForPermission, actual = controller.uiState.scanState)
         controller.scanLocalMusic(request = LocalMusicScanRequest.Refresh)
         assertEquals(expected = 2, actual = scanner.scanCount)
+    }
+
+    /**
+     * 用户取消扫描必须进入独立结果态，而不是复用成功完成或失败错误。
+     */
+    @Test
+    fun cancelledScanStateIsDistinctFromDoneAndError(): Unit = runBlocking {
+        val controller: MusicAppController = createController(
+            localMusicScanner = UserCancelledScanner(),
+        )
+        controller.scanLocalMusic(request = LocalMusicScanRequest.Refresh)
+        val scanState: LocalMusicScanState = controller.uiState.scanState
+        assertTrue(actual = scanState is LocalMusicScanState.Cancelled)
+        assertFalse(actual = scanState is LocalMusicScanState.Done)
+        assertFalse(actual = scanState is LocalMusicScanState.Error)
+    }
+
+    /**
+     * 取消结果需要能被 UI 映射为“已取消”，避免和普通失败文案混在一起。
+     */
+    @Test
+    fun cancelledScanStateMapsToCancelledCopy(): Unit = runBlocking {
+        val controller: MusicAppController = createController(
+            localMusicScanner = UserCancelledScanner(),
+        )
+        controller.scanLocalMusic(request = LocalMusicScanRequest.Refresh)
+        val cancelledState: LocalMusicScanState.Cancelled = controller.uiState.scanState as LocalMusicScanState.Cancelled
+        assertEquals(
+            expected = "已取消",
+            actual = cancelledState.title,
+        )
+    }
+
+    /**
+     * 取消扫描也要记录结果时间，便于扫描页展示最近一次明确操作结果。
+     */
+    @Test
+    fun cancelledScanStateKeepsResultTime(): Unit = runBlocking {
+        val controller: MusicAppController = createController(
+            localMusicScanner = UserCancelledScanner(),
+        )
+        controller.scanLocalMusic(request = LocalMusicScanRequest.Refresh)
+        val cancelledState: LocalMusicScanState.Cancelled = controller.uiState.scanState as LocalMusicScanState.Cancelled
+        assertTrue(
+            actual = cancelledState.summary.completedAt > 0L,
+        )
+    }
+
+    /**
+     * 扫描中再次触发入口应走取消意图，不能启动第二个并发扫描任务。
+     */
+    @Test
+    fun scanEntryDuringRunningScanDoesNotStartSecondScan(): Unit = runTest {
+        val scanner: BlockingLocalMusicScanner = BlockingLocalMusicScanner()
+        val controller: MusicAppController = createController(
+            localMusicScanner = scanner,
+            controllerScope = backgroundScope,
+        )
+        val scanJob: Job = launch {
+            controller.scanLocalMusic(request = LocalMusicScanRequest.Refresh)
+        }
+        scanner.awaitFirstScanStarted()
+        assertEquals(
+            expected = "取消扫描",
+            actual = renderCancelEntryLabelOrNull(scanState = controller.uiState.scanState),
+        )
+        val secondScanJob: Job = launch {
+            controller.scanLocalMusic(request = LocalMusicScanRequest.Refresh)
+        }
+        runCurrent()
+        assertEquals(expected = 1, actual = scanner.scanCount)
+        assertTrue(actual = controller.uiState.scanState is LocalMusicScanState.Cancelled)
+        scanner.complete()
+        scanJob.join()
+        secondScanJob.join()
     }
 
     /**
@@ -1258,6 +1337,74 @@ private fun testControllerScope(): CoroutineScope {
 private object FakeControllerLocalMusicScanner : LocalMusicScanner {
     override suspend fun scan(request: LocalMusicScanRequest): LocalMusicScanResult {
         return com.yanhao.kmpmusic.data.FakeLocalMusicScanner(demoSongCount = 8).scan(request = request)
+    }
+}
+
+// 将运行中的扫描入口映射为取消动作文案，避免二次点击被误当成重新扫描。
+private fun renderCancelEntryLabelOrNull(scanState: LocalMusicScanState): String? {
+    return when (scanState) {
+        LocalMusicScanState.Idle,
+        LocalMusicScanState.WaitingForPermission,
+        is LocalMusicScanState.Done,
+        is LocalMusicScanState.Error,
+        -> null
+        is LocalMusicScanState.Scanning,
+        is LocalMusicScanState.Importing,
+        -> "取消扫描"
+    }
+}
+
+/**
+ * 模拟平台 scanner 把用户取消作为独立可识别错误上报。
+ */
+private class UserCancelledScanner : LocalMusicScanner {
+    /** 抛出用户取消错误，驱动控制器进入未来的取消结果态。 */
+    override suspend fun scan(request: LocalMusicScanRequest): LocalMusicScanResult {
+        throw LocalMusicScanException(
+            error = LocalMusicScanError(
+                type = LocalMusicScanErrorType.UserCancelled,
+                message = "用户取消了本地音乐扫描",
+                sourceKind = LocalMusicSourceKind.FakeScanner,
+            ),
+        )
+    }
+}
+
+/**
+ * 挂起扫描流程，验证控制器在扫描未结束时不会重复进入 scanner。
+ */
+private class BlockingLocalMusicScanner : LocalMusicScanner {
+    // 第一次扫描启动信号，测试用它稳定等待扫描进入挂起点。
+    private val firstScanStarted: CompletableDeferred<Unit> = CompletableDeferred()
+
+    // 扫描完成信号，由测试显式释放，避免真实时间等待。
+    private val scanCanComplete: CompletableDeferred<Unit> = CompletableDeferred()
+
+    // 记录 scanner 被调用次数，扫描中二次点击不应增加。
+    var scanCount: Int = 0
+        private set
+
+    /** 挂起到测试释放，用来模拟长时间扫描任务。 */
+    override suspend fun scan(request: LocalMusicScanRequest): LocalMusicScanResult {
+        scanCount += 1
+        if (scanCount == 1) {
+            firstScanStarted.complete(value = Unit)
+        }
+        scanCanComplete.await()
+        return LocalMusicScanResult(
+            discovered = emptyList(),
+            completedAt = 1_719_360_004_000L,
+        )
+    }
+
+    /** 等待第一次扫描实际进入 scanner，避免并发断言抢跑。 */
+    suspend fun awaitFirstScanStarted() {
+        firstScanStarted.await()
+    }
+
+    /** 释放挂起扫描，让测试可以收尾。 */
+    fun complete() {
+        scanCanComplete.complete(value = Unit)
     }
 }
 
