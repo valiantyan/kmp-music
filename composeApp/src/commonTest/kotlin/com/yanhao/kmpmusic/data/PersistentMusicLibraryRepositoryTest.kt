@@ -90,6 +90,55 @@ class PersistentMusicLibraryRepositoryTest {
     }
 
     @Test
+    fun positiveOnlyScanAddsNewSameSourceSongWithoutRemovingExistingSong(): Unit = runBlocking {
+        val localSongDao: FakeLocalSongDao = FakeLocalSongDao()
+        val repository: PersistentMusicLibraryRepository = PersistentMusicLibraryRepository(
+            localSongDao = localSongDao,
+            favoriteSongDao = FakeFavoriteSongDao(),
+        )
+        localSongDao.upsertSongs(
+            songs = listOf(
+                entity(
+                    id = "androidMediaStore:existing",
+                    sourceId = "existing",
+                    title = "Existing",
+                    modifiedAt = 1L,
+                ),
+            ),
+        )
+
+        repository.applyScanResult(
+            request = LocalMusicScanRequest.Refresh,
+            scanResult = LocalMusicScanResult(
+                discovered = listOf(
+                    metadata(
+                        sourceId = "new",
+                        title = "New",
+                        modifiedAt = 2L,
+                    ),
+                ),
+                removedSourceKeys = emptySet(),
+                sourceSummaries = emptyList(),
+                completedAt = 10L,
+            ),
+            likedSongIds = emptySet(),
+        )
+
+        val availableSongIds: Set<String> = repository.getAllAvailableSongs()
+            .map { song -> song.id }
+            .toSet()
+        assertTrue(actual = localSongDao.row("androidMediaStore:existing")!!.isAvailable)
+        assertTrue(actual = localSongDao.row("androidMediaStore:new")!!.isAvailable)
+        assertEquals(
+            expected = setOf(
+                "androidMediaStore:existing",
+                "androidMediaStore:new",
+            ),
+            actual = availableSongIds,
+        )
+    }
+
+    @Test
     fun favoritesAreDerivedAndSurviveUnavailableSongs(): Unit = runBlocking {
         val localSongDao: FakeLocalSongDao = FakeLocalSongDao()
         val favoriteSongDao: FakeFavoriteSongDao = FakeFavoriteSongDao()
