@@ -74,11 +74,14 @@ data class FavoriteSongEntity(
 
 /**
  * 持久化本地歌曲扫描元数据，收藏状态由 favorite_song 独立保存。
+ *
+ * @property concreteSourceId 具体来源身份，例如桌面扫描目录；旧记录为空时不参与具体来源覆盖删除。
  */
 @Entity(
     tableName = "local_song",
     indices = [
         Index(value = ["sourceKind", "isAvailable"]),
+        Index(value = ["sourceKind", "concreteSourceId", "isAvailable"]),
         Index(value = ["isAvailable", "modifiedAt"]),
     ],
 )
@@ -86,6 +89,7 @@ data class LocalSongEntity(
     @PrimaryKey val id: String,
     val sourceId: String,
     val sourceKind: String,
+    val concreteSourceId: String? = null,
     val localUri: String,
     val fileName: String,
     val title: String?,
@@ -263,6 +267,18 @@ interface LocalSongDao {
     @Query("SELECT id FROM local_song WHERE sourceKind = :sourceKind AND isAvailable = 1")
     suspend fun getAvailableSongIdsBySource(sourceKind: String): List<String>
 
+    /** 按具体来源读取可用歌曲 id，避免桌面目录扫描影响其它目录。 */
+    @Query(
+        """
+        SELECT id FROM local_song
+        WHERE sourceKind = :sourceKind AND concreteSourceId = :concreteSourceId AND isAvailable = 1
+        """,
+    )
+    suspend fun getAvailableSongIdsByConcreteSource(
+        sourceKind: String,
+        concreteSourceId: String,
+    ): List<String>
+
     /** 读取当前仍有可用歌曲的来源类型，供全量扫描空结果时判定覆盖范围。 */
     @Query("SELECT DISTINCT sourceKind FROM local_song WHERE isAvailable = 1")
     suspend fun getAvailableSourceKinds(): List<String>
@@ -274,6 +290,20 @@ interface LocalSongDao {
     /** 标记指定来源下本次未扫描到的歌曲不可用。 */
     @Query("UPDATE local_song SET isAvailable = 0 WHERE sourceKind = :sourceKind AND id IN (:songIds)")
     suspend fun markUnavailable(sourceKind: String, songIds: List<String>)
+
+    /** 标记指定具体来源下本次未扫描到的歌曲不可用。 */
+    @Query(
+        """
+        UPDATE local_song
+        SET isAvailable = 0
+        WHERE sourceKind = :sourceKind AND concreteSourceId = :concreteSourceId AND id IN (:songIds)
+        """,
+    )
+    suspend fun markUnavailableByConcreteSource(
+        sourceKind: String,
+        concreteSourceId: String,
+        songIds: List<String>,
+    )
 
     /** 统计当前可用歌曲数。 */
     @Query("SELECT COUNT(*) FROM local_song WHERE isAvailable = 1")
@@ -340,7 +370,7 @@ interface SearchHistoryDao {
         LocalSongEntity::class,
         SearchHistoryEntity::class,
     ],
-    version = 5,
+    version = 6,
 )
 @ConstructedBy(PlaybackDatabaseConstructor::class)
 abstract class PlaybackDatabase : RoomDatabase() {

@@ -71,7 +71,14 @@ class DesktopFolderMusicScanner(
         val folderSourceId: String = folder.toStableSourceId()
         val stream = Files.walk(folder)
         try {
-            stream.forEach { path -> scanPath(path = path, discovered = discovered, failed = failed) }
+            stream.forEach { path: Path ->
+                scanPath(
+                    path = path,
+                    concreteSourceId = folderSourceId,
+                    discovered = discovered,
+                    failed = failed,
+                )
+            }
         } catch (ioException: IOException) {
             throw LocalMusicScanException(
                 error = LocalMusicScanError(
@@ -111,6 +118,7 @@ class DesktopFolderMusicScanner(
     // 扫描单个路径，非音频文件直接忽略，不进入失败列表。
     private fun scanPath(
         path: Path,
+        concreteSourceId: String,
         discovered: MutableList<MusicFileMetadata>,
         failed: MutableList<LocalMusicProblem>,
     ) {
@@ -129,6 +137,7 @@ class DesktopFolderMusicScanner(
         discovered += MusicFileMetadata(
             sourceId = sourceId,
             sourceKind = LocalMusicSourceKind.DesktopFolder,
+            concreteSourceId = concreteSourceId,
             localUri = path.toUri().toString(),
             fileName = fileName,
             title = audioMetadata.title ?: LocalAudioFileRules.titleFromFileName(fileName = fileName),

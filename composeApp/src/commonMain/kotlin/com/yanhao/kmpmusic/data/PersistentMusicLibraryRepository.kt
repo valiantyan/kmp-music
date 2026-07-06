@@ -86,6 +86,9 @@ class PersistentMusicLibraryRepository(
         val coveredSourceKinds: Set<String> = resolveCoveredSourceKinds(
             scanResult = scanResult,
         )
+        val coveredConcreteSources: List<LocalMusicScanCoverage.ConcreteSource> = resolveCoveredConcreteSources(
+            scanResult = scanResult,
+        )
         val discoveredEntities: List<LocalSongEntity> = scanResult.discovered
             .filter { metadata: MusicFileMetadata -> metadata.localUri.isNotBlank() }
             .map { metadata: MusicFileMetadata -> metadata.toEntity(lastScannedAt = scanResult.completedAt) }
@@ -95,16 +98,37 @@ class PersistentMusicLibraryRepository(
         val previousIdsBySourceKind: Map<String, Set<String>> = coveredSourceKinds.associateWith { sourceKind: String ->
             localSongDao.getAvailableSongIdsBySource(sourceKind = sourceKind).toSet()
         }
+        val previousIdsByConcreteSource: Map<LocalMusicScanCoverage.ConcreteSource, Set<String>> =
+            coveredConcreteSources.associateWith { coverage: LocalMusicScanCoverage.ConcreteSource ->
+                localSongDao.getAvailableSongIdsByConcreteSource(
+                    sourceKind = coverage.sourceKind.value,
+                    concreteSourceId = coverage.sourceId,
+                ).toSet()
+            }
         localSongDao.upsertSongs(songs = discoveredEntities)
         coveredSourceKinds.forEach { sourceKind: String ->
-            val discoveredIds: Set<String> = discoveredEntities
-                .filter { entity: LocalSongEntity -> entity.sourceKind == sourceKind }
-                .map { entity: LocalSongEntity -> entity.id }
-                .toSet()
+            val discoveredIds: Set<String> = discoveredSongIdsForSourceKind(
+                discoveredEntities = discoveredEntities,
+                sourceKind = sourceKind,
+            )
             val missingIds: Set<String> = previousIdsBySourceKind.getValue(sourceKind) - discoveredIds
             if (missingIds.isNotEmpty()) {
                 localSongDao.markUnavailable(
                     sourceKind = sourceKind,
+                    songIds = missingIds.toList(),
+                )
+            }
+        }
+        coveredConcreteSources.forEach { coverage: LocalMusicScanCoverage.ConcreteSource ->
+            val discoveredIds: Set<String> = discoveredSongIdsForConcreteSource(
+                discoveredEntities = discoveredEntities,
+                coverage = coverage,
+            )
+            val missingIds: Set<String> = previousIdsByConcreteSource.getValue(coverage) - discoveredIds
+            if (missingIds.isNotEmpty()) {
+                localSongDao.markUnavailableByConcreteSource(
+                    sourceKind = coverage.sourceKind.value,
+                    concreteSourceId = coverage.sourceId,
                     songIds = missingIds.toList(),
                 )
             }
@@ -116,13 +140,13 @@ class PersistentMusicLibraryRepository(
             updatedCount = discoveredEntities.count { entity: LocalSongEntity ->
                 previousAvailableIds.contains(element = entity.id)
             },
-            removedCount = coveredSourceKinds.sumOf { sourceKind: String ->
-                val discoveredIds: Set<String> = discoveredEntities
-                    .filter { entity: LocalSongEntity -> entity.sourceKind == sourceKind }
-                    .map { entity: LocalSongEntity -> entity.id }
-                    .toSet()
-                (previousIdsBySourceKind.getValue(sourceKind) - discoveredIds).size
-            },
+            removedCount = countRemovedSongs(
+                coveredSourceKinds = coveredSourceKinds,
+                previousIdsBySourceKind = previousIdsBySourceKind,
+                coveredConcreteSources = coveredConcreteSources,
+                previousIdsByConcreteSource = previousIdsByConcreteSource,
+                discoveredEntities = discoveredEntities,
+            ),
             problemCount = scanResult.failed.size,
             completedAt = scanResult.completedAt,
         )
@@ -193,6 +217,9 @@ class PersistentMusicLibraryRepository(
     ): Set<String> {
         val fromCompletedCoverage: Set<String> = scanResult.completedCoverage
             .filterIsInstance<LocalMusicScanCoverage.SourceKind>()
+            .filter { coverage: LocalMusicScanCoverage.SourceKind ->
+                coverage.sourceKind != LocalMusicSourceKind.DesktopFolder
+            }
             .map { coverage: LocalMusicScanCoverage.SourceKind -> coverage.sourceKind.value }
             .toSet()
         if (fromCompletedCoverage.isNotEmpty()) {
@@ -201,12 +228,70 @@ class PersistentMusicLibraryRepository(
         return emptySet()
     }
 
+    /** 按显式具体来源覆盖执行 Desktop 目录级 reconciliation，不从路径或展示名推断。 */
+    private fun resolveCoveredConcreteSources(
+        scanResult: LocalMusicScanResult,
+    ): List<LocalMusicScanCoverage.ConcreteSource> {
+        return scanResult.completedCoverage
+            .filterIsInstance<LocalMusicScanCoverage.ConcreteSource>()
+    }
+
+    /** 复用同一套缺失 id 推导，保证 summary 与实际下线行为一致。 */
+    private fun countRemovedSongs(
+        coveredSourceKinds: Set<String>,
+        previousIdsBySourceKind: Map<String, Set<String>>,
+        coveredConcreteSources: List<LocalMusicScanCoverage.ConcreteSource>,
+        previousIdsByConcreteSource: Map<LocalMusicScanCoverage.ConcreteSource, Set<String>>,
+        discoveredEntities: List<LocalSongEntity>,
+    ): Int {
+        val removedBySourceKind: Int = coveredSourceKinds.sumOf { sourceKind: String ->
+            val discoveredIds: Set<String> = discoveredSongIdsForSourceKind(
+                discoveredEntities = discoveredEntities,
+                sourceKind = sourceKind,
+            )
+            (previousIdsBySourceKind.getValue(sourceKind) - discoveredIds).size
+        }
+        val removedByConcreteSource: Int = coveredConcreteSources.sumOf { coverage: LocalMusicScanCoverage.ConcreteSource ->
+            val discoveredIds: Set<String> = discoveredSongIdsForConcreteSource(
+                discoveredEntities = discoveredEntities,
+                coverage = coverage,
+            )
+            (previousIdsByConcreteSource.getValue(coverage) - discoveredIds).size
+        }
+        return removedBySourceKind + removedByConcreteSource
+    }
+
+    /** 按来源类型收集本轮确认存在的歌曲 id，供下线和摘要共用同一口径。 */
+    private fun discoveredSongIdsForSourceKind(
+        discoveredEntities: List<LocalSongEntity>,
+        sourceKind: String,
+    ): Set<String> {
+        return discoveredEntities
+            .filter { entity: LocalSongEntity -> entity.sourceKind == sourceKind }
+            .map { entity: LocalSongEntity -> entity.id }
+            .toSet()
+    }
+
+    /** 按显式具体来源收集本轮确认存在的歌曲 id，禁止用路径前缀扩大覆盖范围。 */
+    private fun discoveredSongIdsForConcreteSource(
+        discoveredEntities: List<LocalSongEntity>,
+        coverage: LocalMusicScanCoverage.ConcreteSource,
+    ): Set<String> {
+        return discoveredEntities
+            .filter { entity: LocalSongEntity ->
+                entity.sourceKind == coverage.sourceKind.value && entity.concreteSourceId == coverage.sourceId
+            }
+            .map { entity: LocalSongEntity -> entity.id }
+            .toSet()
+    }
+
     /** 把扫描元数据转换为可覆盖写入数据库的本地歌曲实体。 */
     private fun MusicFileMetadata.toEntity(lastScannedAt: Long): LocalSongEntity {
         return LocalSongEntity(
             id = sourceKey,
             sourceId = sourceId,
             sourceKind = sourceKind.value,
+            concreteSourceId = concreteSourceId,
             localUri = localUri,
             fileName = fileName,
             title = title,

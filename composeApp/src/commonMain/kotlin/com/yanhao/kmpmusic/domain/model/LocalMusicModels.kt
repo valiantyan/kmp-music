@@ -73,6 +73,7 @@ class LocalMusicScanException(
  *
  * @property sourceId 来源内稳定标识，例如系统媒体库 id 或桌面文件路径 hash。
  * @property sourceKind 来源类型。
+ * @property concreteSourceId 具体来源身份，例如桌面扫描目录；为空时不获得具体来源删除权。
  * @property localUri 播放层后续可解析的本地 URI 字符串。
  * @property fileName 原始文件名，用于标题兜底和问题定位。
  * @property title 元数据标题，缺失时由合并层兜底。
@@ -88,6 +89,7 @@ class LocalMusicScanException(
 data class MusicFileMetadata(
     val sourceId: String,
     val sourceKind: LocalMusicSourceKind,
+    val concreteSourceId: String? = null,
     val localUri: String,
     val fileName: String,
     val title: String?,

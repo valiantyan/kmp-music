@@ -82,6 +82,20 @@ object PlaybackDatabaseMigrations {
             )
         }
     }
+
+    /** 从最近播放历史版本升级到支持具体来源覆盖身份。 */
+    val MIGRATION_5_6: Migration = object : Migration(startVersion = 5, endVersion = 6) {
+        /** 新列为空时不参与具体来源 reconciliation，避免旧数据被目录覆盖误删。 */
+        override suspend fun migrate(connection: SQLiteConnection) {
+            connection.execSql("ALTER TABLE local_song ADD COLUMN concreteSourceId TEXT")
+            connection.execSql(
+                """
+                CREATE INDEX IF NOT EXISTS index_local_song_sourceKind_concreteSourceId_isAvailable
+                ON local_song(sourceKind, concreteSourceId, isAvailable)
+                """,
+            )
+        }
+    }
 }
 
 /** 执行裁剪后的 SQL 文本，避免多行字符串首尾空白影响 SQLite 解析。 */

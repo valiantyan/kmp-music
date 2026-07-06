@@ -52,5 +52,9 @@ class DesktopFolderMusicScannerTest {
             expected = audioPath.toAbsolutePath().normalize().toString(),
             actual = result.discovered.single().sourceId,
         )
+        assertEquals(
+            expected = folderSourceId,
+            actual = result.discovered.single().concreteSourceId,
+        )
     }
 }

@@ -180,8 +180,10 @@ class PersistentMusicLibraryRepositoryTest {
         val folderAPath: String = "/Users/listener/Music/A"
         val folderBPath: String = "/Users/listener/Music/B"
         val folderASourceId: String = "$folderAPath/folder-a.mp3"
+        val missingFolderBSourceId: String = "$folderBPath/folder-b-old.mp3"
         val folderBSourceId: String = "$folderBPath/folder-b-new.mp3"
         val folderASongId: String = "desktopFolder:$folderASourceId"
+        val missingFolderBSongId: String = "desktopFolder:$missingFolderBSourceId"
         val folderBSongId: String = "desktopFolder:$folderBSourceId"
         localSongDao.upsertSongs(
             songs = listOf(
@@ -189,8 +191,17 @@ class PersistentMusicLibraryRepositoryTest {
                     id = folderASongId,
                     sourceKind = LocalMusicSourceKind.DesktopFolder.value,
                     sourceId = folderASourceId,
+                    concreteSourceId = folderAPath,
                     title = "Folder A Song",
                     modifiedAt = 1L,
+                ),
+                entity(
+                    id = missingFolderBSongId,
+                    sourceKind = LocalMusicSourceKind.DesktopFolder.value,
+                    sourceId = missingFolderBSourceId,
+                    concreteSourceId = folderBPath,
+                    title = "Folder B Missing Song",
+                    modifiedAt = 2L,
                 ),
             ),
         )
@@ -202,8 +213,9 @@ class PersistentMusicLibraryRepositoryTest {
                     metadata(
                         sourceKind = LocalMusicSourceKind.DesktopFolder,
                         sourceId = folderBSourceId,
+                        concreteSourceId = folderBPath,
                         title = "Folder B New Song",
-                        modifiedAt = 2L,
+                        modifiedAt = 3L,
                     ),
                 ),
                 completedCoverage = listOf(
@@ -221,10 +233,50 @@ class PersistentMusicLibraryRepositoryTest {
             .map { song: Song -> song.id }
             .toSet()
         assertTrue(actual = localSongDao.row(folderASongId)!!.isAvailable)
+        assertFalse(actual = localSongDao.row(missingFolderBSongId)!!.isAvailable)
         assertTrue(actual = localSongDao.row(folderBSongId)!!.isAvailable)
         assertEquals(
             expected = setOf(folderASongId, folderBSongId),
             actual = availableSongIds,
+        )
+    }
+
+    @Test
+    fun desktopSourceKindCoverageDoesNotDeleteWholeDesktopLibrary(): Unit = runBlocking {
+        val localSongDao: FakeLocalSongDao = FakeLocalSongDao()
+        val repository: PersistentMusicLibraryRepository = PersistentMusicLibraryRepository(
+            localSongDao = localSongDao,
+            favoriteSongDao = FakeFavoriteSongDao(),
+        )
+        localSongDao.upsertSongs(
+            songs = listOf(
+                entity(
+                    id = "desktopFolder:/Users/listener/Music/A/old.mp3",
+                    sourceKind = LocalMusicSourceKind.DesktopFolder.value,
+                    sourceId = "/Users/listener/Music/A/old.mp3",
+                    concreteSourceId = "/Users/listener/Music/A",
+                    title = "Folder A Old Song",
+                    modifiedAt = 1L,
+                ),
+            ),
+        )
+
+        repository.applyScanResult(
+            request = LocalMusicScanRequest.Source(LocalMusicSourceKind.DesktopFolder),
+            scanResult = LocalMusicScanResult(
+                discovered = emptyList(),
+                completedCoverage = listOf(
+                    LocalMusicScanCoverage.SourceKind(sourceKind = LocalMusicSourceKind.DesktopFolder),
+                ),
+                completedAt = 30L,
+            ),
+            likedSongIds = emptySet(),
+        )
+
+        assertTrue(actual = localSongDao.row("desktopFolder:/Users/listener/Music/A/old.mp3")!!.isAvailable)
+        assertEquals(
+            expected = setOf("desktopFolder:/Users/listener/Music/A/old.mp3"),
+            actual = repository.getAllAvailableSongs().map { song: Song -> song.id }.toSet(),
         )
     }
 
@@ -522,11 +574,13 @@ class PersistentMusicLibraryRepositoryTest {
         title: String,
         modifiedAt: Long,
         sourceKind: LocalMusicSourceKind = LocalMusicSourceKind.AndroidMediaStore,
+        concreteSourceId: String? = null,
         coverImageUri: String? = null,
     ): MusicFileMetadata {
         return MusicFileMetadata(
             sourceId = sourceId,
             sourceKind = sourceKind,
+            concreteSourceId = concreteSourceId,
             localUri = "content://media/$sourceId",
             fileName = "$title.mp3",
             title = title,
@@ -571,6 +625,20 @@ private class FakeLocalSongDao : LocalSongDao {
             .map { entity: LocalSongEntity -> entity.id }
     }
 
+    /** 按具体来源读取可用歌曲 id，用于验证目录覆盖只影响当前目录。 */
+    override suspend fun getAvailableSongIdsByConcreteSource(
+        sourceKind: String,
+        concreteSourceId: String,
+    ): List<String> {
+        return rows.values
+            .filter { entity: LocalSongEntity ->
+                entity.sourceKind == sourceKind &&
+                    entity.concreteSourceId == concreteSourceId &&
+                    entity.isAvailable
+            }
+            .map { entity: LocalSongEntity -> entity.id }
+    }
+
     /** 返回当前仍可用的来源类型集合，供全量扫描空结果时判定覆盖范围。 */
     override suspend fun getAvailableSourceKinds(): List<String> {
         return rows.values
@@ -591,6 +659,24 @@ private class FakeLocalSongDao : LocalSongDao {
         songIds.forEach { songId: String ->
             val entity: LocalSongEntity? = rows[songId]
             if (entity != null && entity.sourceKind == sourceKind) {
+                rows[songId] = entity.copy(isAvailable = false)
+            }
+        }
+    }
+
+    /** 只把同具体来源且本轮缺失的歌曲标记为不可用。 */
+    override suspend fun markUnavailableByConcreteSource(
+        sourceKind: String,
+        concreteSourceId: String,
+        songIds: List<String>,
+    ) {
+        songIds.forEach { songId: String ->
+            val entity: LocalSongEntity? = rows[songId]
+            if (
+                entity != null &&
+                entity.sourceKind == sourceKind &&
+                entity.concreteSourceId == concreteSourceId
+            ) {
                 rows[songId] = entity.copy(isAvailable = false)
             }
         }
@@ -669,6 +755,7 @@ private fun entity(
     id: String,
     sourceKind: String = "androidMediaStore",
     sourceId: String = id.substringAfter(delimiter = ":"),
+    concreteSourceId: String? = null,
     title: String,
     modifiedAt: Long,
     artist: String? = "Artist",
@@ -679,6 +766,7 @@ private fun entity(
         id = id,
         sourceId = sourceId,
         sourceKind = sourceKind,
+        concreteSourceId = concreteSourceId,
         localUri = "content://media/$sourceId",
         fileName = "$title.mp3",
         title = title,
