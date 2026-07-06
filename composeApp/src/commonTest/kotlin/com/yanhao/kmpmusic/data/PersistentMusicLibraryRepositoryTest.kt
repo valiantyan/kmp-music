@@ -1,7 +1,10 @@
 package com.yanhao.kmpmusic.data
 
 import com.yanhao.kmpmusic.domain.model.CoverArt
+import com.yanhao.kmpmusic.domain.model.LocalMusicProblem
 import com.yanhao.kmpmusic.domain.model.LocalMusicScanCoverage
+import com.yanhao.kmpmusic.domain.model.LocalMusicScanError
+import com.yanhao.kmpmusic.domain.model.LocalMusicScanErrorType
 import com.yanhao.kmpmusic.domain.model.LocalMusicScanRequest
 import com.yanhao.kmpmusic.domain.model.LocalMusicScanResult
 import com.yanhao.kmpmusic.domain.model.LocalMusicScanState
@@ -579,6 +582,60 @@ class PersistentMusicLibraryRepositoryTest {
     }
 
     @Test
+    fun failedScanHasNoDeletionAuthorityAndKeepsUnprocessedExistingSong(): Unit = runBlocking {
+        val localSongDao: FakeLocalSongDao = FakeLocalSongDao()
+        val repository: PersistentMusicLibraryRepository = PersistentMusicLibraryRepository(
+            localSongDao = localSongDao,
+            favoriteSongDao = FakeFavoriteSongDao(),
+        )
+        localSongDao.upsertSongs(
+            songs = listOf(
+                entity(
+                    id = "androidMediaStore:old-safe-song",
+                    sourceId = "old-safe-song",
+                    title = "Old Safe Song",
+                    modifiedAt = 1L,
+                ),
+            ),
+        )
+
+        val snapshot = repository.applyScanResult(
+            request = LocalMusicScanRequest.Source(LocalMusicSourceKind.AndroidMediaStore),
+            scanResult = LocalMusicScanResult(
+                discovered = listOf(
+                    metadata(
+                        sourceId = "verified-new-song",
+                        title = "Verified New Song",
+                        modifiedAt = 2L,
+                    ),
+                ),
+                failed = listOf(failedProblem(sourceId = "unreadable-song")),
+                completedCoverage = listOf(
+                    LocalMusicScanCoverage.SourceKind(sourceKind = LocalMusicSourceKind.AndroidMediaStore),
+                ),
+                completedAt = 99L,
+            ),
+            likedSongIds = emptySet(),
+        )
+
+        val summary: LocalMusicScanState.Done = snapshot.scanState as LocalMusicScanState.Done
+        val availableSongIds: Set<String> = repository.getAllAvailableSongs()
+            .map { song: Song -> song.id }
+            .toSet()
+        assertTrue(actual = localSongDao.row("androidMediaStore:old-safe-song")!!.isAvailable)
+        assertTrue(actual = localSongDao.row("androidMediaStore:verified-new-song")!!.isAvailable)
+        assertEquals(
+            expected = setOf(
+                "androidMediaStore:old-safe-song",
+                "androidMediaStore:verified-new-song",
+            ),
+            actual = availableSongIds,
+        )
+        assertEquals(expected = 0, actual = summary.summary.removedCount)
+        assertEquals(expected = 1, actual = summary.summary.problemCount)
+    }
+
+    @Test
     fun snapshotStatsCountBlankAlbumAndArtistAsSingleUnknownGroup(): Unit = runBlocking {
         val localSongDao: FakeLocalSongDao = FakeLocalSongDao()
         val repository: PersistentMusicLibraryRepository = PersistentMusicLibraryRepository(
@@ -645,6 +702,21 @@ class PersistentMusicLibraryRepositoryTest {
             modifiedAt = modifiedAt,
             coverArt = CoverArt.HeroLocalMusic,
             coverImageUri = coverImageUri,
+        )
+    }
+
+    /** 构造失败扫描问题，表达本轮扫描没有删除未处理旧歌的权限。 */
+    private fun failedProblem(sourceId: String): LocalMusicProblem {
+        return LocalMusicProblem(
+            sourceKind = LocalMusicSourceKind.AndroidMediaStore,
+            sourceId = sourceId,
+            fileName = "$sourceId.mp3",
+            error = LocalMusicScanError(
+                type = LocalMusicScanErrorType.FileUnreadable,
+                message = "扫描失败",
+                sourceKind = LocalMusicSourceKind.AndroidMediaStore,
+                sourceId = sourceId,
+            ),
         )
     }
 }

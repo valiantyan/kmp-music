@@ -28,3 +28,11 @@
 - 验证：关键词扫描确认 `AGENTS.md`、`contract.md`、`progress.md`、`scorecard.md` 和 `restart-policy.md` 均包含队列、门禁、禁止当前会话执行和完成条件；issue 12 到 17 状态读取正常。
 - 结果：未发现新问题。
 - 下一步：向用户输出在 kmp-music 项目中如何使用长跑 Agent Harness 自动化完成 issue 13 到 17。
+
+## 2026-07-06 issue 13 已派发
+
+- 意图：按队列从 issue 13 开始协调 `local-audio-discovery-source-coverage` 批次，保持协调器线程不直接实现业务代码。
+- 行动：重新读取 `AGENTS.md`、OpenWiki 快速开始、`.agent-loop` 契约文件、长跑 Harness skill、PRD 和 issue 12 到 17；复核 issue 12 文件门禁；使用 Codex thread 工具在 kmp-music 本地项目创建 issue 13 独立实现线程。
+- 线程：`codex://threads/019f376d-b62b-7ad0-bcc9-c9ea4a43bd19`。
+- 门禁结果：issue 12 为 `ready-for-human`，验收标准全勾，`Comments` 包含实现摘要、验证命令与结果、对抗式审查、code-review 结论和剩余风险，允许派发 issue 13。
+- 下一步：等待 issue 13 实现线程完成；完成后重新读取 issue 13 文件做门禁检查，未通过则停在 issue 13，不派发 issue 14。
