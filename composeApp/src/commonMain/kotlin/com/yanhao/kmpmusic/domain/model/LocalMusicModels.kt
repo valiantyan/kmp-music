@@ -118,9 +118,12 @@ data class LocalMusicProblem(
 
 /**
  * 单个来源的扫描摘要，用于二级来源页。
+ *
+ * @property sourceId 具体来源身份，例如桌面扫描目录路径；旧摘要为空时不能获得具体来源覆盖语义。
  */
 data class LocalMusicSourceSummary(
     val sourceKind: LocalMusicSourceKind,
+    val sourceId: String? = null,
     val displayName: String,
     val songCount: Int,
     val problemCount: Int,

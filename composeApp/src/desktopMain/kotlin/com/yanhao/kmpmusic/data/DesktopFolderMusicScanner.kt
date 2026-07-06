@@ -1,6 +1,7 @@
 package com.yanhao.kmpmusic.data
 
 import com.yanhao.kmpmusic.domain.model.LocalMusicProblem
+import com.yanhao.kmpmusic.domain.model.LocalMusicScanCoverage
 import com.yanhao.kmpmusic.domain.model.LocalMusicScanError
 import com.yanhao.kmpmusic.domain.model.LocalMusicScanErrorType
 import com.yanhao.kmpmusic.domain.model.LocalMusicScanException
@@ -24,8 +25,14 @@ import kotlinx.coroutines.withContext
 
 /**
  * Desktop 平台文件夹扫描器，由用户选择音乐文件夹后递归发现可播放音频。
+ *
+ * @param chooseFolder 选择本次扫描目录的入口，测试可注入临时目录以避开平台 UI。
+ * @param nowMillis 提供扫描完成时间，测试可固定时间戳保证断言稳定。
  */
-class DesktopFolderMusicScanner : LocalMusicScanner {
+class DesktopFolderMusicScanner(
+    private val chooseFolder: suspend () -> Path = { chooseMusicFolderFromDialog() },
+    private val nowMillis: () -> Long = { System.currentTimeMillis() },
+) : LocalMusicScanner {
     // 真实封面提取集中在 scanner 边界，UI 只消费平台无关 URI。
     private val artworkExtractor: DesktopEmbeddedArtworkExtractor = DesktopEmbeddedArtworkExtractor()
     // 音频标签读取集中在 scanner 边界，保证桌面端与 Android 输出同一组元数据字段。
@@ -34,7 +41,7 @@ class DesktopFolderMusicScanner : LocalMusicScanner {
     /** 弹出文件夹选择器并把真实文件扫描结果写入统一曲库链路。 */
     override suspend fun scan(request: LocalMusicScanRequest): LocalMusicScanResult {
         validateRequest(request = request)
-        val selectedFolder: Path = chooseMusicFolder()
+        val selectedFolder: Path = chooseFolder()
         return withContext(context = Dispatchers.IO) {
             scanFolder(folder = selectedFolder)
         }
@@ -53,36 +60,6 @@ class DesktopFolderMusicScanner : LocalMusicScanner {
         }
     }
 
-    // 在 Swing 事件线程显示文件夹选择器，避免阻塞 Compose 主渲染线程。
-    private suspend fun chooseMusicFolder(): Path {
-        return suspendCancellableCoroutine { continuation ->
-            SwingUtilities.invokeLater {
-                val chooser: JFileChooser = JFileChooser().apply {
-                    dialogTitle = "选择音乐文件夹"
-                    fileSelectionMode = JFileChooser.DIRECTORIES_ONLY
-                    isAcceptAllFileFilterUsed = false
-                }
-                val result: Int = chooser.showOpenDialog(null)
-                if (!continuation.isActive) {
-                    return@invokeLater
-                }
-                if (result == JFileChooser.APPROVE_OPTION) {
-                    continuation.resume(value = chooser.selectedFile.toPath())
-                    return@invokeLater
-                }
-                continuation.resumeWithException(
-                    exception = LocalMusicScanException(
-                        error = LocalMusicScanError(
-                            type = LocalMusicScanErrorType.UserCancelled,
-                            message = "未选择音乐文件夹",
-                            sourceKind = LocalMusicSourceKind.DesktopFolder,
-                        ),
-                    ),
-                )
-            }
-        }
-    }
-
     // 递归扫描用户授权的文件夹，并把不可读文件记录为问题条目。
     private fun scanFolder(folder: Path): LocalMusicScanResult {
         if (!Files.isDirectory(folder)) {
@@ -90,7 +67,8 @@ class DesktopFolderMusicScanner : LocalMusicScanner {
         }
         val discovered: MutableList<MusicFileMetadata> = mutableListOf()
         val failed: MutableList<LocalMusicProblem> = mutableListOf()
-        val completedAt: Long = System.currentTimeMillis()
+        val completedAt: Long = nowMillis()
+        val folderSourceId: String = folder.toStableSourceId()
         val stream = Files.walk(folder)
         try {
             stream.forEach { path -> scanPath(path = path, discovered = discovered, failed = failed) }
@@ -113,10 +91,17 @@ class DesktopFolderMusicScanner : LocalMusicScanner {
             sourceSummaries = listOf(
                 LocalMusicSourceSummary(
                     sourceKind = LocalMusicSourceKind.DesktopFolder,
+                    sourceId = folderSourceId,
                     displayName = folder.fileName?.toString() ?: LocalMusicSourceKind.DesktopFolder.displayName,
                     songCount = discovered.size,
                     problemCount = failed.size,
                     lastScannedAt = completedAt,
+                ),
+            ),
+            completedCoverage = listOf(
+                LocalMusicScanCoverage.ConcreteSource(
+                    sourceKind = LocalMusicSourceKind.DesktopFolder,
+                    sourceId = folderSourceId,
                 ),
             ),
             completedAt = completedAt,
@@ -187,4 +172,39 @@ class DesktopFolderMusicScanner : LocalMusicScanner {
             ),
         )
     }
+}
+
+// 在 Swing 事件线程显示文件夹选择器，避免阻塞 Compose 主渲染线程。
+private suspend fun chooseMusicFolderFromDialog(): Path {
+    return suspendCancellableCoroutine { continuation ->
+        SwingUtilities.invokeLater {
+            val chooser: JFileChooser = JFileChooser().apply {
+                dialogTitle = "选择音乐文件夹"
+                fileSelectionMode = JFileChooser.DIRECTORIES_ONLY
+                isAcceptAllFileFilterUsed = false
+            }
+            val result: Int = chooser.showOpenDialog(null)
+            if (!continuation.isActive) {
+                return@invokeLater
+            }
+            if (result == JFileChooser.APPROVE_OPTION) {
+                continuation.resume(value = chooser.selectedFile.toPath())
+                return@invokeLater
+            }
+            continuation.resumeWithException(
+                exception = LocalMusicScanException(
+                    error = LocalMusicScanError(
+                        type = LocalMusicScanErrorType.UserCancelled,
+                        message = "未选择音乐文件夹",
+                        sourceKind = LocalMusicSourceKind.DesktopFolder,
+                    ),
+                ),
+            )
+        }
+    }
+}
+
+// 用规范化绝对路径作为桌面扫描目录的稳定具体来源身份。
+private fun Path.toStableSourceId(): String {
+    return toAbsolutePath().normalize().toString()
 }
