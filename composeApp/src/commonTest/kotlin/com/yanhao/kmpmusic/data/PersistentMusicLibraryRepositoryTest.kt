@@ -1,12 +1,14 @@
 package com.yanhao.kmpmusic.data
 
 import com.yanhao.kmpmusic.domain.model.CoverArt
+import com.yanhao.kmpmusic.domain.model.LocalMusicScanCoverage
 import com.yanhao.kmpmusic.domain.model.LocalMusicScanRequest
 import com.yanhao.kmpmusic.domain.model.LocalMusicScanResult
 import com.yanhao.kmpmusic.domain.model.LocalMusicScanState
 import com.yanhao.kmpmusic.domain.model.LocalMusicSourceKind
 import com.yanhao.kmpmusic.domain.model.LocalMusicSourceSummary
 import com.yanhao.kmpmusic.domain.model.MusicFileMetadata
+import com.yanhao.kmpmusic.domain.model.Song
 import com.yanhao.kmpmusic.domain.persistence.FavoriteSongDao
 import com.yanhao.kmpmusic.domain.persistence.FavoriteSongEntity
 import com.yanhao.kmpmusic.domain.persistence.LocalSongDao
@@ -79,6 +81,9 @@ class PersistentMusicLibraryRepositoryTest {
                         modifiedAt = 3L,
                     ),
                 ),
+                completedCoverage = listOf(
+                    LocalMusicScanCoverage.SourceKind(sourceKind = LocalMusicSourceKind.AndroidMediaStore),
+                ),
                 completedAt = 99L,
             ),
             likedSongIds = emptySet(),
@@ -92,9 +97,16 @@ class PersistentMusicLibraryRepositoryTest {
     @Test
     fun positiveOnlyScanAddsNewSameSourceSongWithoutRemovingExistingSong(): Unit = runBlocking {
         val localSongDao: FakeLocalSongDao = FakeLocalSongDao()
+        val favoriteSongDao: FakeFavoriteSongDao = FakeFavoriteSongDao()
         val repository: PersistentMusicLibraryRepository = PersistentMusicLibraryRepository(
             localSongDao = localSongDao,
-            favoriteSongDao = FakeFavoriteSongDao(),
+            favoriteSongDao = favoriteSongDao,
+        )
+        favoriteSongDao.saveFavorite(
+            entity = FavoriteSongEntity(
+                songId = "androidMediaStore:existing",
+                updatedAt = 1L,
+            ),
         )
         localSongDao.upsertSongs(
             songs = listOf(
@@ -108,7 +120,7 @@ class PersistentMusicLibraryRepositoryTest {
         )
 
         repository.applyScanResult(
-            request = LocalMusicScanRequest.Refresh,
+            request = LocalMusicScanRequest.Source(LocalMusicSourceKind.AndroidMediaStore),
             scanResult = LocalMusicScanResult(
                 discovered = listOf(
                     metadata(
@@ -121,14 +133,16 @@ class PersistentMusicLibraryRepositoryTest {
                 sourceSummaries = emptyList(),
                 completedAt = 10L,
             ),
-            likedSongIds = emptySet(),
+            likedSongIds = favoriteSongDao.getFavoriteSongIds().toSet(),
         )
 
-        val availableSongIds: Set<String> = repository.getAllAvailableSongs()
-            .map { song -> song.id }
+        val availableSongs: List<Song> = repository.getAllAvailableSongs()
+        val availableSongIds: Set<String> = availableSongs
+            .map { song: Song -> song.id }
             .toSet()
         assertTrue(actual = localSongDao.row("androidMediaStore:existing")!!.isAvailable)
         assertTrue(actual = localSongDao.row("androidMediaStore:new")!!.isAvailable)
+        assertTrue(actual = availableSongs.first { song: Song -> song.id == "androidMediaStore:existing" }.isLiked)
         assertEquals(
             expected = setOf(
                 "androidMediaStore:existing",
@@ -169,6 +183,9 @@ class PersistentMusicLibraryRepositoryTest {
             request = LocalMusicScanRequest.Source(LocalMusicSourceKind.AndroidMediaStore),
             scanResult = LocalMusicScanResult(
                 discovered = emptyList(),
+                completedCoverage = listOf(
+                    LocalMusicScanCoverage.SourceKind(sourceKind = LocalMusicSourceKind.AndroidMediaStore),
+                ),
                 completedAt = 2L,
             ),
             likedSongIds = favoriteSongDao.getFavoriteSongIds().toSet(),
@@ -185,6 +202,9 @@ class PersistentMusicLibraryRepositoryTest {
                         title = "Liked Again",
                         modifiedAt = 3L,
                     ),
+                ),
+                completedCoverage = listOf(
+                    LocalMusicScanCoverage.SourceKind(sourceKind = LocalMusicSourceKind.AndroidMediaStore),
                 ),
                 completedAt = 3L,
             ),
@@ -334,7 +354,7 @@ class PersistentMusicLibraryRepositoryTest {
     }
 
     @Test
-    fun refreshWithoutDiscoveredSongsMarksAllExistingSourcesUnavailable(): Unit = runBlocking {
+    fun positiveOnlyRefreshWithoutDiscoveredSongsPreservesExistingSources(): Unit = runBlocking {
         val localSongDao: FakeLocalSongDao = FakeLocalSongDao()
         val repository: PersistentMusicLibraryRepository = PersistentMusicLibraryRepository(
             localSongDao = localSongDao,
@@ -369,10 +389,10 @@ class PersistentMusicLibraryRepositoryTest {
         )
 
         val summary: LocalMusicScanState.Done = snapshot.scanState as LocalMusicScanState.Done
-        assertFalse(actual = localSongDao.row("androidMediaStore:gone")!!.isAvailable)
-        assertFalse(actual = localSongDao.row("desktopFolder:gone")!!.isAvailable)
-        assertTrue(actual = repository.getAllAvailableSongs().isEmpty())
-        assertEquals(expected = 2, actual = summary.summary.removedCount)
+        assertTrue(actual = localSongDao.row("androidMediaStore:gone")!!.isAvailable)
+        assertTrue(actual = localSongDao.row("desktopFolder:gone")!!.isAvailable)
+        assertEquals(expected = 2, actual = repository.getAllAvailableSongs().size)
+        assertEquals(expected = 0, actual = summary.summary.removedCount)
         assertEquals(expected = 0, actual = summary.summary.addedCount)
         assertEquals(expected = 0, actual = summary.summary.updatedCount)
     }

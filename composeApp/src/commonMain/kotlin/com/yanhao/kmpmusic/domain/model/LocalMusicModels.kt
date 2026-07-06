@@ -128,6 +128,59 @@ data class LocalMusicSourceSummary(
 )
 
 /**
+ * 扫描结果的覆盖层级，用于区分结果是否拥有删除旧歌曲的权限。
+ */
+enum class LocalMusicScanCoverageLevel {
+    SourceKind,
+    ConcreteSource,
+    PositiveOnly,
+}
+
+/**
+ * 扫描结果显式完成的覆盖范围，仓库只能依据这个契约执行缺失歌曲下线。
+ */
+sealed interface LocalMusicScanCoverage {
+    /**
+     * 当前覆盖项的层级，方便测试和合并逻辑按语义分组。
+     */
+    val level: LocalMusicScanCoverageLevel
+
+    /**
+     * 完整覆盖某个来源类型，例如 Android 系统媒体库。
+     */
+    data class SourceKind(
+        val sourceKind: LocalMusicSourceKind,
+    ) : LocalMusicScanCoverage {
+        override val level: LocalMusicScanCoverageLevel = LocalMusicScanCoverageLevel.SourceKind
+    }
+
+    /**
+     * 完整覆盖某个具体来源，例如单个桌面扫描目录。
+     */
+    data class ConcreteSource(
+        val sourceKind: LocalMusicSourceKind,
+        val sourceId: String,
+    ) : LocalMusicScanCoverage {
+        override val level: LocalMusicScanCoverageLevel = LocalMusicScanCoverageLevel.ConcreteSource
+    }
+
+    /**
+     * 只代表正向发现或验证结果，不允许用缺失项删除旧歌曲。
+     */
+    data object PositiveOnly : LocalMusicScanCoverage {
+        override val level: LocalMusicScanCoverageLevel = LocalMusicScanCoverageLevel.PositiveOnly
+    }
+}
+
+/**
+ * 扫描结果的删除权限，避免合并层从发现结果或摘要里猜测覆盖范围。
+ */
+enum class LocalMusicScanDeletionAuthority {
+    None,
+    CoveredSourcesOnly,
+}
+
+/**
  * 最近一次扫描摘要，用于首页卡片展示结果。
  */
 data class LocalMusicLastScanSummary(
@@ -146,8 +199,23 @@ data class LocalMusicScanResult(
     val removedSourceKeys: Set<String> = emptySet(),
     val failed: List<LocalMusicProblem> = emptyList(),
     val sourceSummaries: List<LocalMusicSourceSummary> = emptyList(),
+    val completedCoverage: List<LocalMusicScanCoverage> = emptyList(),
     val completedAt: Long = 0L,
-)
+) {
+    /**
+     * 只有显式覆盖来源类型或具体来源时，结果才拥有删除旧歌曲的权限。
+     */
+    val deletionAuthority: LocalMusicScanDeletionAuthority
+        get() {
+            val hasCoveredSource: Boolean = completedCoverage.any { coverage: LocalMusicScanCoverage ->
+                coverage is LocalMusicScanCoverage.SourceKind || coverage is LocalMusicScanCoverage.ConcreteSource
+            }
+            if (hasCoveredSource) {
+                return LocalMusicScanDeletionAuthority.CoveredSourcesOnly
+            }
+            return LocalMusicScanDeletionAuthority.None
+        }
+}
 
 /**
  * 本地扫描状态，页面只根据这个平台无关状态渲染。

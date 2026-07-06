@@ -7,6 +7,7 @@ import com.yanhao.kmpmusic.domain.model.LibrarySnapshot
 import com.yanhao.kmpmusic.domain.model.LibraryStats
 import com.yanhao.kmpmusic.domain.model.LocalMusicLastScanSummary
 import com.yanhao.kmpmusic.domain.model.LocalMusicProblem
+import com.yanhao.kmpmusic.domain.model.LocalMusicScanCoverage
 import com.yanhao.kmpmusic.domain.model.LocalMusicScanRequest
 import com.yanhao.kmpmusic.domain.model.LocalMusicScanResult
 import com.yanhao.kmpmusic.domain.model.LocalMusicScanState
@@ -83,12 +84,14 @@ class PersistentMusicLibraryRepository(
         likedSongIds: Set<String>,
     ): LibrarySnapshot = runBlocking {
         val coveredSourceKinds: Set<String> = resolveCoveredSourceKinds(
-            request = request,
             scanResult = scanResult,
         )
         val discoveredEntities: List<LocalSongEntity> = scanResult.discovered
             .filter { metadata: MusicFileMetadata -> metadata.localUri.isNotBlank() }
             .map { metadata: MusicFileMetadata -> metadata.toEntity(lastScannedAt = scanResult.completedAt) }
+        val previousAvailableIds: Set<String> = localSongDao.getAllAvailableSongs()
+            .map { entity: LocalSongEntity -> entity.id }
+            .toSet()
         val previousIdsBySourceKind: Map<String, Set<String>> = coveredSourceKinds.associateWith { sourceKind: String ->
             localSongDao.getAvailableSongIdsBySource(sourceKind = sourceKind).toSet()
         }
@@ -108,10 +111,10 @@ class PersistentMusicLibraryRepository(
         }
         val summary: LocalMusicLastScanSummary = LocalMusicLastScanSummary(
             addedCount = discoveredEntities.count { entity: LocalSongEntity ->
-                previousIdsBySourceKind[entity.sourceKind]?.contains(element = entity.id) == false
+                !previousAvailableIds.contains(element = entity.id)
             },
             updatedCount = discoveredEntities.count { entity: LocalSongEntity ->
-                previousIdsBySourceKind[entity.sourceKind]?.contains(element = entity.id) == true
+                previousAvailableIds.contains(element = entity.id)
             },
             removedCount = coveredSourceKinds.sumOf { sourceKind: String ->
                 val discoveredIds: Set<String> = discoveredEntities
@@ -184,33 +187,18 @@ class PersistentMusicLibraryRepository(
         )
     }
 
-    /** 根据请求和结果推导本轮覆盖的来源集合，避免跨来源误下线。 */
-    private suspend fun resolveCoveredSourceKinds(
-        request: LocalMusicScanRequest,
+    /** 根据显式覆盖契约推导本轮覆盖的来源集合，避免从正向结果误推删除权。 */
+    private fun resolveCoveredSourceKinds(
         scanResult: LocalMusicScanResult,
     ): Set<String> {
-        val fromRequest: Set<String> = when (request) {
-            is LocalMusicScanRequest.Source -> setOf(element = request.sourceKind.value)
-            LocalMusicScanRequest.InitialScan,
-            LocalMusicScanRequest.Refresh,
-            -> emptySet()
-        }
-        val fromSummaries: Set<String> = scanResult.sourceSummaries
-            .map { source: LocalMusicSourceSummary -> source.sourceKind.value }
+        val fromCompletedCoverage: Set<String> = scanResult.completedCoverage
+            .filterIsInstance<LocalMusicScanCoverage.SourceKind>()
+            .map { coverage: LocalMusicScanCoverage.SourceKind -> coverage.sourceKind.value }
             .toSet()
-        val fromDiscovered: Set<String> = scanResult.discovered
-            .map { metadata: MusicFileMetadata -> metadata.sourceKind.value }
-            .toSet()
-        val explicitSources: Set<String> = fromRequest + fromSummaries + fromDiscovered
-        if (explicitSources.isNotEmpty()) {
-            return explicitSources
+        if (fromCompletedCoverage.isNotEmpty()) {
+            return fromCompletedCoverage
         }
-        return when (request) {
-            LocalMusicScanRequest.InitialScan,
-            LocalMusicScanRequest.Refresh,
-            -> localSongDao.getAvailableSourceKinds().toSet()
-            is LocalMusicScanRequest.Source -> emptySet()
-        }
+        return emptySet()
     }
 
     /** 把扫描元数据转换为可覆盖写入数据库的本地歌曲实体。 */
