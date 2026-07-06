@@ -40,6 +40,7 @@ fun MobileSecondaryScreenRoute(
             artists = state.localArtists,
             sources = state.localMusicSources,
             problems = state.localMusicProblems,
+            scanState = state.scanState,
             initialSection = secondaryScreen.initialSection,
             currentSongId = state.currentSongId,
             currentPlaybackStatus = state.playbackStatus,

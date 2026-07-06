@@ -18,6 +18,7 @@ import androidx.compose.ui.unit.dp
 import com.yanhao.kmpmusic.domain.model.Album
 import com.yanhao.kmpmusic.domain.model.Artist
 import com.yanhao.kmpmusic.domain.model.LocalMusicProblem
+import com.yanhao.kmpmusic.domain.model.LocalMusicScanState
 import com.yanhao.kmpmusic.domain.model.LocalMusicSourceSummary
 import com.yanhao.kmpmusic.domain.model.PlaybackStatus
 import com.yanhao.kmpmusic.domain.model.Song
@@ -35,6 +36,10 @@ import com.yanhao.kmpmusic.feature.desktop.components.DesktopSectionHeader
 import com.yanhao.kmpmusic.feature.desktop.components.DesktopSectionEmptyMessage
 import com.yanhao.kmpmusic.feature.desktop.components.DesktopSegmentedControl
 import com.yanhao.kmpmusic.feature.desktop.components.DesktopSongTable
+import com.yanhao.kmpmusic.feature.screen.cancelledScanResultDetail
+import com.yanhao.kmpmusic.feature.screen.cancelledScanResultTitle
+import com.yanhao.kmpmusic.feature.screen.formatLocalMusicScanDate
+import com.yanhao.kmpmusic.feature.screen.localMusicScanActionLabel
 
 private const val ARTIST_STRIP_COUNT = 4
 
@@ -49,6 +54,7 @@ internal fun DesktopLocalMusicScreen(
     artists: List<Artist>,
     sources: List<LocalMusicSourceSummary>,
     problems: List<LocalMusicProblem>,
+    scanState: LocalMusicScanState,
     currentSongId: String?,
     currentPlaybackStatus: PlaybackStatus,
     onBack: () -> Unit,
@@ -77,7 +83,7 @@ internal fun DesktopLocalMusicScreen(
             ),
         ) {
             DesktopPrimaryButton(text = "返回", onClick = onBack)
-            DesktopPrimaryButton(text = "重新扫描", onClick = onScan)
+            DesktopPrimaryButton(text = localMusicScanActionLabel(scanState = scanState), onClick = onScan)
         }
         DesktopSegmentedControl(
             labels = LocalMusicSection.entries.map { sectionEntry: LocalMusicSection ->
@@ -109,6 +115,7 @@ internal fun DesktopLocalMusicScreen(
             LocalMusicSection.Sources -> DesktopLocalSourcesSection(
                 sources = sources,
                 problems = problems,
+                scanState = scanState,
             )
         }
     }
@@ -161,7 +168,16 @@ private fun DesktopLocalArtistSection(
 private fun DesktopLocalSourcesSection(
     sources: List<LocalMusicSourceSummary>,
     problems: List<LocalMusicProblem>,
+    scanState: LocalMusicScanState,
 ) {
+    if (scanState is LocalMusicScanState.Cancelled) {
+        DesktopContentRow(
+            icon = DesktopContentRowSyncIcon,
+            title = cancelledScanResultTitle(scanState = scanState),
+            subtitle = cancelledScanResultDetail(scanState = scanState),
+        )
+        Spacer(modifier = Modifier.height(18.dp))
+    }
     DesktopSectionHeader(title = "来源摘要")
     Spacer(modifier = Modifier.height(14.dp))
     if (sources.isEmpty()) {
@@ -237,19 +253,5 @@ private fun LocalMusicSection.desktopLocalMusicSubtitle(
 
 /** 来源摘要里的扫描时间只需要稳定日期文本，不依赖组件文件内的私有实现。 */
 private fun formatDesktopSourceScanDate(timestampMillis: Long): String {
-    val epochDay: Long = timestampMillis.floorDiv(86_400_000L)
-    val shiftedDay: Long = epochDay + 719_468L
-    val eraOffset: Long = if (shiftedDay >= 0L) shiftedDay else shiftedDay - 146_096L
-    val eraIndex: Long = eraOffset / 146_097L
-    val dayOfEra: Long = shiftedDay - eraIndex * 146_097L
-    val yearOfEra: Long = (
-        dayOfEra - dayOfEra / 1_460L + dayOfEra / 36_524L - dayOfEra / 146_096L
-        ) / 365L
-    val yearBase: Long = yearOfEra + eraIndex * 400L
-    val dayOfYear: Long = dayOfEra - (365L * yearOfEra + yearOfEra / 4L - yearOfEra / 100L)
-    val monthPrime: Long = (5L * dayOfYear + 2L) / 153L
-    val day: Int = (dayOfYear - (153L * monthPrime + 2L) / 5L + 1L).toInt()
-    val month: Int = (monthPrime + if (monthPrime < 10L) 3L else -9L).toInt()
-    val year: Int = (yearBase + if (month <= 2) 1L else 0L).toInt()
-    return "${year.toString().padStart(length = 4, padChar = '0')}-${month.toString().padStart(length = 2, padChar = '0')}-${day.toString().padStart(length = 2, padChar = '0')}"
+    return formatLocalMusicScanDate(timestampMillis = timestampMillis)
 }

@@ -206,9 +206,23 @@ class PersistentMusicLibraryRepository(
             stats = readLibraryStats(),
             sources = lastSourceSummaries,
             scanState = scanState,
-            lastScanSummary = (scanState as? LocalMusicScanState.Done)?.summary,
+            lastScanSummary = scanState.lastScanSummaryOrNull(),
             problems = lastProblems,
         )
+    }
+
+    /** 最近结果时间对成功和取消都有效，来源页可统一展示扫描结果。 */
+    private fun LocalMusicScanState.lastScanSummaryOrNull(): LocalMusicLastScanSummary? {
+        return when (this) {
+            is LocalMusicScanState.Done -> summary
+            is LocalMusicScanState.Cancelled -> summary
+            LocalMusicScanState.Idle,
+            LocalMusicScanState.WaitingForPermission,
+            is LocalMusicScanState.Importing,
+            is LocalMusicScanState.Scanning,
+            is LocalMusicScanState.Error,
+            -> null
+        }
     }
 
     /** 根据显式覆盖契约推导本轮覆盖的来源集合，避免从正向结果误推删除权。 */

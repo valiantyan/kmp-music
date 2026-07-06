@@ -31,6 +31,8 @@ import com.yanhao.kmpmusic.domain.repository.LocalMusicScanner
 import com.yanhao.kmpmusic.domain.repository.MusicLibraryRepository
 import com.yanhao.kmpmusic.domain.repository.SearchHistoryRepository
 import com.yanhao.kmpmusic.domain.playback.AudioPlayerEngine
+import com.yanhao.kmpmusic.feature.screen.cancelledScanResultDetail
+import com.yanhao.kmpmusic.feature.screen.cancelledScanResultTitle
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
@@ -244,8 +246,8 @@ class MusicAppControllerTest {
         controller.scanLocalMusic(request = LocalMusicScanRequest.Refresh)
         val scanState: LocalMusicScanState = controller.uiState.scanState
         assertTrue(actual = scanState is LocalMusicScanState.Cancelled)
-        assertFalse(actual = scanState is LocalMusicScanState.Done)
-        assertFalse(actual = scanState is LocalMusicScanState.Error)
+        assertFalse(actual = isDoneScanState(scanState = scanState))
+        assertFalse(actual = isErrorScanState(scanState = scanState))
     }
 
     /**
@@ -260,7 +262,10 @@ class MusicAppControllerTest {
         val cancelledState: LocalMusicScanState.Cancelled = controller.uiState.scanState as LocalMusicScanState.Cancelled
         assertEquals(
             expected = "已取消",
-            actual = cancelledState.title,
+            actual = cancelledScanResultTitle(scanState = cancelledState),
+        )
+        assertTrue(
+            actual = cancelledScanResultDetail(scanState = cancelledState).contains(other = "当前曲库已保留"),
         )
     }
 
@@ -1346,12 +1351,23 @@ private fun renderCancelEntryLabelOrNull(scanState: LocalMusicScanState): String
         LocalMusicScanState.Idle,
         LocalMusicScanState.WaitingForPermission,
         is LocalMusicScanState.Done,
+        is LocalMusicScanState.Cancelled,
         is LocalMusicScanState.Error,
         -> null
         is LocalMusicScanState.Scanning,
         is LocalMusicScanState.Importing,
         -> "取消扫描"
     }
+}
+
+// 通过函数边界避免测试在已确认取消态后触发 sealed smart-cast 恒假警告。
+private fun isDoneScanState(scanState: LocalMusicScanState): Boolean {
+    return scanState is LocalMusicScanState.Done
+}
+
+// 通过函数边界保留“取消不是失败”的用户可感知契约。
+private fun isErrorScanState(scanState: LocalMusicScanState): Boolean {
+    return scanState is LocalMusicScanState.Error
 }
 
 /**

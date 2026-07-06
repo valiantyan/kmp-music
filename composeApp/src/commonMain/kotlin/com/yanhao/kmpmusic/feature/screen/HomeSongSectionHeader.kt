@@ -15,7 +15,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.yanhao.kmpmusic.domain.model.LocalMusicScanErrorType
 import com.yanhao.kmpmusic.domain.model.LocalMusicScanState
 
 // 标题行承接 Figma 的动态内容标签，右侧只表达当前歌曲总量。
@@ -81,7 +80,7 @@ internal fun HomeEmptySongsCard(
                 onClick = onScan,
             ) {
                 Text(
-                    text = scanActionLabel(scanState = scanState),
+                    text = localMusicScanActionLabel(scanState = scanState),
                     color = Color.White,
                     fontSize = 14.sp,
                     lineHeight = 16.sp,
@@ -90,26 +89,5 @@ internal fun HomeEmptySongsCard(
                 )
             }
         }
-    }
-}
-
-// 首页空态主按钮复用扫描状态，避免权限错误时仍显示普通扫描入口。
-private fun scanActionLabel(scanState: LocalMusicScanState): String {
-    return when (scanState) {
-        LocalMusicScanState.Idle -> "扫描本地音乐"
-        LocalMusicScanState.WaitingForPermission -> "继续授权"
-        is LocalMusicScanState.Importing -> "导入中"
-        is LocalMusicScanState.Scanning -> "扫描中"
-        is LocalMusicScanState.Done -> "重新扫描"
-        is LocalMusicScanState.Error -> scanErrorActionLabel(scanState = scanState)
-    }
-}
-
-// 权限类错误需要区分普通重试和系统设置入口，避免重复触发无效弹窗。
-private fun scanErrorActionLabel(scanState: LocalMusicScanState.Error): String {
-    return when (scanState.error.type) {
-        LocalMusicScanErrorType.PermissionDenied -> "继续授权"
-        LocalMusicScanErrorType.PermissionPermanentlyDenied -> "打开权限设置"
-        else -> "重试扫描"
     }
 }

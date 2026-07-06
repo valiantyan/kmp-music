@@ -125,6 +125,7 @@ fun DesktopSecondaryScreenRoute(
             artists = state.localArtists,
             sources = state.localMusicSources,
             problems = state.localMusicProblems,
+            scanState = state.scanState,
             currentSongId = state.currentSongId,
             currentPlaybackStatus = state.playbackStatus,
             onBack = controller::navigateBack,

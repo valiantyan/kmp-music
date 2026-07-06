@@ -231,6 +231,9 @@ sealed interface LocalMusicScanState {
     data class Importing(val progress: LocalMusicScanProgress) : LocalMusicScanState
     data class Scanning(val progress: LocalMusicScanProgress) : LocalMusicScanState
     data class Done(val summary: LocalMusicLastScanSummary) : LocalMusicScanState
+    data class Cancelled(
+        val summary: LocalMusicLastScanSummary,
+    ) : LocalMusicScanState
     data class Error(
         val error: LocalMusicScanError,
         val summary: LocalMusicLastScanSummary? = null,

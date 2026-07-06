@@ -14,6 +14,8 @@ import com.yanhao.kmpmusic.domain.model.Album
 import com.yanhao.kmpmusic.domain.model.Artist
 import com.yanhao.kmpmusic.domain.model.LibrarySnapshot
 import com.yanhao.kmpmusic.domain.model.LibraryStats
+import com.yanhao.kmpmusic.domain.model.LocalMusicLastScanSummary
+import com.yanhao.kmpmusic.domain.model.LocalMusicScanErrorType
 import com.yanhao.kmpmusic.domain.model.LocalMusicScanProgress
 import com.yanhao.kmpmusic.domain.model.LocalMusicScanException
 import com.yanhao.kmpmusic.domain.model.LocalMusicScanRequest
@@ -53,6 +55,9 @@ import com.yanhao.kmpmusic.feature.app.search.SearchSessionController
 import com.yanhao.kmpmusic.feature.app.session.LoginAndDialogStateController
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.launch
 
 private const val DEFAULT_SEARCH_QUERY_DEBOUNCE_MILLIS = 300L
@@ -111,6 +116,15 @@ class MusicAppController(
 
     // 冷启动恢复请求在曲库尚未准备好时先挂起，等扫描结果到位后再真正执行。
     private var isPlaybackRestorePending: Boolean = false
+
+    // 扫描入口必须是单任务，运行中再次触发只会标记取消。
+    private var isLocalMusicScanRunning: Boolean = false
+
+    // 取消后旧 scanner 可能稍后返回，用该标记阻止它覆盖取消结果。
+    private var isLocalMusicScanCancellationRequested: Boolean = false
+
+    // 当前扫描协程，取消入口通过它向实际扫描任务发出取消信号。
+    private var currentLocalMusicScanJob: Job? = null
 
     // 搜索会话子控制器负责搜索输入态、防抖和历史 reducer。
     private val searchSessionController: SearchSessionController = SearchSessionController(
@@ -252,10 +266,17 @@ class MusicAppController(
 
     /** 扫描本地音乐并同步曲库快照。 */
     suspend fun scanLocalMusic(request: LocalMusicScanRequest = LocalMusicScanRequest.Refresh) {
+        if (isLocalMusicScanRunning) {
+            cancelRunningLocalMusicScan()
+            return
+        }
         if (shouldConfirmPermissionSettingsBeforeScan()) {
             openPermissionSettingsDialog()
             return
         }
+        isLocalMusicScanRunning = true
+        isLocalMusicScanCancellationRequested = false
+        currentLocalMusicScanJob = currentCoroutineContext()[Job]
         uiState = uiState.copy(
             scanState = LocalMusicScanState.Scanning(
                 progress = LocalMusicScanProgress(currentSourceName = "本地音乐"),
@@ -269,14 +290,60 @@ class MusicAppController(
                 request = request,
                 likedSongIds = likedSongIdsForScan,
             )
+            if (isLocalMusicScanCancellationRequested) {
+                return
+            }
             syncLibrarySnapshot(snapshot = snapshot)
         } catch (scanException: LocalMusicScanException) {
+            if (scanException.error.type == LocalMusicScanErrorType.UserCancelled) {
+                publishCancelledLocalMusicScan()
+                return
+            }
             uiState = uiState.copy(
                 scanState = LocalMusicScanState.Error(error = scanException.error),
                 isQueueOpen = false,
                 moreSongId = null,
             )
+        } finally {
+            isLocalMusicScanRunning = false
+            currentLocalMusicScanJob = null
         }
+    }
+
+    /** 运行中的扫描入口直接取消，不再弹二次确认或启动新 scanner。 */
+    private fun cancelRunningLocalMusicScan() {
+        isLocalMusicScanCancellationRequested = true
+        currentLocalMusicScanJob?.cancel(
+            cause = CancellationException("用户取消了本地音乐扫描"),
+        )
+        publishCancelledLocalMusicScan()
+    }
+
+    /** 生成取消结果态，保证 UI 能稳定展示“已取消”和曲库保留说明。 */
+    private fun publishCancelledLocalMusicScan() {
+        uiState = uiState.copy(
+            scanState = LocalMusicScanState.Cancelled(
+                summary = LocalMusicLastScanSummary(
+                    addedCount = 0,
+                    updatedCount = 0,
+                    removedCount = 0,
+                    problemCount = 0,
+                    completedAt = scanResultTimeMillis(),
+                ),
+            ),
+            isQueueOpen = false,
+            moreSongId = null,
+            isPermissionSettingsDialogOpen = false,
+        )
+    }
+
+    /** 测试环境可能不注入时钟，取消结果仍需要一个可展示的结果时间。 */
+    private fun scanResultTimeMillis(): Long {
+        val currentTimeMillis: Long = nowMillis()
+        if (currentTimeMillis > 0L) {
+            return currentTimeMillis
+        }
+        return 1L
     }
 
     /**

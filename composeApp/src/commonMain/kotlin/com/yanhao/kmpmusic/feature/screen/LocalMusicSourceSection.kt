@@ -16,6 +16,7 @@ import com.yanhao.kmpmusic.core.theme.MusicColors
 import com.yanhao.kmpmusic.core.theme.scaledDp
 import com.yanhao.kmpmusic.core.theme.scaledSp
 import com.yanhao.kmpmusic.domain.model.LocalMusicProblem
+import com.yanhao.kmpmusic.domain.model.LocalMusicScanState
 import com.yanhao.kmpmusic.domain.model.LocalMusicSourceSummary
 import com.yanhao.kmpmusic.feature.components.SectionTitle
 
@@ -24,8 +25,15 @@ import com.yanhao.kmpmusic.feature.components.SectionTitle
 internal fun SourceSection(
     sources: List<LocalMusicSourceSummary>,
     problems: List<LocalMusicProblem>,
+    scanState: LocalMusicScanState,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(scaledDp(12.dp))) {
+        if (scanState is LocalMusicScanState.Cancelled) {
+            SummarySurface(
+                title = cancelledScanResultTitle(scanState = scanState),
+                detail = cancelledScanResultDetail(scanState = scanState),
+            )
+        }
         SectionTitle(title = "来源", meta = "${sources.size} 个")
         if (sources.isEmpty()) {
             EmptySourceState(text = "还没有可展示的扫描来源。")

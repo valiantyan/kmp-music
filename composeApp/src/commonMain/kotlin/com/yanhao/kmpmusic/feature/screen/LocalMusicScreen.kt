@@ -26,6 +26,7 @@ import com.yanhao.kmpmusic.core.theme.scaledSp
 import com.yanhao.kmpmusic.domain.model.Album
 import com.yanhao.kmpmusic.domain.model.Artist
 import com.yanhao.kmpmusic.domain.model.LocalMusicProblem
+import com.yanhao.kmpmusic.domain.model.LocalMusicScanState
 import com.yanhao.kmpmusic.domain.model.LocalMusicSourceSummary
 import com.yanhao.kmpmusic.domain.model.PlaybackStatus
 import com.yanhao.kmpmusic.domain.model.Song
@@ -45,6 +46,7 @@ fun LocalMusicScreen(
     artists: List<Artist>,
     sources: List<LocalMusicSourceSummary>,
     problems: List<LocalMusicProblem>,
+    scanState: LocalMusicScanState,
     initialSection: LocalMusicSection,
     currentSongId: String?,
     currentPlaybackStatus: PlaybackStatus,
@@ -96,7 +98,11 @@ fun LocalMusicScreen(
                 onArtistOpen = onArtistOpen,
             )
             LocalMusicSection.Sources -> item(key = "sources") {
-                SourceSection(sources = sources, problems = problems)
+                SourceSection(
+                    sources = sources,
+                    problems = problems,
+                    scanState = scanState,
+                )
             }
         }
     }
