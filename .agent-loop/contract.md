@@ -26,7 +26,7 @@
 - 从 `progress.md` 恢复当前 issue、阶段、已派发线程和门禁状态。
 - 每次只派发队列中的当前 issue，不并发派发依赖链后续 issue。
 - 当前 issue 声称完成后，重新读取该 issue 文件并执行门禁检查。
-- 门禁通过后，更新 `progress.md`、追加 `log.md`、更新 `scorecard.md`，再推进下一项。
+- 门禁通过后，先创建 Git checkpoint 并记录提交哈希，再更新 `progress.md`、追加 `log.md`、更新 `scorecard.md`；如果这些状态文件产生新 diff，再创建一个小的调度 metadata commit，确认工作区状态满足契约后才推进下一项。
 - 门禁未通过时，停在当前 issue，记录缺失证据和下一步，不推进下一项。
 - issue 17 通过最终验证与对抗式审查后，才能把批次标记为完成。
 
@@ -48,6 +48,7 @@ Issue:
 - 如果当前 issue 是红灯测试任务，验证到测试按预期失败即可，不要为了变绿去实现后续 issue。
 - 优先遵守仓库 AGENTS.md、PRD 和当前 issue 的要求；如有冲突，以更高优先级指令为准。
 - 修改前先阅读 PRD、当前 issue 和相关源码。
+- 不要在实现线程中执行 `git commit`；提交由协调器在门禁通过后统一创建。
 
 实现与验证：
 - 按 `/implement` 流程实现当前 issue；如果当前环境没有该流程，按仓库 AGENTS.md 的实现、验证和提交前自检要求等价执行。
@@ -72,6 +73,21 @@ Code Review：
 - 如果仍未完成，保持 `ready-for-agent`，并在 Comments 说明原因。
 ```
 
+## Git checkpoint 策略
+
+本批次要求每个 issue 通过门禁后形成 Git checkpoint，避免多个 issue 的改动堆在同一个未提交工作区。
+
+- 实现线程只负责当前 issue 的 diff、验证、审查和 issue 文件更新，不自行提交。
+- 协调器在当前 issue 文件门禁通过后，先检查 `git status --short --branch` 和当前 diff，确认改动只属于当前 issue 和必要的 `.agent-loop` 调度记录。
+- 协调器创建一个当前 issue 的 checkpoint commit，并记录提交哈希。
+- 如果记录提交哈希会产生新的 `.agent-loop` 变更，协调器再创建一个小的调度 metadata commit，确保派发下一项前工作区干净。
+- `progress.md`、`log.md` 或 `scorecard.md` 必须记录当前 issue 的 checkpoint commit hash。
+- 只有当前 issue 的文件门禁、验证门禁、Git checkpoint 和工作区状态均满足契约，才能派发下一项。
+
+当前已知 checkpoint：
+
+- issue 13：`118b5163 test: 固化失败扫描保留旧歌红灯用例`
+
 ## 推进门禁
 
 协调器必须重新读取当前 issue 文件，并检查：
@@ -83,6 +99,8 @@ Code Review：
 - `Comments` 是否记录对抗式审查结论。
 - `Comments` 是否记录 code-review 结论。
 - `Comments` 是否记录剩余风险或未完成项。
+- 当前 issue 是否已有 Git checkpoint commit hash。
+- 派发下一项前工作区是否干净，或是否只剩用户明确声明不属于本批次的无关改动。
 
 只有当前 issue 全部满足门禁，才推进下一个 issue。否则停在当前 issue，并在 `progress.md` 和 `log.md` 记录阻塞原因。
 
@@ -93,5 +111,6 @@ Code Review：
 - issue 13 到 17 均为 `ready-for-human`。
 - issue 13 到 17 的验收标准均已全勾。
 - issue 13 到 17 的 `Comments` 均满足门禁。
+- issue 13 到 17 均有对应 Git checkpoint commit hash。
 - issue 17 已记录最终验证和对抗式审查。
 - `progress.md`、`log.md` 和 `scorecard.md` 均记录最终状态与验证证据。

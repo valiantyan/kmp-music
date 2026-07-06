@@ -36,3 +36,20 @@
 - 线程：`codex://threads/019f376d-b62b-7ad0-bcc9-c9ea4a43bd19`。
 - 门禁结果：issue 12 为 `ready-for-human`，验收标准全勾，`Comments` 包含实现摘要、验证命令与结果、对抗式审查、code-review 结论和剩余风险，允许派发 issue 13。
 - 下一步：等待 issue 13 实现线程完成；完成后重新读取 issue 13 文件做门禁检查，未通过则停在 issue 13，不派发 issue 14。
+
+## 2026-07-06 issue 13 checkpoint 已提交
+
+- 意图：修复 issue 13 完成后未形成 Git checkpoint 的恢复风险，避免后续 issue 改动堆在同一个未提交工作区。
+- 行动：提交 issue 13 红灯测试、issue 文件和 coordinator 调度记录。
+- 提交：`118b5163 test: 固化失败扫描保留旧歌红灯用例`。
+- 验证：提交前 diff 只包含 issue 13 测试、issue 13 文件和 `.agent-loop` 调度记录；提交后 `git status --short --branch` 显示工作区干净，分支状态为 `main...origin/main [ahead 15]`。
+- 结果：issue 13 文件门禁和 Git checkpoint 均已满足，可作为 issue 14 前置基线。
+- 下一步：补充批次契约中的 Git checkpoint 门禁；恢复 coordinator 后从 issue 14 继续。
+
+## 2026-07-06 完成 Git checkpoint 门禁修复审查
+
+- 意图：确认 13 到 17 队列在每个 issue 通过门禁后都会先形成 Git checkpoint，再派发下一项。
+- 行动：更新 `AGENTS.md`、`.agent-loop/contract.md`、`progress.md`、`scorecard.md` 和本日志，明确实现线程不提交、协调器创建 checkpoint、记录提交哈希、必要时创建调度 metadata commit。
+- 验证：`git diff --check` 通过；关键词扫描确认 `Git checkpoint`、`提交哈希`、`metadata commit`、`工作区` 和 `118b5163` 均已记录；三轮对抗式审查覆盖契约门禁、恢复路径和安全边界。
+- 结果：未发现新问题；issue 13 checkpoint `118b5163` 已作为 issue 14 前置基线。
+- 下一步：恢复 coordinator 时从 issue 14 开始，issue 14 完成后必须重复文件门禁、Git checkpoint 和 metadata checkpoint。
