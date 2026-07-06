@@ -27,6 +27,24 @@ OpenWiki 包含仓库概览、架构说明、产品工作流、领域概念、�
 -主动列出最可能翻车的3到5个点,改完再交。
 -不接受"看起来没问题",得拿出验证过的证据。
 
+## 顺序批次任务和长跑 Agent Harness
+
+当用户要求按顺序完成一组 issue、PRD 子任务或 Codex 线程时，使用“长跑 Agent Harness”作为协调器。当前项目的 Harness 规则来源是：
+
+- `/Users/yanhao/Downloads/qinglilaji /.agents/skills/long-running-loop/SKILL.md`
+- 本项目 `.agent-loop/` 下的契约、进度、日志、评分和重启策略。
+
+顺序批次必须按队列推进：
+
+- 先读取 `.agent-loop/contract.md`、`.agent-loop/progress.md`、`.agent-loop/log.md`、`.agent-loop/scorecard.md` 和 `.agent-loop/restart-policy.md`。
+- 协调器线程只负责队列、门禁、派发和恢复记录，不在协调器线程直接实现业务代码。
+- 每次只派发当前 issue 的独立实现线程或 fresh session prompt，不要并发派发有依赖的后续 issue。
+- 当前 issue 完成后，必须重新读取对应 issue 文件做门禁检查，不能只相信聊天状态或线程口头结论。
+- 门禁至少检查：`Status: ready-for-human`、验收标准全勾、`Comments` 包含实现摘要、验证命令与结果、对抗式审查、code-review 结论、剩余风险或未完成项。
+- 门禁未通过时停在当前 issue，记录阻塞原因，不推进下一项。
+- 队列全部通过门禁，并完成用户要求的最终验证或审查后，才能把整个批次标记为完成。
+- 如果用户只要求说明“如何使用 Harness”，不要在当前会话创建实现线程或执行该批次。
+
 ## 工作原则
 
 - 修复问题要追求根治，不要为了局部现象打补丁；如果根治会明显扩大改动范围，先说明取舍并确认。
