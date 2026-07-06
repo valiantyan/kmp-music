@@ -47,7 +47,7 @@ class PersistentMusicLibraryRepositoryTest {
     }
 
     @Test
-    fun scanUpsertsExistingSongsAndMarksMissingSameSourceUnavailable(): Unit = runBlocking {
+    fun androidCompleteMediaStoreCoverageMarksMissingAndroidSongUnavailableAfterPositiveOnlyKeepsIt(): Unit = runBlocking {
         val localSongDao: FakeLocalSongDao = FakeLocalSongDao()
         val repository: PersistentMusicLibraryRepository = PersistentMusicLibraryRepository(
             localSongDao = localSongDao,
@@ -70,6 +70,24 @@ class PersistentMusicLibraryRepositoryTest {
                 ),
             ),
         )
+
+        repository.applyScanResult(
+            request = LocalMusicScanRequest.Source(LocalMusicSourceKind.AndroidMediaStore),
+            scanResult = LocalMusicScanResult(
+                discovered = listOf(
+                    metadata(
+                        sourceId = "new",
+                        title = "New",
+                        modifiedAt = 3L,
+                    ),
+                ),
+                completedAt = 98L,
+            ),
+            likedSongIds = emptySet(),
+        )
+
+        assertTrue(actual = localSongDao.row("androidMediaStore:old")!!.isAvailable)
+        assertTrue(actual = localSongDao.row("androidMediaStore:new")!!.isAvailable)
 
         repository.applyScanResult(
             request = LocalMusicScanRequest.Source(LocalMusicSourceKind.AndroidMediaStore),
