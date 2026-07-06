@@ -12,6 +12,7 @@ import com.yanhao.kmpmusic.AndroidAudioPermissionResult
 import com.yanhao.kmpmusic.domain.model.LocalMusicScanError
 import com.yanhao.kmpmusic.domain.model.LocalMusicScanErrorType
 import com.yanhao.kmpmusic.domain.model.LocalMusicScanException
+import com.yanhao.kmpmusic.domain.model.LocalMusicScanCoverage
 import com.yanhao.kmpmusic.domain.model.LocalMusicScanRequest
 import com.yanhao.kmpmusic.domain.model.LocalMusicScanResult
 import com.yanhao.kmpmusic.domain.model.LocalMusicSourceKind
@@ -87,6 +88,9 @@ internal class AndroidMediaStoreScanner(
                             problemCount = 0,
                             lastScannedAt = completedAt,
                         ),
+                    ),
+                    completedCoverage = listOf(
+                        LocalMusicScanCoverage.SourceKind(sourceKind = LocalMusicSourceKind.AndroidMediaStore),
                     ),
                     completedAt = completedAt,
                 )
