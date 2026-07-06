@@ -53,3 +53,11 @@
 - 验证：`git diff --check` 通过；关键词扫描确认 `Git checkpoint`、`提交哈希`、`metadata commit`、`工作区` 和 `118b5163` 均已记录；三轮对抗式审查覆盖契约门禁、恢复路径和安全边界。
 - 结果：未发现新问题；issue 13 checkpoint `118b5163` 已作为 issue 14 前置基线。
 - 下一步：恢复 coordinator 时从 issue 14 开始，issue 14 完成后必须重复文件门禁、Git checkpoint 和 metadata checkpoint。
+
+## 2026-07-06 issue 14 已派发
+
+- 意图：按用户要求恢复 `local-audio-discovery-source-coverage` 批次，先复核 issue 13 文件门禁、Git checkpoint 和工作区状态，再派发 issue 14。
+- 行动：重新读取 `AGENTS.md`、`.agent-loop` 契约文件、长跑 Harness skill、PRD 和 issue 13 到 17；执行 `git status --short --branch`；确认 issue 13 checkpoint `118b5163` 存在。
+- 门禁结果：issue 13 为 `ready-for-human`，验收标准全勾，`Comments` 包含实现摘要、验证命令与结果、对抗式审查、code-review 结论和剩余风险；工作区干净，分支状态为 `main...origin/main [ahead 16]`。
+- 线程：issue 14 已派发到 `codex://threads/019f3781-c2cf-7cf3-8f12-39e8e3fd9653`。
+- 下一步：等待 issue 14 实现线程完成；完成后重新读取 issue 14 文件做门禁检查，未通过则停在 issue 14，不派发 issue 15。
