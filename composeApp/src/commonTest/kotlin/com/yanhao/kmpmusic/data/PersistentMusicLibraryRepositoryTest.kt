@@ -281,6 +281,59 @@ class PersistentMusicLibraryRepositoryTest {
     }
 
     @Test
+    fun iosImportAddsNewFileWithoutReplacingExistingImportedFile(): Unit = runBlocking {
+        val localSongDao: FakeLocalSongDao = FakeLocalSongDao()
+        val repository: PersistentMusicLibraryRepository = PersistentMusicLibraryRepository(
+            localSongDao = localSongDao,
+            favoriteSongDao = FakeFavoriteSongDao(),
+        )
+        val existingSourceId: String = "bookmark://ios/imported/existing.m4a"
+        val newSourceId: String = "bookmark://ios/imported/new.m4a"
+        val existingSongId: String = "iosImportedFile:$existingSourceId"
+        val newSongId: String = "iosImportedFile:$newSourceId"
+        localSongDao.upsertSongs(
+            songs = listOf(
+                entity(
+                    id = existingSongId,
+                    sourceKind = LocalMusicSourceKind.IosImportedFile.value,
+                    sourceId = existingSourceId,
+                    concreteSourceId = existingSourceId,
+                    title = "Existing iOS Import",
+                    modifiedAt = 1L,
+                ),
+            ),
+        )
+
+        repository.applyScanResult(
+            request = LocalMusicScanRequest.Source(LocalMusicSourceKind.IosImportedFile),
+            scanResult = LocalMusicScanResult(
+                discovered = listOf(
+                    metadata(
+                        sourceKind = LocalMusicSourceKind.IosImportedFile,
+                        sourceId = newSourceId,
+                        concreteSourceId = newSourceId,
+                        title = "New iOS Import",
+                        modifiedAt = 2L,
+                    ),
+                ),
+                completedCoverage = listOf(LocalMusicScanCoverage.PositiveOnly),
+                completedAt = 40L,
+            ),
+            likedSongIds = emptySet(),
+        )
+
+        val availableSongIds: Set<String> = repository.getAllAvailableSongs()
+            .map { song: Song -> song.id }
+            .toSet()
+        assertTrue(actual = localSongDao.row(existingSongId)!!.isAvailable)
+        assertTrue(actual = localSongDao.row(newSongId)!!.isAvailable)
+        assertEquals(
+            expected = setOf(existingSongId, newSongId),
+            actual = availableSongIds,
+        )
+    }
+
+    @Test
     fun favoritesAreDerivedAndSurviveUnavailableSongs(): Unit = runBlocking {
         val localSongDao: FakeLocalSongDao = FakeLocalSongDao()
         val favoriteSongDao: FakeFavoriteSongDao = FakeFavoriteSongDao()
