@@ -171,6 +171,64 @@ class PersistentMusicLibraryRepositoryTest {
     }
 
     @Test
+    fun desktopFolderAccumulationScanKeepsFolderASongWhenScanningFolderB(): Unit = runBlocking {
+        val localSongDao: FakeLocalSongDao = FakeLocalSongDao()
+        val repository: PersistentMusicLibraryRepository = PersistentMusicLibraryRepository(
+            localSongDao = localSongDao,
+            favoriteSongDao = FakeFavoriteSongDao(),
+        )
+        val folderAPath: String = "/Users/listener/Music/A"
+        val folderBPath: String = "/Users/listener/Music/B"
+        val folderASourceId: String = "$folderAPath/folder-a.mp3"
+        val folderBSourceId: String = "$folderBPath/folder-b-new.mp3"
+        val folderASongId: String = "desktopFolder:$folderASourceId"
+        val folderBSongId: String = "desktopFolder:$folderBSourceId"
+        localSongDao.upsertSongs(
+            songs = listOf(
+                entity(
+                    id = folderASongId,
+                    sourceKind = LocalMusicSourceKind.DesktopFolder.value,
+                    sourceId = folderASourceId,
+                    title = "Folder A Song",
+                    modifiedAt = 1L,
+                ),
+            ),
+        )
+
+        repository.applyScanResult(
+            request = LocalMusicScanRequest.Source(LocalMusicSourceKind.DesktopFolder),
+            scanResult = LocalMusicScanResult(
+                discovered = listOf(
+                    metadata(
+                        sourceKind = LocalMusicSourceKind.DesktopFolder,
+                        sourceId = folderBSourceId,
+                        title = "Folder B New Song",
+                        modifiedAt = 2L,
+                    ),
+                ),
+                completedCoverage = listOf(
+                    LocalMusicScanCoverage.ConcreteSource(
+                        sourceKind = LocalMusicSourceKind.DesktopFolder,
+                        sourceId = folderBPath,
+                    ),
+                ),
+                completedAt = 20L,
+            ),
+            likedSongIds = emptySet(),
+        )
+
+        val availableSongIds: Set<String> = repository.getAllAvailableSongs()
+            .map { song: Song -> song.id }
+            .toSet()
+        assertTrue(actual = localSongDao.row(folderASongId)!!.isAvailable)
+        assertTrue(actual = localSongDao.row(folderBSongId)!!.isAvailable)
+        assertEquals(
+            expected = setOf(folderASongId, folderBSongId),
+            actual = availableSongIds,
+        )
+    }
+
+    @Test
     fun favoritesAreDerivedAndSurviveUnavailableSongs(): Unit = runBlocking {
         val localSongDao: FakeLocalSongDao = FakeLocalSongDao()
         val favoriteSongDao: FakeFavoriteSongDao = FakeFavoriteSongDao()
