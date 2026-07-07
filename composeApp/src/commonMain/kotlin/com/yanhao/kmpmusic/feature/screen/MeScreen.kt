@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -36,21 +35,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import com.yanhao.kmpmusic.core.theme.MusicColors
-import com.yanhao.kmpmusic.domain.model.Album
-import com.yanhao.kmpmusic.domain.model.Artist
 import com.yanhao.kmpmusic.domain.model.LibraryStats
 import com.yanhao.kmpmusic.domain.model.Song
-import com.yanhao.kmpmusic.feature.components.ArtistRow
 import com.yanhao.kmpmusic.feature.components.CoverArtImage
 import com.yanhao.kmpmusic.feature.components.PlayingGlyph
-import com.yanhao.kmpmusic.feature.components.SectionTitle
 import kmpmusic.composeapp.generated.resources.Res
 import org.jetbrains.compose.resources.ExperimentalResourceApi
-
-/**
- * 我的页收藏摘要最多展示 3 张，完整内容通过“查看”进入，避免窄屏被数据数量挤坏。
- */
-private const val FAVORITE_ALBUM_PREVIEW_COUNT = 3
 
 /**
  * “我的”页最近播放摘要最多展示最新 3 条，点击和播放反馈复用完整最近播放语义。
@@ -63,17 +53,13 @@ private const val RECENT_PLAYED_SUMMARY_PREVIEW_COUNT = 3
 private const val RECENT_PLAYED_SUMMARY_ACTION_LABEL = "查看全部"
 
 /**
- * 我的页，提供本地资料、收藏资产和常听歌手摘要。
+ * 我的页，提供个人资料、静态统计、扫描入口、最近播放摘要和静态设置菜单。
  */
 @Composable
 fun MeScreen(
-    albums: List<Album>,
-    artists: List<Artist>,
     recentSongs: List<Song>,
     currentSongId: String?,
     libraryStats: LibraryStats,
-    onAlbumOpen: (Album) -> Unit,
-    onArtistOpen: (Artist) -> Unit,
     onScanMusic: () -> Unit,
     onRecentPlayedViewAll: () -> Unit,
     onRecentSongPlay: (Song) -> Unit,
@@ -92,43 +78,6 @@ fun MeScreen(
             onSongPlay = onRecentSongPlay,
             onSongMore = onRecentSongMore,
         )
-        Surface(shape = RoundedCornerShape(20.dp), color = MusicColors.Paper, tonalElevation = 1.dp) {
-            Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                SectionTitle(title = "我的收藏", actionLabel = "查看", onAction = { albums.firstOrNull()?.let(onAlbumOpen) })
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    albums.take(FAVORITE_ALBUM_PREVIEW_COUNT).forEach { album ->
-                        Column(
-                            modifier = Modifier.weight(weight = 1f).clickable { onAlbumOpen(album) },
-                            verticalArrangement = Arrangement.spacedBy(7.dp),
-                        ) {
-                            CoverArtImage(
-                                coverArt = album.coverArt,
-                                coverImageUri = album.coverImageUri,
-                                contentDescription = "${album.title} 封面",
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .aspectRatio(ratio = 1f)
-                                    .clip(RoundedCornerShape(11.dp)),
-                                contentScale = ContentScale.Crop,
-                            )
-                            Text(
-                                text = album.title,
-                                color = MusicColors.Muted,
-                                fontSize = 12.sp,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                            )
-                        }
-                    }
-                }
-            }
-        }
-        Surface(shape = RoundedCornerShape(20.dp), color = MusicColors.Paper, tonalElevation = 1.dp) {
-            Column(modifier = Modifier.padding(18.dp)) {
-                SectionTitle(title = "常听歌手", actionLabel = "更多", onAction = { artists.firstOrNull()?.let(onArtistOpen) })
-                artists.take(3).forEach { artist -> ArtistRow(artist = artist, onOpen = onArtistOpen) }
-            }
-        }
         StaticSettingsMenuSection()
     }
 }

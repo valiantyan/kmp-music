@@ -15,8 +15,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -29,26 +27,17 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
-import com.yanhao.kmpmusic.domain.model.Album
-import com.yanhao.kmpmusic.domain.model.Artist
 import com.yanhao.kmpmusic.domain.model.LibraryStats
 import com.yanhao.kmpmusic.domain.model.Song
 import com.yanhao.kmpmusic.feature.desktop.DesktopMusicColors
 import com.yanhao.kmpmusic.feature.desktop.DesktopMusicType
-import com.yanhao.kmpmusic.feature.desktop.components.DesktopAlbumGrid
-import com.yanhao.kmpmusic.feature.desktop.components.DesktopArtistStrip
 import com.yanhao.kmpmusic.feature.desktop.components.DesktopContentRow
-import com.yanhao.kmpmusic.feature.desktop.components.DesktopContentRowFavoritesIcon
-import com.yanhao.kmpmusic.feature.desktop.components.DesktopContentRowFolderIcon
 import com.yanhao.kmpmusic.feature.desktop.components.DesktopPageHeader
 import com.yanhao.kmpmusic.feature.desktop.components.DesktopScanIcon
 import com.yanhao.kmpmusic.feature.desktop.components.DesktopSectionHeader
-import com.yanhao.kmpmusic.feature.desktop.components.DesktopSectionEmptyMessage
 import com.yanhao.kmpmusic.feature.desktop.components.DesktopStatCard
 import kmpmusic.composeapp.generated.resources.Res
 import org.jetbrains.compose.resources.ExperimentalResourceApi
-
-private const val ARTIST_STRIP_COUNT = 4
 
 /**
  * 桌面“我的”页暂不实现真实歌单能力，统计只按 PRD 固定展示。
@@ -61,33 +50,18 @@ private const val STATIC_PLAYLIST_COUNT = 12
 private const val STATIC_LISTENING_HOURS = 365
 
 /**
- * 我的页汇总个人资料、静态统计、最近播放摘要和本地音乐资产入口。
+ * 我的页汇总个人资料、静态统计、扫描入口、最近播放摘要和静态设置菜单。
  */
 @Composable
 fun DesktopMeRootScreen(
-    albums: List<Album>,
     recentSongs: List<Song>,
-    artists: List<Artist>,
     libraryStats: LibraryStats,
     currentSongId: String?,
-    onFavorites: () -> Unit,
-    onFolders: () -> Unit,
     onScanMusic: () -> Unit,
     onRecentPlayedViewAll: () -> Unit,
     onRecentSongPlay: (Song) -> Unit,
     onRecentSongMore: (Song) -> Unit,
-    onBrowseAlbums: () -> Unit,
-    onAlbumOpen: (Album) -> Unit,
-    onArtistOpen: (Artist) -> Unit,
 ) {
-    val recentAlbums: List<Album> = buildRecentAlbums(
-        recentSongs = recentSongs,
-        albums = albums,
-    )
-    val frequentArtists: List<Artist> = buildFrequentArtists(
-        recentSongs = recentSongs,
-        artists = artists,
-    )
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -114,60 +88,6 @@ fun DesktopMeRootScreen(
         )
         Spacer(modifier = Modifier.height(20.dp))
         DesktopMeStaticSettingsMenu()
-        Spacer(modifier = Modifier.height(20.dp))
-        Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-            DesktopContentRow(
-                icon = DesktopContentRowFavoritesIcon,
-                title = "我的收藏",
-                subtitle = "查看收藏的歌曲、专辑和歌手",
-                actionLabel = "查看全部",
-                onClick = onFavorites,
-            )
-            DesktopContentRow(
-                icon = Icons.Rounded.Person,
-                title = "常听歌手",
-                subtitle = "你常听的歌手",
-                actionLabel = null,
-                onClick = null,
-                extraContent = {
-                    Spacer(modifier = Modifier.height(6.dp))
-                    if (frequentArtists.isNotEmpty()) {
-                        DesktopArtistStrip(
-                            artists = frequentArtists.take(ARTIST_STRIP_COUNT),
-                            onArtistOpen = onArtistOpen,
-                        )
-                    } else {
-                        DesktopSectionEmptyMessage(
-                            message = "播放后会在这里显示你最近常听的歌手。",
-                        )
-                    }
-                },
-            )
-            DesktopContentRow(
-                icon = DesktopContentRowFolderIcon,
-                title = "本地文件夹",
-                subtitle = "管理你的本地音乐文件与目录",
-                actionLabel = "管理",
-                onClick = onFolders,
-            )
-        }
-        Spacer(modifier = Modifier.height(24.dp))
-        DesktopSectionHeader(
-            title = "最近播放的专辑",
-            actionLabel = "查看全部",
-            onAction = onBrowseAlbums,
-        )
-        Spacer(modifier = Modifier.height(14.dp))
-        if (recentAlbums.isNotEmpty()) {
-            DesktopAlbumGrid(
-                albums = recentAlbums,
-                onAlbumOpen = onAlbumOpen,
-            )
-        } else {
-            DesktopSectionEmptyMessage(
-                message = "还没有最近播放的专辑，先播放一些音乐吧。",
-            )
-        }
     }
 }
 

@@ -65,13 +65,9 @@ fun MobileRootScreenRoute(
             contentPadding = contentPadding,
         )
         RootTab.Me -> MeScreen(
-            albums = state.albums,
-            artists = state.artists,
             recentSongs = state.recentSongs,
             currentSongId = state.currentSongId,
             libraryStats = state.libraryStats,
-            onAlbumOpen = controller::openAlbum,
-            onArtistOpen = controller::openArtist,
             onScanMusic = controller::openAudioScan,
             onRecentPlayedViewAll = controller::openRecentPlayed,
             onRecentSongPlay = controller::playRecentSong,

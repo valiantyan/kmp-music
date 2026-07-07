@@ -66,24 +66,13 @@ fun DesktopRootScreenRoute(
             onArtistOpen = controller::openArtist,
         )
         RootTab.Me -> DesktopMeRootScreen(
-            albums = state.albums,
             recentSongs = state.recentSongs,
-            artists = state.artists,
             libraryStats = state.libraryStats,
             currentSongId = state.currentSongId,
-            onFavorites = { controller.navigateToRoot(RootTab.Favorites) },
-            onFolders = {
-                controller.openLocalMusic(section = LocalMusicSection.Sources)
-            },
             onScanMusic = onScanLocalMusic,
             onRecentPlayedViewAll = controller::openRecentPlayed,
             onRecentSongPlay = controller::playRecentSong,
             onRecentSongMore = controller::openMore,
-            onBrowseAlbums = {
-                controller.openLocalMusic(section = LocalMusicSection.Albums)
-            },
-            onAlbumOpen = controller::openAlbum,
-            onArtistOpen = controller::openArtist,
         )
     }
 }
