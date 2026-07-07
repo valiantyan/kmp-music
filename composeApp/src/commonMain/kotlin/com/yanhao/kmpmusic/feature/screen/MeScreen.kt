@@ -14,7 +14,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
 import androidx.compose.material.icons.rounded.Edit
+import androidx.compose.material.icons.rounded.LibraryMusic
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -54,12 +56,14 @@ fun MeScreen(
     libraryStats: LibraryStats,
     onAlbumOpen: (Album) -> Unit,
     onArtistOpen: (Artist) -> Unit,
+    onScanMusic: () -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(18.dp)) {
         ProfileSummary()
         MetricRow(
             libraryStats = libraryStats,
         )
+        QuickActionsSection(onScanMusic = onScanMusic)
         Surface(shape = RoundedCornerShape(20.dp), color = MusicColors.Paper, tonalElevation = 1.dp) {
             Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
                 SectionTitle(title = "我的收藏", actionLabel = "查看", onAction = { albums.firstOrNull()?.let(onAlbumOpen) })
@@ -95,6 +99,71 @@ fun MeScreen(
             Column(modifier = Modifier.padding(18.dp)) {
                 SectionTitle(title = "常听歌手", actionLabel = "更多", onAction = { artists.firstOrNull()?.let(onArtistOpen) })
                 artists.take(3).forEach { artist -> ArtistRow(artist = artist, onOpen = onArtistOpen) }
+            }
+        }
+    }
+}
+
+/**
+ * 快速功能区只承载入口导航，扫描动作继续由独立扫描页处理。
+ */
+@Composable
+private fun QuickActionsSection(
+    onScanMusic: () -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Text(
+            text = "快速功能",
+            color = MusicColors.Ink,
+            fontSize = 18.sp,
+            fontWeight = FontWeight.ExtraBold,
+        )
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(20.dp),
+            color = MusicColors.Paper,
+            tonalElevation = 1.dp,
+            onClick = onScanMusic,
+        ) {
+            Row(
+                modifier = Modifier.padding(horizontal = 18.dp, vertical = 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Surface(
+                    modifier = Modifier.size(42.dp),
+                    shape = CircleShape,
+                    color = MusicColors.AccentSoft,
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            imageVector = Icons.Rounded.LibraryMusic,
+                            contentDescription = null,
+                            tint = homeAccentColor,
+                        )
+                    }
+                }
+                Column(
+                    modifier = Modifier.weight(weight = 1f),
+                    verticalArrangement = Arrangement.spacedBy(3.dp),
+                ) {
+                    Text(
+                        text = "扫描音乐",
+                        color = MusicColors.Ink,
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold,
+                    )
+                    Text(
+                        text = "发现设备里的本地音频",
+                        color = MusicColors.Muted,
+                        fontSize = 13.sp,
+                    )
+                }
+                Icon(
+                    imageVector = Icons.AutoMirrored.Rounded.KeyboardArrowRight,
+                    contentDescription = null,
+                    tint = MusicColors.Muted,
+                )
             }
         }
     }

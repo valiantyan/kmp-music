@@ -70,6 +70,7 @@ fun MobileRootScreenRoute(
             libraryStats = state.libraryStats,
             onAlbumOpen = controller::openAlbum,
             onArtistOpen = controller::openArtist,
+            onScanMusic = controller::openAudioScan,
         )
     }
 }
