@@ -94,3 +94,19 @@
 - 协调器验证：`git diff --check` 通过；`./gradlew :composeApp:compileDebugKotlinAndroid :composeApp:desktopTest` 通过，只有既有 Gradle deprecated property 警告。
 - 提交：`76ad9aea test: 固化本地音乐扫描摘要展示`。
 - 下一步：提交本轮 checkpoint hash 的 `.agent-loop` metadata 后，确认工作区干净并派发 issue 16。
+
+## 2026-07-07 issue 16 已派发
+
+- 意图：按队列从已完成的 issue 15 推进到 issue 16，继续保持协调器线程不直接实现业务代码。
+- 前置门禁：issue 15 为 `ready-for-human`，checkpoint 为 `76ad9aea`；metadata checkpoint 为 `40bff41e`；派发前 `git status --short --branch` 显示工作区干净。
+- 线程：issue 16 已派发到 `codex://threads/019f3a5e-6b71-79b0-bf99-d562603351ea`。
+- 下一步：主动轮询 issue 16 实现线程；完成后重新读取 issue 16 文件做门禁检查，未通过则停在 issue 16，不派发 issue 17。
+
+## 2026-07-07 issue 16 checkpoint 已提交
+
+- 意图：对 issue 16 线程交付结果执行协调器门禁，并在通过后创建 Git checkpoint。
+- 门禁结果：issue 16 为 `ready-for-human`，验收标准全勾，`Comments` 包含实现摘要、验证命令与结果、对抗式审查、code-review 结论和剩余风险。
+- Diff 检查：任务 checkpoint 只暂存 issue 16 文件、平台文案模型、移动端/桌面端入口传参、iOS 入口平台参数和文案测试；`.agent-loop` 派发态记录未混入任务 checkpoint，issue 17 仍为 `ready-for-agent`。
+- 协调器验证：`git diff --check` 通过；`./gradlew :composeApp:compileDebugKotlinAndroid :composeApp:desktopTest` 通过。额外 `./gradlew :composeApp:compileKotlinIosSimulatorArm64` 未通过，失败点在未修改的 `PlaybackDatabaseFactory.kt` 和 `PlaybackSnapshotWriter.kt` 既有 Native 兼容问题。
+- 提交：`0c94c487 fix: 收敛本地音乐平台扫描文案`。
+- 下一步：提交本轮 checkpoint hash 的 `.agent-loop` metadata 后，确认工作区干净并派发 issue 17。
