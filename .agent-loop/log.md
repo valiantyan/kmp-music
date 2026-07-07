@@ -110,3 +110,23 @@
 - 协调器验证：`git diff --check` 通过；`./gradlew :composeApp:compileDebugKotlinAndroid :composeApp:desktopTest` 通过。额外 `./gradlew :composeApp:compileKotlinIosSimulatorArm64` 未通过，失败点在未修改的 `PlaybackDatabaseFactory.kt` 和 `PlaybackSnapshotWriter.kt` 既有 Native 兼容问题。
 - 提交：`0c94c487 fix: 收敛本地音乐平台扫描文案`。
 - 下一步：提交本轮 checkpoint hash 的 `.agent-loop` metadata 后，确认工作区干净并派发 issue 17。
+
+## 2026-07-07 issue 17 已派发
+
+- 意图：按队列派发最终验证与对抗式审查任务，保持协调器线程不直接实现业务代码。
+- 前置门禁：issue 16 为 `ready-for-human`，checkpoint 为 `0c94c487`；metadata checkpoint 为 `dfd7fd35`；派发前 `git status --short --branch` 显示工作区干净。
+- 线程：issue 17 已派发到 `codex://threads/019f3a6b-5782-7e72-b1b1-87d9f5ff48ee`。
+- 下一步：主动轮询 issue 17 实现线程；完成后重新读取 issue 17 文件做最终门禁检查，未通过则停在 issue 17，不把批次标记为完成。
+
+## 2026-07-07 issue 17 checkpoint 与批次完成
+
+- 意图：对 issue 17 线程交付结果执行最终门禁，并在通过后创建 Git checkpoint 与批次完成记录。
+- 门禁结果：issue 17 为 `ready-for-human`，验收标准全勾，`Comments` 包含最终验证摘要、验证命令与结果、对抗式审查、code-review 结论和剩余风险。
+- Diff 检查：任务 checkpoint 只暂存 PRD 中文化、issue 17 门禁记录和播放队列 partial scan 回归测试；`.agent-loop` 派发态记录未混入任务 checkpoint；原型目录 diff 为空。
+- 协调器验证：聚焦持久化/扫描契约测试通过；共享 controller/UI 状态测试通过；新增队列回归单测通过；`./gradlew :composeApp:compileDebugKotlinAndroid` 通过；`git diff --check` 通过。Gradle 仍有既有 deprecated property 警告。
+- 提交：`ae17c44b test: 补最终验证与队列审查`。
+- 最终三轮对抗式审查：
+  - 第一轮攻击队列状态和 checkpoint：13 到 17 均为 `ready-for-human`，无未勾选验收项；`118b5163`、`9f63f09c`、`76ad9aea`、`0c94c487`、`ae17c44b` 均为 commit；`08d65ff7` 未被用作完成 checkpoint。
+  - 第二轮攻击验证证据：issue 17 已回到 PRD 原始验收，覆盖具体歌曲 id 的可用性、Android 完整覆盖删除权、Desktop/iOS 累加、取消/失败文案、单任务扫描、收藏和播放队列 partial scan 保留、扫描完成不跳路由。
+  - 第三轮攻击范围和安全：协调器未直接实现业务代码；实现线程未提交；任务 checkpoint 均排除纯派发态 `.agent-loop`；未修改高保真原型；iOS 编译失败已记录为既有 Native 兼容问题而非本批次完成门禁。
+- 结果：issue 13 到 17 队列耗尽，最终门禁通过。下一步提交本轮 `.agent-loop` metadata，确认工作区干净后向用户汇报批次完成。
