@@ -131,7 +131,7 @@ class MusicAppControllerTest {
     }
 
     /**
-     * 我的页查看全部应进入最近播放普通二级页，返回后仍落回我的页。
+     * 我的页查看全部应进入最近播放普通二级页，并保持底部 Tab 与迷你播放器策略稳定。
      */
     @Test
     fun meViewAllRecentPlayedOpensRecentPageAndReturnsToMe(): Unit {
@@ -147,7 +147,24 @@ class MusicAppControllerTest {
             actual = controller.uiState.navigationState.fixedBarMode,
         )
         assertFalse(actual = controller.uiState.navigationState.fixedBarMode.showsBottomNavigation)
+        assertEquals(
+            expected = MobileFixedBarPlacement.MiniPlayerOnly,
+            actual = controller.uiState.navigationState.fixedBarMode.fixedBarPlacement,
+        )
+        assertEquals(
+            expected = ContentBottomSpace.SecondaryWithMiniPlayer,
+            actual = controller.uiState.navigationState.fixedBarMode.contentBottomSpace,
+        )
+        assertFalse(actual = controller.uiState.navigationState.fixedBarMode.coversUnderlyingChrome)
         assertNull(actual = controller.uiState.navigationState.chromeOverlayScreen)
+        assertEquals(
+            expected = SecondaryScreen.RecentPlayed,
+            actual = controller.uiState.navigationState.chromeUnderlaySecondaryScreen,
+        )
+        assertEquals(
+            expected = MobileFixedBarMode.SecondaryWithMiniPlayer,
+            actual = controller.uiState.navigationState.chromeUnderlayFixedBarMode,
+        )
 
         controller.navigateBack()
 
@@ -158,6 +175,15 @@ class MusicAppControllerTest {
             actual = controller.uiState.navigationState.fixedBarMode,
         )
         assertTrue(actual = controller.uiState.navigationState.fixedBarMode.showsBottomNavigation)
+        assertEquals(
+            expected = MobileFixedBarPlacement.TopLevel,
+            actual = controller.uiState.navigationState.fixedBarMode.fixedBarPlacement,
+        )
+        assertEquals(
+            expected = ContentBottomSpace.TopLevel,
+            actual = controller.uiState.navigationState.fixedBarMode.contentBottomSpace,
+        )
+        assertFalse(actual = controller.uiState.navigationState.fixedBarMode.coversUnderlyingChrome)
     }
 
     /**
