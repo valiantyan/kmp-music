@@ -200,10 +200,10 @@ private fun RecentPlayedPageSongRow(
                 horizontalArrangement = Arrangement.spacedBy(space = 6.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                if (row.isCurrentSong) {
+                row.playingIndicatorLabel?.let { label: String ->
                     PlayingGlyph(color = MusicColors.PlayingRed)
                     Text(
-                        text = "播放中",
+                        text = label,
                         color = MusicColors.PlayingRed,
                         fontSize = scaledSp(value = 12.sp),
                         lineHeight = scaledSp(value = 15.sp),

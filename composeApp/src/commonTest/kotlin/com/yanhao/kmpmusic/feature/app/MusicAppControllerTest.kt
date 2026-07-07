@@ -681,7 +681,9 @@ class MusicAppControllerTest {
             .take(n = 5)
             .map { song: Song -> song.id }
         playbackRepository.savePlaybackHistory(
-            history = PlaybackHistory(songIds = recentSongIds),
+            history = PlaybackHistory(
+                songIds = listOf("removed-desktop-song") + recentSongIds + "stale-desktop-song",
+            ),
         )
         controller.loadLocalMusicLibrary()
         val clickedSummarySong: Song = controller.uiState.recentSongs[1]

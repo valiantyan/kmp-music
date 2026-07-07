@@ -7,11 +7,13 @@ import com.yanhao.kmpmusic.domain.model.Song
  *
  * @property song 行内歌曲。
  * @property isCurrentSong 是否为全局当前播放歌曲。
+ * @property playingIndicatorLabel 当前播放辅助标识文案。
  * @property hasMoreAction 是否显示复用全局单曲更多面板的入口。
  */
 internal data class RecentPlayedSongRowDisplayModel(
     val song: Song,
     val isCurrentSong: Boolean,
+    val playingIndicatorLabel: String?,
     val hasMoreAction: Boolean,
 )
 
@@ -23,9 +25,11 @@ internal fun buildRecentPlayedSongRowDisplayModels(
     currentSongId: String?,
 ): List<RecentPlayedSongRowDisplayModel> {
     return songs.map { song: Song ->
+        val isCurrentSong: Boolean = song.id == currentSongId
         RecentPlayedSongRowDisplayModel(
             song = song,
-            isCurrentSong = song.id == currentSongId,
+            isCurrentSong = isCurrentSong,
+            playingIndicatorLabel = if (isCurrentSong) "播放中" else null,
             hasMoreAction = true,
         )
     }

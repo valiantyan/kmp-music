@@ -98,6 +98,10 @@ class MeScreenTest {
             actual = model.songRows.map { row: RecentPlayedSongRowDisplayModel -> row.isCurrentSong },
         )
         assertEquals(
+            expected = listOf(null, "播放中", null),
+            actual = model.songRows.map { row: RecentPlayedSongRowDisplayModel -> row.playingIndicatorLabel },
+        )
+        assertEquals(
             expected = listOf("song-1", "song-2", "song-3"),
             actual = model.songRows.map { row: RecentPlayedSongRowDisplayModel -> row.song.id },
         )
