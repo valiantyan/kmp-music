@@ -37,16 +37,19 @@ OpenWiki 包含仓库概览、架构说明、产品工作流、领域概念、�
 顺序批次必须按队列推进：
 
 - 先读取 `.agent-loop/contract.md`、`.agent-loop/progress.md`、`.agent-loop/log.md`、`.agent-loop/scorecard.md` 和 `.agent-loop/restart-policy.md`。
-- 协调器线程只负责队列、门禁、派发和恢复记录，不在协调器线程直接实现业务代码。
+- 分发会话只负责派发任务、监控任务会话是否完成、记录最小恢复状态和执行轻量证据门禁；不在分发会话里直接实现业务代码。
+- 任务会话负责实现、验证、code review、对抗式审查、更新 issue 文件和创建当前任务的 Git 提交。
 - 每次只派发当前 issue 的独立实现线程或 fresh session prompt，不要并发派发有依赖的后续 issue。
 - 当前 issue 完成后，必须重新读取对应 issue 文件做门禁检查，不能只相信聊天状态或线程口头结论。
 - 门禁至少检查：`Status: ready-for-human`、验收标准全勾、`Comments` 包含实现摘要、验证命令与结果、对抗式审查、code-review 结论、剩余风险或未完成项。
-- 如果当前批次契约要求 Git checkpoint，协调器必须在当前 issue 门禁通过后创建或确认对应提交，记录提交哈希，并确认工作区状态满足契约后才能派发下一项。
+- 如果当前批次契约要求 Git checkpoint，分发会话必须确认任务会话给出的提交哈希是当前分支可达的 commit、位于上一任务 checkpoint 之后，且 issue 文件在该 commit 内已经固化为 `ready-for-human` 并包含验证、审查、对抗式审查和剩余风险证据。
+- 薄分发器模式下，分发会话只能确认任务会话已经创建的任务提交，不得创建任务提交、stage 或 commit。
 - `已派发`、`等待实现`、`等待线程返回` 等运行时状态只能写入 `.agent-loop` 作为恢复记录，不能单独提交为 Git checkpoint，也不能作为当前 issue 完成证据。
 - metadata checkpoint 只能跟随已经完成门禁的 issue checkpoint，用于固化提交哈希、评分、日志或最终状态；任务完成 checkpoint 可以包含 `.agent-loop` 从等待态更新为完成态的状态 diff，但提交语义必须是当前 issue 完成并通过门禁。
 - 如果需要真正后台等待，必须使用已配置的 Codex 自动化、外部运行器，或在当前 turn 中主动轮询；不能只写“等待”后声称会自动跑完整个队列。
 - 门禁未通过时停在当前 issue，记录阻塞原因，不推进下一项。
-- 队列全部通过门禁，并完成用户要求的最终验证或审查后，才能把整个批次标记为完成。
+- 队列全部通过门禁，并完成用户要求的最终审查、最终验证或交接要求后，才能把整个批次标记为完成。
+- 批次完成后，复制本批次 `.agent-loop` 证据到 `.agent-loop/archive/<批次名或日期>/`；归档目录不复制 `AGENTS.md`，只在归档说明中记录入口规则路径或摘要；活跃 `.agent-loop/contract.md`、`log.md`、`progress.md`、`restart-policy.md`、`scorecard.md` 必须全部还原为默认 `idle` 内容，等待下一次长跑 Agent Harness 重新建立任务契约。
 - 如果用户只要求说明“如何使用 Harness”，不要在当前会话创建实现线程或执行该批次。
 
 ## 工作原则
