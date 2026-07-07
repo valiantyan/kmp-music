@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
@@ -101,7 +102,76 @@ fun MeScreen(
                 artists.take(3).forEach { artist -> ArtistRow(artist = artist, onOpen = onArtistOpen) }
             }
         }
+        StaticSettingsMenuSection()
     }
+}
+
+/**
+ * 静态设置菜单只补齐个人中心视觉，不接入任何旧设置、来源管理或关于路由。
+ */
+@Composable
+private fun StaticSettingsMenuSection() {
+    Surface(
+        shape = RoundedCornerShape(20.dp),
+        color = MusicColors.Paper,
+        tonalElevation = 1.dp,
+    ) {
+        Column {
+            listOf(
+                "存储管理",
+                "主题与外观",
+                "关于",
+            ).forEachIndexed { index: Int, title: String ->
+                StaticSettingsMenuRow(title = title)
+                if (index < 2) {
+                    StaticSettingsMenuDivider()
+                }
+            }
+        }
+    }
+}
+
+/**
+ * 单行仅展示右箭头提示，不声明点击回调，避免暴露未完成的设置功能。
+ */
+@Composable
+private fun StaticSettingsMenuRow(
+    title: String,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 18.dp, vertical = 16.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = title,
+            modifier = Modifier.weight(weight = 1f),
+            color = MusicColors.Ink,
+            fontSize = 16.sp,
+            fontWeight = FontWeight.Bold,
+        )
+        Icon(
+            imageVector = Icons.AutoMirrored.Rounded.KeyboardArrowRight,
+            contentDescription = null,
+            tint = MusicColors.Muted,
+        )
+    }
+}
+
+/**
+ * 分割线保持菜单组视觉层次，同时不扩大点击热区。
+ */
+@Composable
+private fun StaticSettingsMenuDivider() {
+    Surface(
+        modifier = Modifier
+            .padding(start = 18.dp)
+            .fillMaxWidth()
+            .height(1.dp),
+        color = MusicColors.AccentSoft,
+    ) {}
 }
 
 /**
