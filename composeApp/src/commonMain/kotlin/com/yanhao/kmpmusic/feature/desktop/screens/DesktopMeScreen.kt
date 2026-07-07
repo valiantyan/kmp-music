@@ -69,10 +69,13 @@ fun DesktopMeRootScreen(
     recentSongs: List<Song>,
     artists: List<Artist>,
     libraryStats: LibraryStats,
+    currentSongId: String?,
     onFavorites: () -> Unit,
     onFolders: () -> Unit,
     onScanMusic: () -> Unit,
     onRecentPlayedViewAll: () -> Unit,
+    onRecentSongPlay: (Song) -> Unit,
+    onRecentSongMore: (Song) -> Unit,
     onBrowseAlbums: () -> Unit,
     onAlbumOpen: (Album) -> Unit,
     onArtistOpen: (Artist) -> Unit,
@@ -104,7 +107,10 @@ fun DesktopMeRootScreen(
         Spacer(modifier = Modifier.height(20.dp))
         DesktopMeRecentPlayedSummary(
             recentSongs = recentSongs,
+            currentSongId = currentSongId,
             onViewAll = onRecentPlayedViewAll,
+            onSongPlay = onRecentSongPlay,
+            onSongMore = onRecentSongMore,
         )
         Spacer(modifier = Modifier.height(20.dp))
         DesktopMeStaticSettingsMenu()

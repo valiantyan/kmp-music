@@ -80,6 +80,54 @@ class DesktopMeScreenTest {
     }
 
     /**
+     * 桌面最近播放摘要歌曲行本轮接入播放和更多入口，但查看全部仍保持独立标题动作。
+     */
+    @Test
+    fun desktopMeRecentPlayedSummaryRowsExposePlaybackAndMoreActions(): Unit {
+        val model: DesktopMeRecentPlayedSummaryDisplayModel = buildDesktopMeRecentPlayedSummaryDisplayModel(
+            recentSongs = listOf(
+                testSong(id = "song-1", title = "Song 1"),
+                testSong(id = "song-2", title = "Song 2"),
+            ),
+        )
+
+        assertEquals(
+            expected = listOf(true, true),
+            actual = model.rows.map { row: DesktopMeRecentPlayedSongDisplayModel -> row.hasPlaybackAction },
+        )
+        assertEquals(
+            expected = listOf(true, true),
+            actual = model.rows.map { row: DesktopMeRecentPlayedSongDisplayModel -> row.hasMoreAction },
+        )
+        assertEquals(expected = "查看全部", actual = model.actionLabel)
+    }
+
+    /**
+     * 桌面摘要只给当前播放歌曲附加播放中标识，避免 Top3 之外或非当前行误高亮。
+     */
+    @Test
+    fun desktopMeRecentPlayedSummaryMarksOnlyCurrentVisibleSong(): Unit {
+        val model: DesktopMeRecentPlayedSummaryDisplayModel = buildDesktopMeRecentPlayedSummaryDisplayModel(
+            recentSongs = listOf(
+                testSong(id = "song-1", title = "Song 1"),
+                testSong(id = "song-2", title = "Song 2"),
+                testSong(id = "song-3", title = "Song 3"),
+                testSong(id = "song-4", title = "Song 4"),
+            ),
+            currentSongId = "song-2",
+        )
+
+        assertEquals(
+            expected = listOf(false, true, false),
+            actual = model.rows.map { row: DesktopMeRecentPlayedSongDisplayModel -> row.isCurrentSong },
+        )
+        assertEquals(
+            expected = listOf(null, "播放中", null),
+            actual = model.rows.map { row: DesktopMeRecentPlayedSongDisplayModel -> row.playingIndicatorLabel },
+        )
+    }
+
+    /**
      * 桌面“我的”页设置菜单只显示三行静态入口，不能携带导航启用语义。
      */
     @Test

@@ -1,7 +1,9 @@
 package com.yanhao.kmpmusic.feature.desktop.screens
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -58,12 +60,20 @@ internal data class DesktopMeRecentPlayedSummaryDisplayModel(
  * @property title 歌曲标题。
  * @property subtitle 歌手和专辑组合文案。
  * @property duration 歌曲时长。
+ * @property isCurrentSong 是否为全局当前播放歌曲。
+ * @property playingIndicatorLabel 当前播放辅助标识文案。
+ * @property hasPlaybackAction 是否允许行点击播放。
+ * @property hasMoreAction 是否显示单曲更多入口。
  */
 internal data class DesktopMeRecentPlayedSongDisplayModel(
     val song: Song,
     val title: String,
     val subtitle: String,
     val duration: String,
+    val isCurrentSong: Boolean,
+    val playingIndicatorLabel: String?,
+    val hasPlaybackAction: Boolean,
+    val hasMoreAction: Boolean,
 )
 
 /**
@@ -71,15 +81,21 @@ internal data class DesktopMeRecentPlayedSongDisplayModel(
  */
 internal fun buildDesktopMeRecentPlayedSummaryDisplayModel(
     recentSongs: List<Song>,
+    currentSongId: String? = null,
 ): DesktopMeRecentPlayedSummaryDisplayModel {
     val rows: List<DesktopMeRecentPlayedSongDisplayModel> = recentSongs
         .take(n = RECENT_PLAYED_SUMMARY_COUNT)
         .map { song: Song ->
+            val isCurrentSong: Boolean = song.id == currentSongId
             DesktopMeRecentPlayedSongDisplayModel(
                 song = song,
                 title = song.title,
                 subtitle = "${song.artist} · ${song.album}",
                 duration = song.duration,
+                isCurrentSong = isCurrentSong,
+                playingIndicatorLabel = if (isCurrentSong) "播放中" else null,
+                hasPlaybackAction = true,
+                hasMoreAction = true,
             )
         }
     return DesktopMeRecentPlayedSummaryDisplayModel(
@@ -92,15 +108,21 @@ internal fun buildDesktopMeRecentPlayedSummaryDisplayModel(
 }
 
 /**
- * 桌面最近播放摘要只做展示和完整页入口，歌曲点击和更多菜单留给后续动作反馈切片。
+ * 桌面最近播放摘要行复用最近播放专用播放入口，避免 Top3 摘要截断播放队列。
  */
 @Composable
 internal fun DesktopMeRecentPlayedSummary(
     recentSongs: List<Song>,
+    currentSongId: String?,
     onViewAll: () -> Unit,
+    onSongPlay: (Song) -> Unit,
+    onSongMore: (Song) -> Unit,
 ) {
     val displayModel: DesktopMeRecentPlayedSummaryDisplayModel =
-        buildDesktopMeRecentPlayedSummaryDisplayModel(recentSongs = recentSongs)
+        buildDesktopMeRecentPlayedSummaryDisplayModel(
+            recentSongs = recentSongs,
+            currentSongId = currentSongId,
+        )
     DesktopSectionHeader(
         title = displayModel.title,
         actionLabel = displayModel.actionLabel,
@@ -121,7 +143,11 @@ internal fun DesktopMeRecentPlayedSummary(
                 DesktopSectionEmptyMessage(message = displayModel.emptyMessage)
             } else {
                 displayModel.rows.forEach { row: DesktopMeRecentPlayedSongDisplayModel ->
-                    DesktopMeRecentPlayedSongRow(row = row)
+                    DesktopMeRecentPlayedSongRow(
+                        row = row,
+                        onSongPlay = onSongPlay,
+                        onSongMore = onSongMore,
+                    )
                 }
             }
         }
@@ -129,16 +155,20 @@ internal fun DesktopMeRecentPlayedSummary(
 }
 
 /**
- * 桌面摘要歌曲行保留封面、标题、歌手专辑和时长，不提前接入播放动作。
+ * 桌面摘要歌曲行展示播放反馈，并把行点击和更多入口交回全局控制器。
  */
 @Composable
 private fun DesktopMeRecentPlayedSongRow(
     row: DesktopMeRecentPlayedSongDisplayModel,
+    onSongPlay: (Song) -> Unit,
+    onSongMore: (Song) -> Unit,
 ) {
+    val titleColor: Color = if (row.isCurrentSong) DesktopMusicColors.PlayerRed else DesktopMusicColors.Ink
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .heightIn(min = 54.dp),
+            .heightIn(min = 54.dp)
+            .clickable(enabled = row.hasPlaybackAction) { onSongPlay(row.song) },
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -157,20 +187,64 @@ private fun DesktopMeRecentPlayedSongRow(
         ) {
             Text(
                 text = row.title,
-                color = DesktopMusicColors.Ink,
+                color = titleColor,
                 fontSize = DesktopMusicType.StatTitle,
                 fontWeight = FontWeight.Bold,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
+            DesktopMeRecentPlayedSongMeta(row = row)
+        }
+        DesktopMeRecentPlayedSongActions(
+            row = row,
+            onSongMore = onSongMore,
+        )
+    }
+}
+
+/**
+ * 当前播放行在副信息里附加“播放中”，避免只依赖标题颜色表达状态。
+ */
+@Composable
+private fun DesktopMeRecentPlayedSongMeta(
+    row: DesktopMeRecentPlayedSongDisplayModel,
+) {
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        row.playingIndicatorLabel?.let { label: String ->
             Text(
-                text = row.subtitle,
-                color = DesktopMusicColors.MutedStrong,
+                text = label,
+                color = DesktopMusicColors.PlayerRed,
                 fontSize = DesktopMusicType.Body,
+                fontWeight = FontWeight.ExtraBold,
                 maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
             )
         }
+        Text(
+            text = row.subtitle,
+            modifier = Modifier.weight(weight = 1f, fill = false),
+            color = DesktopMusicColors.MutedStrong,
+            fontSize = DesktopMusicType.Body,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+    }
+}
+
+/**
+ * 摘要歌曲行尾只放时长和三点按钮，标题栏查看全部入口不复用这里的动作区。
+ */
+@Composable
+private fun DesktopMeRecentPlayedSongActions(
+    row: DesktopMeRecentPlayedSongDisplayModel,
+    onSongMore: (Song) -> Unit,
+) {
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
         Text(
             text = row.duration,
             color = DesktopMusicColors.MutedStrong,
@@ -178,5 +252,21 @@ private fun DesktopMeRecentPlayedSongRow(
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
+        if (row.hasMoreAction) {
+            Surface(
+                modifier = Modifier.size(30.dp),
+                shape = RoundedCornerShape(9.dp),
+                color = Color.Transparent,
+                onClick = { onSongMore(row.song) },
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Text(
+                        text = "•••",
+                        color = Color(0xFF475364),
+                        fontWeight = FontWeight.Bold,
+                    )
+                }
+            }
+        }
     }
 }

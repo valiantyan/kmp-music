@@ -1,7 +1,10 @@
 package com.yanhao.kmpmusic.feature.desktop.screens
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -21,17 +24,20 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.yanhao.kmpmusic.domain.model.Song
 import com.yanhao.kmpmusic.feature.components.CoverArtImage
 import com.yanhao.kmpmusic.feature.desktop.DesktopMusicColors
 import com.yanhao.kmpmusic.feature.desktop.DesktopMusicDimens
 import com.yanhao.kmpmusic.feature.desktop.DesktopMusicType
 
 /**
- * 完整列表使用桌面表格密度，只展示歌曲信息，不提供管理或歌曲动作入口。
+ * 完整列表使用桌面表格密度，行点击和更多入口都回调给外层控制器。
  */
 @Composable
 internal fun DesktopRecentPlayedSongTable(
     rows: List<DesktopRecentPlayedSongDisplayModel>,
+    onSongPlay: (Song) -> Unit,
+    onSongMore: (Song) -> Unit,
 ) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
@@ -45,7 +51,11 @@ internal fun DesktopRecentPlayedSongTable(
         Column(modifier = Modifier.padding(horizontal = 18.dp, vertical = 14.dp)) {
             DesktopRecentPlayedTableHeader()
             rows.forEach { row: DesktopRecentPlayedSongDisplayModel ->
-                DesktopRecentPlayedSongRow(row = row)
+                DesktopRecentPlayedSongRow(
+                    row = row,
+                    onSongPlay = onSongPlay,
+                    onSongMore = onSongMore,
+                )
             }
         }
     }
@@ -88,6 +98,7 @@ private fun DesktopRecentPlayedTableHeader() {
             text = "时长",
             modifier = Modifier.width(72.dp),
         )
+        Text(text = "", modifier = Modifier.width(40.dp))
     }
 }
 
@@ -109,23 +120,30 @@ private fun DesktopRecentPlayedHeaderText(
 }
 
 /**
- * 行内容只展示歌曲元数据，避免提前接入 issue 24 的播放、高亮和更多菜单。
+ * 行内容接入播放、高亮和更多菜单，但不提供任何历史管理动作。
  */
 @Composable
 private fun DesktopRecentPlayedSongRow(
     row: DesktopRecentPlayedSongDisplayModel,
+    onSongPlay: (Song) -> Unit,
+    onSongMore: (Song) -> Unit,
 ) {
+    val titleColor: Color = if (row.isCurrentSong) DesktopMusicColors.PlayerRed else DesktopMusicColors.Ink
+    val indexLabel: String = if (row.isCurrentSong) "▶" else row.indexLabel
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .height(DesktopMusicDimens.TableRowHeight),
+            .height(DesktopMusicDimens.TableRowHeight)
+            .background(if (row.isCurrentSong) DesktopMusicColors.Accent.copy(alpha = 0.10f) else Color.Transparent)
+            .clickable(enabled = row.hasPlaybackAction) { onSongPlay(row.song) },
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
-            text = row.indexLabel,
+            text = indexLabel,
             modifier = Modifier.width(42.dp),
-            color = DesktopMusicColors.Muted,
+            color = if (row.isCurrentSong) DesktopMusicColors.PlayerRed else DesktopMusicColors.Muted,
             fontSize = DesktopMusicType.Body,
+            fontWeight = if (row.isCurrentSong) FontWeight.Bold else FontWeight.Normal,
         )
         Row(
             modifier = Modifier
@@ -143,15 +161,30 @@ private fun DesktopRecentPlayedSongRow(
                     .clip(RoundedCornerShape(7.dp)),
                 contentScale = ContentScale.Crop,
             )
-            Text(
-                text = row.title,
+            Row(
                 modifier = Modifier.weight(1f),
-                color = DesktopMusicColors.Ink,
-                fontSize = DesktopMusicType.Body,
-                fontWeight = FontWeight.SemiBold,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = row.title,
+                    modifier = Modifier.weight(1f),
+                    color = titleColor,
+                    fontSize = DesktopMusicType.Body,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                row.playingIndicatorLabel?.let { label: String ->
+                    Text(
+                        text = label,
+                        color = DesktopMusicColors.PlayerRed,
+                        fontSize = DesktopMusicType.TableHeader,
+                        fontWeight = FontWeight.ExtraBold,
+                        maxLines = 1,
+                    )
+                }
+            }
         }
         DesktopRecentPlayedCellText(
             text = row.artist,
@@ -169,6 +202,38 @@ private fun DesktopRecentPlayedSongRow(
             text = row.duration,
             modifier = Modifier.width(72.dp),
         )
+        DesktopRecentPlayedMoreButton(
+            row = row,
+            onSongMore = onSongMore,
+        )
+    }
+}
+
+/**
+ * 行尾三点按钮只打开既有单曲更多面板，不承载最近播放管理能力。
+ */
+@Composable
+private fun DesktopRecentPlayedMoreButton(
+    row: DesktopRecentPlayedSongDisplayModel,
+    onSongMore: (Song) -> Unit,
+) {
+    if (!row.hasMoreAction) {
+        Text(text = "", modifier = Modifier.width(40.dp))
+        return
+    }
+    Surface(
+        modifier = Modifier.size(30.dp),
+        shape = RoundedCornerShape(9.dp),
+        color = Color.Transparent,
+        onClick = { onSongMore(row.song) },
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            Text(
+                text = "•••",
+                color = Color(0xFF475364),
+                fontWeight = FontWeight.Bold,
+            )
+        }
     }
 }
 

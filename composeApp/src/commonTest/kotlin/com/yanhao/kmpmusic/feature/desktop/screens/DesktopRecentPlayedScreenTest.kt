@@ -86,10 +86,10 @@ class DesktopRecentPlayedScreenTest {
     }
 
     /**
-     * issue 24 之前，桌面完整页歌曲行不能抢先提供播放或更多菜单入口。
+     * 桌面完整页歌曲行本轮接入播放和单曲更多入口，且不新增管理动作。
      */
     @Test
-    fun desktopRecentPlayedPageDoesNotExposeSongActionsBeforeFeedbackSlice(): Unit {
+    fun desktopRecentPlayedPageRowsExposePlaybackAndMoreActions(): Unit {
         val model: DesktopRecentPlayedPageDisplayModel = buildDesktopRecentPlayedPageDisplayModel(
             songs = listOf(
                 testSong(id = "song-1", title = "Song 1"),
@@ -98,12 +98,37 @@ class DesktopRecentPlayedScreenTest {
         )
 
         assertEquals(
-            expected = listOf(false, false),
+            expected = listOf(true, true),
             actual = model.rows.map { row: DesktopRecentPlayedSongDisplayModel -> row.hasPlaybackAction },
         )
         assertEquals(
-            expected = listOf(false, false),
+            expected = listOf(true, true),
             actual = model.rows.map { row: DesktopRecentPlayedSongDisplayModel -> row.hasMoreAction },
+        )
+        assertFalse(actual = model.hasManagementActions)
+    }
+
+    /**
+     * 桌面完整页只给全局当前歌曲行附加播放中标识，非当前行保持普通状态。
+     */
+    @Test
+    fun desktopRecentPlayedPageMarksOnlyCurrentSong(): Unit {
+        val model: DesktopRecentPlayedPageDisplayModel = buildDesktopRecentPlayedPageDisplayModel(
+            songs = listOf(
+                testSong(id = "song-1", title = "Song 1"),
+                testSong(id = "song-2", title = "Song 2"),
+                testSong(id = "song-3", title = "Song 3"),
+            ),
+            currentSongId = "song-3",
+        )
+
+        assertEquals(
+            expected = listOf(false, false, true),
+            actual = model.rows.map { row: DesktopRecentPlayedSongDisplayModel -> row.isCurrentSong },
+        )
+        assertEquals(
+            expected = listOf(null, null, "播放中"),
+            actual = model.rows.map { row: DesktopRecentPlayedSongDisplayModel -> row.playingIndicatorLabel },
         )
     }
 

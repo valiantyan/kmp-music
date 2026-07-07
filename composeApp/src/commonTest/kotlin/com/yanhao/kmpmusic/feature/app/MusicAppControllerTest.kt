@@ -640,6 +640,34 @@ class MusicAppControllerTest {
     }
 
     /**
+     * 桌面最近播放摘要和完整页共用 [MusicAppController.playRecentSong]，
+     * 因此点击 Top3 内歌曲也必须读取完整最近播放队列。
+     */
+    @Test
+    fun playDesktopRecentSongUsesFullRecentQueueWithClickedStart(): Unit = runTest {
+        val playbackRepository: InMemoryPlaybackRepository = InMemoryPlaybackRepository()
+        val controller: MusicAppController = createController(
+            playbackRepository = playbackRepository,
+            controllerScope = backgroundScope,
+        )
+        controller.scanLocalMusic(request = LocalMusicScanRequest.Refresh)
+        val recentSongIds: List<String> = controller.uiState.homeLocalSongPreview
+            .take(n = 5)
+            .map { song: Song -> song.id }
+        playbackRepository.savePlaybackHistory(
+            history = PlaybackHistory(songIds = recentSongIds),
+        )
+        controller.loadLocalMusicLibrary()
+        val clickedSummarySong: Song = controller.uiState.recentSongs[1]
+
+        controller.playRecentSong(song = clickedSummarySong)
+
+        assertEquals(expected = recentSongIds, actual = controller.uiState.queueSongIds)
+        assertEquals(expected = clickedSummarySong.id, actual = controller.uiState.currentSongId)
+        assertEquals(expected = 1, actual = playbackRepository.getQueueState().currentIndex)
+    }
+
+    /**
      * 清空最近播放必须同时清空 UI 状态和底层播放历史，避免刷新后旧记录又回来。
      */
     @Test

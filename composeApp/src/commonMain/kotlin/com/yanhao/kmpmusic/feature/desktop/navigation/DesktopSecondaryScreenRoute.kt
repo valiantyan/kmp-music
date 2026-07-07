@@ -126,7 +126,10 @@ fun DesktopSecondaryScreenRoute(
         )
         SecondaryScreen.RecentPlayed -> DesktopRecentPlayedScreen(
             songs = state.recentSongs,
+            currentSongId = state.currentSongId,
             onBack = controller::navigateBack,
+            onSongPlay = controller::playRecentSong,
+            onSongMore = controller::openMore,
         )
         is SecondaryScreen.LocalMusic -> DesktopLocalMusicScreen(
             initialSection = state.navigationState.secondaryScreen.initialSection,

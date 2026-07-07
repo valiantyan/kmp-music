@@ -32,7 +32,7 @@ internal data class DesktopRecentPlayedPageDisplayModel(
 )
 
 /**
- * 桌面最近播放页歌曲行展示模型，不携带播放或更多菜单动作语义。
+ * 桌面最近播放页歌曲行展示模型，动作只描述现有播放和单曲更多入口。
  *
  * @property song 统一过滤后的歌曲实体。
  * @property indexLabel 桌面表格序号。
@@ -40,6 +40,8 @@ internal data class DesktopRecentPlayedPageDisplayModel(
  * @property artist 歌手名。
  * @property album 专辑名。
  * @property duration 时长文案。
+ * @property isCurrentSong 是否为全局当前播放歌曲。
+ * @property playingIndicatorLabel 当前播放辅助标识文案。
  * @property hasPlaybackAction 当前切片是否允许播放动作。
  * @property hasMoreAction 当前切片是否允许更多菜单动作。
  */
@@ -50,6 +52,8 @@ internal data class DesktopRecentPlayedSongDisplayModel(
     val artist: String,
     val album: String,
     val duration: String,
+    val isCurrentSong: Boolean,
+    val playingIndicatorLabel: String?,
     val hasPlaybackAction: Boolean,
     val hasMoreAction: Boolean,
 )
@@ -59,8 +63,10 @@ internal data class DesktopRecentPlayedSongDisplayModel(
  */
 internal fun buildDesktopRecentPlayedPageDisplayModel(
     songs: List<Song>,
+    currentSongId: String? = null,
 ): DesktopRecentPlayedPageDisplayModel {
     val rows: List<DesktopRecentPlayedSongDisplayModel> = songs.mapIndexed { index: Int, song: Song ->
+        val isCurrentSong: Boolean = song.id == currentSongId
         DesktopRecentPlayedSongDisplayModel(
             song = song,
             indexLabel = (index + 1).toString(),
@@ -68,8 +74,10 @@ internal fun buildDesktopRecentPlayedPageDisplayModel(
             artist = song.artist,
             album = song.album,
             duration = song.duration,
-            hasPlaybackAction = false,
-            hasMoreAction = false,
+            isCurrentSong = isCurrentSong,
+            playingIndicatorLabel = if (isCurrentSong) "播放中" else null,
+            hasPlaybackAction = true,
+            hasMoreAction = true,
         )
     }
     val eyebrow: String = if (rows.isEmpty()) {

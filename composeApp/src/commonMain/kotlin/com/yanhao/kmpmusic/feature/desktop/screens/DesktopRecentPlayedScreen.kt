@@ -27,15 +27,21 @@ import com.yanhao.kmpmusic.feature.desktop.components.DesktopPageHeader
 import com.yanhao.kmpmusic.feature.desktop.components.DesktopPrimaryButton
 
 /**
- * 桌面最近播放页只负责完整列表和空态，播放反馈与更多菜单留给后续动作切片。
+ * 桌面最近播放页复用最近播放专用播放入口，保证点击任意行都使用完整最近播放队列。
  */
 @Composable
 internal fun DesktopRecentPlayedScreen(
     songs: List<Song>,
+    currentSongId: String?,
     onBack: () -> Unit,
+    onSongPlay: (Song) -> Unit,
+    onSongMore: (Song) -> Unit,
 ) {
     val displayModel: DesktopRecentPlayedPageDisplayModel =
-        buildDesktopRecentPlayedPageDisplayModel(songs = songs)
+        buildDesktopRecentPlayedPageDisplayModel(
+            songs = songs,
+            currentSongId = currentSongId,
+        )
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -53,7 +59,11 @@ internal fun DesktopRecentPlayedScreen(
         if (displayModel.rows.isEmpty()) {
             DesktopRecentPlayedEmptyState(displayModel = displayModel)
         } else {
-            DesktopRecentPlayedSongTable(rows = displayModel.rows)
+            DesktopRecentPlayedSongTable(
+                rows = displayModel.rows,
+                onSongPlay = onSongPlay,
+                onSongMore = onSongMore,
+            )
         }
     }
 }
