@@ -129,21 +129,34 @@ class LibraryStateSynchronizer(
         )
     }
 
-    /** 最近播放只应来自真实播放历史，并优先复用当前已知歌曲实体。 */
+    /** 最近播放只应来自真实播放历史，并按当前曲库可解析、可播放歌曲过滤。 */
     fun buildRecentSongs(
         state: MusicAppUiState,
         extraSongs: List<Song> = emptyList(),
     ): List<Song> {
-        val songs: List<Song> = extraSongs +
+        val historySongIds: List<String> = playbackRepository.getPlaybackHistory().songIds.distinct()
+        if (historySongIds.isEmpty()) {
+            return emptyList()
+        }
+        val preferredSongs: List<Song> = extraSongs +
             state.queueSongsSnapshot +
             state.localSongs +
             state.homeLocalSongPreview +
             state.favoriteSongs
-        val songsById: Map<String, Song> = songs
+        val preferredSongsById: Map<String, Song> = preferredSongs
             .distinctBy { song: Song -> song.id }
             .associateBy { song: Song -> song.id }
-        return playbackRepository.getPlaybackHistory().songIds
-            .mapNotNull { songId: String -> songsById[songId] }
+        val availableSongsById: Map<String, Song> = musicLibraryRepository.getAvailableSongsByIds(
+            songIds = historySongIds,
+        )
+            .filter { song: Song -> song.isPlayable }
+            .associateBy { song: Song -> song.id }
+        return historySongIds.mapNotNull { songId: String ->
+            val availableSong: Song = availableSongsById[songId] ?: return@mapNotNull null
+            availableSong.copy(
+                isLiked = preferredSongsById[songId]?.isLiked ?: availableSong.isLiked,
+            )
+        }
     }
 
     /** 收藏列表需要按 id 补齐实体并强制回写 liked 状态。 */

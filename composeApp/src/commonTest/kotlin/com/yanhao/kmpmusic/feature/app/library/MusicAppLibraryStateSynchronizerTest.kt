@@ -251,6 +251,48 @@ class MusicAppLibraryStateSynchronizerTest {
     }
 
     @Test
+    fun buildRecentSongsFiltersStaleAndUnplayableHistoryItems(): Unit {
+        val playbackRepository: InMemoryPlaybackRepository = InMemoryPlaybackRepository()
+        playbackRepository.savePlaybackHistory(
+            history = PlaybackHistory(
+                songIds = listOf("stale", "song-2", "unplayable", "song-1", "song-2"),
+            ),
+        )
+        val repository: FakeMusicLibraryRepository = FakeMusicLibraryRepository(
+            allSongs = listOf(
+                testSong(id = "song-1", title = "One"),
+                testSong(id = "song-2", title = "Two"),
+                testSong(id = "unplayable", title = "Broken", localUri = ""),
+            ),
+        )
+        val synchronizer: LibraryStateSynchronizer = createSynchronizer(
+            repository = repository,
+            playbackRepository = playbackRepository,
+        )
+
+        val recentSongs: List<Song> = synchronizer.buildRecentSongs(
+            state = testState().copy(
+                queueSongsSnapshot = listOf(
+                    testSong(id = "stale", title = "Stale Queue"),
+                    testSong(id = "song-2", title = "Old Two", isLiked = true),
+                ),
+            ),
+        )
+
+        assertEquals(
+            expected = listOf("song-2", "song-1"),
+            actual = recentSongs.map { song: Song -> song.id },
+        )
+        assertEquals(
+            expected = listOf("Two", "One"),
+            actual = recentSongs.map { song: Song -> song.title },
+        )
+        assertTrue(actual = recentSongs.first().isLiked)
+        assertEquals(expected = 1, actual = repository.songsByIdsReads)
+        assertFalse(actual = repository.allSongsRead)
+    }
+
+    @Test
     fun loadLocalMusicLibraryDoesNothingWhenSongsAlreadyLoaded(): Unit {
         val repository: FakeMusicLibraryRepository = FakeMusicLibraryRepository(
             allSongs = listOf(testSong(id = "repo", title = "Repo")),
@@ -308,6 +350,7 @@ class MusicAppLibraryStateSynchronizerTest {
         isLiked: Boolean = false,
         album: String = "Album",
         artist: String = "Artist",
+        localUri: String = "content://$id",
     ): Song {
         return Song(
             id = id,
@@ -323,7 +366,7 @@ class MusicAppLibraryStateSynchronizerTest {
             trackNumber = 1,
             durationMs = 180_000L,
             sourceKind = LocalMusicSourceKind.AndroidMediaStore,
-            localUri = "content://$id",
+            localUri = localUri,
         )
     }
 }
