@@ -4,12 +4,12 @@
 
 | 维度 | 分数 | 证据 |
 | --- | ---: | --- |
-| 契约匹配 | 5 | `contract.md` 已包含 13 到 17 队列协调契约、Git checkpoint 门禁，并明确派发/等待态不能单独提交为 checkpoint。 |
-| 正确性 | 5 | issue 13 checkpoint 为 `118b5163`，issue 14 checkpoint 为 `9f63f09c`；`progress.md` 已从陈旧的 issue 14 等待实现更新为等待派发 issue 15；重新计数后的三轮对抗式审查无新问题。 |
-| 可恢复性 | 5 | `progress.md` 已记录 issue 13 和 issue 14 checkpoint、issue 13/14 实现线程、下一步从 issue 15 恢复，以及 `08d65ff7` 不得视为 issue 14 完成 checkpoint；`contract.md` 已说明只有持续运行、被用户恢复或被已配置自动化唤醒时才按队列推进。 |
-| 安全性 | 5 | 本轮只修复 Harness 文档和状态文件；未执行 reset、clean、force checkout 或删除操作；协调器仍不得直接实现业务代码。 |
-| 简洁性 | 5 | 未新增自动化服务、脚本或外部依赖；只同步通用 Harness 的 checkpoint 边界并修正陈旧状态。 |
-| Skill 组合 | 5 | 明确使用 `/Users/yanhao/Downloads/qinglilaji /.agents/skills/long-running-loop/SKILL.md` 作为 Harness 规则来源，同时保持 kmp-music 的 AGENTS.md 为项目规则入口。 |
+| 契约匹配 | 5 | issue 15 已按顺序派发到独立线程，完成后由协调器重新读取 issue 文件做门禁，并创建 checkpoint `76ad9aea`；未派发 issue 16 前先记录 hash。 |
+| 正确性 | 5 | issue 15 为 `ready-for-human`，验收全勾；协调器侧 `git diff --check` 和 `./gradlew :composeApp:compileDebugKotlinAndroid :composeApp:desktopTest` 均通过。 |
+| 可恢复性 | 5 | `progress.md` 记录 issue 13/14/15 checkpoint 和 issue 15 线程句柄，下一步明确为派发 issue 16；派发态未被单独作为完成 checkpoint。 |
+| 安全性 | 5 | 协调器未直接实现业务代码；任务 checkpoint 只包含 issue 15 相关文件，未执行 reset、clean、force checkout 或删除操作。 |
+| 简洁性 | 5 | issue 15 只新增薄展示模型与聚焦测试，没有引入新页面、平台 scanner 改动或外部依赖。 |
+| Skill 组合 | 5 | 按长跑 Harness 规则完成派发、轮询、门禁、checkpoint 和 metadata 记录，仍保持实现线程与协调器职责分离。 |
 
 ## 失败阈值
 

@@ -4,13 +4,13 @@
 
 - 批次：`local-audio-discovery-source-coverage` issue 13 到 17。
 - 调度模式：长跑 Agent Harness 队列协调器。
-- 当前状态：issue 14 文件门禁已满足，并已形成 Git checkpoint；Harness 状态与规则修复已完成，等待从 issue 15 恢复。
-- 当前 issue：`15-scan-page-summary-copy-test`。
-- 当前阶段：等待派发 issue 15。
-- 已派发线程：issue 13 `codex://threads/019f376d-b62b-7ad0-bcc9-c9ea4a43bd19`；issue 14 `codex://threads/019f3781-c2cf-7cf3-8f12-39e8e3fd9653`。
-- 已完成门禁检查：issue 12 已通过文件门禁；issue 13 已通过文件门禁并形成 Git checkpoint；issue 14 已通过文件门禁并形成 Git checkpoint。
-- 已记录 checkpoint：issue 13 `118b5163 test: 固化失败扫描保留旧歌红灯用例`；issue 14 `9f63f09c fix: 修复失败扫描误删旧歌`。
-- 禁止事项：协调器线程不得直接实现业务代码；不得把 `08d65ff7` 这类派发态提交视为 issue 完成 checkpoint；issue 15 未派发前不得跳到 issue 16。
+- 当前状态：issue 15 文件门禁、验证门禁和 Git checkpoint 均已通过；等待派发 issue 16。
+- 当前 issue：`16-scan-page-platform-copy`。
+- 当前阶段：派发下一项。
+- 已派发线程：issue 13 `codex://threads/019f376d-b62b-7ad0-bcc9-c9ea4a43bd19`；issue 14 `codex://threads/019f3781-c2cf-7cf3-8f12-39e8e3fd9653`；issue 15 `codex://threads/019f3a55-58a8-76d1-8508-34e732379d47`。
+- 已完成门禁检查：issue 12 已通过文件门禁；issue 13 已通过文件门禁并形成 Git checkpoint；issue 14 已通过文件门禁并形成 Git checkpoint；issue 15 已通过文件门禁、协调器验证和 Git checkpoint。
+- 已记录 checkpoint：issue 13 `118b5163 test: 固化失败扫描保留旧歌红灯用例`；issue 14 `9f63f09c fix: 修复失败扫描误删旧歌`；issue 15 `76ad9aea test: 固化本地音乐扫描摘要展示`。
+- 禁止事项：协调器线程不得直接实现业务代码；不得把 `08d65ff7` 这类派发态提交视为 issue 完成 checkpoint；issue 16 未派发前不得跳到 issue 17。
 
 ## 队列状态
 
@@ -19,8 +19,8 @@
 | 12 | `12-cancelled-scan-ui-state` | `ready-for-human` | 已通过 | 作为 13 的前置基线 |
 | 13 | `13-failed-scan-preserves-existing-songs-test` | `ready-for-human` | 已通过，checkpoint `118b5163` | 作为 14 的前置基线 |
 | 14 | `14-failed-scan-positive-only-merge` | `ready-for-human` | 已通过，checkpoint `9f63f09c` | 作为 15 的前置基线 |
-| 15 | `15-scan-page-summary-copy-test` | `ready-for-agent` | 未检查 | 下一步派发 |
-| 16 | `16-scan-page-platform-copy` | `ready-for-agent` | 未检查 | 等 15 通过后派发 |
+| 15 | `15-scan-page-summary-copy-test` | `ready-for-human` | 已通过，checkpoint `76ad9aea` | 作为 16 的前置基线 |
+| 16 | `16-scan-page-platform-copy` | `ready-for-agent` | 未检查 | 下一步派发 |
 | 17 | `17-final-verification-and-adversarial-review` | `ready-for-agent` | 未检查 | 等 16 通过后派发 |
 
 ## 已读取上下文
@@ -37,7 +37,7 @@
 
 ## 下一步
 
-本轮 `.agent-loop` 和 `AGENTS.md` Harness 规则修复已通过三轮对抗式审查。恢复协调器可以从 issue 15 开始。派发 issue 15 前必须确认工作区干净，issue 14 checkpoint `9f63f09c` 存在，且不得把 `08d65ff7` 视为 issue 14 完成 checkpoint。
+issue 15 已通过门禁并提交 checkpoint `76ad9aea`。下一步派发 issue 16；派发前必须确认 metadata checkpoint 已完成且工作区干净。
 
 ## 恢复提示
 

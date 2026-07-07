@@ -77,3 +77,20 @@
 - 验证：`git diff --check` 通过；`git cat-file -t 9f63f09c` 确认 issue 14 checkpoint 存在；关键词扫描确认派发/等待态不能单独提交、`08d65ff7` 不得视为 issue 14 完成 checkpoint、issue 15 为下一步。
 - 结果：重新计数后的三轮审查未发现新问题；旧日志中的“自动化完成”表述仅是历史记录，当前契约以“持续运行、被恢复或已配置自动化唤醒”为准。
 - 下一步：恢复协调器可从 issue 15 开始；派发前先确认工作区干净、issue 14 checkpoint `9f63f09c` 存在，且 `08d65ff7` 不被当作完成 checkpoint。
+
+## 2026-07-07 issue 15 已派发
+
+- 意图：按用户要求从 issue 15 恢复 `local-audio-discovery-source-coverage` 批次，保持协调器线程不直接实现业务代码。
+- 行动：重新读取 `AGENTS.md`、OpenWiki 快速开始、`.agent-loop` 契约文件、长跑 Harness skill、PRD 和 issue 14 到 17；执行 `git status --short --branch`；确认 issue 14 checkpoint `9f63f09c` 存在。
+- 门禁结果：issue 14 为 `ready-for-human`，验收标准全勾，`Comments` 包含实现摘要、验证命令与结果、对抗式审查、code-review 结论和剩余风险；工作区干净，分支状态为 `main...origin/main [ahead 19]`。
+- 线程：issue 15 已派发到 `codex://threads/019f3a55-58a8-76d1-8508-34e732379d47`。
+- 下一步：主动轮询 issue 15 实现线程；完成后重新读取 issue 15 文件做门禁检查，未通过则停在 issue 15，不派发 issue 16。
+
+## 2026-07-07 issue 15 checkpoint 已提交
+
+- 意图：对 issue 15 线程交付结果执行协调器门禁，并在通过后创建 Git checkpoint。
+- 门禁结果：issue 15 为 `ready-for-human`，验收标准全勾，`Comments` 包含实现摘要、验证命令与结果、对抗式审查、code-review 结论和剩余风险。
+- Diff 检查：任务 checkpoint 只暂存 issue 15 文件、本地音乐扫描摘要展示模型、本地音乐页复用改动和对应测试；`.agent-loop` 派发态记录未混入任务 checkpoint。
+- 协调器验证：`git diff --check` 通过；`./gradlew :composeApp:compileDebugKotlinAndroid :composeApp:desktopTest` 通过，只有既有 Gradle deprecated property 警告。
+- 提交：`76ad9aea test: 固化本地音乐扫描摘要展示`。
+- 下一步：提交本轮 checkpoint hash 的 `.agent-loop` metadata 后，确认工作区干净并派发 issue 16。
