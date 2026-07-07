@@ -1,35 +1,101 @@
 package com.yanhao.kmpmusic.feature.screen
 
+import com.yanhao.kmpmusic.domain.model.CoverArt
+import com.yanhao.kmpmusic.domain.model.LocalMusicSourceKind
+import com.yanhao.kmpmusic.domain.model.Song
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 /**
- * 我的页测试，锁住最近播放摘要当前切片的空态骨架和范围边界。
+ * 我的页测试，锁住最近播放摘要真实输入、Top3 截断和范围边界。
  */
 class MeScreenTest {
     /**
-     * 最近播放摘要必须展示固定标题、查看全部占位和轻量空态，不能因为没有歌曲而留白。
+     * 最近播放摘要为空时继续展示固定标题、查看全部占位和轻量空态。
      */
     @Test
     fun recentPlayedSummaryDisplayModelShowsEmptySkeleton(): Unit {
-        val model: RecentPlayedSummaryDisplayModel = buildRecentPlayedSummaryDisplayModel()
+        val model: RecentPlayedSummaryDisplayModel = buildRecentPlayedSummaryDisplayModel(
+            recentSongs = emptyList(),
+        )
 
         assertEquals(expected = "最近播放", actual = model.title)
         assertEquals(expected = "查看全部", actual = model.actionLabel)
+        assertTrue(actual = model.songs.isEmpty())
         assertTrue(actual = model.emptyMessage.contains(other = "最近听过的音乐"))
     }
 
     /**
-     * 当前切片不能提前接入查看全部跳转、真实歌曲列表、播放队列或更多菜单。
+     * 摘要只显示统一最近播放列表的前 3 条，避免把完整历史塞进“我的”页。
+     */
+    @Test
+    fun recentPlayedSummaryDisplayModelKeepsOnlyTopThreeSongs(): Unit {
+        val songs: List<Song> = (1..5).map { index: Int ->
+            testSong(id = "song-$index", title = "Song $index")
+        }
+
+        val model: RecentPlayedSummaryDisplayModel = buildRecentPlayedSummaryDisplayModel(
+            recentSongs = songs,
+        )
+
+        assertEquals(
+            expected = listOf("song-1", "song-2", "song-3"),
+            actual = model.songs.map { song: Song -> song.id },
+        )
+    }
+
+    /**
+     * 展示模型只使用调用方传入的过滤后列表，不自行回退到 demo、全库或陈旧历史。
+     */
+    @Test
+    fun recentPlayedSummaryDisplayModelUsesProvidedFilteredSongsOnly(): Unit {
+        val model: RecentPlayedSummaryDisplayModel = buildRecentPlayedSummaryDisplayModel(
+            recentSongs = listOf(testSong(id = "filtered-real-song", title = "Real Song")),
+        )
+
+        assertEquals(
+            expected = listOf("filtered-real-song"),
+            actual = model.songs.map { song: Song -> song.id },
+        )
+        assertEquals(expected = "Real Song", actual = model.songs.single().title)
+    }
+
+    /**
+     * 当前切片不能提前接入查看全部跳转、播放队列或更多菜单。
      */
     @Test
     fun recentPlayedSummaryDisplayModelKeepsFutureBehaviorDisabled(): Unit {
-        val model: RecentPlayedSummaryDisplayModel = buildRecentPlayedSummaryDisplayModel()
+        val model: RecentPlayedSummaryDisplayModel = buildRecentPlayedSummaryDisplayModel(
+            recentSongs = listOf(testSong(id = "song-1", title = "Song 1")),
+        )
 
         assertFalse(actual = model.isActionEnabled)
         assertFalse(actual = model.emptyMessage.contains(other = "播放队列"))
         assertFalse(actual = model.emptyMessage.contains(other = "更多菜单"))
+    }
+
+    // 构造已过滤的可播放歌曲，避免测试依赖 demo catalog 或全库扫描。
+    private fun testSong(
+        id: String,
+        title: String,
+    ): Song {
+        return Song(
+            id = id,
+            title = title,
+            artist = "Artist",
+            album = "Album",
+            duration = "03:00",
+            coverArt = CoverArt.HeroLocalMusic,
+            isLiked = false,
+            lastPlayed = "",
+            quality = "Lossless",
+            lyric = "",
+            trackNumber = 1,
+            durationMs = 180_000L,
+            sourceKind = LocalMusicSourceKind.AndroidMediaStore,
+            localUri = "content://$id",
+        )
     }
 }

@@ -37,6 +37,7 @@ import com.yanhao.kmpmusic.core.theme.MusicColors
 import com.yanhao.kmpmusic.domain.model.Album
 import com.yanhao.kmpmusic.domain.model.Artist
 import com.yanhao.kmpmusic.domain.model.LibraryStats
+import com.yanhao.kmpmusic.domain.model.Song
 import com.yanhao.kmpmusic.feature.components.ArtistRow
 import com.yanhao.kmpmusic.feature.components.CoverArtImage
 import com.yanhao.kmpmusic.feature.components.SectionTitle
@@ -49,7 +50,12 @@ import org.jetbrains.compose.resources.ExperimentalResourceApi
 private const val FAVORITE_ALBUM_PREVIEW_COUNT = 3
 
 /**
- * “我的”页最近播放摘要当前只承载空态骨架，真实 Top3 和跳转由后续切片接入。
+ * “我的”页最近播放摘要最多展示最新 3 条，完整列表和交互由后续切片接入。
+ */
+private const val RECENT_PLAYED_SUMMARY_PREVIEW_COUNT = 3
+
+/**
+ * “我的”页最近播放摘要入口文案当前只保留静态视觉位置。
  */
 private const val RECENT_PLAYED_SUMMARY_ACTION_LABEL = "查看全部"
 
@@ -60,6 +66,7 @@ private const val RECENT_PLAYED_SUMMARY_ACTION_LABEL = "查看全部"
 fun MeScreen(
     albums: List<Album>,
     artists: List<Artist>,
+    recentSongs: List<Song>,
     libraryStats: LibraryStats,
     onAlbumOpen: (Album) -> Unit,
     onArtistOpen: (Artist) -> Unit,
@@ -71,7 +78,7 @@ fun MeScreen(
             libraryStats = libraryStats,
         )
         QuickActionsSection(onScanMusic = onScanMusic)
-        RecentPlayedSummarySection()
+        RecentPlayedSummarySection(recentSongs = recentSongs)
         Surface(shape = RoundedCornerShape(20.dp), color = MusicColors.Paper, tonalElevation = 1.dp) {
             Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
                 SectionTitle(title = "我的收藏", actionLabel = "查看", onAction = { albums.firstOrNull()?.let(onAlbumOpen) })
@@ -114,33 +121,37 @@ fun MeScreen(
 }
 
 /**
- * 最近播放摘要展示模型，当前切片只暴露标题、入口占位和空态文案。
+ * 最近播放摘要展示模型，只接收外部已过滤的最近播放歌曲列表。
  */
 internal data class RecentPlayedSummaryDisplayModel(
     val title: String,
     val actionLabel: String,
     val emptyMessage: String,
+    val songs: List<Song>,
     val isActionEnabled: Boolean,
 )
 
 /**
- * 构造“我的”页最近播放摘要骨架，避免 UI 提前依赖真实最近播放歌曲列表。
+ * 构造“我的”页最近播放摘要，调用方负责传入统一过滤后的最近播放歌曲列表。
  */
-internal fun buildRecentPlayedSummaryDisplayModel(): RecentPlayedSummaryDisplayModel {
+internal fun buildRecentPlayedSummaryDisplayModel(recentSongs: List<Song>): RecentPlayedSummaryDisplayModel {
     return RecentPlayedSummaryDisplayModel(
         title = "最近播放",
         actionLabel = RECENT_PLAYED_SUMMARY_ACTION_LABEL,
         emptyMessage = "播放歌曲后，最近听过的音乐会出现在这里。",
+        songs = recentSongs.take(n = RECENT_PLAYED_SUMMARY_PREVIEW_COUNT),
         isActionEnabled = false,
     )
 }
 
 /**
- * 最近播放摘要当前只展示空态和“查看全部”位置，不绑定跳转、队列或更多菜单。
+ * 最近播放摘要只渲染可见 Top3，不绑定跳转、队列或更多菜单。
  */
 @Composable
-private fun RecentPlayedSummarySection() {
-    val displayModel: RecentPlayedSummaryDisplayModel = buildRecentPlayedSummaryDisplayModel()
+private fun RecentPlayedSummarySection(recentSongs: List<Song>) {
+    val displayModel: RecentPlayedSummaryDisplayModel = buildRecentPlayedSummaryDisplayModel(
+        recentSongs = recentSongs,
+    )
     Surface(
         shape = RoundedCornerShape(20.dp),
         color = MusicColors.Paper,
@@ -151,7 +162,11 @@ private fun RecentPlayedSummarySection() {
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
             RecentPlayedSummaryHeader(displayModel = displayModel)
-            RecentPlayedSummaryEmptyState(message = displayModel.emptyMessage)
+            if (displayModel.songs.isEmpty()) {
+                RecentPlayedSummaryEmptyState(message = displayModel.emptyMessage)
+            } else {
+                RecentPlayedSummarySongList(songs = displayModel.songs)
+            }
         }
     }
 }
@@ -177,6 +192,71 @@ private fun RecentPlayedSummaryHeader(displayModel: RecentPlayedSummaryDisplayMo
             color = MusicColors.Muted,
             fontSize = 14.sp,
             fontWeight = FontWeight.SemiBold,
+        )
+    }
+}
+
+/**
+ * 最近播放摘要行保持静态展示，避免在当前切片提前接入播放或更多菜单。
+ */
+@Composable
+private fun RecentPlayedSummarySongList(songs: List<Song>) {
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        songs.forEach { song: Song ->
+            RecentPlayedSummarySongRow(song = song)
+        }
+    }
+}
+
+/**
+ * 最近播放摘要歌曲行展示封面、标题和来源信息，不从全库或 demo 数据补内容。
+ */
+@Composable
+private fun RecentPlayedSummarySongRow(song: Song) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = 58.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        CoverArtImage(
+            coverArt = song.coverArt,
+            coverImageUri = song.coverImageUri,
+            contentDescription = "${song.title} 封面",
+            modifier = Modifier
+                .size(48.dp)
+                .clip(RoundedCornerShape(12.dp)),
+            contentScale = ContentScale.Crop,
+        )
+        Column(
+            modifier = Modifier.weight(weight = 1f),
+            verticalArrangement = Arrangement.spacedBy(3.dp),
+        ) {
+            Text(
+                text = song.title,
+                color = MusicColors.Ink,
+                fontSize = 15.sp,
+                lineHeight = 19.sp,
+                fontWeight = FontWeight.Bold,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Text(
+                text = "${song.artist} · ${song.album}",
+                color = MusicColors.Muted,
+                fontSize = 13.sp,
+                lineHeight = 17.sp,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+        Text(
+            text = song.duration,
+            color = MusicColors.Muted,
+            fontSize = 12.sp,
+            lineHeight = 16.sp,
+            maxLines = 1,
         )
     }
 }

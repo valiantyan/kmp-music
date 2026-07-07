@@ -67,6 +67,7 @@ fun MobileRootScreenRoute(
         RootTab.Me -> MeScreen(
             albums = state.albums,
             artists = state.artists,
+            recentSongs = state.recentSongs,
             libraryStats = state.libraryStats,
             onAlbumOpen = controller::openAlbum,
             onArtistOpen = controller::openArtist,
