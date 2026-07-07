@@ -42,6 +42,7 @@ import com.yanhao.kmpmusic.feature.desktop.components.DesktopContentRowFavorites
 import com.yanhao.kmpmusic.feature.desktop.components.DesktopContentRowFolderIcon
 import com.yanhao.kmpmusic.feature.desktop.components.DesktopContentRowSyncIcon
 import com.yanhao.kmpmusic.feature.desktop.components.DesktopPageHeader
+import com.yanhao.kmpmusic.feature.desktop.components.DesktopScanIcon
 import com.yanhao.kmpmusic.feature.desktop.components.DesktopSectionHeader
 import com.yanhao.kmpmusic.feature.desktop.components.DesktopSectionEmptyMessage
 import com.yanhao.kmpmusic.feature.desktop.components.DesktopStatCard
@@ -71,6 +72,7 @@ fun DesktopMeRootScreen(
     libraryStats: LibraryStats,
     onFavorites: () -> Unit,
     onFolders: () -> Unit,
+    onScanMusic: () -> Unit,
     onSettings: () -> Unit,
     onBrowseAlbums: () -> Unit,
     onAlbumOpen: (Album) -> Unit,
@@ -96,6 +98,10 @@ fun DesktopMeRootScreen(
         DesktopProfileHeader()
         Spacer(modifier = Modifier.height(20.dp))
         DesktopMeStatsRow(libraryStats = libraryStats)
+        Spacer(modifier = Modifier.height(20.dp))
+        DesktopSectionHeader(title = "快速功能")
+        Spacer(modifier = Modifier.height(14.dp))
+        DesktopMeQuickActions(onScanMusic = onScanMusic)
         Spacer(modifier = Modifier.height(20.dp))
         Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
             DesktopContentRow(
@@ -174,6 +180,28 @@ internal data class DesktopMeStatDisplayModel(
 )
 
 /**
+ * 桌面“我的”页快速功能动作，避免入口文案和点击行为在后续扩展时混淆。
+ */
+internal enum class DesktopMeQuickAction {
+    ScanMusic,
+}
+
+/**
+ * 桌面“我的”页快速功能展示模型，只描述入口语义，不新增扫描流程。
+ *
+ * @property action 点击后要复用的既有桌面动作。
+ * @property title 入口标题。
+ * @property subtitle 入口说明。
+ * @property actionLabel 右侧轻量动作文案。
+ */
+internal data class DesktopMeQuickActionDisplayModel(
+    val action: DesktopMeQuickAction,
+    val title: String,
+    val subtitle: String,
+    val actionLabel: String,
+)
+
+/**
  * 构造桌面“我的”页三项统计；歌曲数必须来自真实曲库统计，另外两项保持静态展示。
  */
 internal fun buildDesktopMeStatDisplayModels(
@@ -199,6 +227,20 @@ internal fun buildDesktopMeStatDisplayModels(
 }
 
 /**
+ * 构造桌面“我的”页快速功能入口；扫描音乐必须复用桌面文件夹扫描动作。
+ */
+internal fun buildDesktopMeQuickActionDisplayModels(): List<DesktopMeQuickActionDisplayModel> {
+    return listOf(
+        DesktopMeQuickActionDisplayModel(
+            action = DesktopMeQuickAction.ScanMusic,
+            title = "扫描音乐",
+            subtitle = "选择本地音乐文件夹并导入歌曲",
+            actionLabel = "添加文件夹",
+        ),
+    )
+}
+
+/**
  * 三项统计使用桌面端横向等权布局，保持宽屏 workspace 的自然间距。
  */
 @Composable
@@ -215,6 +257,28 @@ private fun DesktopMeStatsRow(
                 title = item.title,
                 value = item.value,
                 modifier = Modifier.weight(1f),
+            )
+        }
+    }
+}
+
+/**
+ * 桌面快速功能只暴露入口，具体扫描仍交给已有桌面扫描回调。
+ */
+@Composable
+private fun DesktopMeQuickActions(
+    onScanMusic: () -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+        buildDesktopMeQuickActionDisplayModels().forEach { item: DesktopMeQuickActionDisplayModel ->
+            DesktopContentRow(
+                icon = DesktopScanIcon,
+                title = item.title,
+                subtitle = item.subtitle,
+                actionLabel = item.actionLabel,
+                onClick = when (item.action) {
+                    DesktopMeQuickAction.ScanMusic -> onScanMusic
+                },
             )
         }
     }

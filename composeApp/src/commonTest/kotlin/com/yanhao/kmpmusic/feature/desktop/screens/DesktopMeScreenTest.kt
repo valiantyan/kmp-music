@@ -9,6 +9,28 @@ import kotlin.test.assertEquals
  */
 class DesktopMeScreenTest {
     /**
+     * 桌面“我的”页必须显示扫描音乐入口，并把入口语义标记为桌面扫描动作。
+     */
+    @Test
+    fun desktopMeQuickActionsExposeScanMusicEntry(): Unit {
+        val actions: List<DesktopMeQuickActionDisplayModel> = buildDesktopMeQuickActionDisplayModels()
+        val action: DesktopMeQuickActionDisplayModel = actions.single()
+        assertEquals(expected = 1, actual = actions.size)
+        assertEquals(
+            expected = DesktopMeQuickAction.ScanMusic,
+            actual = action.action,
+        )
+        assertEquals(
+            expected = "扫描音乐",
+            actual = action.title,
+        )
+        assertEquals(
+            expected = "添加文件夹",
+            actual = action.actionLabel,
+        )
+    }
+
+    /**
      * 桌面统计区只显示歌曲、歌单和听歌时长三项，避免回退到旧的专辑/歌手/收藏/最近播放组合。
      */
     @Test

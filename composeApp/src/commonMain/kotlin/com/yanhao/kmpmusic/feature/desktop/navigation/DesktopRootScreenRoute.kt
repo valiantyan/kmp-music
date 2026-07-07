@@ -75,6 +75,7 @@ fun DesktopRootScreenRoute(
             onFolders = {
                 controller.openLocalMusic(section = LocalMusicSection.Sources)
             },
+            onScanMusic = onScanLocalMusic,
             onSettings = { controller.navigateToSecondary(SecondaryScreen.Settings) },
             onBrowseAlbums = {
                 controller.openLocalMusic(section = LocalMusicSection.Albums)
