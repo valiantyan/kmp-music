@@ -52,7 +52,6 @@ fun MeScreen(
     albums: List<Album>,
     artists: List<Artist>,
     libraryStats: LibraryStats,
-    favoriteCount: Int,
     onAlbumOpen: (Album) -> Unit,
     onArtistOpen: (Artist) -> Unit,
 ) {
@@ -60,7 +59,6 @@ fun MeScreen(
         ProfileSummary()
         MetricRow(
             libraryStats = libraryStats,
-            favoriteCount = favoriteCount,
         )
         Surface(shape = RoundedCornerShape(20.dp), color = MusicColors.Paper, tonalElevation = 1.dp) {
             Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
@@ -165,13 +163,12 @@ private fun ProfileAvatar() {
 @Composable
 private fun MetricRow(
     libraryStats: LibraryStats,
-    favoriteCount: Int,
 ) {
     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
         listOf(
-            "本地专辑" to libraryStats.albumCount.toString(),
-            "歌手" to libraryStats.artistCount.toString(),
-            "收藏" to favoriteCount.toString(),
+            "歌曲" to libraryStats.songCount.toString(),
+            "歌单" to "12",
+            "听歌时长" to "365",
         ).forEach { item ->
             Surface(
                 modifier = Modifier.weight(weight = 1f),

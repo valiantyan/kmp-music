@@ -68,7 +68,6 @@ fun MobileRootScreenRoute(
             albums = state.albums,
             artists = state.artists,
             libraryStats = state.libraryStats,
-            favoriteCount = state.likedSongIds.size,
             onAlbumOpen = controller::openAlbum,
             onArtistOpen = controller::openArtist,
         )
