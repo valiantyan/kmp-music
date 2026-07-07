@@ -7,6 +7,7 @@ import com.yanhao.kmpmusic.domain.model.LibrarySnapshot
 import com.yanhao.kmpmusic.domain.model.LibraryStats
 import com.yanhao.kmpmusic.domain.model.LocalMusicLastScanSummary
 import com.yanhao.kmpmusic.domain.model.LocalMusicProblem
+import com.yanhao.kmpmusic.domain.model.LocalMusicScanDeletionAuthority
 import com.yanhao.kmpmusic.domain.model.LocalMusicScanCoverage
 import com.yanhao.kmpmusic.domain.model.LocalMusicScanRequest
 import com.yanhao.kmpmusic.domain.model.LocalMusicScanResult
@@ -229,6 +230,9 @@ class PersistentMusicLibraryRepository(
     private fun resolveCoveredSourceKinds(
         scanResult: LocalMusicScanResult,
     ): Set<String> {
+        if (scanResult.deletionAuthority == LocalMusicScanDeletionAuthority.None) {
+            return emptySet()
+        }
         val fromCompletedCoverage: Set<String> = scanResult.completedCoverage
             .filterIsInstance<LocalMusicScanCoverage.SourceKind>()
             .filter { coverage: LocalMusicScanCoverage.SourceKind ->
@@ -246,6 +250,9 @@ class PersistentMusicLibraryRepository(
     private fun resolveCoveredConcreteSources(
         scanResult: LocalMusicScanResult,
     ): List<LocalMusicScanCoverage.ConcreteSource> {
+        if (scanResult.deletionAuthority == LocalMusicScanDeletionAuthority.None) {
+            return emptyList()
+        }
         return scanResult.completedCoverage
             .filterIsInstance<LocalMusicScanCoverage.ConcreteSource>()
     }

@@ -45,6 +45,22 @@ class LocalMusicScanCoverageContractTest {
     }
 
     /**
+     * 失败结果可以携带正向发现，但不能消费完成覆盖来下线未处理旧歌。
+     */
+    @Test
+    fun failedResultHasNoDeletionAuthorityEvenWithCompletedCoverage(): Unit {
+        val result: LocalMusicScanResult = LocalMusicScanResult(
+            discovered = listOf(metadata(sourceId = "android-new", sourceKind = LocalMusicSourceKind.AndroidMediaStore)),
+            failed = listOf(failedProblem(sourceId = "android-bad")),
+            completedCoverage = listOf(
+                LocalMusicScanCoverage.SourceKind(sourceKind = LocalMusicSourceKind.AndroidMediaStore),
+            ),
+        )
+
+        assertEquals(expected = LocalMusicScanDeletionAuthority.None, actual = result.deletionAuthority)
+    }
+
+    /**
      * 覆盖契约要区分完整来源类型、具体来源和 positive-only 三类语义，供后续合并逻辑安全消费。
      */
     @Test
@@ -130,6 +146,21 @@ class LocalMusicScanCoverageContractTest {
             songCount = 1,
             problemCount = 0,
             lastScannedAt = 1L,
+        )
+    }
+
+    // 构造失败项，证明 problem 存在时结果只能作为 positive-only 合并。
+    private fun failedProblem(sourceId: String): LocalMusicProblem {
+        return LocalMusicProblem(
+            sourceKind = LocalMusicSourceKind.AndroidMediaStore,
+            sourceId = sourceId,
+            fileName = "$sourceId.flac",
+            error = LocalMusicScanError(
+                type = LocalMusicScanErrorType.FileUnreadable,
+                message = "扫描失败",
+                sourceKind = LocalMusicSourceKind.AndroidMediaStore,
+                sourceId = sourceId,
+            ),
         )
     }
 }

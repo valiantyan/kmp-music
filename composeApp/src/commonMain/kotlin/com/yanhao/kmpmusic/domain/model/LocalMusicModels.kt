@@ -212,6 +212,9 @@ data class LocalMusicScanResult(
      */
     val deletionAuthority: LocalMusicScanDeletionAuthority
         get() {
+            if (failed.isNotEmpty()) {
+                return LocalMusicScanDeletionAuthority.None
+            }
             val hasCoveredSource: Boolean = completedCoverage.any { coverage: LocalMusicScanCoverage ->
                 coverage is LocalMusicScanCoverage.SourceKind || coverage is LocalMusicScanCoverage.ConcreteSource
             }
