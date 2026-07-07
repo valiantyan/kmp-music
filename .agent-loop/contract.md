@@ -2,7 +2,7 @@
 
 ## 目标
 
-使用“长跑 Agent Harness”作为 `local-audio-discovery-source-coverage` 批次的顺序协调器，从 issue 13 自动推进到 issue 17。Harness 负责队列状态、派发、门禁检查、恢复记录和最终完成判断；每个 issue 的业务实现必须在独立实现线程或 fresh session 中完成。
+使用“长跑 Agent Harness”作为 `local-audio-discovery-source-coverage` 批次的顺序协调器；在协调器持续运行、被用户恢复或被已配置自动化唤醒时，从 issue 13 按队列推进到 issue 17。Harness 负责队列状态、派发、门禁检查、恢复记录和最终完成判断；每个 issue 的业务实现必须在独立实现线程或 fresh session 中完成。
 
 本契约描述如何在 kmp-music 项目中使用 Harness。若用户只要求说明操作方法，当前会话不得启动或执行 13 到 17 的实现线程。
 
@@ -27,6 +27,8 @@
 - 每次只派发队列中的当前 issue，不并发派发依赖链后续 issue。
 - 当前 issue 声称完成后，重新读取该 issue 文件并执行门禁检查。
 - 门禁通过后，先创建 Git checkpoint 并记录提交哈希，再更新 `progress.md`、追加 `log.md`、更新 `scorecard.md`；如果这些状态文件产生新 diff，再创建一个小的调度 metadata commit，确认工作区状态满足契约后才推进下一项。
+- `已派发`、`等待实现`、`等待线程返回` 等运行时状态只能作为 `.agent-loop` 恢复记录，不能单独提交为 Git checkpoint，也不能解除当前 issue 的文件、验证、审查和 Git checkpoint 门禁。
+- metadata checkpoint 只能跟随已经完成门禁的 issue checkpoint，用于固化提交哈希、评分、日志或最终状态；任务完成 checkpoint 可以包含 `.agent-loop` 从等待态更新为完成态的状态 diff，但提交语义必须是当前 issue 完成并通过门禁，而不是“任务已派发”。
 - 门禁未通过时，停在当前 issue，记录缺失证据和下一步，不推进下一项。
 - issue 17 通过最终验证与对抗式审查后，才能把批次标记为完成。
 
@@ -81,12 +83,18 @@ Code Review：
 - 协调器在当前 issue 文件门禁通过后，先检查 `git status --short --branch` 和当前 diff，确认改动只属于当前 issue 和必要的 `.agent-loop` 调度记录。
 - 协调器创建一个当前 issue 的 checkpoint commit，并记录提交哈希。
 - 如果记录提交哈希会产生新的 `.agent-loop` 变更，协调器再创建一个小的调度 metadata commit，确保派发下一项前工作区干净。
+- 派发或等待状态可以暂留工作区用于恢复，但不得单独提交；只有当前 issue 已完成并通过所有适用门禁后，才允许提交任务 checkpoint 或随后的 metadata checkpoint。
 - `progress.md`、`log.md` 或 `scorecard.md` 必须记录当前 issue 的 checkpoint commit hash。
 - 只有当前 issue 的文件门禁、验证门禁、Git checkpoint 和工作区状态均满足契约，才能派发下一项。
 
 当前已知 checkpoint：
 
 - issue 13：`118b5163 test: 固化失败扫描保留旧歌红灯用例`
+- issue 14：`9f63f09c fix: 修复失败扫描误删旧歌`
+
+历史注意：
+
+- `08d65ff7 chore: 记录 issue 14 派发状态` 只是派发态 metadata commit，不得视为 issue 14 完成 checkpoint；后续不再为派发/等待态单独创建提交。
 
 ## 推进门禁
 

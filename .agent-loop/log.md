@@ -61,3 +61,19 @@
 - 门禁结果：issue 13 为 `ready-for-human`，验收标准全勾，`Comments` 包含实现摘要、验证命令与结果、对抗式审查、code-review 结论和剩余风险；工作区干净，分支状态为 `main...origin/main [ahead 16]`。
 - 线程：issue 14 已派发到 `codex://threads/019f3781-c2cf-7cf3-8f12-39e8e3fd9653`。
 - 下一步：等待 issue 14 实现线程完成；完成后重新读取 issue 14 文件做门禁检查，未通过则停在 issue 14，不派发 issue 15。
+
+## 2026-07-07 修复派发态 checkpoint 与 issue 14 陈旧状态
+
+- 意图：同步通用长跑 Harness 的派发态/等待态规则，并修正 `.agent-loop` 仍停在 issue 14 等待实现的陈旧状态。
+- 行动：读取 `AGENTS.md`、`.agent-loop` 状态、issue 14 文件和最近提交；确认 issue 14 已为 `ready-for-human`，真实代码 checkpoint 为 `9f63f09c fix: 修复失败扫描误删旧歌`。
+- 修复：在 `AGENTS.md` 和 `contract.md` 中明确派发/等待态只能作为恢复记录，不能单独提交为 Git checkpoint；metadata checkpoint 只能跟随已完成门禁的 issue checkpoint；更新 `progress.md` 到 issue 15 派发前状态。
+- 验证：等待本轮 YAML/关键词/Git 状态验证和三轮对抗式审查。
+- 下一步：如果三轮审查发现问题，修复后重新计数；无问题后提交本轮 Harness metadata 修复。
+
+## 2026-07-07 完成 Harness 状态修复三轮审查
+
+- 意图：确认 kmp-music 的 `.agent-loop` 和 `AGENTS.md` 已同步通用 Harness 的 checkpoint 边界，并能从 issue 15 恢复。
+- 行动：三轮对抗式审查分别检查契约门禁、恢复状态、提交边界和自动化表述；第一轮发现并修复 scorecard 中陈旧的 issue 13/14 阈值；重新计数后又发现并修复 `contract.md` 中“自动推进”表述，改为协调器持续运行、被用户恢复或被已配置自动化唤醒时按队列推进。
+- 验证：`git diff --check` 通过；`git cat-file -t 9f63f09c` 确认 issue 14 checkpoint 存在；关键词扫描确认派发/等待态不能单独提交、`08d65ff7` 不得视为 issue 14 完成 checkpoint、issue 15 为下一步。
+- 结果：重新计数后的三轮审查未发现新问题；旧日志中的“自动化完成”表述仅是历史记录，当前契约以“持续运行、被恢复或已配置自动化唤醒”为准。
+- 下一步：恢复协调器可从 issue 15 开始；派发前先确认工作区干净、issue 14 checkpoint `9f63f09c` 存在，且 `08d65ff7` 不被当作完成 checkpoint。
