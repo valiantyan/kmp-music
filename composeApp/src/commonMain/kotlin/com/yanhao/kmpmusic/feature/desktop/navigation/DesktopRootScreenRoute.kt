@@ -71,7 +71,6 @@ fun DesktopRootScreenRoute(
             recentSongs = state.recentSongs,
             artists = state.artists,
             libraryStats = state.libraryStats,
-            favoriteCount = state.likedSongIds.size,
             onFavorites = { controller.navigateToRoot(RootTab.Favorites) },
             onFolders = {
                 controller.openLocalMusic(section = LocalMusicSection.Sources)

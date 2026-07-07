@@ -51,7 +51,17 @@ import org.jetbrains.compose.resources.ExperimentalResourceApi
 private const val ARTIST_STRIP_COUNT = 4
 
 /**
- * 我的页汇总个人资料、收藏与最近播放概览，最近播放必须来自真实播放历史。
+ * 桌面“我的”页暂不实现真实歌单能力，统计只按 PRD 固定展示。
+ */
+private const val STATIC_PLAYLIST_COUNT = 12
+
+/**
+ * 桌面“我的”页暂不实现真实听歌时长统计，数值只作为静态展示。
+ */
+private const val STATIC_LISTENING_HOURS = 365
+
+/**
+ * 我的页汇总个人资料、静态统计和本地音乐资产入口，后续切片再接入桌面最近播放能力。
  */
 @Composable
 fun DesktopMeRootScreen(
@@ -59,7 +69,6 @@ fun DesktopMeRootScreen(
     recentSongs: List<Song>,
     artists: List<Artist>,
     libraryStats: LibraryStats,
-    favoriteCount: Int,
     onFavorites: () -> Unit,
     onFolders: () -> Unit,
     onSettings: () -> Unit,
@@ -86,35 +95,7 @@ fun DesktopMeRootScreen(
         )
         DesktopProfileHeader()
         Spacer(modifier = Modifier.height(20.dp))
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(18.dp),
-        ) {
-            DesktopStatCard(
-                icon = "●",
-                title = "本地专辑",
-                value = libraryStats.albumCount.toString(),
-                modifier = Modifier.weight(1f),
-            )
-            DesktopStatCard(
-                icon = "♟",
-                title = "歌手",
-                value = libraryStats.artistCount.toString(),
-                modifier = Modifier.weight(1f),
-            )
-            DesktopStatCard(
-                icon = "♥",
-                title = "收藏",
-                value = favoriteCount.toString(),
-                modifier = Modifier.weight(1f),
-            )
-            DesktopStatCard(
-                icon = "♫",
-                title = "最近播放",
-                value = recentSongs.size.toString(),
-                modifier = Modifier.weight(1f),
-            )
-        }
+        DesktopMeStatsRow(libraryStats = libraryStats)
         Spacer(modifier = Modifier.height(20.dp))
         Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
             DesktopContentRow(
@@ -174,6 +155,66 @@ fun DesktopMeRootScreen(
         } else {
             DesktopSectionEmptyMessage(
                 message = "还没有最近播放的专辑，先播放一些音乐吧。",
+            )
+        }
+    }
+}
+
+/**
+ * 桌面“我的”页统计展示模型，隔离真实歌曲数和静态占位数值的边界。
+ *
+ * @property icon 统计卡片图标。
+ * @property title 统计卡片标题。
+ * @property value 统计卡片展示值。
+ */
+internal data class DesktopMeStatDisplayModel(
+    val icon: String,
+    val title: String,
+    val value: String,
+)
+
+/**
+ * 构造桌面“我的”页三项统计；歌曲数必须来自真实曲库统计，另外两项保持静态展示。
+ */
+internal fun buildDesktopMeStatDisplayModels(
+    libraryStats: LibraryStats,
+): List<DesktopMeStatDisplayModel> {
+    return listOf(
+        DesktopMeStatDisplayModel(
+            icon = "♫",
+            title = "歌曲",
+            value = libraryStats.songCount.toString(),
+        ),
+        DesktopMeStatDisplayModel(
+            icon = "●",
+            title = "歌单",
+            value = STATIC_PLAYLIST_COUNT.toString(),
+        ),
+        DesktopMeStatDisplayModel(
+            icon = "◷",
+            title = "听歌时长",
+            value = STATIC_LISTENING_HOURS.toString(),
+        ),
+    )
+}
+
+/**
+ * 三项统计使用桌面端横向等权布局，保持宽屏 workspace 的自然间距。
+ */
+@Composable
+private fun DesktopMeStatsRow(
+    libraryStats: LibraryStats,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(18.dp),
+    ) {
+        buildDesktopMeStatDisplayModels(libraryStats = libraryStats).forEach { item: DesktopMeStatDisplayModel ->
+            DesktopStatCard(
+                icon = item.icon,
+                title = item.title,
+                value = item.value,
+                modifier = Modifier.weight(1f),
             )
         }
     }
