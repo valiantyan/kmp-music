@@ -3,6 +3,7 @@ package com.yanhao.kmpmusic.feature.app
 import com.yanhao.kmpmusic.data.InMemoryFavoritesRepository
 import com.yanhao.kmpmusic.data.InMemoryMusicLibraryRepository
 import com.yanhao.kmpmusic.data.InMemoryPlaybackRepository
+import com.yanhao.kmpmusic.data.InMemoryUserPreferencesRepository
 import com.yanhao.kmpmusic.data.FakeAudioPlayerEngine
 import com.yanhao.kmpmusic.domain.model.Album
 import com.yanhao.kmpmusic.domain.model.Artist
@@ -21,6 +22,7 @@ import com.yanhao.kmpmusic.domain.model.LocalMusicScanRequest
 import com.yanhao.kmpmusic.domain.model.LocalMusicScanResult
 import com.yanhao.kmpmusic.domain.model.LocalMusicScanState
 import com.yanhao.kmpmusic.domain.model.LocalMusicLastScanSummary
+import com.yanhao.kmpmusic.domain.model.LocalMusicDiscoveryPreferences
 import com.yanhao.kmpmusic.domain.model.LocalMusicSourceKind
 import com.yanhao.kmpmusic.domain.model.MusicFileMetadata
 import com.yanhao.kmpmusic.domain.model.SearchContext
@@ -31,6 +33,7 @@ import com.yanhao.kmpmusic.domain.repository.FavoritesRepository
 import com.yanhao.kmpmusic.domain.repository.LocalMusicScanner
 import com.yanhao.kmpmusic.domain.repository.MusicLibraryRepository
 import com.yanhao.kmpmusic.domain.repository.SearchHistoryRepository
+import com.yanhao.kmpmusic.domain.repository.UserPreferencesRepository
 import com.yanhao.kmpmusic.domain.playback.AudioPlayerEngine
 import com.yanhao.kmpmusic.feature.screen.cancelledScanResultDetail
 import com.yanhao.kmpmusic.feature.screen.cancelledScanResultTitle
@@ -378,6 +381,60 @@ class MusicAppControllerTest {
         scanner.complete()
         scanJob.join()
         secondScanJob.join()
+    }
+
+    /**
+     * 重新扫描期间应保留上一轮结果摘要，扫描页统计不能回退成未记录时间。
+     */
+    @Test
+    fun runningScanKeepsPreviousLastScanSummary(): Unit = runTest {
+        val scanner: BlockingAfterFirstScanScanner = BlockingAfterFirstScanScanner()
+        val controller: MusicAppController = createController(
+            localMusicScanner = scanner,
+            controllerScope = backgroundScope,
+        )
+        controller.scanLocalMusic(request = LocalMusicScanRequest.Refresh)
+        val previousSummary: LocalMusicLastScanSummary = (controller.uiState.scanState as LocalMusicScanState.Done).summary
+
+        val scanJob: Job = launch {
+            controller.scanLocalMusic(request = LocalMusicScanRequest.Refresh)
+        }
+        scanner.awaitSecondScanStarted()
+
+        val scanningState: LocalMusicScanState.Scanning = controller.uiState.scanState as LocalMusicScanState.Scanning
+        assertEquals(expected = previousSummary, actual = scanningState.previousSummary)
+        scanner.completeSecondScan()
+        scanJob.join()
+    }
+
+    /**
+     * 本地音频发现偏好应写入仓库缓存，并随扫描请求传给平台 scanner。
+     */
+    @Test
+    fun localMusicDiscoveryPreferencesPersistAndFlowIntoScanner(): Unit = runBlocking {
+        val preferencesRepository: InMemoryUserPreferencesRepository = InMemoryUserPreferencesRepository()
+        val scanner: PreferencesRecordingLocalMusicScanner = PreferencesRecordingLocalMusicScanner()
+        val controller: MusicAppController = createController(
+            localMusicScanner = scanner,
+            userPreferencesRepository = preferencesRepository,
+        )
+
+        controller.setLocalMusicAutoScanOnLaunchEnabled(isEnabled = true)
+        controller.setLocalMusicShortAudioIgnored(isIgnored = false)
+        controller.setLocalMusicSystemFoldersExcluded(isExcluded = false)
+        val restoredController: MusicAppController = createController(
+            localMusicScanner = scanner,
+            userPreferencesRepository = preferencesRepository,
+        )
+        restoredController.scanLocalMusic(request = LocalMusicScanRequest.Refresh)
+
+        val expectedPreferences = LocalMusicDiscoveryPreferences(
+            isAutoScanOnLaunchEnabled = true,
+            shouldIgnoreShortAudio = false,
+            shouldExcludeSystemFolders = false,
+        )
+        assertEquals(expected = expectedPreferences, actual = restoredController.uiState.localMusicDiscoveryPreferences)
+        assertEquals(expected = expectedPreferences, actual = scanner.preferences.last())
     }
 
     /**
@@ -1368,6 +1425,7 @@ private fun createController(
     audioPlayerEngine: AudioPlayerEngine = FakeAudioPlayerEngine(),
     playbackSnapshotStore: InMemoryPlaybackSnapshotStore = InMemoryPlaybackSnapshotStore(),
     favoritesRepository: FavoritesRepository? = null,
+    userPreferencesRepository: UserPreferencesRepository = InMemoryUserPreferencesRepository(),
     searchHistoryRepository: SearchHistoryRepository = FakeSearchHistoryRepository(),
     permissionSettingsOpener: PermissionSettingsOpener = PermissionSettingsOpener {},
     controllerScope: CoroutineScope = testControllerScope(),
@@ -1380,6 +1438,7 @@ private fun createController(
         audioPlayerEngine = audioPlayerEngine,
         playbackSnapshotStore = playbackSnapshotStore,
         injectedFavoritesRepository = favoritesRepository,
+        userPreferencesRepository = userPreferencesRepository,
         searchHistoryRepository = searchHistoryRepository,
         permissionSettingsOpener = permissionSettingsOpener,
         controllerScope = controllerScope,
@@ -1409,6 +1468,17 @@ private fun testControllerScope(): CoroutineScope {
 private object FakeControllerLocalMusicScanner : LocalMusicScanner {
     override suspend fun scan(request: LocalMusicScanRequest): LocalMusicScanResult {
         return com.yanhao.kmpmusic.data.FakeLocalMusicScanner(demoSongCount = 8).scan(request = request)
+    }
+
+    /** 转发本地音频发现偏好，避免测试默认 scanner 丢掉过滤配置。 */
+    override suspend fun scan(
+        request: LocalMusicScanRequest,
+        preferences: LocalMusicDiscoveryPreferences,
+    ): LocalMusicScanResult {
+        return com.yanhao.kmpmusic.data.FakeLocalMusicScanner(demoSongCount = 8).scan(
+            request = request,
+            preferences = preferences,
+        )
     }
 }
 
@@ -1488,6 +1558,86 @@ private class BlockingLocalMusicScanner : LocalMusicScanner {
     /** 释放挂起扫描，让测试可以收尾。 */
     fun complete() {
         scanCanComplete.complete(value = Unit)
+    }
+}
+
+/**
+ * 第一次扫描立即完成，第二次扫描挂起，用来检查运行中状态保留上一轮摘要。
+ */
+private class BlockingAfterFirstScanScanner : LocalMusicScanner {
+    // 第二次扫描启动信号，测试用它稳定观察运行中状态。
+    private val secondScanStarted: CompletableDeferred<Unit> = CompletableDeferred()
+
+    // 第二次扫描完成信号，由测试显式释放。
+    private val secondScanCanComplete: CompletableDeferred<Unit> = CompletableDeferred()
+
+    // 记录 scanner 被调用次数，用来区分第一次完成和第二次挂起。
+    private var scanCount: Int = 0
+
+    /** 按调用次数返回完成结果或挂起结果。 */
+    override suspend fun scan(request: LocalMusicScanRequest): LocalMusicScanResult {
+        return scan(
+            request = request,
+            preferences = LocalMusicDiscoveryPreferences(),
+        )
+    }
+
+    /** 按调用次数返回完成结果或挂起结果，并保留偏好传递路径。 */
+    override suspend fun scan(
+        request: LocalMusicScanRequest,
+        preferences: LocalMusicDiscoveryPreferences,
+    ): LocalMusicScanResult {
+        scanCount += 1
+        if (scanCount == 1) {
+            return com.yanhao.kmpmusic.data.FakeLocalMusicScanner(demoSongCount = 8).scan(
+                request = request,
+                preferences = preferences,
+            )
+        }
+        secondScanStarted.complete(value = Unit)
+        secondScanCanComplete.await()
+        return com.yanhao.kmpmusic.data.FakeLocalMusicScanner(demoSongCount = 8).scan(
+            request = request,
+            preferences = preferences,
+        )
+    }
+
+    /** 等待第二次扫描进入挂起点。 */
+    suspend fun awaitSecondScanStarted() {
+        secondScanStarted.await()
+    }
+
+    /** 释放第二次扫描，让测试可以收尾。 */
+    fun completeSecondScan() {
+        secondScanCanComplete.complete(value = Unit)
+    }
+}
+
+/**
+ * 记录 scanner 收到的本地音频发现偏好，验证 controller 到 scanner 的配置链路。
+ */
+private class PreferencesRecordingLocalMusicScanner : LocalMusicScanner {
+    // 按扫描调用顺序记录偏好快照。
+    val preferences: MutableList<LocalMusicDiscoveryPreferences> = mutableListOf()
+
+    /** 默认扫描入口按默认偏好记录，保持接口兼容。 */
+    override suspend fun scan(request: LocalMusicScanRequest): LocalMusicScanResult {
+        return scan(
+            request = request,
+            preferences = LocalMusicDiscoveryPreferences(),
+        )
+    }
+
+    /** 记录偏好后返回 fake 扫描结果。 */
+    override suspend fun scan(
+        request: LocalMusicScanRequest,
+        preferences: LocalMusicDiscoveryPreferences,
+    ): LocalMusicScanResult {
+        this.preferences += preferences
+        return com.yanhao.kmpmusic.data.FakeLocalMusicScanner(demoSongCount = 8).scan(
+            request = request,
+            preferences = preferences,
+        )
     }
 }
 

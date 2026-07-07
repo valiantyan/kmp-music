@@ -24,6 +24,19 @@ sealed interface LocalMusicScanRequest {
 }
 
 /**
+ * 本地音频发现偏好，表达用户希望 scanner 采用的过滤和刷新策略。
+ *
+ * @property isAutoScanOnLaunchEnabled 是否在启动时自动检查本地音乐更新。
+ * @property shouldIgnoreShortAudio 是否忽略小于 30 秒的短音频。
+ * @property shouldExcludeSystemFolders 是否跳过平台系统音频目录。
+ */
+data class LocalMusicDiscoveryPreferences(
+    val isAutoScanOnLaunchEnabled: Boolean = false,
+    val shouldIgnoreShortAudio: Boolean = true,
+    val shouldExcludeSystemFolders: Boolean = true,
+)
+
+/**
  * 本地音乐扫描进度，供首页卡片和弹层展示状态摘要。
  */
 data class LocalMusicScanProgress(
@@ -231,8 +244,14 @@ data class LocalMusicScanResult(
 sealed interface LocalMusicScanState {
     data object Idle : LocalMusicScanState
     data object WaitingForPermission : LocalMusicScanState
-    data class Importing(val progress: LocalMusicScanProgress) : LocalMusicScanState
-    data class Scanning(val progress: LocalMusicScanProgress) : LocalMusicScanState
+    data class Importing(
+        val progress: LocalMusicScanProgress,
+        val previousSummary: LocalMusicLastScanSummary? = null,
+    ) : LocalMusicScanState
+    data class Scanning(
+        val progress: LocalMusicScanProgress,
+        val previousSummary: LocalMusicLastScanSummary? = null,
+    ) : LocalMusicScanState
     data class Done(val summary: LocalMusicLastScanSummary) : LocalMusicScanState
     data class Cancelled(
         val summary: LocalMusicLastScanSummary,

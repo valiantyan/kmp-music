@@ -1,6 +1,7 @@
 package com.yanhao.kmpmusic.domain.usecase
 
 import com.yanhao.kmpmusic.domain.model.LibrarySnapshot
+import com.yanhao.kmpmusic.domain.model.LocalMusicDiscoveryPreferences
 import com.yanhao.kmpmusic.domain.model.LocalMusicScanRequest
 import com.yanhao.kmpmusic.domain.model.LocalMusicScanResult
 import com.yanhao.kmpmusic.domain.repository.LocalMusicScanner
@@ -16,6 +17,7 @@ interface ScanLocalMusicUseCase {
     suspend operator fun invoke(
         request: LocalMusicScanRequest,
         likedSongIds: Set<String>,
+        preferences: LocalMusicDiscoveryPreferences = LocalMusicDiscoveryPreferences(),
     ): LibrarySnapshot
 }
 
@@ -30,8 +32,12 @@ class ScanLocalMusicUseCaseImpl(
     override suspend operator fun invoke(
         request: LocalMusicScanRequest,
         likedSongIds: Set<String>,
+        preferences: LocalMusicDiscoveryPreferences,
     ): LibrarySnapshot {
-        val result: LocalMusicScanResult = localMusicScanner.scan(request = request)
+        val result: LocalMusicScanResult = localMusicScanner.scan(
+            request = request,
+            preferences = preferences,
+        )
         return musicLibraryRepository.applyScanResult(
             request = request,
             scanResult = result,

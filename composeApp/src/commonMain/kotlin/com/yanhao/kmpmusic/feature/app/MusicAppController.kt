@@ -14,6 +14,7 @@ import com.yanhao.kmpmusic.domain.model.Album
 import com.yanhao.kmpmusic.domain.model.Artist
 import com.yanhao.kmpmusic.domain.model.LibrarySnapshot
 import com.yanhao.kmpmusic.domain.model.LibraryStats
+import com.yanhao.kmpmusic.domain.model.LocalMusicDiscoveryPreferences
 import com.yanhao.kmpmusic.domain.model.LocalMusicLastScanSummary
 import com.yanhao.kmpmusic.domain.model.LocalMusicScanErrorType
 import com.yanhao.kmpmusic.domain.model.LocalMusicScanProgress
@@ -277,9 +278,11 @@ class MusicAppController(
         isLocalMusicScanRunning = true
         isLocalMusicScanCancellationRequested = false
         currentLocalMusicScanJob = currentCoroutineContext()[Job]
+        val previousSummary: LocalMusicLastScanSummary? = findLastScanSummary(scanState = uiState.scanState)
         uiState = uiState.copy(
             scanState = LocalMusicScanState.Scanning(
                 progress = LocalMusicScanProgress(currentSourceName = "本地音乐"),
+                previousSummary = previousSummary,
             ),
             isQueueOpen = false,
             moreSongId = null,
@@ -289,6 +292,7 @@ class MusicAppController(
             val snapshot: LibrarySnapshot = scanLocalMusicUseCase(
                 request = request,
                 likedSongIds = likedSongIdsForScan,
+                preferences = uiState.localMusicDiscoveryPreferences,
             )
             if (isLocalMusicScanCancellationRequested) {
                 return
@@ -300,7 +304,10 @@ class MusicAppController(
                 return
             }
             uiState = uiState.copy(
-                scanState = LocalMusicScanState.Error(error = scanException.error),
+                scanState = LocalMusicScanState.Error(
+                    error = scanException.error,
+                    summary = previousSummary,
+                ),
                 isQueueOpen = false,
                 moreSongId = null,
             )
@@ -344,6 +351,20 @@ class MusicAppController(
             return currentTimeMillis
         }
         return 1L
+    }
+
+    // 进入运行中状态前保留上一轮结果，避免扫描页把“上次扫描”回退为空。
+    private fun findLastScanSummary(scanState: LocalMusicScanState): LocalMusicLastScanSummary? {
+        return when (scanState) {
+            LocalMusicScanState.Idle,
+            LocalMusicScanState.WaitingForPermission,
+            -> null
+            is LocalMusicScanState.Importing -> scanState.previousSummary
+            is LocalMusicScanState.Scanning -> scanState.previousSummary
+            is LocalMusicScanState.Done -> scanState.summary
+            is LocalMusicScanState.Cancelled -> scanState.summary
+            is LocalMusicScanState.Error -> scanState.summary
+        }
     }
 
     /**
@@ -664,6 +685,36 @@ class MusicAppController(
         uiState = uiState.copy(themeMode = themeMode)
     }
 
+    /** 设置启动时自动扫描偏好。 */
+    fun setLocalMusicAutoScanOnLaunchEnabled(isEnabled: Boolean) {
+        updateLocalMusicDiscoveryPreferences { preferences: LocalMusicDiscoveryPreferences ->
+            preferences.copy(isAutoScanOnLaunchEnabled = isEnabled)
+        }
+    }
+
+    /** 设置短音频过滤偏好。 */
+    fun setLocalMusicShortAudioIgnored(isIgnored: Boolean) {
+        updateLocalMusicDiscoveryPreferences { preferences: LocalMusicDiscoveryPreferences ->
+            preferences.copy(shouldIgnoreShortAudio = isIgnored)
+        }
+    }
+
+    /** 设置系统文件夹排除偏好。 */
+    fun setLocalMusicSystemFoldersExcluded(isExcluded: Boolean) {
+        updateLocalMusicDiscoveryPreferences { preferences: LocalMusicDiscoveryPreferences ->
+            preferences.copy(shouldExcludeSystemFolders = isExcluded)
+        }
+    }
+
+    // 统一保存本地音频发现偏好，避免各个开关各自维护缓存。
+    private fun updateLocalMusicDiscoveryPreferences(
+        transform: (LocalMusicDiscoveryPreferences) -> LocalMusicDiscoveryPreferences,
+    ) {
+        val preferences: LocalMusicDiscoveryPreferences = transform(uiState.localMusicDiscoveryPreferences)
+        userPreferencesRepository.saveLocalMusicDiscoveryPreferences(preferences = preferences)
+        uiState = uiState.copy(localMusicDiscoveryPreferences = preferences)
+    }
+
     /** 打开队列弹层。 */
     fun openQueue() {
         uiState = LoginAndDialogStateController.openQueue(state = uiState)
@@ -779,6 +830,7 @@ class MusicAppController(
                 extraSongs = previewWithLikes,
             ),
             themeMode = userPreferencesRepository.getThemeMode(),
+            localMusicDiscoveryPreferences = userPreferencesRepository.getLocalMusicDiscoveryPreferences(),
             localLibrarySearchHistory = searchHistoryRepository.getSearchHistory(
                 context = SearchContext.LocalLibrary,
             ),

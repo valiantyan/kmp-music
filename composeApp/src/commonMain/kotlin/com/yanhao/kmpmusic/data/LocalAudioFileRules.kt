@@ -1,6 +1,7 @@
 package com.yanhao.kmpmusic.data
 
 import com.yanhao.kmpmusic.domain.model.CoverArt
+import com.yanhao.kmpmusic.domain.model.LocalMusicDiscoveryPreferences
 
 /**
  * 本地音频文件识别规则，供各平台真实 scanner 复用同一套 P0 格式判断。
@@ -47,6 +48,21 @@ object LocalAudioFileRules {
     fun coverForSourceId(sourceId: String): CoverArt {
         return CoverArt.HeroLocalMusic
     }
+
+    /** 按用户偏好判断音频是否应进入本地音频发现结果，未知时长默认保留。 */
+    fun shouldIncludeByDuration(
+        durationMs: Long?,
+        preferences: LocalMusicDiscoveryPreferences,
+    ): Boolean {
+        if (!preferences.shouldIgnoreShortAudio) {
+            return true
+        }
+        val knownDurationMs: Long = durationMs ?: return true
+        return knownDurationMs >= MINIMUM_MUSIC_DURATION_MS
+    }
+
+    /** 短音频过滤阈值(30 秒)，用于过滤通知音和语音消息。 */
+    const val MINIMUM_MUSIC_DURATION_MS: Long = 30_000L
 }
 
 /**

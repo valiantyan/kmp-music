@@ -32,10 +32,6 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
@@ -48,6 +44,7 @@ import androidx.compose.ui.unit.sp
 import com.yanhao.kmpmusic.core.theme.MusicColors
 import com.yanhao.kmpmusic.core.theme.scaledDp
 import com.yanhao.kmpmusic.core.theme.scaledSp
+import com.yanhao.kmpmusic.domain.model.LocalMusicDiscoveryPreferences
 import com.yanhao.kmpmusic.domain.model.LocalMusicScanState
 import com.yanhao.kmpmusic.domain.model.LocalMusicSourceSummary
 
@@ -64,9 +61,13 @@ fun AudioScanScreen(
     playableSongCount: Int,
     sources: List<LocalMusicSourceSummary>,
     scanState: LocalMusicScanState,
+    discoveryPreferences: LocalMusicDiscoveryPreferences,
     discoveryPlatform: LocalMusicDiscoveryPlatform = LocalMusicDiscoveryPlatform.Android,
     onBack: () -> Unit,
     onScan: () -> Unit,
+    onAutoScanOnLaunchChange: (Boolean) -> Unit,
+    onShortAudioIgnoredChange: (Boolean) -> Unit,
+    onSystemFoldersExcludedChange: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
     contentPadding: PaddingValues = PaddingValues(0.dp),
 ) {
@@ -95,7 +96,13 @@ fun AudioScanScreen(
             ScanStatisticsSection(summaryDisplayModel = summaryDisplayModel)
         }
         item(key = "scan-filters") {
-            ScanFiltersSection(discoveryPlatform = discoveryPlatform)
+            ScanFiltersSection(
+                preferences = discoveryPreferences,
+                discoveryPlatform = discoveryPlatform,
+                onAutoScanOnLaunchChange = onAutoScanOnLaunchChange,
+                onShortAudioIgnoredChange = onShortAudioIgnoredChange,
+                onSystemFoldersExcludedChange = onSystemFoldersExcludedChange,
+            )
         }
         item(key = "scan-folders-title") {
             SectionHeader(
@@ -322,12 +329,15 @@ private fun StatisticColumn(
     }
 }
 
-// 过滤器先作为 UI 设置项承载，实际扫描规则仍由平台 scanner 决定。
+// 过滤器读取全局偏好，避免扫描中重组或离开页面后丢失用户选择。
 @Composable
-private fun ScanFiltersSection(discoveryPlatform: LocalMusicDiscoveryPlatform) {
-    var autoScanEnabled: Boolean by remember { mutableStateOf(value = false) }
-    var shortAudioIgnored: Boolean by remember { mutableStateOf(value = true) }
-    var systemFoldersExcluded: Boolean by remember { mutableStateOf(value = true) }
+private fun ScanFiltersSection(
+    preferences: LocalMusicDiscoveryPreferences,
+    discoveryPlatform: LocalMusicDiscoveryPlatform,
+    onAutoScanOnLaunchChange: (Boolean) -> Unit,
+    onShortAudioIgnoredChange: (Boolean) -> Unit,
+    onSystemFoldersExcludedChange: (Boolean) -> Unit,
+) {
     Column(
         modifier = Modifier.padding(horizontal = scaledDp(20.dp)),
         verticalArrangement = Arrangement.spacedBy(scaledDp(12.dp)),
@@ -343,20 +353,20 @@ private fun ScanFiltersSection(discoveryPlatform: LocalMusicDiscoveryPlatform) {
                 FilterRow(
                     title = "启动时自动扫描",
                     subtitle = "每次打开应用时检查更新",
-                    checked = autoScanEnabled,
-                    onCheckedChange = { checked: Boolean -> autoScanEnabled = checked },
+                    checked = preferences.isAutoScanOnLaunchEnabled,
+                    onCheckedChange = onAutoScanOnLaunchChange,
                 )
                 FilterRow(
                     title = "忽略短音频 (<30s)",
                     subtitle = "过滤通知音和语音消息",
-                    checked = shortAudioIgnored,
-                    onCheckedChange = { checked: Boolean -> shortAudioIgnored = checked },
+                    checked = preferences.shouldIgnoreShortAudio,
+                    onCheckedChange = onShortAudioIgnoredChange,
                 )
                 FilterRow(
                     title = excludeSystemFoldersTitle(discoveryPlatform = discoveryPlatform),
                     subtitle = excludeSystemFoldersSubtitle(discoveryPlatform = discoveryPlatform),
-                    checked = systemFoldersExcluded,
-                    onCheckedChange = { checked: Boolean -> systemFoldersExcluded = checked },
+                    checked = preferences.shouldExcludeSystemFolders,
+                    onCheckedChange = onSystemFoldersExcludedChange,
                 )
             }
         }

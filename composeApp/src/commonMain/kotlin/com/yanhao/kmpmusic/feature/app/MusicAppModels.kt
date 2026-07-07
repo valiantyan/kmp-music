@@ -3,6 +3,7 @@ package com.yanhao.kmpmusic.feature.app
 import com.yanhao.kmpmusic.domain.model.Album
 import com.yanhao.kmpmusic.domain.model.Artist
 import com.yanhao.kmpmusic.domain.model.LibraryStats
+import com.yanhao.kmpmusic.domain.model.LocalMusicDiscoveryPreferences
 import com.yanhao.kmpmusic.domain.model.LocalMusicProblem
 import com.yanhao.kmpmusic.domain.model.LocalMusicScanState
 import com.yanhao.kmpmusic.domain.model.LocalMusicSourceSummary
@@ -293,6 +294,7 @@ data class MusicAppUiState(
     val localLibrarySearchHistory: List<String> = emptyList(),
     val favoritesSearchHistory: List<String> = emptyList(),
     val themeMode: ThemeMode = ThemeMode.Light,
+    val localMusicDiscoveryPreferences: LocalMusicDiscoveryPreferences = LocalMusicDiscoveryPreferences(),
     val isQueueOpen: Boolean = false,
     val moreSongId: String? = null,
     val isPermissionSettingsDialogOpen: Boolean = false,

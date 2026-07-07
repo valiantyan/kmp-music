@@ -35,9 +35,9 @@ private fun findLastScanCompletedAt(scanState: LocalMusicScanState): Long? {
     return when (scanState) {
         LocalMusicScanState.Idle,
         LocalMusicScanState.WaitingForPermission,
-        is LocalMusicScanState.Importing,
-        is LocalMusicScanState.Scanning,
         -> null
+        is LocalMusicScanState.Importing -> scanState.previousSummary?.completedAt
+        is LocalMusicScanState.Scanning -> scanState.previousSummary?.completedAt
         is LocalMusicScanState.Done -> scanState.summary.completedAt
         is LocalMusicScanState.Cancelled -> scanState.summary.completedAt
         is LocalMusicScanState.Error -> scanState.summary?.completedAt

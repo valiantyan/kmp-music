@@ -1,9 +1,12 @@
 package com.yanhao.kmpmusic.data
 
 import com.yanhao.kmpmusic.domain.model.CoverArt
+import com.yanhao.kmpmusic.domain.model.LocalMusicDiscoveryPreferences
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 class LocalAudioFileRulesTest {
     @Test
@@ -38,5 +41,39 @@ class LocalAudioFileRulesTest {
 
         assertEquals(expected = CoverArt.HeroLocalMusic, actual = firstCover)
         assertEquals(expected = firstCover, actual = secondCover)
+    }
+
+    /** 短音频过滤只在用户开启偏好且时长已知时生效。 */
+    @Test
+    fun shouldIncludeByDurationUsesShortAudioPreference(): Unit {
+        val defaultPreferences: LocalMusicDiscoveryPreferences = LocalMusicDiscoveryPreferences()
+        val disabledPreferences: LocalMusicDiscoveryPreferences = defaultPreferences.copy(
+            shouldIgnoreShortAudio = false,
+        )
+
+        assertFalse(
+            actual = LocalAudioFileRules.shouldIncludeByDuration(
+                durationMs = 29_999L,
+                preferences = defaultPreferences,
+            ),
+        )
+        assertTrue(
+            actual = LocalAudioFileRules.shouldIncludeByDuration(
+                durationMs = 30_000L,
+                preferences = defaultPreferences,
+            ),
+        )
+        assertTrue(
+            actual = LocalAudioFileRules.shouldIncludeByDuration(
+                durationMs = null,
+                preferences = defaultPreferences,
+            ),
+        )
+        assertTrue(
+            actual = LocalAudioFileRules.shouldIncludeByDuration(
+                durationMs = 1_000L,
+                preferences = disabledPreferences,
+            ),
+        )
     }
 }

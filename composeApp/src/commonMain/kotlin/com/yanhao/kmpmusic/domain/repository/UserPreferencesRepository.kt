@@ -1,9 +1,10 @@
 package com.yanhao.kmpmusic.domain.repository
 
+import com.yanhao.kmpmusic.domain.model.LocalMusicDiscoveryPreferences
 import com.yanhao.kmpmusic.domain.model.ThemeMode
 
 /**
- * 用户偏好接口，先服务主题切换，后续可扩展播放和同步偏好。
+ * 用户偏好接口，承载主题和本地音频发现偏好。
  */
 interface UserPreferencesRepository {
     /**
@@ -15,4 +16,14 @@ interface UserPreferencesRepository {
      * 保存主题偏好。
      */
     fun saveThemeMode(themeMode: ThemeMode)
+
+    /**
+     * 获取本地音频发现偏好。
+     */
+    fun getLocalMusicDiscoveryPreferences(): LocalMusicDiscoveryPreferences
+
+    /**
+     * 保存本地音频发现偏好。
+     */
+    fun saveLocalMusicDiscoveryPreferences(preferences: LocalMusicDiscoveryPreferences)
 }

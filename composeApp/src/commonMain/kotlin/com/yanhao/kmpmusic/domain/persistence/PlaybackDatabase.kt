@@ -122,6 +122,20 @@ data class SearchHistoryEntity(
 )
 
 /**
+ * 用户偏好记录，使用 key/value 保持小型设置扩展成本可控。
+ *
+ * @property key 偏好键名。
+ * @property value 偏好值的字符串表示。
+ * @property updatedAt 最近一次保存时间。
+ */
+@Entity(tableName = "user_preference")
+data class UserPreferenceEntity(
+    @PrimaryKey val key: String,
+    val value: String,
+    val updatedAt: Long,
+)
+
+/**
  * 播放快照读写接口。
  */
 @Dao
@@ -359,6 +373,29 @@ interface SearchHistoryDao {
 }
 
 /**
+ * 用户偏好读写接口。
+ */
+@Dao
+interface UserPreferenceDao {
+    /**
+     * 读取指定偏好值。
+     *
+     * @param key 偏好键名。
+     * @return 已保存的偏好值，没有保存时返回 null。
+     */
+    @Query("SELECT value FROM user_preference WHERE `key` = :key")
+    suspend fun getValue(key: String): String?
+
+    /**
+     * 覆盖写入指定偏好值。
+     *
+     * @param entity 要保存的偏好记录。
+     */
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun savePreference(entity: UserPreferenceEntity)
+}
+
+/**
  * 播放相关本地数据库，统一收纳播放快照、收藏与本地歌曲元数据。
  */
 @Database(
@@ -369,8 +406,9 @@ interface SearchHistoryDao {
         FavoriteSongEntity::class,
         LocalSongEntity::class,
         SearchHistoryEntity::class,
+        UserPreferenceEntity::class,
     ],
-    version = 6,
+    version = 7,
 )
 @ConstructedBy(PlaybackDatabaseConstructor::class)
 abstract class PlaybackDatabase : RoomDatabase() {
@@ -391,6 +429,9 @@ abstract class PlaybackDatabase : RoomDatabase() {
 
     /** 暴露搜索历史 DAO。 */
     abstract fun searchHistoryDao(): SearchHistoryDao
+
+    /** 暴露用户偏好 DAO。 */
+    abstract fun userPreferenceDao(): UserPreferenceDao
 }
 
 /**

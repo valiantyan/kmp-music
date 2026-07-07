@@ -3,6 +3,7 @@ package com.yanhao.kmpmusic
 import com.yanhao.kmpmusic.domain.model.LocalMusicScanError
 import com.yanhao.kmpmusic.domain.model.LocalMusicScanErrorType
 import com.yanhao.kmpmusic.domain.model.LocalMusicScanException
+import com.yanhao.kmpmusic.domain.model.LocalMusicDiscoveryPreferences
 import com.yanhao.kmpmusic.domain.model.LocalMusicScanRequest
 import com.yanhao.kmpmusic.domain.model.LocalMusicScanResult
 import com.yanhao.kmpmusic.domain.model.LocalMusicSourceKind
@@ -65,6 +66,17 @@ private class MutableLocalMusicScanner : LocalMusicScanner {
     /** 将扫描请求转发给当前已注入的 Android scanner。 */
     override suspend fun scan(request: LocalMusicScanRequest): LocalMusicScanResult {
         return scanner.scan(request = request)
+    }
+
+    /** 将带偏好的扫描请求转发给当前已注入的 Android scanner。 */
+    override suspend fun scan(
+        request: LocalMusicScanRequest,
+        preferences: LocalMusicDiscoveryPreferences,
+    ): LocalMusicScanResult {
+        return scanner.scan(
+            request = request,
+            preferences = preferences,
+        )
     }
 
     /** 替换当前 Activity 绑定的 scanner。 */

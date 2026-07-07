@@ -1,5 +1,6 @@
 package com.yanhao.kmpmusic.domain.repository
 
+import com.yanhao.kmpmusic.domain.model.LocalMusicDiscoveryPreferences
 import com.yanhao.kmpmusic.domain.model.LocalMusicScanRequest
 import com.yanhao.kmpmusic.domain.model.LocalMusicScanResult
 
@@ -15,4 +16,14 @@ interface LocalMusicScanner {
      * 执行一次本地音乐扫描，返回可合并到曲库快照的扫描结果。
      */
     suspend fun scan(request: LocalMusicScanRequest): LocalMusicScanResult
+
+    /**
+     * 按用户本地音频发现偏好执行扫描，旧实现默认沿用不带偏好的扫描入口。
+     */
+    suspend fun scan(
+        request: LocalMusicScanRequest,
+        preferences: LocalMusicDiscoveryPreferences,
+    ): LocalMusicScanResult {
+        return scan(request = request)
+    }
 }

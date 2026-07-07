@@ -96,6 +96,22 @@ object PlaybackDatabaseMigrations {
             )
         }
     }
+
+    /** 从具体来源版本升级到支持用户偏好持久化。 */
+    val MIGRATION_6_7: Migration = object : Migration(startVersion = 6, endVersion = 7) {
+        /** 创建通用 key/value 偏好表，避免每个小设置都扩展独立表结构。 */
+        override suspend fun migrate(connection: SQLiteConnection) {
+            connection.execSql(
+                """
+                CREATE TABLE IF NOT EXISTS user_preference (
+                    `key` TEXT NOT NULL PRIMARY KEY,
+                    value TEXT NOT NULL,
+                    updatedAt INTEGER NOT NULL
+                )
+                """,
+            )
+        }
+    }
 }
 
 /** 执行裁剪后的 SQL 文本，避免多行字符串首尾空白影响 SQLite 解析。 */

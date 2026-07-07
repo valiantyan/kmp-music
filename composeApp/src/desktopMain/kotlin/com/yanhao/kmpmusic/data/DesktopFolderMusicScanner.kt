@@ -1,6 +1,7 @@
 package com.yanhao.kmpmusic.data
 
 import com.yanhao.kmpmusic.domain.model.LocalMusicProblem
+import com.yanhao.kmpmusic.domain.model.LocalMusicDiscoveryPreferences
 import com.yanhao.kmpmusic.domain.model.LocalMusicScanCoverage
 import com.yanhao.kmpmusic.domain.model.LocalMusicScanError
 import com.yanhao.kmpmusic.domain.model.LocalMusicScanErrorType
@@ -40,10 +41,24 @@ class DesktopFolderMusicScanner(
 
     /** 弹出文件夹选择器并把真实文件扫描结果写入统一曲库链路。 */
     override suspend fun scan(request: LocalMusicScanRequest): LocalMusicScanResult {
+        return scan(
+            request = request,
+            preferences = LocalMusicDiscoveryPreferences(),
+        )
+    }
+
+    /** 弹出文件夹选择器并按用户偏好过滤扫描结果。 */
+    override suspend fun scan(
+        request: LocalMusicScanRequest,
+        preferences: LocalMusicDiscoveryPreferences,
+    ): LocalMusicScanResult {
         validateRequest(request = request)
         val selectedFolder: Path = chooseFolder()
         return withContext(context = Dispatchers.IO) {
-            scanFolder(folder = selectedFolder)
+            scanFolder(
+                folder = selectedFolder,
+                preferences = preferences,
+            )
         }
     }
 
@@ -61,7 +76,10 @@ class DesktopFolderMusicScanner(
     }
 
     // 递归扫描用户授权的文件夹，并把不可读文件记录为问题条目。
-    private fun scanFolder(folder: Path): LocalMusicScanResult {
+    private fun scanFolder(
+        folder: Path,
+        preferences: LocalMusicDiscoveryPreferences,
+    ): LocalMusicScanResult {
         if (!Files.isDirectory(folder)) {
             throw unavailableFolderException(folder = folder)
         }
@@ -75,6 +93,7 @@ class DesktopFolderMusicScanner(
                 scanPath(
                     path = path,
                     concreteSourceId = folderSourceId,
+                    preferences = preferences,
                     discovered = discovered,
                     failed = failed,
                 )
@@ -119,6 +138,7 @@ class DesktopFolderMusicScanner(
     private fun scanPath(
         path: Path,
         concreteSourceId: String,
+        preferences: LocalMusicDiscoveryPreferences,
         discovered: MutableList<MusicFileMetadata>,
         failed: MutableList<LocalMusicProblem>,
     ) {
@@ -134,6 +154,13 @@ class DesktopFolderMusicScanner(
         }
         val attributes: BasicFileAttributes = Files.readAttributes(path, BasicFileAttributes::class.java)
         val audioMetadata: DesktopAudioMetadata = metadataReader.readMetadata(audioPath = path)
+        if (!LocalAudioFileRules.shouldIncludeByDuration(
+                durationMs = audioMetadata.durationMs,
+                preferences = preferences,
+            )
+        ) {
+            return
+        }
         discovered += MusicFileMetadata(
             sourceId = sourceId,
             sourceKind = LocalMusicSourceKind.DesktopFolder,

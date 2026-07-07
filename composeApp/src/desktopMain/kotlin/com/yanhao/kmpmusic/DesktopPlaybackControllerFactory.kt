@@ -5,6 +5,7 @@ import com.yanhao.kmpmusic.data.PersistentFavoritesRepository
 import com.yanhao.kmpmusic.data.PersistentMusicLibraryRepository
 import com.yanhao.kmpmusic.data.PersistentPlaybackRepository
 import com.yanhao.kmpmusic.data.PersistentSearchHistoryRepository
+import com.yanhao.kmpmusic.data.PersistentUserPreferencesRepository
 import com.yanhao.kmpmusic.domain.persistence.PlaybackDatabase
 import com.yanhao.kmpmusic.domain.persistence.RoomPlaybackSnapshotStore
 import com.yanhao.kmpmusic.domain.playback.AudioPlayerEngine
@@ -51,6 +52,10 @@ internal fun createDesktopPlaybackController(
         ),
         injectedFavoritesRepository = favoritesRepository,
         searchHistoryRepository = PersistentSearchHistoryRepository.create(
+            playbackDatabase = playbackDatabase,
+            nowMillis = nowMillis,
+        ),
+        userPreferencesRepository = PersistentUserPreferencesRepository.create(
             playbackDatabase = playbackDatabase,
             nowMillis = nowMillis,
         ),

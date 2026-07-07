@@ -3,6 +3,7 @@ package com.yanhao.kmpmusic.feature.screen
 import com.yanhao.kmpmusic.domain.model.LocalMusicLastScanSummary
 import com.yanhao.kmpmusic.domain.model.LocalMusicScanError
 import com.yanhao.kmpmusic.domain.model.LocalMusicScanErrorType
+import com.yanhao.kmpmusic.domain.model.LocalMusicScanProgress
 import com.yanhao.kmpmusic.domain.model.LocalMusicScanState
 import com.yanhao.kmpmusic.domain.model.LocalMusicSourceKind
 import kotlin.test.Test
@@ -40,6 +41,22 @@ class LocalMusicScanSummaryDisplayModelTest {
         assertFalse(actual = renderedText.contains(other = "901"))
         assertFalse(actual = renderedText.contains(other = "902"))
         assertFalse(actual = renderedText.contains(other = "903"))
+    }
+
+    /**
+     * 正在扫描时仍应展示上一轮扫描时间，避免重新扫描期间回退成“尚未记录扫描时间”。
+     */
+    @Test
+    fun scanningSummaryDisplayModelKeepsPreviousLastScanTime(): Unit {
+        val model: LocalMusicScanSummaryDisplayModel = buildLocalMusicScanSummaryDisplayModel(
+            playableSongCount = 42,
+            scanState = LocalMusicScanState.Scanning(
+                progress = LocalMusicScanProgress(currentSourceName = "本地音乐"),
+                previousSummary = lastScanSummary(),
+            ),
+        )
+
+        assertEquals(expected = "最近扫描：1970-01-02", actual = model.lastScanTimeText)
     }
 
     /**

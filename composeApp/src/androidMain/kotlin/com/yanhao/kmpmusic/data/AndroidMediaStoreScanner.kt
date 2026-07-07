@@ -7,8 +7,8 @@ import android.net.Uri
 import android.os.Build
 import android.provider.MediaStore
 import android.util.Log
-import java.io.File
 import com.yanhao.kmpmusic.AndroidAudioPermissionResult
+import com.yanhao.kmpmusic.domain.model.LocalMusicDiscoveryPreferences
 import com.yanhao.kmpmusic.domain.model.LocalMusicScanError
 import com.yanhao.kmpmusic.domain.model.LocalMusicScanErrorType
 import com.yanhao.kmpmusic.domain.model.LocalMusicScanException
@@ -43,6 +43,17 @@ internal class AndroidMediaStoreScanner(
 
     /** 执行 Android MediaStore 扫描，并把权限或查询失败映射为 common 错误。 */
     override suspend fun scan(request: LocalMusicScanRequest): LocalMusicScanResult {
+        return scan(
+            request = request,
+            preferences = LocalMusicDiscoveryPreferences(),
+        )
+    }
+
+    /** 执行 Android MediaStore 扫描，并应用用户本地音频发现偏好。 */
+    override suspend fun scan(
+        request: LocalMusicScanRequest,
+        preferences: LocalMusicDiscoveryPreferences,
+    ): LocalMusicScanResult {
         if (request is LocalMusicScanRequest.Source && request.sourceKind != LocalMusicSourceKind.AndroidMediaStore) {
             return LocalMusicScanResult(
                 discovered = emptyList(),
@@ -55,12 +66,12 @@ internal class AndroidMediaStoreScanner(
             AndroidAudioPermissionResult.NeedsSettings -> throw LocalMusicScanException(error = buildPermissionSettingsError())
         }
         return withContext(context = Dispatchers.IO) {
-            queryMediaStore()
+            queryMediaStore(preferences = preferences)
         }
     }
 
     // 查询系统音频媒体库；失败会转成平台无关错误，避免 UI 依赖 Android 异常。
-    private fun queryMediaStore(): LocalMusicScanResult {
+    private fun queryMediaStore(preferences: LocalMusicDiscoveryPreferences): LocalMusicScanResult {
         try {
             Log.d(TAG, "开始查询 Android MediaStore 音频")
             val collectionUri: Uri = getAudioCollectionUri()
@@ -75,7 +86,12 @@ internal class AndroidMediaStoreScanner(
                 val discovered: List<MusicFileMetadata> = metadataReader.readMetadata(
                     cursor = mediaCursor,
                     collectionUri = collectionUri,
-                )
+                ).filter { metadata: MusicFileMetadata ->
+                    LocalAudioFileRules.shouldIncludeByDuration(
+                        durationMs = metadata.durationMs,
+                        preferences = preferences,
+                    )
+                }
                 val completedAt: Long = nowMillis()
                 Log.d(TAG, "Android MediaStore 音频查询完成，发现 ${discovered.size} 首歌曲")
                 return LocalMusicScanResult(

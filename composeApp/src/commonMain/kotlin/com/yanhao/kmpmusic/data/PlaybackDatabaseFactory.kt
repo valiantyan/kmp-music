@@ -20,6 +20,7 @@ fun createPlaybackDatabase(builder: RoomDatabase.Builder<PlaybackDatabase>): Pla
         .addMigrations(PlaybackDatabaseMigrations.MIGRATION_3_4)
         .addMigrations(PlaybackDatabaseMigrations.MIGRATION_4_5)
         .addMigrations(PlaybackDatabaseMigrations.MIGRATION_5_6)
+        .addMigrations(PlaybackDatabaseMigrations.MIGRATION_6_7)
         .setQueryCoroutineContext(Dispatchers.IO)
         .build()
 }

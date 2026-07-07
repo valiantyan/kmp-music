@@ -173,9 +173,13 @@ fun MobileSecondaryScreenRoute(
             playableSongCount = state.audioScanPlayableSongCount,
             sources = state.localMusicSources,
             scanState = state.scanState,
+            discoveryPreferences = state.localMusicDiscoveryPreferences,
             discoveryPlatform = discoveryPlatform,
             onBack = controller::navigateBack,
             onScan = onScanLocalMusic,
+            onAutoScanOnLaunchChange = controller::setLocalMusicAutoScanOnLaunchEnabled,
+            onShortAudioIgnoredChange = controller::setLocalMusicShortAudioIgnored,
+            onSystemFoldersExcludedChange = controller::setLocalMusicSystemFoldersExcluded,
             modifier = modifier
                 .fillMaxSize()
                 .statusBarsPadding()

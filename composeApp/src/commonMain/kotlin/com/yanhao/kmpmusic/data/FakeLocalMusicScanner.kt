@@ -1,5 +1,6 @@
 package com.yanhao.kmpmusic.data
 
+import com.yanhao.kmpmusic.domain.model.LocalMusicDiscoveryPreferences
 import com.yanhao.kmpmusic.domain.model.LocalMusicScanRequest
 import com.yanhao.kmpmusic.domain.model.LocalMusicScanResult
 import com.yanhao.kmpmusic.domain.model.LocalMusicSourceKind
@@ -15,9 +16,25 @@ class FakeLocalMusicScanner(
 ) : LocalMusicScanner {
     /** 返回真实形态的扫描元数据，不复用 seed repository 冒充平台扫描。 */
     override suspend fun scan(request: LocalMusicScanRequest): LocalMusicScanResult {
+        return scan(
+            request = request,
+            preferences = LocalMusicDiscoveryPreferences(),
+        )
+    }
+
+    /** 按本地音频发现偏好返回 fake 元数据，便于 common 测试覆盖过滤链路。 */
+    override suspend fun scan(
+        request: LocalMusicScanRequest,
+        preferences: LocalMusicDiscoveryPreferences,
+    ): LocalMusicScanResult {
         val songs: List<MusicFileMetadata> = FakeLocalMusicDemoCatalog.buildMetadata(
             demoSongCount = demoSongCount,
-        )
+        ).filter { metadata: MusicFileMetadata ->
+            LocalAudioFileRules.shouldIncludeByDuration(
+                durationMs = metadata.durationMs,
+                preferences = preferences,
+            )
+        }
         return LocalMusicScanResult(
             discovered = songs,
             sourceSummaries = listOf(

@@ -217,10 +217,10 @@ class PersistentMusicLibraryRepository(
         return when (this) {
             is LocalMusicScanState.Done -> summary
             is LocalMusicScanState.Cancelled -> summary
+            is LocalMusicScanState.Importing -> previousSummary
+            is LocalMusicScanState.Scanning -> previousSummary
             LocalMusicScanState.Idle,
             LocalMusicScanState.WaitingForPermission,
-            is LocalMusicScanState.Importing,
-            is LocalMusicScanState.Scanning,
             is LocalMusicScanState.Error,
             -> null
         }
