@@ -55,7 +55,7 @@ private const val FAVORITE_ALBUM_PREVIEW_COUNT = 3
 private const val RECENT_PLAYED_SUMMARY_PREVIEW_COUNT = 3
 
 /**
- * “我的”页最近播放摘要入口文案当前只保留静态视觉位置。
+ * “我的”页最近播放摘要入口文案，后接右箭头图标并进入完整最近播放页。
  */
 private const val RECENT_PLAYED_SUMMARY_ACTION_LABEL = "查看全部"
 
@@ -71,6 +71,7 @@ fun MeScreen(
     onAlbumOpen: (Album) -> Unit,
     onArtistOpen: (Artist) -> Unit,
     onScanMusic: () -> Unit,
+    onRecentPlayedViewAll: () -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(18.dp)) {
         ProfileSummary()
@@ -78,7 +79,10 @@ fun MeScreen(
             libraryStats = libraryStats,
         )
         QuickActionsSection(onScanMusic = onScanMusic)
-        RecentPlayedSummarySection(recentSongs = recentSongs)
+        RecentPlayedSummarySection(
+            recentSongs = recentSongs,
+            onViewAll = onRecentPlayedViewAll,
+        )
         Surface(shape = RoundedCornerShape(20.dp), color = MusicColors.Paper, tonalElevation = 1.dp) {
             Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
                 SectionTitle(title = "我的收藏", actionLabel = "查看", onAction = { albums.firstOrNull()?.let(onAlbumOpen) })
@@ -140,15 +144,18 @@ internal fun buildRecentPlayedSummaryDisplayModel(recentSongs: List<Song>): Rece
         actionLabel = RECENT_PLAYED_SUMMARY_ACTION_LABEL,
         emptyMessage = "播放歌曲后，最近听过的音乐会出现在这里。",
         songs = recentSongs.take(n = RECENT_PLAYED_SUMMARY_PREVIEW_COUNT),
-        isActionEnabled = false,
+        isActionEnabled = true,
     )
 }
 
 /**
- * 最近播放摘要只渲染可见 Top3，不绑定跳转、队列或更多菜单。
+ * 最近播放摘要只渲染可见 Top3，并把查看全部限制为普通二级页导航。
  */
 @Composable
-private fun RecentPlayedSummarySection(recentSongs: List<Song>) {
+private fun RecentPlayedSummarySection(
+    recentSongs: List<Song>,
+    onViewAll: () -> Unit,
+) {
     val displayModel: RecentPlayedSummaryDisplayModel = buildRecentPlayedSummaryDisplayModel(
         recentSongs = recentSongs,
     )
@@ -161,7 +168,10 @@ private fun RecentPlayedSummarySection(recentSongs: List<Song>) {
             modifier = Modifier.padding(18.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
-            RecentPlayedSummaryHeader(displayModel = displayModel)
+            RecentPlayedSummaryHeader(
+                displayModel = displayModel,
+                onViewAll = onViewAll,
+            )
             if (displayModel.songs.isEmpty()) {
                 RecentPlayedSummaryEmptyState(message = displayModel.emptyMessage)
             } else {
@@ -172,10 +182,13 @@ private fun RecentPlayedSummarySection(recentSongs: List<Song>) {
 }
 
 /**
- * 标题行保留后续跳转入口的视觉位置，但当前切片不扩大可点击行为。
+ * 标题行只提供查看全部入口，避免和歌曲行更多菜单产生视觉混淆。
  */
 @Composable
-private fun RecentPlayedSummaryHeader(displayModel: RecentPlayedSummaryDisplayModel) {
+private fun RecentPlayedSummaryHeader(
+    displayModel: RecentPlayedSummaryDisplayModel,
+    onViewAll: () -> Unit,
+) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -187,12 +200,30 @@ private fun RecentPlayedSummaryHeader(displayModel: RecentPlayedSummaryDisplayMo
             fontSize = 18.sp,
             fontWeight = FontWeight.ExtraBold,
         )
-        Text(
-            text = "${displayModel.actionLabel}  ›",
-            color = MusicColors.Muted,
-            fontSize = 14.sp,
-            fontWeight = FontWeight.SemiBold,
-        )
+        Row(
+            modifier = Modifier
+                .clip(RoundedCornerShape(999.dp))
+                .clickable(
+                    enabled = displayModel.isActionEnabled,
+                    onClick = onViewAll,
+                )
+                .padding(start = 8.dp, end = 2.dp, top = 4.dp, bottom = 4.dp),
+            horizontalArrangement = Arrangement.spacedBy(2.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = displayModel.actionLabel,
+                color = MusicColors.Muted,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.SemiBold,
+            )
+            Icon(
+                imageVector = Icons.AutoMirrored.Rounded.KeyboardArrowRight,
+                contentDescription = null,
+                modifier = Modifier.size(18.dp),
+                tint = MusicColors.Muted,
+            )
+        }
     }
 }
 

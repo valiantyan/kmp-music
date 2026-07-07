@@ -130,6 +130,36 @@ class MusicAppControllerTest {
     }
 
     /**
+     * 我的页查看全部应进入最近播放普通二级页，返回后仍落回我的页。
+     */
+    @Test
+    fun meViewAllRecentPlayedOpensRecentPageAndReturnsToMe(): Unit {
+        val controller = createController()
+        controller.navigateToRoot(tab = RootTab.Me)
+
+        controller.openRecentPlayed()
+
+        assertEquals(expected = RootTab.Me, actual = controller.uiState.navigationState.rootTab)
+        assertEquals(expected = SecondaryScreen.RecentPlayed, actual = controller.uiState.navigationState.secondaryScreen)
+        assertEquals(
+            expected = MobileFixedBarMode.SecondaryWithMiniPlayer,
+            actual = controller.uiState.navigationState.fixedBarMode,
+        )
+        assertFalse(actual = controller.uiState.navigationState.fixedBarMode.showsBottomNavigation)
+        assertNull(actual = controller.uiState.navigationState.chromeOverlayScreen)
+
+        controller.navigateBack()
+
+        assertEquals(expected = RootTab.Me, actual = controller.uiState.navigationState.rootTab)
+        assertNull(actual = controller.uiState.navigationState.secondaryScreen)
+        assertEquals(
+            expected = MobileFixedBarMode.TopLevel,
+            actual = controller.uiState.navigationState.fixedBarMode,
+        )
+        assertTrue(actual = controller.uiState.navigationState.fixedBarMode.showsBottomNavigation)
+    }
+
+    /**
      * 扫描页统计必须使用完整曲库总数，不能误用首页预览列表的 6 条限制。
      */
     @Test
