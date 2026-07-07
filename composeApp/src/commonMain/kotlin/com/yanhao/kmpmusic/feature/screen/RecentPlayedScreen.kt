@@ -16,6 +16,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -26,6 +27,7 @@ import com.yanhao.kmpmusic.core.theme.scaledSp
 import com.yanhao.kmpmusic.domain.model.Song
 import com.yanhao.kmpmusic.feature.components.AppHeader
 import com.yanhao.kmpmusic.feature.components.CoverArtImage
+import com.yanhao.kmpmusic.feature.components.PlayingGlyph
 
 /**
  * 移动端最近播放页只消费统一过滤后的最近播放歌曲列表，不自行扫描曲库或回退 demo 数据。
@@ -33,11 +35,15 @@ import com.yanhao.kmpmusic.feature.components.CoverArtImage
 @Composable
 fun RecentPlayedScreen(
     songs: List<Song>,
+    currentSongId: String?,
     onBack: () -> Unit,
     onSongPlay: (Song) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val displayModel: RecentPlayedPageDisplayModel = buildRecentPlayedPageDisplayModel(songs = songs)
+    val displayModel: RecentPlayedPageDisplayModel = buildRecentPlayedPageDisplayModel(
+        songs = songs,
+        currentSongId = currentSongId,
+    )
     Column(
         modifier = modifier,
         verticalArrangement = Arrangement.spacedBy(space = 20.dp),
@@ -51,7 +57,7 @@ fun RecentPlayedScreen(
             RecentPlayedPageEmptyState(displayModel = displayModel)
         } else {
             RecentPlayedPageSongList(
-                songs = displayModel.songs,
+                songRows = displayModel.songRows,
                 onSongPlay = onSongPlay,
             )
         }
@@ -60,19 +66,35 @@ fun RecentPlayedScreen(
 
 /**
  * 最近播放页展示模型保留完整歌曲列表，空态文案只在列表为空时使用。
+ *
+ * @property songRows 完整最近播放歌曲行，已附带当前播放标识。
+ * @property emptyTitle 空态标题。
+ * @property emptyDetail 空态说明。
  */
 internal data class RecentPlayedPageDisplayModel(
-    val songs: List<Song>,
+    val songRows: List<RecentPlayedSongRowDisplayModel>,
     val emptyTitle: String,
     val emptyDetail: String,
-)
+) {
+    /**
+     * 兼容既有测试和调用方的歌曲列表视图，真实渲染状态以 [songRows] 为准。
+     */
+    val songs: List<Song>
+        get() = songRows.map { row: RecentPlayedSongRowDisplayModel -> row.song }
+}
 
 /**
  * 构造最近播放页展示数据，调用方负责传入统一过滤后的最近播放歌曲列表。
  */
-internal fun buildRecentPlayedPageDisplayModel(songs: List<Song>): RecentPlayedPageDisplayModel {
+internal fun buildRecentPlayedPageDisplayModel(
+    songs: List<Song>,
+    currentSongId: String? = null,
+): RecentPlayedPageDisplayModel {
     return RecentPlayedPageDisplayModel(
-        songs = songs,
+        songRows = buildRecentPlayedSongRowDisplayModels(
+            songs = songs,
+            currentSongId = currentSongId,
+        ),
         emptyTitle = "暂无最近播放",
         emptyDetail = "播放歌曲后才会产生最近播放记录。",
     )
@@ -104,7 +126,7 @@ private fun RecentPlayedPageEmptyState(displayModel: RecentPlayedPageDisplayMode
 // 列表直接展示完整入参，播放队列选择继续交给控制器统一处理。
 @Composable
 private fun RecentPlayedPageSongList(
-    songs: List<Song>,
+    songRows: List<RecentPlayedSongRowDisplayModel>,
     onSongPlay: (Song) -> Unit,
 ) {
     Surface(
@@ -116,9 +138,9 @@ private fun RecentPlayedPageSongList(
             modifier = Modifier.padding(all = 18.dp),
             verticalArrangement = Arrangement.spacedBy(space = 14.dp),
         ) {
-            songs.forEach { song: Song ->
+            songRows.forEach { row: RecentPlayedSongRowDisplayModel ->
                 RecentPlayedPageSongRow(
-                    song = song,
+                    row = row,
                     onSongPlay = onSongPlay,
                 )
             }
@@ -126,12 +148,15 @@ private fun RecentPlayedPageSongList(
     }
 }
 
-// 歌曲行只接入播放点击，不在本切片提前接入高亮或更多菜单。
+// 歌曲行接入播放点击和当前播放反馈，更多菜单留给后续切片。
 @Composable
 private fun RecentPlayedPageSongRow(
-    song: Song,
+    row: RecentPlayedSongRowDisplayModel,
     onSongPlay: (Song) -> Unit,
 ) {
+    val song: Song = row.song
+    val titleColor: Color = if (row.isCurrentSong) MusicColors.PlayingRed else MusicColors.Ink
+    val metaColor: Color = if (row.isCurrentSong) MusicColors.PlayingRed else MusicColors.Muted
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -155,25 +180,42 @@ private fun RecentPlayedPageSongRow(
         ) {
             Text(
                 text = song.title,
-                color = MusicColors.Ink,
+                color = titleColor,
                 fontSize = scaledSp(value = 15.sp),
                 lineHeight = scaledSp(value = 19.sp),
                 fontWeight = FontWeight.Bold,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
-            Text(
-                text = "${song.artist} · ${song.album}",
-                color = MusicColors.Muted,
-                fontSize = scaledSp(value = 13.sp),
-                lineHeight = scaledSp(value = 17.sp),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(space = 6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                if (row.isCurrentSong) {
+                    PlayingGlyph(color = MusicColors.PlayingRed)
+                    Text(
+                        text = "播放中",
+                        color = MusicColors.PlayingRed,
+                        fontSize = scaledSp(value = 12.sp),
+                        lineHeight = scaledSp(value = 15.sp),
+                        fontWeight = FontWeight.ExtraBold,
+                        maxLines = 1,
+                    )
+                }
+                Text(
+                    text = "${song.artist} · ${song.album}",
+                    modifier = Modifier.weight(weight = 1f, fill = false),
+                    color = metaColor,
+                    fontSize = scaledSp(value = 13.sp),
+                    lineHeight = scaledSp(value = 17.sp),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
         }
         Text(
             text = song.duration,
-            color = MusicColors.Muted,
+            color = metaColor,
             fontSize = scaledSp(value = 12.sp),
             lineHeight = scaledSp(value = 16.sp),
             maxLines = 1,

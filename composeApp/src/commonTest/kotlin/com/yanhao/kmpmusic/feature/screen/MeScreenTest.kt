@@ -79,6 +79,30 @@ class MeScreenTest {
         assertFalse(actual = model.emptyMessage.contains(other = "更多菜单"))
     }
 
+    /**
+     * 摘要展示模型只把当前播放标识给命中的可见歌曲，避免普通行误变红或误显示播放中。
+     */
+    @Test
+    fun recentPlayedSummaryDisplayModelMarksOnlyCurrentVisibleSong(): Unit {
+        val songs: List<Song> = (1..4).map { index: Int ->
+            testSong(id = "song-$index", title = "Song $index")
+        }
+
+        val model: RecentPlayedSummaryDisplayModel = buildRecentPlayedSummaryDisplayModel(
+            recentSongs = songs,
+            currentSongId = "song-2",
+        )
+
+        assertEquals(
+            expected = listOf(false, true, false),
+            actual = model.songRows.map { row: RecentPlayedSongRowDisplayModel -> row.isCurrentSong },
+        )
+        assertEquals(
+            expected = listOf("song-1", "song-2", "song-3"),
+            actual = model.songRows.map { row: RecentPlayedSongRowDisplayModel -> row.song.id },
+        )
+    }
+
     // 构造已过滤的可播放歌曲，避免测试依赖 demo catalog 或全库扫描。
     private fun testSong(
         id: String,

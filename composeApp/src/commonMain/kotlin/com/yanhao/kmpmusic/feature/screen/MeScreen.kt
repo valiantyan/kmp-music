@@ -40,6 +40,7 @@ import com.yanhao.kmpmusic.domain.model.LibraryStats
 import com.yanhao.kmpmusic.domain.model.Song
 import com.yanhao.kmpmusic.feature.components.ArtistRow
 import com.yanhao.kmpmusic.feature.components.CoverArtImage
+import com.yanhao.kmpmusic.feature.components.PlayingGlyph
 import com.yanhao.kmpmusic.feature.components.SectionTitle
 import kmpmusic.composeapp.generated.resources.Res
 import org.jetbrains.compose.resources.ExperimentalResourceApi
@@ -50,7 +51,7 @@ import org.jetbrains.compose.resources.ExperimentalResourceApi
 private const val FAVORITE_ALBUM_PREVIEW_COUNT = 3
 
 /**
- * “我的”页最近播放摘要最多展示最新 3 条，完整列表和交互由后续切片接入。
+ * “我的”页最近播放摘要最多展示最新 3 条，点击和播放反馈复用完整最近播放语义。
  */
 private const val RECENT_PLAYED_SUMMARY_PREVIEW_COUNT = 3
 
@@ -67,6 +68,7 @@ fun MeScreen(
     albums: List<Album>,
     artists: List<Artist>,
     recentSongs: List<Song>,
+    currentSongId: String?,
     libraryStats: LibraryStats,
     onAlbumOpen: (Album) -> Unit,
     onArtistOpen: (Artist) -> Unit,
@@ -82,6 +84,7 @@ fun MeScreen(
         QuickActionsSection(onScanMusic = onScanMusic)
         RecentPlayedSummarySection(
             recentSongs = recentSongs,
+            currentSongId = currentSongId,
             onViewAll = onRecentPlayedViewAll,
             onSongPlay = onRecentSongPlay,
         )
@@ -128,24 +131,43 @@ fun MeScreen(
 
 /**
  * 最近播放摘要展示模型，只接收外部已过滤的最近播放歌曲列表。
+ *
+ * @property title 区块标题。
+ * @property actionLabel 查看完整最近播放页入口文案。
+ * @property emptyMessage 空态提示。
+ * @property songRows 可见最近播放歌曲行，已附带当前播放标识。
+ * @property isActionEnabled 查看全部入口是否可点击。
  */
 internal data class RecentPlayedSummaryDisplayModel(
     val title: String,
     val actionLabel: String,
     val emptyMessage: String,
-    val songs: List<Song>,
+    val songRows: List<RecentPlayedSongRowDisplayModel>,
     val isActionEnabled: Boolean,
-)
+) {
+    /**
+     * 兼容既有测试和调用方的歌曲列表视图，真实渲染状态以 [songRows] 为准。
+     */
+    val songs: List<Song>
+        get() = songRows.map { row: RecentPlayedSongRowDisplayModel -> row.song }
+}
 
 /**
  * 构造“我的”页最近播放摘要，调用方负责传入统一过滤后的最近播放歌曲列表。
  */
-internal fun buildRecentPlayedSummaryDisplayModel(recentSongs: List<Song>): RecentPlayedSummaryDisplayModel {
+internal fun buildRecentPlayedSummaryDisplayModel(
+    recentSongs: List<Song>,
+    currentSongId: String? = null,
+): RecentPlayedSummaryDisplayModel {
+    val visibleSongs: List<Song> = recentSongs.take(n = RECENT_PLAYED_SUMMARY_PREVIEW_COUNT)
     return RecentPlayedSummaryDisplayModel(
         title = "最近播放",
         actionLabel = RECENT_PLAYED_SUMMARY_ACTION_LABEL,
         emptyMessage = "播放歌曲后，最近听过的音乐会出现在这里。",
-        songs = recentSongs.take(n = RECENT_PLAYED_SUMMARY_PREVIEW_COUNT),
+        songRows = buildRecentPlayedSongRowDisplayModels(
+            songs = visibleSongs,
+            currentSongId = currentSongId,
+        ),
         isActionEnabled = true,
     )
 }
@@ -156,11 +178,13 @@ internal fun buildRecentPlayedSummaryDisplayModel(recentSongs: List<Song>): Rece
 @Composable
 private fun RecentPlayedSummarySection(
     recentSongs: List<Song>,
+    currentSongId: String?,
     onViewAll: () -> Unit,
     onSongPlay: (Song) -> Unit,
 ) {
     val displayModel: RecentPlayedSummaryDisplayModel = buildRecentPlayedSummaryDisplayModel(
         recentSongs = recentSongs,
+        currentSongId = currentSongId,
     )
     Surface(
         shape = RoundedCornerShape(20.dp),
@@ -179,7 +203,7 @@ private fun RecentPlayedSummarySection(
                 RecentPlayedSummaryEmptyState(message = displayModel.emptyMessage)
             } else {
                 RecentPlayedSummarySongList(
-                    songs = displayModel.songs,
+                    songRows = displayModel.songRows,
                     onSongPlay = onSongPlay,
                 )
             }
@@ -238,13 +262,13 @@ private fun RecentPlayedSummaryHeader(
  */
 @Composable
 private fun RecentPlayedSummarySongList(
-    songs: List<Song>,
+    songRows: List<RecentPlayedSongRowDisplayModel>,
     onSongPlay: (Song) -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        songs.forEach { song: Song ->
+        songRows.forEach { row: RecentPlayedSongRowDisplayModel ->
             RecentPlayedSummarySongRow(
-                song = song,
+                row = row,
                 onSongPlay = onSongPlay,
             )
         }
@@ -256,9 +280,12 @@ private fun RecentPlayedSummarySongList(
  */
 @Composable
 private fun RecentPlayedSummarySongRow(
-    song: Song,
+    row: RecentPlayedSongRowDisplayModel,
     onSongPlay: (Song) -> Unit,
 ) {
+    val song: Song = row.song
+    val titleColor: Color = if (row.isCurrentSong) MusicColors.PlayingRed else MusicColors.Ink
+    val metaColor: Color = if (row.isCurrentSong) MusicColors.PlayingRed else MusicColors.Muted
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -282,25 +309,42 @@ private fun RecentPlayedSummarySongRow(
         ) {
             Text(
                 text = song.title,
-                color = MusicColors.Ink,
+                color = titleColor,
                 fontSize = 15.sp,
                 lineHeight = 19.sp,
                 fontWeight = FontWeight.Bold,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
-            Text(
-                text = "${song.artist} · ${song.album}",
-                color = MusicColors.Muted,
-                fontSize = 13.sp,
-                lineHeight = 17.sp,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                if (row.isCurrentSong) {
+                    PlayingGlyph(color = MusicColors.PlayingRed)
+                    Text(
+                        text = "播放中",
+                        color = MusicColors.PlayingRed,
+                        fontSize = 12.sp,
+                        lineHeight = 15.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        maxLines = 1,
+                    )
+                }
+                Text(
+                    text = "${song.artist} · ${song.album}",
+                    modifier = Modifier.weight(weight = 1f, fill = false),
+                    color = metaColor,
+                    fontSize = 13.sp,
+                    lineHeight = 17.sp,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
         }
         Text(
             text = song.duration,
-            color = MusicColors.Muted,
+            color = metaColor,
             fontSize = 12.sp,
             lineHeight = 16.sp,
             maxLines = 1,

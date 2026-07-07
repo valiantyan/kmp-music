@@ -4,6 +4,7 @@ import com.yanhao.kmpmusic.domain.model.CoverArt
 import com.yanhao.kmpmusic.domain.model.Song
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 /**
@@ -58,6 +59,31 @@ class RecentPlayedScreenTest {
             actual = model.songs.map { song: Song -> song.id },
         )
         assertEquals(expected = "Filtered Song", actual = model.songs.single().title)
+    }
+
+    /**
+     * 最近播放页完整列表只标记当前播放歌曲，其他歌曲保持普通行状态。
+     */
+    @Test
+    fun recentPlayedPageDisplayModelMarksOnlyCurrentSong(): Unit {
+        val songs: List<Song> = (1..5).map { index: Int ->
+            testSong(
+                id = "song-$index",
+                title = "Song $index",
+            )
+        }
+
+        val model: RecentPlayedPageDisplayModel = buildRecentPlayedPageDisplayModel(
+            songs = songs,
+            currentSongId = "song-4",
+        )
+
+        assertEquals(
+            expected = listOf(false, false, false, true, false),
+            actual = model.songRows.map { row: RecentPlayedSongRowDisplayModel -> row.isCurrentSong },
+        )
+        assertFalse(actual = model.songRows.first().isCurrentSong)
+        assertEquals(expected = "song-4", actual = model.songRows[3].song.id)
     }
 
     // 构造最小歌曲实体，让展示模型测试只关注最近播放页文案。

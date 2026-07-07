@@ -68,6 +68,7 @@ fun MobileRootScreenRoute(
             albums = state.albums,
             artists = state.artists,
             recentSongs = state.recentSongs,
+            currentSongId = state.currentSongId,
             libraryStats = state.libraryStats,
             onAlbumOpen = controller::openAlbum,
             onArtistOpen = controller::openArtist,
