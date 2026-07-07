@@ -40,7 +40,6 @@ import com.yanhao.kmpmusic.feature.desktop.components.DesktopArtistStrip
 import com.yanhao.kmpmusic.feature.desktop.components.DesktopContentRow
 import com.yanhao.kmpmusic.feature.desktop.components.DesktopContentRowFavoritesIcon
 import com.yanhao.kmpmusic.feature.desktop.components.DesktopContentRowFolderIcon
-import com.yanhao.kmpmusic.feature.desktop.components.DesktopContentRowSyncIcon
 import com.yanhao.kmpmusic.feature.desktop.components.DesktopPageHeader
 import com.yanhao.kmpmusic.feature.desktop.components.DesktopScanIcon
 import com.yanhao.kmpmusic.feature.desktop.components.DesktopSectionHeader
@@ -73,7 +72,6 @@ fun DesktopMeRootScreen(
     onFavorites: () -> Unit,
     onFolders: () -> Unit,
     onScanMusic: () -> Unit,
-    onSettings: () -> Unit,
     onBrowseAlbums: () -> Unit,
     onAlbumOpen: (Album) -> Unit,
     onArtistOpen: (Artist) -> Unit,
@@ -102,6 +100,8 @@ fun DesktopMeRootScreen(
         DesktopSectionHeader(title = "快速功能")
         Spacer(modifier = Modifier.height(14.dp))
         DesktopMeQuickActions(onScanMusic = onScanMusic)
+        Spacer(modifier = Modifier.height(20.dp))
+        DesktopMeStaticSettingsMenu()
         Spacer(modifier = Modifier.height(20.dp))
         Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
             DesktopContentRow(
@@ -137,13 +137,6 @@ fun DesktopMeRootScreen(
                 subtitle = "管理你的本地音乐文件与目录",
                 actionLabel = "管理",
                 onClick = onFolders,
-            )
-            DesktopContentRow(
-                icon = DesktopContentRowSyncIcon,
-                title = "同步与备份",
-                subtitle = "同步状态、备份与恢复选项",
-                actionLabel = "设置",
-                onClick = onSettings,
             )
         }
         Spacer(modifier = Modifier.height(24.dp))

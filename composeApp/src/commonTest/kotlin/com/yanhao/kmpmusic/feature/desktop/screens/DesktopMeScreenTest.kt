@@ -5,9 +5,25 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 
 /**
- * 桌面“我的”页测试，锁住统计区的三项展示语义和真实歌曲数来源。
+ * 桌面“我的”页测试，锁住个人中心静态入口、统计区和扫描入口展示语义。
  */
 class DesktopMeScreenTest {
+    /**
+     * 桌面“我的”页设置菜单只显示三行静态入口，不能携带导航启用语义。
+     */
+    @Test
+    fun desktopMeStaticSettingsMenuShowsThreeNonNavigatingRows(): Unit {
+        val items: List<DesktopMeStaticSettingsMenuItemDisplayModel> = buildDesktopMeStaticSettingsMenuItemDisplayModels()
+        assertEquals(
+            expected = listOf("存储管理", "主题与外观", "关于"),
+            actual = items.map { item: DesktopMeStaticSettingsMenuItemDisplayModel -> item.title },
+        )
+        assertEquals(
+            expected = listOf(false, false, false),
+            actual = items.map { item: DesktopMeStaticSettingsMenuItemDisplayModel -> item.isNavigationEnabled },
+        )
+    }
+
     /**
      * 桌面“我的”页必须显示扫描音乐入口，并把入口语义标记为桌面扫描动作。
      */

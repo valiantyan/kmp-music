@@ -6,7 +6,6 @@ import com.yanhao.kmpmusic.feature.app.LocalMusicSection
 import com.yanhao.kmpmusic.feature.app.MusicAppController
 import com.yanhao.kmpmusic.feature.app.MusicAppUiState
 import com.yanhao.kmpmusic.feature.app.RootTab
-import com.yanhao.kmpmusic.feature.app.SecondaryScreen
 import com.yanhao.kmpmusic.feature.desktop.screens.DesktopFavoritesRootScreen
 import com.yanhao.kmpmusic.feature.desktop.screens.DesktopLocalMusicRootScreen
 import com.yanhao.kmpmusic.feature.desktop.screens.DesktopMeRootScreen
@@ -76,7 +75,6 @@ fun DesktopRootScreenRoute(
                 controller.openLocalMusic(section = LocalMusicSection.Sources)
             },
             onScanMusic = onScanLocalMusic,
-            onSettings = { controller.navigateToSecondary(SecondaryScreen.Settings) },
             onBrowseAlbums = {
                 controller.openLocalMusic(section = LocalMusicSection.Albums)
             },
