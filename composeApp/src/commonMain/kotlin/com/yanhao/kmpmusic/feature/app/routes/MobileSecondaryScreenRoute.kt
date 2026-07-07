@@ -20,6 +20,7 @@ import com.yanhao.kmpmusic.feature.screen.LocalMusicDiscoveryPlatform
 import com.yanhao.kmpmusic.feature.screen.LoginScreen
 import com.yanhao.kmpmusic.feature.screen.MissingLibraryItemScreen
 import com.yanhao.kmpmusic.feature.screen.PlayerScreen
+import com.yanhao.kmpmusic.feature.screen.RecentPlayedScreen
 import com.yanhao.kmpmusic.feature.screen.SearchScreen
 import com.yanhao.kmpmusic.feature.screen.SettingsScreen
 
@@ -186,10 +187,8 @@ fun MobileSecondaryScreenRoute(
                 .navigationBarsPadding(),
             contentPadding = contentPadding,
         )
-        SecondaryScreen.RecentPlayed -> MissingLibraryItemScreen(
-            title = "最近播放",
-            subtitle = "完整列表稍后接入",
-            message = "这里已作为普通二级页承载最近播放语义。",
+        SecondaryScreen.RecentPlayed -> RecentPlayedScreen(
+            songs = state.recentSongs,
             onBack = controller::navigateBack,
         )
     }
