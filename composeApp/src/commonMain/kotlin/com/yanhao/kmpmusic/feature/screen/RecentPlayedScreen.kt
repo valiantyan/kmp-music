@@ -9,6 +9,10 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.MoreVert
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -38,6 +42,7 @@ fun RecentPlayedScreen(
     currentSongId: String?,
     onBack: () -> Unit,
     onSongPlay: (Song) -> Unit,
+    onSongMore: (Song) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val displayModel: RecentPlayedPageDisplayModel = buildRecentPlayedPageDisplayModel(
@@ -59,6 +64,7 @@ fun RecentPlayedScreen(
             RecentPlayedPageSongList(
                 songRows = displayModel.songRows,
                 onSongPlay = onSongPlay,
+                onSongMore = onSongMore,
             )
         }
     }
@@ -67,7 +73,7 @@ fun RecentPlayedScreen(
 /**
  * 最近播放页展示模型保留完整歌曲列表，空态文案只在列表为空时使用。
  *
- * @property songRows 完整最近播放歌曲行，已附带当前播放标识。
+ * @property songRows 完整最近播放歌曲行，已附带当前播放标识和更多入口状态。
  * @property emptyTitle 空态标题。
  * @property emptyDetail 空态说明。
  */
@@ -128,6 +134,7 @@ private fun RecentPlayedPageEmptyState(displayModel: RecentPlayedPageDisplayMode
 private fun RecentPlayedPageSongList(
     songRows: List<RecentPlayedSongRowDisplayModel>,
     onSongPlay: (Song) -> Unit,
+    onSongMore: (Song) -> Unit,
 ) {
     Surface(
         shape = RoundedCornerShape(size = 20.dp),
@@ -142,17 +149,19 @@ private fun RecentPlayedPageSongList(
                 RecentPlayedPageSongRow(
                     row = row,
                     onSongPlay = onSongPlay,
+                    onSongMore = onSongMore,
                 )
             }
         }
     }
 }
 
-// 歌曲行接入播放点击和当前播放反馈，更多菜单留给后续切片。
+// 歌曲行接入播放点击、当前播放反馈和既有全局更多面板入口。
 @Composable
 private fun RecentPlayedPageSongRow(
     row: RecentPlayedSongRowDisplayModel,
     onSongPlay: (Song) -> Unit,
+    onSongMore: (Song) -> Unit,
 ) {
     val song: Song = row.song
     val titleColor: Color = if (row.isCurrentSong) MusicColors.PlayingRed else MusicColors.Ink
@@ -213,12 +222,44 @@ private fun RecentPlayedPageSongRow(
                 )
             }
         }
+        RecentPlayedPageSongActions(
+            row = row,
+            metaColor = metaColor,
+            onSongMore = onSongMore,
+        )
+    }
+}
+
+// 行尾操作区只属于歌曲行，不用于标题栏的“查看全部”入口。
+@Composable
+private fun RecentPlayedPageSongActions(
+    row: RecentPlayedSongRowDisplayModel,
+    metaColor: Color,
+    onSongMore: (Song) -> Unit,
+) {
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(space = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
         Text(
-            text = song.duration,
+            text = row.song.duration,
             color = metaColor,
             fontSize = scaledSp(value = 12.sp),
             lineHeight = scaledSp(value = 16.sp),
             maxLines = 1,
         )
+        if (row.hasMoreAction) {
+            IconButton(
+                modifier = Modifier.size(size = 36.dp),
+                onClick = { onSongMore(row.song) },
+            ) {
+                Icon(
+                    imageVector = Icons.Rounded.MoreVert,
+                    contentDescription = "${row.song.title} 更多操作",
+                    modifier = Modifier.size(size = 20.dp),
+                    tint = MusicColors.Muted,
+                )
+            }
+        }
     }
 }

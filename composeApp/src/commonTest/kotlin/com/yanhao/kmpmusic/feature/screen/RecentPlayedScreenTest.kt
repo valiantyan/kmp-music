@@ -86,6 +86,24 @@ class RecentPlayedScreenTest {
         assertEquals(expected = "song-4", actual = model.songRows[3].song.id)
     }
 
+    /**
+     * 完整最近播放页每个歌曲行都显示三点更多入口，并继续复用统一行状态。
+     */
+    @Test
+    fun recentPlayedPageDisplayModelShowsMoreActionForSongRows(): Unit {
+        val model: RecentPlayedPageDisplayModel = buildRecentPlayedPageDisplayModel(
+            songs = listOf(
+                testSong(id = "song-1", title = "Song 1"),
+                testSong(id = "song-2", title = "Song 2"),
+            ),
+        )
+
+        assertEquals(
+            expected = listOf(true, true),
+            actual = model.songRows.map { row: RecentPlayedSongRowDisplayModel -> row.hasMoreAction },
+        )
+    }
+
     // 构造最小歌曲实体，让展示模型测试只关注最近播放页文案。
     private fun testSong(
         id: String,

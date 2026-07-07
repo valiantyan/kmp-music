@@ -80,11 +80,10 @@ fun AppPanels(
         }
     }
     state.moreSongId?.let { songId ->
-        val song: Song? = state.currentSong?.takeIf { item -> item.id == songId }
-            ?: state.queueSongs.firstOrNull { item -> item.id == songId }
-            ?: state.localSongs.firstOrNull { item -> item.id == songId }
-            ?: state.homeLocalSongPreview.firstOrNull { item -> item.id == songId }
-            ?: state.favoriteSongs.firstOrNull { item -> item.id == songId }
+        val song: Song? = resolveMorePanelSong(
+            state = state,
+            songId = songId,
+        )
         if (song != null) {
             ModalBottomSheet(onDismissRequest = controller::closeMore) {
                 Column(modifier = Modifier.padding(21.dp), verticalArrangement = Arrangement.spacedBy(18.dp)) {
@@ -102,6 +101,22 @@ fun AppPanels(
             }
         }
     }
+}
+
+/**
+ * 根据全局 [MusicAppUiState.moreSongId] 找到现有单曲更多面板要展示的歌曲，
+ * 最近播放只复用面板不复制操作模型。
+ */
+internal fun resolveMorePanelSong(
+    state: MusicAppUiState,
+    songId: String,
+): Song? {
+    return state.currentSong?.takeIf { item -> item.id == songId }
+        ?: state.queueSongs.firstOrNull { item -> item.id == songId }
+        ?: state.localSongs.firstOrNull { item -> item.id == songId }
+        ?: state.homeLocalSongPreview.firstOrNull { item -> item.id == songId }
+        ?: state.recentSongs.firstOrNull { item -> item.id == songId }
+        ?: state.favoriteSongs.firstOrNull { item -> item.id == songId }
 }
 
 /**

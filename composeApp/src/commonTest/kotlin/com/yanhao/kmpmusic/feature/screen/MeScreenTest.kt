@@ -63,10 +63,10 @@ class MeScreenTest {
     }
 
     /**
-     * 查看全部只启用最近播放页导航，不提前接入播放队列或更多菜单。
+     * 查看全部只启用最近播放页导航，歌曲行的三点更多入口与标题区保持分离。
      */
     @Test
-    fun recentPlayedSummaryDisplayModelEnablesViewAllWithoutSongActions(): Unit {
+    fun recentPlayedSummaryDisplayModelKeepsViewAllSeparateFromMoreAction(): Unit {
         val model: RecentPlayedSummaryDisplayModel = buildRecentPlayedSummaryDisplayModel(
             recentSongs = listOf(testSong(id = "song-1", title = "Song 1")),
         )
@@ -76,7 +76,7 @@ class MeScreenTest {
         assertFalse(actual = model.actionLabel.contains(other = "更多"))
         assertFalse(actual = model.actionLabel.contains(other = "..."))
         assertFalse(actual = model.emptyMessage.contains(other = "播放队列"))
-        assertFalse(actual = model.emptyMessage.contains(other = "更多菜单"))
+        assertTrue(actual = model.songRows.single().hasMoreAction)
     }
 
     /**

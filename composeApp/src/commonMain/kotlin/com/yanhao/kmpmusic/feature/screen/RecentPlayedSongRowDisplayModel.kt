@@ -7,10 +7,12 @@ import com.yanhao.kmpmusic.domain.model.Song
  *
  * @property song 行内歌曲。
  * @property isCurrentSong 是否为全局当前播放歌曲。
+ * @property hasMoreAction 是否显示复用全局单曲更多面板的入口。
  */
 internal data class RecentPlayedSongRowDisplayModel(
     val song: Song,
     val isCurrentSong: Boolean,
+    val hasMoreAction: Boolean,
 )
 
 /**
@@ -24,6 +26,7 @@ internal fun buildRecentPlayedSongRowDisplayModels(
         RecentPlayedSongRowDisplayModel(
             song = song,
             isCurrentSong = song.id == currentSongId,
+            hasMoreAction = true,
         )
     }
 }

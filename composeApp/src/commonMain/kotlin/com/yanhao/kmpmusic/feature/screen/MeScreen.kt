@@ -19,7 +19,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
 import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.LibraryMusic
+import androidx.compose.material.icons.rounded.MoreVert
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -75,6 +77,7 @@ fun MeScreen(
     onScanMusic: () -> Unit,
     onRecentPlayedViewAll: () -> Unit,
     onRecentSongPlay: (Song) -> Unit,
+    onRecentSongMore: (Song) -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(18.dp)) {
         ProfileSummary()
@@ -87,6 +90,7 @@ fun MeScreen(
             currentSongId = currentSongId,
             onViewAll = onRecentPlayedViewAll,
             onSongPlay = onRecentSongPlay,
+            onSongMore = onRecentSongMore,
         )
         Surface(shape = RoundedCornerShape(20.dp), color = MusicColors.Paper, tonalElevation = 1.dp) {
             Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
@@ -135,7 +139,7 @@ fun MeScreen(
  * @property title 区块标题。
  * @property actionLabel 查看完整最近播放页入口文案。
  * @property emptyMessage 空态提示。
- * @property songRows 可见最近播放歌曲行，已附带当前播放标识。
+ * @property songRows 可见最近播放歌曲行，已附带当前播放标识和更多入口状态。
  * @property isActionEnabled 查看全部入口是否可点击。
  */
 internal data class RecentPlayedSummaryDisplayModel(
@@ -181,6 +185,7 @@ private fun RecentPlayedSummarySection(
     currentSongId: String?,
     onViewAll: () -> Unit,
     onSongPlay: (Song) -> Unit,
+    onSongMore: (Song) -> Unit,
 ) {
     val displayModel: RecentPlayedSummaryDisplayModel = buildRecentPlayedSummaryDisplayModel(
         recentSongs = recentSongs,
@@ -205,6 +210,7 @@ private fun RecentPlayedSummarySection(
                 RecentPlayedSummarySongList(
                     songRows = displayModel.songRows,
                     onSongPlay = onSongPlay,
+                    onSongMore = onSongMore,
                 )
             }
         }
@@ -264,24 +270,27 @@ private fun RecentPlayedSummaryHeader(
 private fun RecentPlayedSummarySongList(
     songRows: List<RecentPlayedSongRowDisplayModel>,
     onSongPlay: (Song) -> Unit,
+    onSongMore: (Song) -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         songRows.forEach { row: RecentPlayedSongRowDisplayModel ->
             RecentPlayedSummarySongRow(
                 row = row,
                 onSongPlay = onSongPlay,
+                onSongMore = onSongMore,
             )
         }
     }
 }
 
 /**
- * 最近播放摘要歌曲行展示封面、标题和来源信息，并只暴露播放点击，不抢做更多菜单。
+ * 最近播放摘要歌曲行展示封面、标题和来源信息，行尾更多入口复用全局单曲面板。
  */
 @Composable
 private fun RecentPlayedSummarySongRow(
     row: RecentPlayedSongRowDisplayModel,
     onSongPlay: (Song) -> Unit,
+    onSongMore: (Song) -> Unit,
 ) {
     val song: Song = row.song
     val titleColor: Color = if (row.isCurrentSong) MusicColors.PlayingRed else MusicColors.Ink
@@ -342,13 +351,47 @@ private fun RecentPlayedSummarySongRow(
                 )
             }
         }
+        RecentPlayedSummarySongActions(
+            row = row,
+            metaColor = metaColor,
+            onSongMore = onSongMore,
+        )
+    }
+}
+
+/**
+ * 行尾只放歌曲时长和三点更多按钮，“查看全部”入口不复用这个操作区。
+ */
+@Composable
+private fun RecentPlayedSummarySongActions(
+    row: RecentPlayedSongRowDisplayModel,
+    metaColor: Color,
+    onSongMore: (Song) -> Unit,
+) {
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
         Text(
-            text = song.duration,
+            text = row.song.duration,
             color = metaColor,
             fontSize = 12.sp,
             lineHeight = 16.sp,
             maxLines = 1,
         )
+        if (row.hasMoreAction) {
+            IconButton(
+                modifier = Modifier.size(36.dp),
+                onClick = { onSongMore(row.song) },
+            ) {
+                Icon(
+                    imageVector = Icons.Rounded.MoreVert,
+                    contentDescription = "${row.song.title} 更多操作",
+                    modifier = Modifier.size(20.dp),
+                    tint = MusicColors.Muted,
+                )
+            }
+        }
     }
 }
 

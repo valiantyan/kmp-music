@@ -192,6 +192,7 @@ fun MobileSecondaryScreenRoute(
             currentSongId = state.currentSongId,
             onBack = controller::navigateBack,
             onSongPlay = controller::playRecentSong,
+            onSongMore = controller::openMore,
         )
     }
 }
