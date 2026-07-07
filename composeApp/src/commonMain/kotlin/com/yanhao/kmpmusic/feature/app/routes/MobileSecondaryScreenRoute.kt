@@ -190,6 +190,7 @@ fun MobileSecondaryScreenRoute(
         SecondaryScreen.RecentPlayed -> RecentPlayedScreen(
             songs = state.recentSongs,
             onBack = controller::navigateBack,
+            onSongPlay = controller::playRecentSong,
         )
     }
 }

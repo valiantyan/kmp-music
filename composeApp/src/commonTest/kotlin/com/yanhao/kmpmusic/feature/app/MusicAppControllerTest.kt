@@ -607,6 +607,39 @@ class MusicAppControllerTest {
     }
 
     /**
+     * 最近播放页点击任意歌曲时，也应复用完整过滤后的最近播放队列并以被点歌曲作为起点。
+     */
+    @Test
+    fun playRecentPageSongUsesFullRecentQueueWithClickedStart(): Unit = runTest {
+        val playbackRepository: InMemoryPlaybackRepository = InMemoryPlaybackRepository()
+        val controller: MusicAppController = createController(
+            playbackRepository = playbackRepository,
+            controllerScope = backgroundScope,
+        )
+        controller.scanLocalMusic(request = LocalMusicScanRequest.Refresh)
+        val recentSongIds: List<String> = controller.uiState.homeLocalSongPreview
+            .take(n = 5)
+            .map { song: Song -> song.id }
+        playbackRepository.savePlaybackHistory(
+            history = PlaybackHistory(songIds = recentSongIds + "removed-song"),
+        )
+        controller.loadLocalMusicLibrary()
+        controller.openRecentPlayed()
+        assertEquals(expected = SecondaryScreen.RecentPlayed, actual = controller.uiState.navigationState.secondaryScreen)
+        assertEquals(
+            expected = recentSongIds,
+            actual = controller.uiState.recentSongs.map { song: Song -> song.id },
+        )
+        val clickedSong: Song = controller.uiState.recentSongs[3]
+
+        controller.playRecentSong(song = clickedSong)
+
+        assertEquals(expected = recentSongIds, actual = controller.uiState.queueSongIds)
+        assertEquals(expected = clickedSong.id, actual = controller.uiState.currentSongId)
+        assertEquals(expected = 3, actual = playbackRepository.getQueueState().currentIndex)
+    }
+
+    /**
      * 清空最近播放必须同时清空 UI 状态和底层播放历史，避免刷新后旧记录又回来。
      */
     @Test

@@ -1,5 +1,6 @@
 package com.yanhao.kmpmusic.feature.screen
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -33,6 +34,7 @@ import com.yanhao.kmpmusic.feature.components.CoverArtImage
 fun RecentPlayedScreen(
     songs: List<Song>,
     onBack: () -> Unit,
+    onSongPlay: (Song) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val displayModel: RecentPlayedPageDisplayModel = buildRecentPlayedPageDisplayModel(songs = songs)
@@ -48,7 +50,10 @@ fun RecentPlayedScreen(
         if (displayModel.songs.isEmpty()) {
             RecentPlayedPageEmptyState(displayModel = displayModel)
         } else {
-            RecentPlayedPageSongList(songs = displayModel.songs)
+            RecentPlayedPageSongList(
+                songs = displayModel.songs,
+                onSongPlay = onSongPlay,
+            )
         }
     }
 }
@@ -96,9 +101,12 @@ private fun RecentPlayedPageEmptyState(displayModel: RecentPlayedPageDisplayMode
     }
 }
 
-// 列表直接展示完整入参，避免复用“我的”页摘要 Top3 的截断规则。
+// 列表直接展示完整入参，播放队列选择继续交给控制器统一处理。
 @Composable
-private fun RecentPlayedPageSongList(songs: List<Song>) {
+private fun RecentPlayedPageSongList(
+    songs: List<Song>,
+    onSongPlay: (Song) -> Unit,
+) {
     Surface(
         shape = RoundedCornerShape(size = 20.dp),
         color = MusicColors.Paper,
@@ -109,19 +117,26 @@ private fun RecentPlayedPageSongList(songs: List<Song>) {
             verticalArrangement = Arrangement.spacedBy(space = 14.dp),
         ) {
             songs.forEach { song: Song ->
-                RecentPlayedPageSongRow(song = song)
+                RecentPlayedPageSongRow(
+                    song = song,
+                    onSongPlay = onSongPlay,
+                )
             }
         }
     }
 }
 
-// 歌曲行只展示信息，不在本切片提前接入点击播放、高亮或更多菜单。
+// 歌曲行只接入播放点击，不在本切片提前接入高亮或更多菜单。
 @Composable
-private fun RecentPlayedPageSongRow(song: Song) {
+private fun RecentPlayedPageSongRow(
+    song: Song,
+    onSongPlay: (Song) -> Unit,
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .heightIn(min = 58.dp),
+            .heightIn(min = 58.dp)
+            .clickable { onSongPlay(song) },
         horizontalArrangement = Arrangement.spacedBy(space = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
