@@ -32,6 +32,7 @@ fun HomeScreen(
     artists: List<Artist>,
     libraryStats: LibraryStats,
     scanState: LocalMusicScanState,
+    discoveryPlatform: LocalMusicDiscoveryPlatform = LocalMusicDiscoveryPlatform.Android,
     selectedSection: HomeContentSection,
     currentSongId: String?,
     currentPlaybackStatus: PlaybackStatus,
@@ -68,6 +69,7 @@ fun HomeScreen(
                     songs = songs,
                     libraryStats = libraryStats,
                     scanState = scanState,
+                    discoveryPlatform = discoveryPlatform,
                     currentSongId = currentSongId,
                     currentPlaybackStatus = currentPlaybackStatus,
                     onScan = onScan,
@@ -79,12 +81,14 @@ fun HomeScreen(
                     songs = songs,
                     currentSongId = currentSongId,
                     scanState = scanState,
+                    discoveryPlatform = discoveryPlatform,
                     onScan = onScan,
                     onAlbumOpen = onAlbumOpen,
                 )
                 HomeContentSection.Artists -> homeArtistItems(
                     artists = artists,
                     scanState = scanState,
+                    discoveryPlatform = discoveryPlatform,
                     onScan = onScan,
                     onArtistOpen = onArtistOpen,
                 )
@@ -103,6 +107,7 @@ private fun LazyListScope.homeSongItems(
     songs: List<Song>,
     libraryStats: LibraryStats,
     scanState: LocalMusicScanState,
+    discoveryPlatform: LocalMusicDiscoveryPlatform,
     currentSongId: String?,
     currentPlaybackStatus: PlaybackStatus,
     onScan: () -> Unit,
@@ -127,6 +132,7 @@ private fun LazyListScope.homeSongItems(
         item(key = "home-empty-songs") {
             HomeEmptySongsCard(
                 scanState = scanState,
+                discoveryPlatform = discoveryPlatform,
                 onScan = onScan,
             )
         }
@@ -155,6 +161,7 @@ private fun LazyListScope.homeAlbumItems(
     songs: List<Song>,
     currentSongId: String?,
     scanState: LocalMusicScanState,
+    discoveryPlatform: LocalMusicDiscoveryPlatform,
     onScan: () -> Unit,
     onAlbumOpen: (Album) -> Unit,
 ) {
@@ -166,6 +173,7 @@ private fun LazyListScope.homeAlbumItems(
         songs = songs,
         currentSongId = currentSongId,
         scanState = scanState,
+        discoveryPlatform = discoveryPlatform,
         onScan = onScan,
         onAlbumOpen = onAlbumOpen,
     )
@@ -178,6 +186,7 @@ private fun LazyListScope.homeAlbumItems(
 private fun LazyListScope.homeArtistItems(
     artists: List<Artist>,
     scanState: LocalMusicScanState,
+    discoveryPlatform: LocalMusicDiscoveryPlatform,
     onScan: () -> Unit,
     onArtistOpen: (Artist) -> Unit,
 ) {
@@ -187,6 +196,7 @@ private fun LazyListScope.homeArtistItems(
     homeArtistListItems(
         artists = artists,
         scanState = scanState,
+        discoveryPlatform = discoveryPlatform,
         onScan = onScan,
         onArtistOpen = onArtistOpen,
     )

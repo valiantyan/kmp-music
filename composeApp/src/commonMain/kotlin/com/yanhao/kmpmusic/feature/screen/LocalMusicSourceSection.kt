@@ -26,6 +26,7 @@ internal fun SourceSection(
     sources: List<LocalMusicSourceSummary>,
     problems: List<LocalMusicProblem>,
     scanState: LocalMusicScanState,
+    discoveryPlatform: LocalMusicDiscoveryPlatform = LocalMusicDiscoveryPlatform.Android,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(scaledDp(12.dp))) {
         if (scanState is LocalMusicScanState.Cancelled) {
@@ -39,7 +40,10 @@ internal fun SourceSection(
             EmptySourceState(text = "还没有可展示的扫描来源。")
         } else {
             sources.forEach { source ->
-                SourceSummaryRow(source = source)
+                SourceSummaryRow(
+                    source = source,
+                    discoveryPlatform = discoveryPlatform,
+                )
             }
         }
         SectionTitle(title = "扫描问题", meta = "${problems.size} 个")
@@ -47,7 +51,10 @@ internal fun SourceSection(
             Text(text = "没有扫描问题", color = MusicColors.Muted, fontSize = scaledSp(15.sp))
         } else {
             problems.forEach { problem ->
-                ProblemSummaryRow(problem = problem)
+                ProblemSummaryRow(
+                    problem = problem,
+                    discoveryPlatform = discoveryPlatform,
+                )
             }
         }
     }
@@ -55,19 +62,27 @@ internal fun SourceSection(
 
 // 来源摘要用轻量行承载，避免来源页变成新的 mock 文件夹列表。
 @Composable
-private fun SourceSummaryRow(source: LocalMusicSourceSummary) {
+private fun SourceSummaryRow(
+    source: LocalMusicSourceSummary,
+    discoveryPlatform: LocalMusicDiscoveryPlatform,
+) {
     SummarySurface(
         title = source.displayName,
-        detail = "${source.songCount} 首 · ${source.problemCount} 个问题",
+        detail = "${localMusicSourceKindLabel(sourceKind = source.sourceKind, platform = discoveryPlatform)} · " +
+            "${source.songCount} 首 · ${source.problemCount} 个问题",
     )
 }
 
 // 扫描问题摘要保留错误文案，方便后续真实 scanner 接入后定位。
 @Composable
-private fun ProblemSummaryRow(problem: LocalMusicProblem) {
+private fun ProblemSummaryRow(
+    problem: LocalMusicProblem,
+    discoveryPlatform: LocalMusicDiscoveryPlatform,
+) {
     SummarySurface(
         title = problem.fileName,
-        detail = problem.error.message,
+        detail = "${localMusicSourceKindLabel(sourceKind = problem.sourceKind, platform = discoveryPlatform)} · " +
+            problem.error.message,
     )
 }
 

@@ -39,7 +39,9 @@ import com.yanhao.kmpmusic.feature.desktop.components.DesktopSongTable
 import com.yanhao.kmpmusic.feature.screen.cancelledScanResultDetail
 import com.yanhao.kmpmusic.feature.screen.cancelledScanResultTitle
 import com.yanhao.kmpmusic.feature.screen.formatLocalMusicScanDate
+import com.yanhao.kmpmusic.feature.screen.LocalMusicDiscoveryPlatform
 import com.yanhao.kmpmusic.feature.screen.localMusicScanActionLabel
+import com.yanhao.kmpmusic.feature.screen.localMusicSourceKindLabel
 
 private const val ARTIST_STRIP_COUNT = 4
 
@@ -83,7 +85,13 @@ internal fun DesktopLocalMusicScreen(
             ),
         ) {
             DesktopPrimaryButton(text = "返回", onClick = onBack)
-            DesktopPrimaryButton(text = localMusicScanActionLabel(scanState = scanState), onClick = onScan)
+            DesktopPrimaryButton(
+                text = localMusicScanActionLabel(
+                    scanState = scanState,
+                    platform = LocalMusicDiscoveryPlatform.Desktop,
+                ),
+                onClick = onScan,
+            )
         }
         DesktopSegmentedControl(
             labels = LocalMusicSection.entries.map { sectionEntry: LocalMusicSection ->
@@ -188,7 +196,8 @@ private fun DesktopLocalSourcesSection(
                 DesktopContentRow(
                     icon = DesktopContentRowFolderIcon,
                     title = source.displayName,
-                    subtitle = "${source.sourceKind.displayName} · ${source.songCount} 首歌曲 · ${source.problemCount} 个问题",
+                    subtitle = "${localMusicSourceKindLabel(sourceKind = source.sourceKind, platform = LocalMusicDiscoveryPlatform.Desktop)} · " +
+                        "${source.songCount} 首歌曲 · ${source.problemCount} 个问题",
                     extraContent = {
                         Text(
                             text = source.lastScannedAt?.let(::formatDesktopSourceScanDate) ?: "尚未记录扫描时间",
@@ -211,7 +220,8 @@ private fun DesktopLocalSourcesSection(
                 DesktopContentRow(
                     icon = DesktopContentRowSyncIcon,
                     title = problem.fileName,
-                    subtitle = "${problem.sourceKind.displayName} · ${problem.error.type.name}",
+                    subtitle = "${localMusicSourceKindLabel(sourceKind = problem.sourceKind, platform = LocalMusicDiscoveryPlatform.Desktop)} · " +
+                        problem.error.type.name,
                     extraContent = {
                         Text(
                             text = problem.error.message,

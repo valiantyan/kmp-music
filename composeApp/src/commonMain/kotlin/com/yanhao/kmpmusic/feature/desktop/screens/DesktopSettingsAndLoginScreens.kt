@@ -17,6 +17,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.yanhao.kmpmusic.domain.model.LocalMusicScanState
 import com.yanhao.kmpmusic.domain.model.ThemeMode
 import com.yanhao.kmpmusic.feature.desktop.DesktopMusicColors
 import com.yanhao.kmpmusic.feature.desktop.DesktopMusicDimens
@@ -27,6 +28,8 @@ import com.yanhao.kmpmusic.feature.desktop.components.DesktopPageHeader
 import com.yanhao.kmpmusic.feature.desktop.components.DesktopPrimaryButton
 import com.yanhao.kmpmusic.feature.desktop.components.DesktopSegmentedControl
 import com.yanhao.kmpmusic.feature.desktop.components.DesktopTextInput
+import com.yanhao.kmpmusic.feature.screen.LocalMusicDiscoveryPlatform
+import com.yanhao.kmpmusic.feature.screen.localMusicScanActionLabel
 
 /**
  * 设置页只暴露当前桌面端已实现的偏好与维护动作。
@@ -34,6 +37,7 @@ import com.yanhao.kmpmusic.feature.desktop.components.DesktopTextInput
 @Composable
 internal fun DesktopSettingsScreen(
     themeMode: ThemeMode,
+    scanState: LocalMusicScanState,
     onThemeMode: (ThemeMode) -> Unit,
     onBack: () -> Unit,
     onScan: () -> Unit,
@@ -102,7 +106,13 @@ internal fun DesktopSettingsScreen(
                 )
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     DesktopPrimaryButton(text = "管理本地文件夹", onClick = onLocalMusicSources)
-                    DesktopPrimaryButton(text = "重新扫描", onClick = onScan)
+                    DesktopPrimaryButton(
+                        text = localMusicScanActionLabel(
+                            scanState = scanState,
+                            platform = LocalMusicDiscoveryPlatform.Desktop,
+                        ),
+                        onClick = onScan,
+                    )
                 }
                 Spacer(modifier = Modifier.height(10.dp))
                 Text(

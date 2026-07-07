@@ -1,7 +1,10 @@
 package com.yanhao.kmpmusic.feature.screen
 
 import com.yanhao.kmpmusic.domain.model.LocalMusicLastScanSummary
+import com.yanhao.kmpmusic.domain.model.LocalMusicScanError
+import com.yanhao.kmpmusic.domain.model.LocalMusicScanErrorType
 import com.yanhao.kmpmusic.domain.model.LocalMusicScanState
+import com.yanhao.kmpmusic.domain.model.LocalMusicSourceKind
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -37,5 +40,91 @@ class LocalMusicScanSummaryDisplayModelTest {
         assertFalse(actual = renderedText.contains(other = "901"))
         assertFalse(actual = renderedText.contains(other = "902"))
         assertFalse(actual = renderedText.contains(other = "903"))
+    }
+
+    /**
+     * 扫描入口动作必须跟随平台来源模型，避免 iOS 和 Desktop 复用 Android 扫描文案。
+     */
+    @Test
+    fun scanActionLabelsUsePlatformSpecificEntryCopy(): Unit {
+        assertEquals(
+            expected = "开始扫描",
+            actual = localMusicScanActionLabel(
+                scanState = LocalMusicScanState.Idle,
+                platform = LocalMusicDiscoveryPlatform.Android,
+            ),
+        )
+        assertEquals(
+            expected = "添加文件夹",
+            actual = localMusicScanActionLabel(
+                scanState = LocalMusicScanState.Idle,
+                platform = LocalMusicDiscoveryPlatform.Desktop,
+            ),
+        )
+        assertEquals(
+            expected = "导入音频",
+            actual = localMusicScanActionLabel(
+                scanState = LocalMusicScanState.Idle,
+                platform = LocalMusicDiscoveryPlatform.Ios,
+            ),
+        )
+        assertEquals(
+            expected = "重新扫描",
+            actual = localMusicScanActionLabel(
+                scanState = LocalMusicScanState.Done(summary = lastScanSummary()),
+                platform = LocalMusicDiscoveryPlatform.Desktop,
+            ),
+        )
+        assertEquals(
+            expected = "扫描曲库",
+            actual = localMusicScanActionLabel(
+                scanState = LocalMusicScanState.Error(
+                    error = LocalMusicScanError(
+                        type = LocalMusicScanErrorType.Unknown,
+                        message = "未知错误",
+                    ),
+                ),
+                platform = LocalMusicDiscoveryPlatform.Ios,
+            ),
+        )
+    }
+
+    /**
+     * 来源标签按平台用户语言展示，不把内部来源类型名泄露到来源页。
+     */
+    @Test
+    fun sourceKindLabelsUsePlatformSpecificSourceCopy(): Unit {
+        assertEquals(
+            expected = "Android 媒体库",
+            actual = localMusicSourceKindLabel(
+                sourceKind = LocalMusicSourceKind.AndroidMediaStore,
+                platform = LocalMusicDiscoveryPlatform.Android,
+            ),
+        )
+        assertEquals(
+            expected = "扫描目录",
+            actual = localMusicSourceKindLabel(
+                sourceKind = LocalMusicSourceKind.DesktopFolder,
+                platform = LocalMusicDiscoveryPlatform.Desktop,
+            ),
+        )
+        assertEquals(
+            expected = "已添加音频",
+            actual = localMusicSourceKindLabel(
+                sourceKind = LocalMusicSourceKind.IosImportedFile,
+                platform = LocalMusicDiscoveryPlatform.Ios,
+            ),
+        )
+    }
+
+    // 构造完成态摘要，让平台文案测试只关注动作映射。
+    private fun lastScanSummary(): LocalMusicLastScanSummary {
+        return LocalMusicLastScanSummary(
+            addedCount = 0,
+            updatedCount = 0,
+            removedCount = 0,
+            problemCount = 0,
+            completedAt = 86_400_000L,
+        )
     }
 }

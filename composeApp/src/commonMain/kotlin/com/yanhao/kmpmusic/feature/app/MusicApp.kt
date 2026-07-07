@@ -8,6 +8,7 @@ import androidx.compose.ui.Modifier
 import com.yanhao.kmpmusic.core.theme.KmpMusicTheme
 import com.yanhao.kmpmusic.domain.model.LocalMusicScanRequest
 import com.yanhao.kmpmusic.feature.app.layout.MobileAppLayout
+import com.yanhao.kmpmusic.feature.screen.LocalMusicDiscoveryPlatform
 import kotlinx.coroutines.launch
 
 /**
@@ -16,6 +17,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun MusicApp(
     controller: MusicAppController,
+    discoveryPlatform: LocalMusicDiscoveryPlatform = LocalMusicDiscoveryPlatform.Android,
 ) {
     val state: MusicAppUiState = controller.uiState
     val coroutineScope = rememberCoroutineScope()
@@ -46,6 +48,7 @@ fun MusicApp(
         MobileAppLayout(
             state = state,
             controller = controller,
+            discoveryPlatform = discoveryPlatform,
             onScanLocalMusic = scanLocalMusic,
             modifier = Modifier.fillMaxSize(),
         )

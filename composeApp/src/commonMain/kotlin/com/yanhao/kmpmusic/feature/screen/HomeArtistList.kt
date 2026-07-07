@@ -40,6 +40,7 @@ import com.yanhao.kmpmusic.feature.components.CoverArtImage
 internal fun LazyListScope.homeArtistListItems(
     artists: List<Artist>,
     scanState: LocalMusicScanState,
+    discoveryPlatform: LocalMusicDiscoveryPlatform = LocalMusicDiscoveryPlatform.Android,
     onScan: () -> Unit,
     onArtistOpen: (Artist) -> Unit,
 ) {
@@ -47,6 +48,7 @@ internal fun LazyListScope.homeArtistListItems(
         item(key = "home-empty-artists") {
             HomeEmptyArtistsCard(
                 scanState = scanState,
+                discoveryPlatform = discoveryPlatform,
                 onScan = onScan,
             )
         }

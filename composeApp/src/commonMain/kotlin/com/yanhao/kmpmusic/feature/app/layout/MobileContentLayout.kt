@@ -44,6 +44,7 @@ import com.yanhao.kmpmusic.feature.app.RootTab
 import com.yanhao.kmpmusic.feature.app.SecondaryScreen
 import com.yanhao.kmpmusic.feature.app.routes.MobileRootScreenRoute
 import com.yanhao.kmpmusic.feature.app.routes.MobileSecondaryScreenRoute
+import com.yanhao.kmpmusic.feature.screen.LocalMusicDiscoveryPlatform
 
 /**
  * 播放页覆盖层转场时长(320ms)，只作用于播放页自身，不驱动底层 chrome。
@@ -58,6 +59,7 @@ fun MobileContentLayout(
     state: MusicAppUiState,
     controller: MusicAppController,
     fixedBarMode: MobileFixedBarMode,
+    discoveryPlatform: LocalMusicDiscoveryPlatform = LocalMusicDiscoveryPlatform.Android,
     onScanLocalMusic: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -83,6 +85,7 @@ fun MobileContentLayout(
                 secondaryScreen = secondaryScreen,
                 state = state,
                 controller = controller,
+                discoveryPlatform = discoveryPlatform,
                 onScanLocalMusic = onScanLocalMusic,
                 modifier = modifier.fillMaxSize(),
                 contentPadding = pagePadding,
@@ -91,6 +94,7 @@ fun MobileContentLayout(
             MobileRootScreenRoute(
                 state = state,
                 controller = controller,
+                discoveryPlatform = discoveryPlatform,
                 onScanLocalMusic = onScanLocalMusic,
                 modifier = modifier
                     .fillMaxSize()
@@ -111,6 +115,7 @@ fun MobileContentLayout(
                     MobileRootScreenRoute(
                         state = state,
                         controller = controller,
+                        discoveryPlatform = discoveryPlatform,
                         onScanLocalMusic = onScanLocalMusic,
                     )
                 } else {
@@ -118,6 +123,7 @@ fun MobileContentLayout(
                         secondaryScreen = secondaryScreen,
                         state = state,
                         controller = controller,
+                        discoveryPlatform = discoveryPlatform,
                         onScanLocalMusic = onScanLocalMusic,
                         contentPadding = pagePadding,
                     )
@@ -134,6 +140,7 @@ fun MobileContentLayout(
 fun MobileChromeOverlay(
     state: MusicAppUiState,
     controller: MusicAppController,
+    discoveryPlatform: LocalMusicDiscoveryPlatform = LocalMusicDiscoveryPlatform.Android,
     onScanLocalMusic: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -176,6 +183,7 @@ fun MobileChromeOverlay(
                 overlayScreen = overlayScreen,
                 state = state,
                 controller = controller,
+                discoveryPlatform = discoveryPlatform,
                 onScanLocalMusic = onScanLocalMusic,
                 contentPadding = pagePadding,
                 modifier = Modifier.fillMaxSize(),
@@ -252,6 +260,7 @@ private fun MobileOverlayScreenRoute(
     overlayScreen: SecondaryScreen,
     state: MusicAppUiState,
     controller: MusicAppController,
+    discoveryPlatform: LocalMusicDiscoveryPlatform = LocalMusicDiscoveryPlatform.Android,
     onScanLocalMusic: () -> Unit,
     contentPadding: PaddingValues,
     modifier: Modifier = Modifier,
@@ -266,6 +275,7 @@ private fun MobileOverlayScreenRoute(
                 secondaryScreen = overlayScreen,
                 state = state,
                 controller = controller,
+                discoveryPlatform = discoveryPlatform,
                 onScanLocalMusic = onScanLocalMusic,
                 modifier = playerModifier,
                 contentPadding = contentPadding,
@@ -297,6 +307,7 @@ private fun MobileOverlayScreenRoute(
                 secondaryScreen = overlayScreen,
                 state = state,
                 controller = controller,
+                discoveryPlatform = discoveryPlatform,
                 onScanLocalMusic = onScanLocalMusic,
                 contentPadding = contentPadding,
             )

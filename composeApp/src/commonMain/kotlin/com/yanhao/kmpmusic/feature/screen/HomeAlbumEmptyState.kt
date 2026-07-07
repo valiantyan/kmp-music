@@ -21,11 +21,13 @@ import com.yanhao.kmpmusic.domain.model.LocalMusicScanState
 @Composable
 internal fun HomeEmptyAlbumsCard(
     scanState: LocalMusicScanState,
+    discoveryPlatform: LocalMusicDiscoveryPlatform = LocalMusicDiscoveryPlatform.Android,
     onScan: () -> Unit,
 ) {
     HomeEmptyLibraryAggregationCard(
         message = "扫描后会按专辑自动聚合。",
         scanState = scanState,
+        discoveryPlatform = discoveryPlatform,
         onScan = onScan,
     )
 }
@@ -34,11 +36,13 @@ internal fun HomeEmptyAlbumsCard(
 @Composable
 internal fun HomeEmptyArtistsCard(
     scanState: LocalMusicScanState,
+    discoveryPlatform: LocalMusicDiscoveryPlatform = LocalMusicDiscoveryPlatform.Android,
     onScan: () -> Unit,
 ) {
     HomeEmptyLibraryAggregationCard(
         message = "扫描后会按歌手自动聚合。",
         scanState = scanState,
+        discoveryPlatform = discoveryPlatform,
         onScan = onScan,
     )
 }
@@ -48,6 +52,7 @@ internal fun HomeEmptyArtistsCard(
 private fun HomeEmptyLibraryAggregationCard(
     message: String,
     scanState: LocalMusicScanState,
+    discoveryPlatform: LocalMusicDiscoveryPlatform,
     onScan: () -> Unit,
 ) {
     Surface(
@@ -77,7 +82,10 @@ private fun HomeEmptyLibraryAggregationCard(
                 onClick = onScan,
             ) {
                 Text(
-                    text = localMusicScanActionLabel(scanState = scanState),
+                    text = localMusicScanActionLabel(
+                        scanState = scanState,
+                        platform = discoveryPlatform,
+                    ),
                     color = Color.White,
                     fontSize = 14.sp,
                     lineHeight = 16.sp,

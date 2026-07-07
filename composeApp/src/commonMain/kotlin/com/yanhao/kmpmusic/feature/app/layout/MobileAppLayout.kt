@@ -27,6 +27,7 @@ import com.yanhao.kmpmusic.feature.app.MusicAppUiState
 import com.yanhao.kmpmusic.feature.app.playerbar.MobileFixedPlayerBar
 import com.yanhao.kmpmusic.feature.app.surfaces.AppDialogs
 import com.yanhao.kmpmusic.feature.app.surfaces.AppPanels
+import com.yanhao.kmpmusic.feature.screen.LocalMusicDiscoveryPlatform
 
 /**
  * 手机端 App 外层布局，统一承接宽度、背景、缩放、内容、固定底栏和全局 surfaces。
@@ -35,6 +36,7 @@ import com.yanhao.kmpmusic.feature.app.surfaces.AppPanels
 fun MobileAppLayout(
     state: MusicAppUiState,
     controller: MusicAppController,
+    discoveryPlatform: LocalMusicDiscoveryPlatform = LocalMusicDiscoveryPlatform.Android,
     onScanLocalMusic: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -89,6 +91,7 @@ fun MobileAppLayout(
                     state = state,
                     controller = controller,
                     fixedBarMode = fixedBarMode,
+                    discoveryPlatform = discoveryPlatform,
                     onScanLocalMusic = onScanLocalMusic,
                     modifier = underlayModifier,
                 )
@@ -110,6 +113,7 @@ fun MobileAppLayout(
                 MobileChromeOverlay(
                     state = state,
                     controller = controller,
+                    discoveryPlatform = discoveryPlatform,
                     onScanLocalMusic = onScanLocalMusic,
                     modifier = Modifier.fillMaxSize(),
                 )

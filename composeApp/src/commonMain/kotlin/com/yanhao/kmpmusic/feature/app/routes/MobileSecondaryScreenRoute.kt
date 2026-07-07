@@ -15,6 +15,7 @@ import com.yanhao.kmpmusic.feature.screen.AlbumDetailScreen
 import com.yanhao.kmpmusic.feature.screen.AboutScreen
 import com.yanhao.kmpmusic.feature.screen.ArtistDetailScreen
 import com.yanhao.kmpmusic.feature.screen.LocalMusicScreen
+import com.yanhao.kmpmusic.feature.screen.LocalMusicDiscoveryPlatform
 import com.yanhao.kmpmusic.feature.screen.LoginScreen
 import com.yanhao.kmpmusic.feature.screen.MissingLibraryItemScreen
 import com.yanhao.kmpmusic.feature.screen.PlayerScreen
@@ -29,6 +30,7 @@ fun MobileSecondaryScreenRoute(
     secondaryScreen: SecondaryScreen,
     state: MusicAppUiState,
     controller: MusicAppController,
+    discoveryPlatform: LocalMusicDiscoveryPlatform = LocalMusicDiscoveryPlatform.Android,
     onScanLocalMusic: () -> Unit,
     modifier: Modifier = Modifier,
     contentPadding: PaddingValues,
@@ -41,6 +43,7 @@ fun MobileSecondaryScreenRoute(
             sources = state.localMusicSources,
             problems = state.localMusicProblems,
             scanState = state.scanState,
+            discoveryPlatform = discoveryPlatform,
             initialSection = secondaryScreen.initialSection,
             currentSongId = state.currentSongId,
             currentPlaybackStatus = state.playbackStatus,
@@ -144,6 +147,8 @@ fun MobileSecondaryScreenRoute(
         )
         SecondaryScreen.Settings -> SettingsScreen(
             themeMode = state.themeMode,
+            scanState = state.scanState,
+            discoveryPlatform = discoveryPlatform,
             onThemeMode = controller::setThemeMode,
             onBack = controller::navigateBack,
             onScan = onScanLocalMusic,

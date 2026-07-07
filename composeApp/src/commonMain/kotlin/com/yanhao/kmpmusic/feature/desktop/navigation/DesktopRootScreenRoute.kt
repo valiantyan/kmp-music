@@ -26,6 +26,7 @@ fun DesktopRootScreenRoute(
             albums = state.albums,
             recentSongs = state.recentSongs,
             libraryStats = state.libraryStats,
+            scanState = state.scanState,
             currentSongId = state.currentSongId,
             currentPlaybackStatus = state.playbackStatus,
             onScan = onScanLocalMusic,

@@ -40,6 +40,7 @@ internal fun LazyListScope.homeAlbumGridItems(
     songs: List<Song>,
     currentSongId: String?,
     scanState: LocalMusicScanState,
+    discoveryPlatform: LocalMusicDiscoveryPlatform = LocalMusicDiscoveryPlatform.Android,
     onScan: () -> Unit,
     onAlbumOpen: (Album) -> Unit,
 ) {
@@ -47,6 +48,7 @@ internal fun LazyListScope.homeAlbumGridItems(
         item(key = "home-empty-albums") {
             HomeEmptyAlbumsCard(
                 scanState = scanState,
+                discoveryPlatform = discoveryPlatform,
                 onScan = onScan,
             )
         }

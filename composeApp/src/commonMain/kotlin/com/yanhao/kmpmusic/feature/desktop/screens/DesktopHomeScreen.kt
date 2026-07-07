@@ -16,6 +16,7 @@ import com.yanhao.kmpmusic.domain.model.Album
 import com.yanhao.kmpmusic.domain.model.Artist
 import com.yanhao.kmpmusic.domain.model.CoverArt
 import com.yanhao.kmpmusic.domain.model.LibraryStats
+import com.yanhao.kmpmusic.domain.model.LocalMusicScanState
 import com.yanhao.kmpmusic.domain.model.PlaybackStatus
 import com.yanhao.kmpmusic.domain.model.Song
 import com.yanhao.kmpmusic.feature.desktop.components.DesktopAlbumGrid
@@ -28,6 +29,8 @@ import com.yanhao.kmpmusic.feature.desktop.components.DesktopSectionEmptyMessage
 import com.yanhao.kmpmusic.feature.desktop.components.DesktopSongTable
 import com.yanhao.kmpmusic.feature.desktop.components.DesktopStatCard
 import com.yanhao.kmpmusic.feature.desktop.components.DesktopToolbar
+import com.yanhao.kmpmusic.feature.screen.LocalMusicDiscoveryPlatform
+import com.yanhao.kmpmusic.feature.screen.localMusicScanActionLabel
 
 private const val HOME_ALBUM_PREVIEW_COUNT = 4
 
@@ -40,6 +43,7 @@ fun DesktopLocalMusicRootScreen(
     albums: List<Album>,
     recentSongs: List<Song>,
     libraryStats: LibraryStats,
+    scanState: LocalMusicScanState,
     currentSongId: String?,
     currentPlaybackStatus: PlaybackStatus,
     onScan: () -> Unit,
@@ -69,7 +73,10 @@ fun DesktopLocalMusicRootScreen(
             eyebrow = "已扫描 ${libraryStats.songCount} 首歌曲，${libraryStats.albumCount} 张专辑，${libraryStats.artistCount} 位歌手",
         ) {
             DesktopSecondaryButton(
-                text = "重新扫描",
+                text = localMusicScanActionLabel(
+                    scanState = scanState,
+                    platform = LocalMusicDiscoveryPlatform.Desktop,
+                ),
                 icon = DesktopScanIcon,
                 onClick = onScan,
             )

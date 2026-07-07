@@ -51,6 +51,7 @@ internal fun HomeSongSectionHeader(songCountText: String) {
 @Composable
 internal fun HomeEmptySongsCard(
     scanState: LocalMusicScanState,
+    discoveryPlatform: LocalMusicDiscoveryPlatform = LocalMusicDiscoveryPlatform.Android,
     onScan: () -> Unit,
 ) {
     Surface(
@@ -80,7 +81,10 @@ internal fun HomeEmptySongsCard(
                 onClick = onScan,
             ) {
                 Text(
-                    text = localMusicScanActionLabel(scanState = scanState),
+                    text = localMusicScanActionLabel(
+                        scanState = scanState,
+                        platform = discoveryPlatform,
+                    ),
                     color = Color.White,
                     fontSize = 14.sp,
                     lineHeight = 16.sp,

@@ -99,6 +99,7 @@ fun DesktopSecondaryScreenRoute(
         )
         SecondaryScreen.Settings -> DesktopSettingsScreen(
             themeMode = state.themeMode,
+            scanState = state.scanState,
             onThemeMode = controller::setThemeMode,
             onBack = controller::navigateBack,
             onScan = onScanLocalMusic,

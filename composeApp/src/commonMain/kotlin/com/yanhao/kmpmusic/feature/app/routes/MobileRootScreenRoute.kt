@@ -13,6 +13,7 @@ import com.yanhao.kmpmusic.feature.app.RootTab
 import com.yanhao.kmpmusic.feature.app.SecondaryScreen
 import com.yanhao.kmpmusic.feature.screen.FavoritesScreen
 import com.yanhao.kmpmusic.feature.screen.HomeScreen
+import com.yanhao.kmpmusic.feature.screen.LocalMusicDiscoveryPlatform
 import com.yanhao.kmpmusic.feature.screen.MeScreen
 
 /**
@@ -22,6 +23,7 @@ import com.yanhao.kmpmusic.feature.screen.MeScreen
 fun MobileRootScreenRoute(
     state: MusicAppUiState,
     controller: MusicAppController,
+    discoveryPlatform: LocalMusicDiscoveryPlatform = LocalMusicDiscoveryPlatform.Android,
     onScanLocalMusic: () -> Unit,
     modifier: Modifier = Modifier,
     contentPadding: PaddingValues = PaddingValues(0.dp),
@@ -33,6 +35,7 @@ fun MobileRootScreenRoute(
             artists = state.localArtists,
             libraryStats = state.libraryStats,
             scanState = state.scanState,
+            discoveryPlatform = discoveryPlatform,
             selectedSection = state.homeContentSection,
             currentSongId = state.currentSongId,
             currentPlaybackStatus = state.playbackStatus,

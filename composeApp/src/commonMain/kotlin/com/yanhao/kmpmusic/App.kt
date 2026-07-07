@@ -5,6 +5,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import com.yanhao.kmpmusic.feature.app.MusicApp
 import com.yanhao.kmpmusic.feature.app.MusicAppController
+import com.yanhao.kmpmusic.feature.screen.LocalMusicDiscoveryPlatform
 
 /**
  * 跨平台共享 UI 入口。
@@ -12,10 +13,14 @@ import com.yanhao.kmpmusic.feature.app.MusicAppController
 @Composable
 fun App(
     controller: MusicAppController? = null,
+    discoveryPlatform: LocalMusicDiscoveryPlatform = LocalMusicDiscoveryPlatform.Android,
 ) {
     val controllerScope = rememberCoroutineScope()
     val appController: MusicAppController = controller ?: remember(controllerScope) {
         MusicAppController(controllerScope = controllerScope)
     }
-    MusicApp(controller = appController)
+    MusicApp(
+        controller = appController,
+        discoveryPlatform = discoveryPlatform,
+    )
 }

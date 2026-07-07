@@ -38,6 +38,7 @@ import com.yanhao.kmpmusic.core.theme.MusicColors
 import com.yanhao.kmpmusic.core.theme.MusicDimens
 import com.yanhao.kmpmusic.core.theme.scaledDp
 import com.yanhao.kmpmusic.core.theme.scaledSp
+import com.yanhao.kmpmusic.domain.model.LocalMusicScanState
 import com.yanhao.kmpmusic.domain.model.ThemeMode
 import com.yanhao.kmpmusic.feature.components.AppHeader
 import com.yanhao.kmpmusic.feature.components.PrimaryPill
@@ -49,6 +50,8 @@ import com.yanhao.kmpmusic.feature.components.SectionTitle
 @Composable
 fun SettingsScreen(
     themeMode: ThemeMode,
+    scanState: LocalMusicScanState,
+    discoveryPlatform: LocalMusicDiscoveryPlatform = LocalMusicDiscoveryPlatform.Android,
     onThemeMode: (ThemeMode) -> Unit,
     onBack: () -> Unit,
     onScan: () -> Unit,
@@ -66,7 +69,14 @@ fun SettingsScreen(
         }
         SectionTitle(title = "音乐库")
         SettingsGroup {
-            SettingsListRow("重新扫描本地音乐", "上次扫描：今天 08:36", onScan)
+            SettingsListRow(
+                localMusicScanActionLabel(
+                    scanState = scanState,
+                    platform = discoveryPlatform,
+                ),
+                "查看本地音频发现状态",
+                onScan,
+            )
             SettingsDivider()
             SettingsListRow("本地来源", "查看扫描来源和问题", onLocalMusicSources)
             SettingsDivider()

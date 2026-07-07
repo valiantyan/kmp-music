@@ -47,6 +47,7 @@ fun LocalMusicScreen(
     sources: List<LocalMusicSourceSummary>,
     problems: List<LocalMusicProblem>,
     scanState: LocalMusicScanState,
+    discoveryPlatform: LocalMusicDiscoveryPlatform = LocalMusicDiscoveryPlatform.Android,
     initialSection: LocalMusicSection,
     currentSongId: String?,
     currentPlaybackStatus: PlaybackStatus,
@@ -106,6 +107,7 @@ fun LocalMusicScreen(
                     sources = sources,
                     problems = problems,
                     scanState = scanState,
+                    discoveryPlatform = discoveryPlatform,
                 )
             }
         }
