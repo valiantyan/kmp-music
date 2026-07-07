@@ -38,6 +38,7 @@ import com.yanhao.kmpmusic.domain.playback.AudioPlayerEngine
 import com.yanhao.kmpmusic.feature.screen.cancelledScanResultDetail
 import com.yanhao.kmpmusic.feature.screen.cancelledScanResultTitle
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -381,6 +382,28 @@ class MusicAppControllerTest {
         scanner.complete()
         scanJob.join()
         secondScanJob.join()
+    }
+
+    /**
+     * 扫描承载协程被系统主题切换等外部重组取消时，UI 不能继续停留在“取消扫描”。
+     */
+    @Test
+    fun scanStateSettlesWhenRunningScanCoroutineIsCancelledExternally(): Unit = runTest {
+        val scanner: BlockingLocalMusicScanner = BlockingLocalMusicScanner()
+        val controller: MusicAppController = createController(
+            localMusicScanner = scanner,
+            controllerScope = backgroundScope,
+        )
+        val scanJob: Job = launch {
+            controller.scanLocalMusic(request = LocalMusicScanRequest.Refresh)
+        }
+        scanner.awaitFirstScanStarted()
+        scanJob.cancel(
+            cause = CancellationException("系统主题切换取消了当前组合协程"),
+        )
+        scanJob.join()
+        assertFalse(actual = controller.uiState.scanState is LocalMusicScanState.Scanning)
+        assertNull(actual = renderCancelEntryLabelOrNull(scanState = controller.uiState.scanState))
     }
 
     /**

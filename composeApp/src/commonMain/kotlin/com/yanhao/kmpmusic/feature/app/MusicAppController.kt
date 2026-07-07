@@ -63,6 +63,9 @@ import kotlinx.coroutines.launch
 
 private const val DEFAULT_SEARCH_QUERY_DEBOUNCE_MILLIS = 300L
 
+// 本地扫描日志统一前缀，方便从平台日志中过滤扫描生命周期。
+private const val LOCAL_MUSIC_SCAN_LOG_PREFIX = "[LocalMusicScan]"
+
 /**
  * App 状态控制器，替代原型中的 React `useState` 集群。
  */
@@ -265,6 +268,13 @@ class MusicAppController(
         return false
     }
 
+    /** 使用控制器生命周期启动扫描，避免主题切换重组取消 UI 协程后卡住扫描态。 */
+    fun requestLocalMusicScan(request: LocalMusicScanRequest = LocalMusicScanRequest.Refresh) {
+        controllerScope.launch(start = CoroutineStart.UNDISPATCHED) {
+            scanLocalMusic(request = request)
+        }
+    }
+
     /** 扫描本地音乐并同步曲库快照。 */
     suspend fun scanLocalMusic(request: LocalMusicScanRequest = LocalMusicScanRequest.Refresh) {
         if (isLocalMusicScanRunning) {
@@ -279,6 +289,7 @@ class MusicAppController(
         isLocalMusicScanCancellationRequested = false
         currentLocalMusicScanJob = currentCoroutineContext()[Job]
         val previousSummary: LocalMusicLastScanSummary? = findLastScanSummary(scanState = uiState.scanState)
+        logLocalMusicScan(message = "开始扫描: request=$request, previousState=${uiState.scanState}")
         uiState = uiState.copy(
             scanState = LocalMusicScanState.Scanning(
                 progress = LocalMusicScanProgress(currentSourceName = "本地音乐"),
@@ -294,15 +305,29 @@ class MusicAppController(
                 likedSongIds = likedSongIdsForScan,
                 preferences = uiState.localMusicDiscoveryPreferences,
             )
+            logLocalMusicScan(
+                message = "扫描用例完成: request=$request, songCount=${snapshot.stats.songCount}, scanState=${snapshot.scanState}",
+            )
             if (isLocalMusicScanCancellationRequested) {
+                logLocalMusicScan(message = "扫描结果已忽略: request=$request, reason=cancelRequested")
                 return
             }
             syncLibrarySnapshot(snapshot = snapshot)
+        } catch (cancellationException: CancellationException) {
+            logLocalMusicScan(
+                message = "扫描协程被取消: request=$request, userRequested=$isLocalMusicScanCancellationRequested, reason=${cancellationException.message.orEmpty()}",
+            )
+            publishCancelledLocalMusicScanIfRunning()
+            throw cancellationException
         } catch (scanException: LocalMusicScanException) {
             if (scanException.error.type == LocalMusicScanErrorType.UserCancelled) {
+                logLocalMusicScan(message = "扫描被平台报告为用户取消: request=$request")
                 publishCancelledLocalMusicScan()
                 return
             }
+            logLocalMusicScan(
+                message = "扫描失败: request=$request, errorType=${scanException.error.type}, message=${scanException.error.message}",
+            )
             uiState = uiState.copy(
                 scanState = LocalMusicScanState.Error(
                     error = scanException.error,
@@ -314,15 +339,26 @@ class MusicAppController(
         } finally {
             isLocalMusicScanRunning = false
             currentLocalMusicScanJob = null
+            logLocalMusicScan(message = "扫描流程结束: request=$request, finalState=${uiState.scanState}")
         }
     }
 
     /** 运行中的扫描入口直接取消，不再弹二次确认或启动新 scanner。 */
     private fun cancelRunningLocalMusicScan() {
         isLocalMusicScanCancellationRequested = true
+        logLocalMusicScan(message = "用户请求取消当前扫描")
         currentLocalMusicScanJob?.cancel(
             cause = CancellationException("用户取消了本地音乐扫描"),
         )
+        publishCancelledLocalMusicScan()
+    }
+
+    // 外部协程取消时只在 UI 仍显示运行中时发布取消态，避免用户取消路径重复刷新结果时间。
+    private fun publishCancelledLocalMusicScanIfRunning() {
+        val scanState: LocalMusicScanState = uiState.scanState
+        if (scanState !is LocalMusicScanState.Scanning && scanState !is LocalMusicScanState.Importing) {
+            return
+        }
         publishCancelledLocalMusicScan()
     }
 
@@ -342,6 +378,11 @@ class MusicAppController(
             moreSongId = null,
             isPermissionSettingsDialogOpen = false,
         )
+    }
+
+    // commonMain 没有统一日志依赖，先用标准输出给各平台保留轻量扫描诊断。
+    private fun logLocalMusicScan(message: String) {
+        println("$LOCAL_MUSIC_SCAN_LOG_PREFIX $message")
     }
 
     /** 测试环境可能不注入时钟，取消结果仍需要一个可展示的结果时间。 */
