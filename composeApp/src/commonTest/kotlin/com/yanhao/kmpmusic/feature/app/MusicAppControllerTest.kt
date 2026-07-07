@@ -99,6 +99,20 @@ class MusicAppControllerTest {
     }
 
     /**
+     * 来源页触发扫描完成后应留在当前路由，方便用户继续检查扫描摘要。
+     */
+    @Test
+    fun scanCompletionKeepsCurrentLocalMusicRoute(): Unit = runBlocking {
+        val controller = createController()
+        controller.openLocalMusic(section = LocalMusicSection.Sources)
+        controller.scanLocalMusic(request = LocalMusicScanRequest.Refresh)
+        assertEquals(
+            expected = SecondaryScreen.LocalMusic(initialSection = LocalMusicSection.Sources),
+            actual = controller.uiState.navigationState.secondaryScreen,
+        )
+    }
+
+    /**
      * 首页专辑页签应读取本地音乐专辑分段同源的全量专辑数据，且不能跳出首页。
      */
     @Test

@@ -62,6 +62,10 @@ fun LocalMusicScreen(
     var section: LocalMusicSection by remember(initialSection) {
         mutableStateOf(value = initialSection)
     }
+    val scanSummaryDisplayModel: LocalMusicScanSummaryDisplayModel = buildLocalMusicScanSummaryDisplayModel(
+        playableSongCount = songs.size,
+        scanState = scanState,
+    )
     LazyColumn(
         modifier = modifier.fillMaxSize(),
         contentPadding = contentPadding,
@@ -70,7 +74,7 @@ fun LocalMusicScreen(
         item(key = "header") {
             AppHeader(
                 title = "本地音乐",
-                subtitle = "${songs.size} 首可播放歌曲",
+                subtitle = scanSummaryDisplayModel.headerSubtitle,
                 onBack = onBack,
             )
         }
