@@ -14,6 +14,7 @@ import com.yanhao.kmpmusic.feature.desktop.screens.DesktopArtistDetailScreen
 import com.yanhao.kmpmusic.feature.desktop.screens.DesktopEmptyStateScreen
 import com.yanhao.kmpmusic.feature.desktop.screens.DesktopLocalMusicScreen
 import com.yanhao.kmpmusic.feature.desktop.screens.DesktopLoginScreen
+import com.yanhao.kmpmusic.feature.desktop.screens.DesktopRecentPlayedScreen
 import com.yanhao.kmpmusic.feature.desktop.screens.DesktopSearchScreen
 import com.yanhao.kmpmusic.feature.desktop.screens.DesktopSettingsScreen
 
@@ -123,9 +124,9 @@ fun DesktopSecondaryScreenRoute(
             title = "扫描音频文件",
             subtitle = "桌面端请使用首页或设置里的添加文件夹入口。",
         )
-        SecondaryScreen.RecentPlayed -> DesktopEmptyStateScreen(
-            title = "最近播放",
-            subtitle = "完整最近播放列表将在后续切片接入。",
+        SecondaryScreen.RecentPlayed -> DesktopRecentPlayedScreen(
+            songs = state.recentSongs,
+            onBack = controller::navigateBack,
         )
         is SecondaryScreen.LocalMusic -> DesktopLocalMusicScreen(
             initialSection = state.navigationState.secondaryScreen.initialSection,
