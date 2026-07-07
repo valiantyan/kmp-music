@@ -123,6 +123,10 @@ fun DesktopSecondaryScreenRoute(
             title = "扫描音频文件",
             subtitle = "桌面端请使用首页或设置里的添加文件夹入口。",
         )
+        SecondaryScreen.RecentPlayed -> DesktopEmptyStateScreen(
+            title = "最近播放",
+            subtitle = "完整最近播放列表将在后续切片接入。",
+        )
         is SecondaryScreen.LocalMusic -> DesktopLocalMusicScreen(
             initialSection = state.navigationState.secondaryScreen.initialSection,
             songs = state.localSongs,

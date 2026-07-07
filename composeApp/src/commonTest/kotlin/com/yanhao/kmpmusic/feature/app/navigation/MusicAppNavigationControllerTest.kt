@@ -146,6 +146,39 @@ class MusicAppNavigationControllerTest {
     }
 
     /**
+     * 最近播放页应是稳定命名的普通二级页，方便移动端和桌面工作区共用路由语义。
+     */
+    @Test
+    fun recentPlayedUsesNamedSecondaryRouteAndBackStack(): Unit {
+        val state = testState().copy(
+            navigationState = NavigationState(
+                rootTab = RootTab.Me,
+                previousRootTab = RootTab.Me,
+                secondaryScreen = SecondaryScreen.Settings,
+                secondaryEntryId = 6,
+            ),
+        )
+
+        val recentState: MusicAppUiState = NavigationStateController.navigateToSecondary(
+            state = state,
+            screen = SecondaryScreen.RecentPlayed,
+        )
+
+        assertEquals(expected = SecondaryScreen.RecentPlayed, actual = recentState.navigationState.secondaryScreen)
+        assertEquals(expected = "secondary:RecentPlayed:7", actual = recentState.navigationState.scrollStateKey)
+        assertEquals(
+            expected = listOf(SecondaryStackEntry(screen = SecondaryScreen.Settings, entryId = 6)),
+            actual = recentState.navigationState.secondaryBackStack,
+        )
+
+        val backState: MusicAppUiState = NavigationStateController.navigateBack(state = recentState)
+
+        assertEquals(expected = SecondaryScreen.Settings, actual = backState.navigationState.secondaryScreen)
+        assertEquals(expected = 6, actual = backState.navigationState.secondaryEntryId)
+        assertEquals(expected = emptyList(), actual = backState.navigationState.secondaryBackStack)
+    }
+
+    /**
      * 页面 fixed-bar 策略应由导航状态纯派生，避免 facade 层重复维护同一规则。
      */
     @Test
@@ -195,6 +228,17 @@ class MusicAppNavigationControllerTest {
         assertEquals(
             expected = MobileFixedBarPlacement.MiniPlayerOnly,
             actual = settingsState.fixedBarMode.fixedBarPlacement,
+        )
+
+        val recentPlayedState: NavigationState = NavigationState(
+            secondaryScreen = SecondaryScreen.RecentPlayed,
+        )
+        assertEquals(expected = MobileFixedBarMode.SecondaryWithMiniPlayer, actual = recentPlayedState.fixedBarMode)
+        assertFalse(actual = recentPlayedState.fixedBarMode.showsBottomNavigation)
+        assertNull(actual = recentPlayedState.chromeOverlayScreen)
+        assertEquals(
+            expected = MobileFixedBarPlacement.MiniPlayerOnly,
+            actual = recentPlayedState.fixedBarMode.fixedBarPlacement,
         )
 
         val aboutState: NavigationState = NavigationState(

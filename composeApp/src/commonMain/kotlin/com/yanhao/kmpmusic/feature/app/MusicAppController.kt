@@ -454,6 +454,11 @@ class MusicAppController(
         navigateToSecondary(screen = SecondaryScreen.AudioScan)
     }
 
+    /** 打开最近播放普通二级页，完整列表行为由后续切片补齐。 */
+    fun openRecentPlayed() {
+        navigateToSecondary(screen = SecondaryScreen.RecentPlayed)
+    }
+
     /** 搜索页应按入口上下文拿到对应数据集合，避免搜索结果跨页面串联。 */
     fun openSearch(context: SearchContext = SearchContext.LocalLibrary) {
         if (context == SearchContext.LocalLibrary) {

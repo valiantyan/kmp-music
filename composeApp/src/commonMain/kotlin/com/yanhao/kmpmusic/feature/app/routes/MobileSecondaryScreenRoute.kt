@@ -186,5 +186,11 @@ fun MobileSecondaryScreenRoute(
                 .navigationBarsPadding(),
             contentPadding = contentPadding,
         )
+        SecondaryScreen.RecentPlayed -> MissingLibraryItemScreen(
+            title = "最近播放",
+            subtitle = "完整列表稍后接入",
+            message = "这里已作为普通二级页承载最近播放语义。",
+            onBack = controller::navigateBack,
+        )
     }
 }

@@ -123,6 +123,7 @@ sealed interface SecondaryScreen {
     data object About : SecondaryScreen
     data object Login : SecondaryScreen
     data object AudioScan : SecondaryScreen
+    data object RecentPlayed : SecondaryScreen
     data class LocalMusic(val initialSection: LocalMusicSection = LocalMusicSection.Songs) : SecondaryScreen
 }
 
@@ -223,6 +224,7 @@ private fun mobileFixedBarModeFor(screen: SecondaryScreen?): MobileFixedBarMode 
         SecondaryScreen.ArtistDetail,
         SecondaryScreen.Settings,
         SecondaryScreen.Login,
+        SecondaryScreen.RecentPlayed,
         is SecondaryScreen.LocalMusic,
         -> MobileFixedBarMode.SecondaryWithMiniPlayer
     }
@@ -255,6 +257,7 @@ private fun SecondaryScreen.routeName(): String {
         SecondaryScreen.About -> "About"
         SecondaryScreen.Login -> "Login"
         SecondaryScreen.AudioScan -> "AudioScan"
+        SecondaryScreen.RecentPlayed -> "RecentPlayed"
         is SecondaryScreen.LocalMusic -> "LocalMusic:${initialSection.name}"
     }
 }
