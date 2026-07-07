@@ -2,127 +2,127 @@ Status: ready-for-agent
 
 # 本地音频发现来源覆盖与累加模型 PRD
 
-## Problem Statement
+## 问题陈述
 
 用户希望 KMP Music 的本地音频发现符合各平台真实授权模型：Android 是单一系统媒体库来源，Desktop/macOS 是多个用户添加的扫描目录，iOS P0 是多个用户导入或授权的音频文件来源。当前需求已经澄清，但实现风险在于扫描合并逻辑如果只按 `sourceKind` 处理，会把“扫描某个 Desktop 文件夹”或“导入一批 iOS 文件”误解为“完整扫描整个 Desktop/iOS 来源类型”，从而错误下线其它未处理来源中的歌曲。
 
 从用户视角看，最严重的问题是：用户添加新文件夹或导入新文件时，不应该丢失旧文件夹或旧导入文件里的歌曲；用户取消或遇到失败扫描时，也不应该因为本次没有处理到某些旧歌曲，就把它们从本地曲库中移除。
 
-## Solution
+## 解决方案
 
 实现本地音频发现的来源覆盖语义：扫描结果必须区分“完整覆盖某个来源，可以用缺失结果下线旧歌曲”和“部分扫描或导入，只能写入已经发现或验证的正向结果”。Android 完整扫描覆盖整个 Android 系统媒体库来源；Desktop/macOS 扫描目录按具体目录累加；iOS P0 多文件来源也按累加模型处理，添加新文件不替换旧文件。iOS P0 的“导入”在本 PRD 中表示用户显式选择并授权 App 记录音频来源，不表示复制文件来让歌曲脱离原始来源长期保活。
 
 扫描页与曲库展示应保持用户可理解的行为：页面统计只展示当前可播放歌曲总数和最近扫描时间，不展示新增、更新、移除计数；扫描或导入完成后停留在当前页面；扫描运行期间只允许一个扫描任务，并支持无确认取消。
 
-## User Stories
+## 用户故事
 
-1. As an Android listener, I want a scan to read the Android 系统媒体库来源, so that my local music appears without managing folders manually.
-2. As an Android listener, I want a complete Android rescan to remove songs that disappeared from MediaStore, so that my local library reflects the current device media library.
-3. As an Android listener, I want the app to keep using one Android media source, so that I am not asked to manage confusing Android folder sources.
-4. As a Desktop listener, I want to add a scan directory, so that the app discovers songs in a folder I explicitly chose.
-5. As a Desktop listener, I want adding folder B to keep songs from folder A, so that expanding my library does not delete existing music.
-6. As a Desktop listener, I want rescanning folder B to only reconcile folder B, so that unavailable songs in folder A are not incorrectly removed.
-7. As a Desktop listener, I want a folder source to be removed only through explicit management or a complete scan of that folder proving the files are gone, so that the app does not make destructive assumptions.
-8. As an iOS listener, I want to import or authorize audio files, so that the app can build an iOS 导入曲库 without pretending to scan the whole phone.
-9. As an iOS listener, I want importing new audio files to accumulate with existing imported files, so that adding music does not replace my previous imports.
-10. As an iOS listener, I want file-source availability to determine playback eligibility, so that missing or inaccessible files are removed only after proper reconciliation.
-11. As an iOS listener, I want the app to restore file access while scanning and playing, so that previously authorized files remain usable when the platform permits it.
-12. As a mobile listener, I want scan copy to match my platform, so that Android says “开始扫描/重新扫描”, Desktop says “添加文件夹/重新扫描”, and iOS says “导入音频/扫描曲库/重新扫描”.
-13. As a listener on any platform, I want source labels to match the platform model, so that Android shows “Android 媒体库”, Desktop shows “扫描目录”, and iOS shows “已添加音频” or “音频来源”.
-14. As a listener on any platform, I want scan page statistics to show current playable song total and last scan time, so that I see stable, useful status instead of noisy implementation counts.
-15. As a listener on any platform, I want scan/import completion to keep me on the scan page, so that I can inspect the result without being unexpectedly navigated away.
-16. As a listener on any platform, I want only one scan task at a time, so that duplicate scans do not race or corrupt the library.
-17. As a listener on any platform, I want the main scan button to become “取消扫描” while scanning, so that I can stop long-running scans directly.
-18. As a listener on any platform, I want cancel scan to require no confirmation, so that stopping a scan is quick.
-19. As a listener on any platform, I want a cancelled scan to keep already verified additions or updates, so that useful progress is not thrown away.
-20. As a listener on any platform, I want a cancelled scan to preserve old songs that were not processed, so that cancellation never acts like deletion.
-21. As a listener on any platform, I want failed scans to keep old unprocessed songs, so that transient errors do not shrink my library.
-22. As a listener on any platform, I want a cancelled scan to update last scan time and show “已取消”, so that I understand what happened.
-23. As a listener on any platform, I want a cancelled scan subtitle to explain that the current library was kept and partial results can be completed later, so that I know the library is safe.
-24. As a listener on any platform, I want a failed scan to show “扫描失败” without excessive explanation unless there is an actionable reason, so that the UI stays calm.
-25. As a listener with existing favorites, I want favorites to survive scan reconciliation, so that source refreshes do not erase my preference data.
-26. As a listener with a playback queue, I want unavailable songs to be removed only when the source evidence is complete, so that playback recovery does not drop songs due to partial scans.
-27. As a developer, I want source coverage to be explicit in the scan result contract, so that repository merge logic can make safe removal decisions.
-28. As a developer, I want partial scan results to be represented without deletion authority, so that import flows and cancelled scans share safe semantics.
-29. As a developer, I want Android, Desktop, iOS, and fake scanners to declare their coverage consistently, so that tests can assert platform behavior without relying on UI details.
-30. As a developer, I want merge tests to cover multi-source accumulation, so that future refactors cannot reintroduce source-kind-wide deletion bugs.
-31. As a developer, I want existing architecture boundaries preserved, so that platform APIs stay out of common UI/domain code.
-32. As a developer, I want the implementation to avoid modifying the high-fidelity prototype for production behavior, so that the real KMP app remains the source of truth.
+1. 作为 Android 用户，我希望扫描读取 Android 系统媒体库来源，这样本地音乐能出现，而不用手动管理文件夹。
+2. 作为 Android 用户，我希望完整 Android 重新扫描能移除已经从 MediaStore 消失的歌曲，这样本地曲库能反映当前设备媒体库。
+3. 作为 Android 用户，我希望 App 始终使用单一 Android 媒体来源，这样不会要求我管理容易混淆的 Android 文件夹来源。
+4. 作为 Desktop 用户，我希望添加一个扫描目录，这样 App 能发现我明确选择的文件夹里的歌曲。
+5. 作为 Desktop 用户，我希望添加文件夹 B 时保留文件夹 A 的歌曲，这样扩展曲库不会删除已有音乐。
+6. 作为 Desktop 用户，我希望重新扫描文件夹 B 时只协调文件夹 B，这样文件夹 A 里不可用的歌曲不会被错误移除。
+7. 作为 Desktop 用户，我希望文件夹来源只通过显式管理操作或证明该文件夹文件已消失的完整扫描移除，这样 App 不会做破坏性假设。
+8. 作为 iOS 用户，我希望导入或授权音频文件，这样 App 能建立 iOS 导入曲库，而不是假装扫描整台手机。
+9. 作为 iOS 用户，我希望导入新音频文件会与既有导入文件累加，这样添加音乐不会替换旧导入。
+10. 作为 iOS 用户，我希望文件来源可用性决定播放资格，这样缺失或不可访问文件只会在正确协调后被移除。
+11. 作为 iOS 用户，我希望 App 在扫描和播放时恢复文件访问，这样平台允许时，之前授权的文件仍可使用。
+12. 作为移动端用户，我希望扫描文案匹配平台：Android 显示“开始扫描/重新扫描”，Desktop 显示“添加文件夹/重新扫描”，iOS 显示“导入音频/扫描曲库/重新扫描”。
+13. 作为任意平台用户，我希望来源标签匹配平台模型：Android 显示“Android 媒体库”，Desktop 显示“扫描目录”，iOS 显示“已添加音频”或“音频来源”。
+14. 作为任意平台用户，我希望扫描页统计展示当前可播放歌曲总数和最近扫描时间，这样看到的是稳定有用的状态，而不是嘈杂的内部计数。
+15. 作为任意平台用户，我希望扫描或导入完成后仍停留在扫描页，这样可以检查结果，而不会被意外导航离开。
+16. 作为任意平台用户，我希望同一时间只有一个扫描任务，这样重复扫描不会竞态或破坏曲库。
+17. 作为任意平台用户，我希望扫描期间主扫描按钮变成“取消扫描”，这样可以直接停止长时间扫描。
+18. 作为任意平台用户，我希望取消扫描不需要确认，这样停止扫描足够快。
+19. 作为任意平台用户，我希望取消扫描保留已经验证的新增或更新，这样有用进度不会被丢弃。
+20. 作为任意平台用户，我希望取消扫描保留尚未处理的旧歌曲，这样取消永远不会表现成删除。
+21. 作为任意平台用户，我希望失败扫描保留尚未处理的旧歌曲，这样临时错误不会缩小曲库。
+22. 作为任意平台用户，我希望取消扫描更新最近扫描时间并显示“已取消”，这样能理解发生了什么。
+23. 作为任意平台用户，我希望取消扫描副标题说明当前曲库已保留、部分结果后续可补完，这样能知道曲库是安全的。
+24. 作为任意平台用户，我希望失败扫描显示“扫描失败”，除非有可操作原因，否则不展示过度解释，这样 UI 保持克制。
+25. 作为已有收藏的用户，我希望收藏能在扫描协调后保留，这样来源刷新不会抹掉偏好数据。
+26. 作为已有播放队列的用户，我希望只有来源证据完整时才移除不可用歌曲，这样播放恢复不会因为部分扫描丢歌。
+27. 作为开发者，我希望扫描结果契约显式表达来源覆盖，这样仓库合并逻辑能做安全移除决策。
+28. 作为开发者，我希望部分扫描结果能表达为没有删除权，这样导入流程和取消扫描共享安全语义。
+29. 作为开发者，我希望 Android、Desktop、iOS 和 fake scanner 一致声明覆盖范围，这样测试能断言平台行为，而不依赖 UI 细节。
+30. 作为开发者，我希望合并测试覆盖多来源累加，这样未来重构不会重新引入按来源类型宽泛删除的问题。
+31. 作为开发者，我希望保留现有架构边界，这样平台 API 不会进入 common UI/domain 代码。
+32. 作为开发者，我希望实现不要为了生产行为修改高保真原型，这样真实 KMP App 仍是事实来源。
 
-## Implementation Decisions
+## 实现决策
 
-- Use “本地音频发现” as the cross-platform product term. It means discovering user-authorized playable local audio, not raw full filesystem scanning.
-- Android uses one Android 系统媒体库来源. A complete Android scan covers the full Android MediaStore audio library.
-- Desktop/macOS uses multiple Desktop 扫描目录. Scan directories accumulate; adding or scanning one directory does not replace or reconcile unrelated directories.
-- iOS P0 uses iOS 导入曲库 as an accumulated set of user-selected file sources. Adding new iOS audio files does not replace old imported files.
-- iOS P1 system music library remains deferred and must not be mixed into the P0 imported-file source model.
-- Source availability governs playback. A song remains playable only while its original source is present and accessible after the relevant scan reconciliation.
-- The scan result contract needs an explicit way to express completed coverage. A complete coverage range may remove missing old songs; a partial/import/cancelled/failed result may only add or update positive evidence.
-- Coverage semantics must be explicit enough to represent at least three cases: complete source-kind coverage for Android MediaStore, complete concrete-source coverage for one Desktop scan directory or one managed iOS source validation, and positive-only partial/import results with no deletion authority.
-- Existing `removedSourceKeys` style explicit removals may remain useful for concrete source removal, but broad deletion must not be inferred from `sourceKind` alone for Desktop or iOS.
-- Persistent library merge logic must stop treating “all discovered items of one `sourceKind`” as equivalent to “that whole source kind was fully scanned”.
-- Android complete scan can continue to reconcile all old Android MediaStore songs when the scanner successfully completes.
-- Desktop folder scan should reconcile only the concrete folder source that was fully scanned. Folder B cannot mark folder A songs unavailable.
-- iOS file import should be treated as accumulation by default. New imports should update existing matching file sources or add new ones, without removing missing old imports unless an explicit management action or complete source validation covers them.
-- Desktop and iOS source summaries or equivalent source records must carry a stable concrete source identity. Display names alone are not sufficient for merge or removal decisions.
-- iOS P0 must store a platform-resolvable source reference, such as a security-scoped bookmark-backed reference, in platform-specific persistence. Common `localUri` must not assume a raw `file://` URL is sufficient for future playback.
-- Cancelled scans are app-level task outcomes. They can keep already verified writes, but cannot remove old unprocessed songs.
-- Failed scans follow the same safe deletion rule as cancelled scans: do not remove old unprocessed songs.
-- Cancelled scan must be distinguishable from successful done and failed error states in the UI-facing scan state, either as a first-class state or as an explicit outcome reason that renders “已取消”.
-- Exiting the app while scanning is equivalent to cancel scan.
-- Scan/import completion does not auto-navigate away from the scan page.
-- Scan page statistics show only current playable song total and last scan time. Added, updated, and removed counts may still exist internally or in tests, but they are not page UI requirements.
-- Platform-specific copy must be trimmed from the Figma reference. Android-only filtering copy must not be reused on Desktop or iOS.
-- Keep platform APIs in platform source sets. Common code may define platform-neutral scan models, source coverage semantics, and repository/use case contracts, but must not import Android, iOS, or Desktop file APIs.
-- Do not modify the visual prototype to solve production app behavior unless explicitly asked.
-- The implementation should prefer existing seams: platform `LocalMusicScanner` implementations, `ScanLocalMusicUseCase`, `MusicLibraryRepository.applyScanResult`, persistent repository tests, and controller scan task behavior.
+- 使用“本地音频发现”作为跨平台产品术语。它表示发现用户已授权、可播放的本地音频，不表示原始全盘文件系统扫描。
+- Android 使用一个 Android 系统媒体库来源。一次完整 Android 扫描覆盖完整 Android MediaStore 音频库。
+- Desktop/macOS 使用多个 Desktop 扫描目录。扫描目录累加；添加或扫描一个目录不会替换或协调无关目录。
+- iOS P0 使用 iOS 导入曲库，表示用户选择的文件来源集合。添加新的 iOS 音频文件不会替换旧导入文件。
+- iOS P1 系统音乐资料库仍然延期，不得混入 P0 导入文件来源模型。
+- 来源可用性决定播放资格。歌曲只有在原始来源存在、且相关扫描协调后仍可访问时才保持可播放。
+- 扫描结果契约需要显式表达完成覆盖。完整覆盖范围可以移除缺失旧歌；部分扫描、导入、取消或失败结果只能添加或更新正向证据。
+- 覆盖语义至少要能表达三类情况：Android MediaStore 的完整来源类型覆盖、单个 Desktop 扫描目录或单个 iOS 管理来源验证的完整具体来源覆盖，以及没有删除权的 positive-only 部分扫描或导入结果。
+- 现有 `removedSourceKeys` 式显式移除仍可用于具体来源移除，但 Desktop 或 iOS 不得仅从 `sourceKind` 推断宽泛删除。
+- 持久化曲库合并逻辑必须停止把“本轮发现了某个 `sourceKind` 的所有条目”等同于“完整扫描了整个来源类型”。
+- Android 完整扫描在 scanner 成功完成时，可以继续协调所有旧 Android MediaStore 歌曲。
+- Desktop 文件夹扫描只应协调本次完整扫描覆盖的具体文件夹来源。文件夹 B 不能把文件夹 A 的歌曲标记为不可用。
+- iOS 文件导入默认按累加处理。新导入会更新匹配文件来源或新增来源，不会移除缺失的旧导入，除非有显式管理操作或完整来源验证覆盖它们。
+- Desktop 和 iOS 来源摘要或等价来源记录必须携带稳定的具体来源身份。展示名本身不足以用于合并或移除决策。
+- iOS P0 必须在平台特定持久化中存储平台可恢复的来源引用，例如基于安全作用域书签的引用。common `localUri` 不能假设原始 `file://` URL 足以支撑未来播放。
+- 取消扫描是 App 层任务结果。它可以保留已验证写入，但不能移除尚未处理的旧歌。
+- 失败扫描遵循与取消扫描相同的安全删除规则：不要移除尚未处理的旧歌。
+- 取消扫描必须在 UI 面向的扫描状态中区别于成功完成和失败错误，可以是一级状态，也可以是能渲染“已取消”的显式结果原因。
+- 扫描中退出 App 等同于取消扫描。
+- 扫描或导入完成不会自动导航离开扫描页。
+- 扫描页统计只展示当前可播放歌曲总数和最近扫描时间。新增、更新、移除计数仍可存在于内部或测试中，但不是页面 UI 需求。
+- 平台特定文案必须从 Figma 参考中收敛。Android 专属过滤文案不能复用于 Desktop 或 iOS。
+- 平台 API 保持在平台 source set 中。common 代码可以定义平台中立扫描模型、来源覆盖语义和 repository/use case 契约，但不能导入 Android、iOS 或 Desktop 文件 API。
+- 除非明确要求，不要为了生产 App 行为修改视觉原型。
+- 实现应优先复用现有边界：平台 `LocalMusicScanner` 实现、`ScanLocalMusicUseCase`、`MusicLibraryRepository.applyScanResult`、持久化仓库测试和 controller 扫描任务行为。
 
-## Acceptance Criteria
+## 验收标准
 
-- Android successful refresh is treated as complete Android 系统媒体库来源 coverage and can mark previously available Android MediaStore songs unavailable when they are absent from the completed scan.
-- Desktop scanning folder B never marks folder A songs unavailable. Only a completed scan covering folder A can reconcile folder A missing songs.
-- iOS adding new audio files never replaces existing iOS 导入曲库 files. Old iOS file sources remain available unless explicitly removed or covered by a complete validation that proves they are missing or inaccessible.
-- A scan result with no completed coverage cannot remove existing songs, even if it discovered songs of the same `sourceKind`.
-- Cancelled and failed scans can preserve positive writes but cannot remove old unprocessed songs.
-- Scan page UI shows current playable song total and last scan time, not added/updated/removed counts.
-- Cancelled scan renders “已取消” and communicates that the current library was kept.
-- Failed scan renders “扫描失败” without implying old songs were deleted.
-- Platform scanner code stays in platform source sets; common code contains only platform-neutral contracts and merge rules.
-- Persistent repository tests cover Android source-kind coverage, Desktop concrete-source accumulation, iOS additive imports, positive-only partial scans, cancelled/failed scan preservation, and favorites preservation.
+- Android 成功刷新被视为完整 Android 系统媒体库来源覆盖，并且当旧 Android MediaStore 歌曲没有出现在完成扫描中时，可以将其标记为不可用。
+- Desktop 扫描文件夹 B 永远不会把文件夹 A 的歌曲标记为不可用。只有覆盖文件夹 A 的完成扫描才能协调文件夹 A 缺失歌曲。
+- iOS 添加新音频文件永远不会替换既有 iOS 导入曲库文件。旧 iOS 文件来源保持可用，除非被显式移除，或被完整验证证明缺失或不可访问。
+- 没有完成覆盖的扫描结果不能移除既有歌曲，即使它发现了同 `sourceKind` 的歌曲。
+- 取消和失败扫描可以保留正向写入，但不能移除尚未处理的旧歌。
+- 扫描页 UI 展示当前可播放歌曲总数和最近扫描时间，而不是新增、更新、移除计数。
+- 取消扫描渲染“已取消”，并说明当前曲库已保留。
+- 失败扫描渲染“扫描失败”，且不暗示旧歌已被删除。
+- 平台 scanner 代码留在平台 source set；common 代码只包含平台中立契约和合并规则。
+- 持久化仓库测试覆盖 Android 来源类型覆盖、Desktop 具体来源累加、iOS 累加导入、positive-only 部分扫描、取消/失败扫描保留和收藏保留。
 
-## Testing Decisions
+## 测试决策
 
-- Good tests should assert user-visible behavior and domain contracts, not private implementation details. The core behavior is whether songs remain available or become unavailable after scan reconciliation.
-- Primary testing seam: the music library repository scan merge boundary. Tests should set up existing songs from multiple source models, apply scan results, and assert available songs, removed counts, source summaries, and favorites preservation.
-- Secondary testing seam: the scan result/domain model contract. Tests should prove that source coverage is explicit and that empty or partial results do not imply deletion authority.
-- Platform scanner tests or fakes should verify coverage semantics at the boundary: Android returns full Android MediaStore coverage on success; Desktop returns concrete-folder coverage; iOS import returns additive file-source evidence rather than source-kind-wide replacement.
-- Controller-level tests should cover scan task behavior if implementation changes the app-level scan lifecycle: one running scan at a time, cancel scan changes state to cancelled, and cancelled/failed scans keep unprocessed existing songs.
-- Prior art exists in persistent music library tests for preview ordering, source-aware unavailability, favorites preservation, source summaries, cover URI persistence, and blank metadata grouping.
-- Prior art exists in scan use case and fake scanner tests for scanner-to-repository integration.
-- If shared scan state or controller behavior changes, run shared/Desktop tests. If Android scanner contracts change, also run Android Kotlin compile.
-- Verification should include at least the focused persistent repository tests and the broader shared test command appropriate for this repo before implementation is considered complete.
+- 好测试应断言用户可感知行为和领域契约，而不是私有实现细节。核心行为是扫描协调后哪些歌曲保持可用、哪些歌曲变为不可用。
+- 主要测试边界是音乐曲库仓库扫描合并边界。测试应设置多个来源模型的既有歌曲，应用扫描结果，并断言可用歌曲、移除计数、来源摘要和收藏保留。
+- 次要测试边界是扫描结果/domain 模型契约。测试应证明来源覆盖是显式的，空结果或部分结果不会暗示删除权。
+- 平台 scanner 测试或 fake 应在边界验证覆盖语义：Android 成功时返回完整 Android MediaStore 覆盖；Desktop 返回具体文件夹覆盖；iOS 导入返回累加文件来源证据，而不是来源类型级替换。
+- 如果实现改变 App 层扫描生命周期，controller 级测试应覆盖扫描任务行为：同一时间一个扫描任务、取消扫描进入取消状态，以及取消/失败扫描保留尚未处理的既有歌曲。
+- 持久化曲库测试已有先例：预览排序、来源感知不可用、收藏保留、来源摘要、封面 URI 持久化和空元数据分组。
+- 扫描 use case 和 fake scanner 测试已有 scanner 到 repository 集成的先例。
+- 如果共享扫描状态或 controller 行为变化，运行 shared/Desktop 测试。如果 Android scanner 契约变化，也运行 Android Kotlin 编译。
+- 实现完成前，验证至少应包含聚焦持久化仓库测试，以及与本仓库匹配的更宽共享测试命令。
 
-## Out of Scope
+## 非目标
 
-- Implementing iOS P1 system music library integration.
-- Implementing a full iOS playback engine or proving playback parity with Android/Desktop.
-- Building a complete “管理全部” source-management UI beyond what is required for safe source semantics.
-- Copying iOS files into app sandbox as a keepalive strategy. This PRD follows source availability and platform-resolvable file-source references, not permanent sandbox copies.
-- Adding filesystem watching, background rescan, cloud sync, online streaming, lyrics, DRM handling, or network artwork completion.
-- Reworking the visual prototype or wrapping it as production UI.
-- Changing unrelated playback queue, search, favorites, or navigation behavior except where scan reconciliation directly affects available songs.
+- 实现 iOS P1 系统音乐资料库集成。
+- 实现完整 iOS 播放引擎或证明其与 Android/Desktop 播放一致。
+- 构建完整“管理全部”来源管理 UI，超出安全来源语义所需的部分不做。
+- 将 iOS 文件复制进 App sandbox 作为长期保活策略。本 PRD 遵循来源可用性和平台可恢复文件来源引用，而不是永久 sandbox 副本。
+- 添加文件系统监听、后台重新扫描、云同步、在线流媒体、歌词、DRM 处理或网络封面补全。
+- 重做视觉原型或把视觉原型包装成生产 UI。
+- 修改无关播放队列、搜索、收藏或导航行为，除非扫描协调直接影响可用歌曲。
 
-## Further Notes
+## 补充说明
 
-- Current handoff identified the main implementation risk: persistent merge logic appears to infer coverage by `sourceKind`. That is safe for Android complete scans, but unsafe for Desktop multi-folder accumulation, iOS accumulated file sources, cancelled scans, and failed partial scans.
-- The final clarified iOS decision is yes: iOS P0 multi-file sources use the same accumulation principle as Desktop. Adding new files does not replace old files.
-- The domain docs and ADRs already record source availability, cancelled scan safety, Desktop accumulation, and Android single-source behavior. Implementation should respect those decisions rather than re-opening product questions.
-- This PRD intentionally does not create implementation issues. It is ready for an agent to split into vertical slices or implement directly from the repository’s local issue tracker conventions.
+- 当前交接识别出的主要实现风险是：持久化合并逻辑看起来会按 `sourceKind` 推断覆盖。这对 Android 完整扫描是安全的，但对 Desktop 多文件夹累加、iOS 累加文件来源、取消扫描和失败部分扫描都不安全。
+- 最终澄清的 iOS 决策是：iOS P0 多文件来源使用与 Desktop 相同的累加原则。添加新文件不会替换旧文件。
+- 领域文档和 ADR 已记录来源可用性、取消扫描安全、Desktop 累加和 Android 单一来源行为。实现应遵守这些决策，而不是重新开启产品讨论。
+- 本 PRD 有意不创建实现 issue。它已经可以供 agent 从仓库本地 issue tracker 约定拆分垂直切片或直接实现。
 
-## Adversarial Review
+## 对抗式审查
 
-- The PRD would be unsafe if an implementer interpreted iOS “导入” as copying files into the app sandbox and making them independent of the original source. The intended behavior is source availability plus platform-resolvable source references.
-- The PRD would be unsafe if “source summaries” were only UI labels. Concrete source identity is required for Desktop/iOS reconciliation.
-- The PRD would be unsafe if cancelled scans reused the same done state as successful scans without an outcome reason. The UI must be able to render “已取消” distinctly.
-- The PRD would be unsafe if tests only check counts. They must assert which exact songs remain available or unavailable after each scan.
-- The PRD remains broad enough to include scan lifecycle UI and merge semantics. If implementation is split into issues, source coverage and cancellation behavior should be separate vertical slices with shared acceptance criteria.
+- 如果实现者把 iOS“导入”理解为复制文件进 App sandbox，并让歌曲脱离原始来源独立存在，本 PRD 就会不安全。预期行为是来源可用性加平台可恢复来源引用。
+- 如果“来源摘要”只是 UI 标签，本 PRD 就会不安全。Desktop/iOS 协调需要具体来源身份。
+- 如果取消扫描复用成功完成态而没有结果原因，本 PRD 就会不安全。UI 必须能明确渲染“已取消”。
+- 如果测试只检查统计数字，本 PRD 就会不安全。测试必须断言每次扫描后具体哪些歌曲仍可用或不可用。
+- 本 PRD 仍然足够宽，包含扫描生命周期 UI 和合并语义。如果拆分实现 issue，来源覆盖和取消行为应作为不同垂直切片，并共享验收标准。

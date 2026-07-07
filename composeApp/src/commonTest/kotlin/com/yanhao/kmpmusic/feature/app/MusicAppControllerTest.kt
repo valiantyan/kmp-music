@@ -20,6 +20,7 @@ import com.yanhao.kmpmusic.domain.model.LocalMusicScanException
 import com.yanhao.kmpmusic.domain.model.LocalMusicScanRequest
 import com.yanhao.kmpmusic.domain.model.LocalMusicScanResult
 import com.yanhao.kmpmusic.domain.model.LocalMusicScanState
+import com.yanhao.kmpmusic.domain.model.LocalMusicLastScanSummary
 import com.yanhao.kmpmusic.domain.model.LocalMusicSourceKind
 import com.yanhao.kmpmusic.domain.model.MusicFileMetadata
 import com.yanhao.kmpmusic.domain.model.SearchContext
@@ -183,6 +184,27 @@ class MusicAppControllerTest {
         assertEquals(expected = 8, actual = controller.uiState.libraryStats.songCount)
         assertTrue(controller.uiState.localMusicSources.isNotEmpty())
         assertTrue(controller.uiState.recentSongs.isEmpty())
+    }
+
+    /**
+     * partial/positive-only 扫描不能把未证明不可用的既有队列歌曲从 UI 队列里误丢。
+     */
+    @Test
+    fun positiveOnlyScanKeepsExistingPlaybackQueueSongs(): Unit = runBlocking {
+        val repository = PositiveOnlyRefreshMusicLibraryRepository()
+        val controller = createController(
+            musicLibraryRepository = repository,
+            localMusicScanner = PositiveOnlyRefreshScanner(),
+        )
+        val queueSongs: List<Song> = controller.uiState.homeLocalSongPreview.take(n = 2)
+        controller.playSong(song = queueSongs.first(), queueSongs = queueSongs)
+
+        controller.scanLocalMusic(request = LocalMusicScanRequest.Refresh)
+
+        val expectedQueueSongIds: List<String> = queueSongs.map { song: Song -> song.id }
+        assertEquals(expected = expectedQueueSongIds, actual = controller.uiState.queueSongIds)
+        assertEquals(expected = expectedQueueSongIds, actual = controller.uiState.queueSongsSnapshot.map { song: Song -> song.id })
+        assertEquals(expected = expectedQueueSongIds, actual = controller.uiState.queueSongs.map { song: Song -> song.id })
     }
 
     /**
@@ -1509,6 +1531,119 @@ private class SeededMusicLibraryRepository(seedCount: Int) : com.yanhao.kmpmusic
         likedSongIds: Set<String>,
     ): LibrarySnapshot {
         return getSnapshot()
+    }
+}
+
+/**
+ * 扫描后只暴露正向发现的新歌，用来验证 controller 不会把旧队列随 partial scan 清掉。
+ */
+private class PositiveOnlyRefreshMusicLibraryRepository : MusicLibraryRepository {
+    // 初始曲库歌曲，测试会在扫描前用它们建立播放队列。
+    private val initialSongs: List<Song> = listOf(
+        testSong(id = "partial:old-1", title = "Old One", modifiedAt = 1L),
+        testSong(id = "partial:old-2", title = "Old Two", modifiedAt = 2L),
+    )
+
+    // 当前仓库快照，扫描后故意只包含新歌来模拟 partial scan 结果。
+    private var snapshot: LibrarySnapshot = buildSnapshot(
+        songs = initialSongs,
+        scanState = LocalMusicScanState.Idle,
+    )
+
+    /** 返回当前测试快照。 */
+    override fun getSnapshot(): LibrarySnapshot {
+        return snapshot
+    }
+
+    /** 返回首页预览歌曲。 */
+    override fun getHomePreview(limit: Int): List<Song> {
+        return snapshot.songs.take(n = limit)
+    }
+
+    /** 返回全部当前可见歌曲。 */
+    override fun getAllAvailableSongs(): List<Song> {
+        return snapshot.songs
+    }
+
+    /** 按 id 返回当前快照内歌曲。 */
+    override fun getAvailableSongsByIds(songIds: List<String>): List<Song> {
+        val requestedIds: Set<String> = songIds.toSet()
+        return snapshot.songs.filter { song: Song -> requestedIds.contains(element = song.id) }
+    }
+
+    /** 返回当前快照统计。 */
+    override fun getLibraryStats(): LibraryStats {
+        return snapshot.stats
+    }
+
+    /** 应用扫描后只保留 positive-only 新歌，放大旧队列误丢风险。 */
+    override fun applyScanResult(
+        request: LocalMusicScanRequest,
+        scanResult: LocalMusicScanResult,
+        likedSongIds: Set<String>,
+    ): LibrarySnapshot {
+        snapshot = buildSnapshot(
+            songs = listOf(testSong(id = "partial:new", title = "New Partial", modifiedAt = 3L)),
+            scanState = LocalMusicScanState.Done(
+                summary = LocalMusicLastScanSummary(
+                    addedCount = 1,
+                    updatedCount = 0,
+                    removedCount = 0,
+                    problemCount = 0,
+                    completedAt = scanResult.completedAt,
+                ),
+            ),
+        )
+        return snapshot
+    }
+
+    /** 构造测试快照，避免每个方法重复拼装统计。 */
+    private fun buildSnapshot(
+        songs: List<Song>,
+        scanState: LocalMusicScanState,
+    ): LibrarySnapshot {
+        return LibrarySnapshot(
+            songs = songs,
+            albums = emptyList(),
+            artists = emptyList(),
+            stats = LibraryStats(
+                songCount = songs.size,
+                albumCount = 0,
+                artistCount = 0,
+            ),
+            sources = emptyList(),
+            scanState = scanState,
+            lastScanSummary = null,
+            problems = emptyList(),
+        )
+    }
+}
+
+/**
+ * 返回一首新歌且不声明完成覆盖，表达 positive-only 扫描结果。
+ */
+private class PositiveOnlyRefreshScanner : LocalMusicScanner {
+    /** 返回没有删除权的正向扫描结果。 */
+    override suspend fun scan(request: LocalMusicScanRequest): LocalMusicScanResult {
+        return LocalMusicScanResult(
+            discovered = listOf(
+                MusicFileMetadata(
+                    sourceId = "new",
+                    sourceKind = LocalMusicSourceKind.FakeScanner,
+                    localUri = "test://partial/new",
+                    fileName = "new.mp3",
+                    title = "New Partial",
+                    artist = "Artist",
+                    album = "Album",
+                    durationMs = 180_000L,
+                    mimeType = "audio/mpeg",
+                    sizeBytes = 1_000L,
+                    modifiedAt = 3L,
+                    coverArt = CoverArt.HeroLocalMusic,
+                ),
+            ),
+            completedAt = 1_719_360_005_000L,
+        )
     }
 }
 
