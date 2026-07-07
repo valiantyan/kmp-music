@@ -1,20 +1,12 @@
 # 长跑 Agent 日志
 
-默认只追加条目，最新条目放在底部。只有当用户明确要求进行文档语言或格式迁移时，才允许改写旧条目的表达方式，但不得改变事实顺序。
-
 ## 当前状态
 
 - 状态: idle
-- 活跃批次: 无
-- 历史批次证据: 查看 `.agent-loop/archive/`。
+- 最近完成批次: mobile-desktop-me-redesign
+- 最近归档: `.agent-loop/archive/mobile-desktop-me-redesign-2026-07-07/`
 
-## 条目格式
+## 日志
 
-```text
-## YYYY-MM-DD HH:MM - 执行者 - 标题
-- 意图:
-- 行动:
-- 验证:
-- 结果:
-- 下一步:
-```
+- 2026-07-07 23:30 CST: `mobile-desktop-me-redesign` 已归档，活跃状态恢复为 `idle`。
+
