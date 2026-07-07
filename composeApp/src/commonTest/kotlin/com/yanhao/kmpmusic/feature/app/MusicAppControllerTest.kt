@@ -100,6 +100,37 @@ class MusicAppControllerTest {
     }
 
     /**
+     * 首页空态扫描入口应进入独立扫描页，而不是直接进入本地音乐来源分段。
+     */
+    @Test
+    fun openAudioScanUsesDedicatedScanRoute(): Unit {
+        val controller = createController()
+        controller.openAudioScan()
+        assertEquals(
+            expected = SecondaryScreen.AudioScan,
+            actual = controller.uiState.navigationState.secondaryScreen,
+        )
+        assertEquals(
+            expected = MobileFixedBarMode.SecondaryWithMiniPlayer,
+            actual = controller.uiState.navigationState.fixedBarMode,
+        )
+    }
+
+    /**
+     * 扫描页统计必须使用完整曲库总数，不能误用首页预览列表的 6 条限制。
+     */
+    @Test
+    fun audioScanCountUsesLibraryStatsWhenOnlyHomePreviewIsLoaded(): Unit = runBlocking {
+        val controller = createController()
+        controller.scanLocalMusic(request = LocalMusicScanRequest.Refresh)
+        controller.openAudioScan()
+        assertTrue(actual = controller.uiState.localSongs.isEmpty())
+        assertEquals(expected = 6, actual = controller.uiState.songs.size)
+        assertEquals(expected = 8, actual = controller.uiState.libraryStats.songCount)
+        assertEquals(expected = 8, actual = controller.uiState.audioScanPlayableSongCount)
+    }
+
+    /**
      * 来源页触发扫描完成后应留在当前路由，方便用户继续检查扫描摘要。
      */
     @Test

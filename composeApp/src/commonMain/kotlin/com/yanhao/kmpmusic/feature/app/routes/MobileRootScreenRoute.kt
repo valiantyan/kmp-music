@@ -6,7 +6,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.yanhao.kmpmusic.domain.model.SearchContext
 import com.yanhao.kmpmusic.domain.model.Song
-import com.yanhao.kmpmusic.feature.app.LocalMusicSection
 import com.yanhao.kmpmusic.feature.app.MusicAppController
 import com.yanhao.kmpmusic.feature.app.MusicAppUiState
 import com.yanhao.kmpmusic.feature.app.RootTab
@@ -24,7 +23,6 @@ fun MobileRootScreenRoute(
     state: MusicAppUiState,
     controller: MusicAppController,
     discoveryPlatform: LocalMusicDiscoveryPlatform = LocalMusicDiscoveryPlatform.Android,
-    onScanLocalMusic: () -> Unit,
     modifier: Modifier = Modifier,
     contentPadding: PaddingValues = PaddingValues(0.dp),
 ) {
@@ -40,7 +38,7 @@ fun MobileRootScreenRoute(
             currentSongId = state.currentSongId,
             currentPlaybackStatus = state.playbackStatus,
             onSearch = controller::openSearch,
-            onScan = onScanLocalMusic,
+            onScan = controller::openAudioScan,
             onSection = controller::setHomeContentSection,
             onSongPlay = { song: Song, queueSongs: List<Song> ->
                 controller.playSong(song = song, queueSongs = queueSongs)

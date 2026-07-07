@@ -77,6 +77,7 @@ fun MobileContentLayout(
             (state.navigationState.rootTab == RootTab.Home || state.navigationState.rootTab == RootTab.Favorites)
         if (
             secondaryScreen is SecondaryScreen.LocalMusic ||
+            secondaryScreen == SecondaryScreen.AudioScan ||
             secondaryScreen == SecondaryScreen.AlbumDetail ||
             secondaryScreen == SecondaryScreen.ArtistDetail ||
             secondaryScreen == SecondaryScreen.Player
@@ -95,7 +96,6 @@ fun MobileContentLayout(
                 state = state,
                 controller = controller,
                 discoveryPlatform = discoveryPlatform,
-                onScanLocalMusic = onScanLocalMusic,
                 modifier = modifier
                     .fillMaxSize()
                     .statusBarsPadding()
@@ -116,7 +116,6 @@ fun MobileContentLayout(
                         state = state,
                         controller = controller,
                         discoveryPlatform = discoveryPlatform,
-                        onScanLocalMusic = onScanLocalMusic,
                     )
                 } else {
                     MobileSecondaryScreenRoute(

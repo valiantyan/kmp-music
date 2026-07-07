@@ -387,6 +387,11 @@ class MusicAppController(
         navigateToSecondary(screen = SecondaryScreen.LocalMusic(initialSection = section))
     }
 
+    /** 打开独立扫描页，让首页入口先展示扫描设置和统计。 */
+    fun openAudioScan() {
+        navigateToSecondary(screen = SecondaryScreen.AudioScan)
+    }
+
     /** 搜索页应按入口上下文拿到对应数据集合，避免搜索结果跨页面串联。 */
     fun openSearch(context: SearchContext = SearchContext.LocalLibrary) {
         if (context == SearchContext.LocalLibrary) {

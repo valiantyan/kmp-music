@@ -14,6 +14,7 @@ import com.yanhao.kmpmusic.feature.app.SecondaryScreen
 import com.yanhao.kmpmusic.feature.screen.AlbumDetailScreen
 import com.yanhao.kmpmusic.feature.screen.AboutScreen
 import com.yanhao.kmpmusic.feature.screen.ArtistDetailScreen
+import com.yanhao.kmpmusic.feature.screen.AudioScanScreen
 import com.yanhao.kmpmusic.feature.screen.LocalMusicScreen
 import com.yanhao.kmpmusic.feature.screen.LocalMusicDiscoveryPlatform
 import com.yanhao.kmpmusic.feature.screen.LoginScreen
@@ -151,7 +152,7 @@ fun MobileSecondaryScreenRoute(
             discoveryPlatform = discoveryPlatform,
             onThemeMode = controller::setThemeMode,
             onBack = controller::navigateBack,
-            onScan = onScanLocalMusic,
+            onScan = controller::openAudioScan,
             onLocalMusicSources = {
                 controller.openLocalMusic(section = LocalMusicSection.Sources)
             },
@@ -167,6 +168,19 @@ fun MobileSecondaryScreenRoute(
             onEmail = controller::setEmail,
             onSend = controller::sendLoginMail,
             onBack = controller::navigateBack,
+        )
+        SecondaryScreen.AudioScan -> AudioScanScreen(
+            playableSongCount = state.audioScanPlayableSongCount,
+            sources = state.localMusicSources,
+            scanState = state.scanState,
+            discoveryPlatform = discoveryPlatform,
+            onBack = controller::navigateBack,
+            onScan = onScanLocalMusic,
+            modifier = modifier
+                .fillMaxSize()
+                .statusBarsPadding()
+                .navigationBarsPadding(),
+            contentPadding = contentPadding,
         )
     }
 }

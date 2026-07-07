@@ -119,6 +119,10 @@ fun DesktopSecondaryScreenRoute(
             onSend = controller::sendLoginMail,
             onBack = controller::navigateBack,
         )
+        SecondaryScreen.AudioScan -> DesktopEmptyStateScreen(
+            title = "扫描音频文件",
+            subtitle = "桌面端请使用首页或设置里的添加文件夹入口。",
+        )
         is SecondaryScreen.LocalMusic -> DesktopLocalMusicScreen(
             initialSection = state.navigationState.secondaryScreen.initialSection,
             songs = state.localSongs,

@@ -121,6 +121,7 @@ sealed interface SecondaryScreen {
     data object Settings : SecondaryScreen
     data object About : SecondaryScreen
     data object Login : SecondaryScreen
+    data object AudioScan : SecondaryScreen
     data class LocalMusic(val initialSection: LocalMusicSection = LocalMusicSection.Songs) : SecondaryScreen
 }
 
@@ -219,6 +220,7 @@ private fun mobileFixedBarModeFor(screen: SecondaryScreen?): MobileFixedBarMode 
         SecondaryScreen.ArtistDetail,
         SecondaryScreen.Settings,
         SecondaryScreen.Login,
+        SecondaryScreen.AudioScan,
         is SecondaryScreen.LocalMusic,
         -> MobileFixedBarMode.SecondaryWithMiniPlayer
     }
@@ -250,6 +252,7 @@ private fun SecondaryScreen.routeName(): String {
         SecondaryScreen.Settings -> "Settings"
         SecondaryScreen.About -> "About"
         SecondaryScreen.Login -> "Login"
+        SecondaryScreen.AudioScan -> "AudioScan"
         is SecondaryScreen.LocalMusic -> "LocalMusic:${initialSection.name}"
     }
 }
@@ -306,6 +309,12 @@ data class MusicAppUiState(
 
     val songs: List<Song>
         get() = localSongs.ifEmpty { homeLocalSongPreview }
+
+    /**
+     * 独立扫描页展示的可播放曲目总数，应与曲库统计保持同一口径。
+     */
+    val audioScanPlayableSongCount: Int
+        get() = maxOf(a = libraryStats.songCount, b = localSongs.size)
 
     val albums: List<Album>
         get() = localAlbums
