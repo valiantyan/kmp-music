@@ -14,6 +14,7 @@ import com.yanhao.kmpmusic.domain.model.QueueState
 import com.yanhao.kmpmusic.domain.model.CoverArt
 import com.yanhao.kmpmusic.domain.model.LibrarySnapshot
 import com.yanhao.kmpmusic.domain.model.LibraryStats
+import com.yanhao.kmpmusic.domain.model.PlaybackHistory
 import com.yanhao.kmpmusic.domain.model.PlaybackMode
 import com.yanhao.kmpmusic.domain.model.LocalMusicScanError
 import com.yanhao.kmpmusic.domain.model.LocalMusicScanErrorType
@@ -572,6 +573,37 @@ class MusicAppControllerTest {
             expected = playedSongs.reversed().map { song -> song.id },
             actual = controller.uiState.recentSongs.map { song -> song.id },
         )
+    }
+
+    /**
+     * 我的页摘要只露出 Top3，但点击摘要歌曲时必须沿用完整最近播放队列并从被点歌曲开始。
+     */
+    @Test
+    fun playRecentSummarySongUsesFullRecentQueueWithClickedStart(): Unit = runTest {
+        val playbackRepository: InMemoryPlaybackRepository = InMemoryPlaybackRepository()
+        val controller: MusicAppController = createController(
+            playbackRepository = playbackRepository,
+            controllerScope = backgroundScope,
+        )
+        controller.scanLocalMusic(request = LocalMusicScanRequest.Refresh)
+        val recentSongIds: List<String> = controller.uiState.homeLocalSongPreview
+            .take(n = 5)
+            .map { song: Song -> song.id }
+        playbackRepository.savePlaybackHistory(
+            history = PlaybackHistory(songIds = listOf("missing-song") + recentSongIds),
+        )
+        controller.loadLocalMusicLibrary()
+        assertEquals(
+            expected = recentSongIds,
+            actual = controller.uiState.recentSongs.map { song: Song -> song.id },
+        )
+        val clickedSong: Song = controller.uiState.recentSongs[2]
+
+        controller.playRecentSong(song = clickedSong)
+
+        assertEquals(expected = recentSongIds, actual = controller.uiState.queueSongIds)
+        assertEquals(expected = clickedSong.id, actual = controller.uiState.currentSongId)
+        assertEquals(expected = 2, actual = playbackRepository.getQueueState().currentIndex)
     }
 
     /**

@@ -484,6 +484,14 @@ class MusicAppController(
         }
     }
 
+    /** 最近播放入口必须复用完整过滤后列表，避免“我的”页摘要 Top3 截断播放队列。 */
+    fun playRecentSong(song: Song) {
+        playSong(
+            song = song,
+            queueSongs = uiState.recentSongs,
+        )
+    }
+
     // 队列弹层等入口只有歌曲本身时，复用当前显式队列，避免变成单曲队列。
     private fun resolvePlaybackQueueSongs(song: Song, queueSongs: List<Song>): List<Song> {
         if (queueSongs.any { candidate -> candidate.id == song.id }) {

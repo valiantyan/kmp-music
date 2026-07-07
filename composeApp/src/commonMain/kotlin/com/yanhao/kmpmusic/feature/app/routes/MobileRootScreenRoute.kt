@@ -73,6 +73,7 @@ fun MobileRootScreenRoute(
             onArtistOpen = controller::openArtist,
             onScanMusic = controller::openAudioScan,
             onRecentPlayedViewAll = controller::openRecentPlayed,
+            onRecentSongPlay = controller::playRecentSong,
         )
     }
 }

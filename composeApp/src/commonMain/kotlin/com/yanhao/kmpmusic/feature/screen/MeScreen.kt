@@ -72,6 +72,7 @@ fun MeScreen(
     onArtistOpen: (Artist) -> Unit,
     onScanMusic: () -> Unit,
     onRecentPlayedViewAll: () -> Unit,
+    onRecentSongPlay: (Song) -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(18.dp)) {
         ProfileSummary()
@@ -82,6 +83,7 @@ fun MeScreen(
         RecentPlayedSummarySection(
             recentSongs = recentSongs,
             onViewAll = onRecentPlayedViewAll,
+            onSongPlay = onRecentSongPlay,
         )
         Surface(shape = RoundedCornerShape(20.dp), color = MusicColors.Paper, tonalElevation = 1.dp) {
             Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
@@ -155,6 +157,7 @@ internal fun buildRecentPlayedSummaryDisplayModel(recentSongs: List<Song>): Rece
 private fun RecentPlayedSummarySection(
     recentSongs: List<Song>,
     onViewAll: () -> Unit,
+    onSongPlay: (Song) -> Unit,
 ) {
     val displayModel: RecentPlayedSummaryDisplayModel = buildRecentPlayedSummaryDisplayModel(
         recentSongs = recentSongs,
@@ -175,7 +178,10 @@ private fun RecentPlayedSummarySection(
             if (displayModel.songs.isEmpty()) {
                 RecentPlayedSummaryEmptyState(message = displayModel.emptyMessage)
             } else {
-                RecentPlayedSummarySongList(songs = displayModel.songs)
+                RecentPlayedSummarySongList(
+                    songs = displayModel.songs,
+                    onSongPlay = onSongPlay,
+                )
             }
         }
     }
@@ -228,26 +234,36 @@ private fun RecentPlayedSummaryHeader(
 }
 
 /**
- * 最近播放摘要行保持静态展示，避免在当前切片提前接入播放或更多菜单。
+ * 最近播放摘要只让可见歌曲触发播放，队列选择交给最近播放专用 controller 入口。
  */
 @Composable
-private fun RecentPlayedSummarySongList(songs: List<Song>) {
+private fun RecentPlayedSummarySongList(
+    songs: List<Song>,
+    onSongPlay: (Song) -> Unit,
+) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         songs.forEach { song: Song ->
-            RecentPlayedSummarySongRow(song = song)
+            RecentPlayedSummarySongRow(
+                song = song,
+                onSongPlay = onSongPlay,
+            )
         }
     }
 }
 
 /**
- * 最近播放摘要歌曲行展示封面、标题和来源信息，不从全库或 demo 数据补内容。
+ * 最近播放摘要歌曲行展示封面、标题和来源信息，并只暴露播放点击，不抢做更多菜单。
  */
 @Composable
-private fun RecentPlayedSummarySongRow(song: Song) {
+private fun RecentPlayedSummarySongRow(
+    song: Song,
+    onSongPlay: (Song) -> Unit,
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .heightIn(min = 58.dp),
+            .heightIn(min = 58.dp)
+            .clickable { onSongPlay(song) },
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
