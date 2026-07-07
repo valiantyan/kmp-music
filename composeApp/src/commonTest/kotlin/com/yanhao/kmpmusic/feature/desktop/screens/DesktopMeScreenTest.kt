@@ -1,13 +1,84 @@
 package com.yanhao.kmpmusic.feature.desktop.screens
 
+import com.yanhao.kmpmusic.domain.model.CoverArt
 import com.yanhao.kmpmusic.domain.model.LibraryStats
+import com.yanhao.kmpmusic.domain.model.LocalMusicSourceKind
+import com.yanhao.kmpmusic.domain.model.Song
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 
 /**
- * 桌面“我的”页测试，锁住个人中心静态入口、统计区和扫描入口展示语义。
+ * 桌面“我的”页测试，锁住个人中心静态入口、统计区、扫描入口和最近播放摘要展示语义。
  */
 class DesktopMeScreenTest {
+    /**
+     * 桌面最近播放摘要为空时仍显示查看全部入口和轻量空态，避免内容区留白。
+     */
+    @Test
+    fun desktopMeRecentPlayedSummaryShowsEmptyState(): Unit {
+        val model: DesktopMeRecentPlayedSummaryDisplayModel = buildDesktopMeRecentPlayedSummaryDisplayModel(
+            recentSongs = emptyList(),
+        )
+
+        assertEquals(expected = "最近播放", actual = model.title)
+        assertEquals(expected = "查看全部", actual = model.actionLabel)
+        assertTrue(actual = model.isActionEnabled)
+        assertTrue(actual = model.rows.isEmpty())
+        assertTrue(actual = model.emptyMessage.contains(other = "最近听过的音乐"))
+    }
+
+    /**
+     * 桌面摘要只露出统一最近播放列表的前三首，完整列表由 workspace 最近播放页承载。
+     */
+    @Test
+    fun desktopMeRecentPlayedSummaryKeepsOnlyTopThreeSongs(): Unit {
+        val songs: List<Song> = (1..5).map { index: Int ->
+            testSong(id = "song-$index", title = "Song $index")
+        }
+
+        val model: DesktopMeRecentPlayedSummaryDisplayModel = buildDesktopMeRecentPlayedSummaryDisplayModel(
+            recentSongs = songs,
+        )
+
+        assertEquals(
+            expected = listOf("song-1", "song-2", "song-3"),
+            actual = model.rows.map { row: DesktopMeRecentPlayedSongDisplayModel -> row.song.id },
+        )
+    }
+
+    /**
+     * 摘要展示模型只使用调用方传入的过滤后列表，不自行回退到 demo、全库或陈旧历史。
+     */
+    @Test
+    fun desktopMeRecentPlayedSummaryUsesProvidedFilteredSongsOnly(): Unit {
+        val model: DesktopMeRecentPlayedSummaryDisplayModel = buildDesktopMeRecentPlayedSummaryDisplayModel(
+            recentSongs = listOf(testSong(id = "filtered-real-song", title = "Real Song")),
+        )
+
+        assertEquals(
+            expected = listOf("filtered-real-song"),
+            actual = model.rows.map { row: DesktopMeRecentPlayedSongDisplayModel -> row.song.id },
+        )
+        assertEquals(expected = "Real Song", actual = model.rows.single().title)
+    }
+
+    /**
+     * 当前切片只提供查看全部入口，不把摘要标题动作混成歌曲更多菜单。
+     */
+    @Test
+    fun desktopMeRecentPlayedSummaryKeepsViewAllSeparateFromSongActions(): Unit {
+        val model: DesktopMeRecentPlayedSummaryDisplayModel = buildDesktopMeRecentPlayedSummaryDisplayModel(
+            recentSongs = listOf(testSong(id = "song-1", title = "Song 1")),
+        )
+
+        assertEquals(expected = "查看全部", actual = model.actionLabel)
+        assertFalse(actual = model.actionLabel.contains(other = "更多"))
+        assertFalse(actual = model.actionLabel.contains(other = "..."))
+        assertTrue(actual = model.isActionEnabled)
+    }
+
     /**
      * 桌面“我的”页设置菜单只显示三行静态入口，不能携带导航启用语义。
      */
@@ -86,6 +157,29 @@ class DesktopMeScreenTest {
         assertEquals(
             expected = listOf("128", "12", "365"),
             actual = values,
+        )
+    }
+
+    // 构造已过滤的可播放歌曲，避免测试依赖 demo catalog 或全库扫描。
+    private fun testSong(
+        id: String,
+        title: String,
+    ): Song {
+        return Song(
+            id = id,
+            title = title,
+            artist = "Artist",
+            album = "Album",
+            duration = "03:00",
+            coverArt = CoverArt.HeroLocalMusic,
+            isLiked = false,
+            lastPlayed = "",
+            quality = "Lossless",
+            lyric = "",
+            trackNumber = 1,
+            durationMs = 180_000L,
+            sourceKind = LocalMusicSourceKind.DesktopFolder,
+            localUri = "file:///$id.mp3",
         )
     }
 }

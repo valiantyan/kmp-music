@@ -61,7 +61,7 @@ private const val STATIC_PLAYLIST_COUNT = 12
 private const val STATIC_LISTENING_HOURS = 365
 
 /**
- * 我的页汇总个人资料、静态统计和本地音乐资产入口，后续切片再接入桌面最近播放能力。
+ * 我的页汇总个人资料、静态统计、最近播放摘要和本地音乐资产入口。
  */
 @Composable
 fun DesktopMeRootScreen(
@@ -72,6 +72,7 @@ fun DesktopMeRootScreen(
     onFavorites: () -> Unit,
     onFolders: () -> Unit,
     onScanMusic: () -> Unit,
+    onRecentPlayedViewAll: () -> Unit,
     onBrowseAlbums: () -> Unit,
     onAlbumOpen: (Album) -> Unit,
     onArtistOpen: (Artist) -> Unit,
@@ -100,6 +101,11 @@ fun DesktopMeRootScreen(
         DesktopSectionHeader(title = "快速功能")
         Spacer(modifier = Modifier.height(14.dp))
         DesktopMeQuickActions(onScanMusic = onScanMusic)
+        Spacer(modifier = Modifier.height(20.dp))
+        DesktopMeRecentPlayedSummary(
+            recentSongs = recentSongs,
+            onViewAll = onRecentPlayedViewAll,
+        )
         Spacer(modifier = Modifier.height(20.dp))
         DesktopMeStaticSettingsMenu()
         Spacer(modifier = Modifier.height(20.dp))

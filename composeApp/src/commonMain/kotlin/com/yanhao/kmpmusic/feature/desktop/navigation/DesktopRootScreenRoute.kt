@@ -75,6 +75,7 @@ fun DesktopRootScreenRoute(
                 controller.openLocalMusic(section = LocalMusicSection.Sources)
             },
             onScanMusic = onScanLocalMusic,
+            onRecentPlayedViewAll = controller::openRecentPlayed,
             onBrowseAlbums = {
                 controller.openLocalMusic(section = LocalMusicSection.Albums)
             },
