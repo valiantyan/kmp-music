@@ -9,7 +9,6 @@ import com.yanhao.kmpmusic.domain.model.Song
 import com.yanhao.kmpmusic.feature.app.MusicAppController
 import com.yanhao.kmpmusic.feature.app.MusicAppUiState
 import com.yanhao.kmpmusic.feature.app.RootTab
-import com.yanhao.kmpmusic.feature.app.SecondaryScreen
 import com.yanhao.kmpmusic.feature.screen.FavoritesScreen
 import com.yanhao.kmpmusic.feature.screen.HomeScreen
 import com.yanhao.kmpmusic.feature.screen.LocalMusicDiscoveryPlatform
@@ -70,8 +69,6 @@ fun MobileRootScreenRoute(
             artists = state.artists,
             libraryStats = state.libraryStats,
             favoriteCount = state.likedSongIds.size,
-            onSettings = { controller.navigateToSecondary(SecondaryScreen.Settings) },
-            onLogin = { controller.navigateToSecondary(SecondaryScreen.Login) },
             onAlbumOpen = controller::openAlbum,
             onArtistOpen = controller::openArtist,
         )

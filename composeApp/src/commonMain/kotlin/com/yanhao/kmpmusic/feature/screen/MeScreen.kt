@@ -20,16 +20,16 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil3.compose.AsyncImage
 import com.yanhao.kmpmusic.core.theme.MusicColors
 import com.yanhao.kmpmusic.domain.model.Album
 import com.yanhao.kmpmusic.domain.model.Artist
-import com.yanhao.kmpmusic.domain.model.CoverArt
 import com.yanhao.kmpmusic.domain.model.LibraryStats
-import com.yanhao.kmpmusic.feature.components.AppHeader
 import com.yanhao.kmpmusic.feature.components.ArtistRow
 import com.yanhao.kmpmusic.feature.components.CoverArtImage
-import com.yanhao.kmpmusic.feature.components.PrimaryPill
 import com.yanhao.kmpmusic.feature.components.SectionTitle
+import kmpmusic.composeapp.generated.resources.Res
+import org.jetbrains.compose.resources.ExperimentalResourceApi
 
 /**
  * 我的页收藏摘要最多展示 3 张，完整内容通过“查看”进入，避免窄屏被数据数量挤坏。
@@ -37,7 +37,7 @@ import com.yanhao.kmpmusic.feature.components.SectionTitle
 private const val FAVORITE_ALBUM_PREVIEW_COUNT = 3
 
 /**
- * 我的页，提供登录、收藏资产和设置入口。
+ * 我的页，提供本地资料、收藏资产和常听歌手摘要。
  */
 @Composable
 fun MeScreen(
@@ -45,26 +45,11 @@ fun MeScreen(
     artists: List<Artist>,
     libraryStats: LibraryStats,
     favoriteCount: Int,
-    onSettings: () -> Unit,
-    onLogin: () -> Unit,
     onAlbumOpen: (Album) -> Unit,
     onArtistOpen: (Artist) -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(18.dp)) {
-        AppHeader(title = "我的", subtitle = "本地资料与同步状态", onSettings = onSettings)
-        Surface(shape = RoundedCornerShape(20.dp), color = MusicColors.Paper, tonalElevation = 1.dp) {
-            Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                CoverArtImage(
-                    coverArt = CoverArt.AlbumTimeForest,
-                    contentDescription = "账号头像视觉",
-                    modifier = Modifier.size(70.dp).clip(CircleShape),
-                    contentScale = ContentScale.Crop,
-                )
-                Text(text = "登录音乐账号", fontSize = 20.sp, fontWeight = FontWeight.ExtraBold)
-                Text(text = "使用 Supabase 同步收藏、播放记录和多端资料。", color = MusicColors.Muted)
-                PrimaryPill(text = "立即登录", onClick = onLogin, modifier = Modifier.fillMaxWidth())
-            }
-        }
+        ProfileSummary()
         MetricRow(
             libraryStats = libraryStats,
             favoriteCount = favoriteCount,
@@ -105,6 +90,31 @@ fun MeScreen(
                 SectionTitle(title = "常听歌手", actionLabel = "更多", onAction = { artists.firstOrNull()?.let(onArtistOpen) })
                 artists.take(3).forEach { artist -> ArtistRow(artist = artist, onOpen = onArtistOpen) }
             }
+        }
+    }
+}
+
+/**
+ * 我的页基础资料区，先移除登录入口，头像描边和编辑浮层由后续切片补齐。
+ */
+@Composable
+@OptIn(ExperimentalResourceApi::class)
+private fun ProfileSummary() {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(14.dp),
+    ) {
+        AsyncImage(
+            model = Res.getUri("drawable/me_profile_avatar.jpg"),
+            contentDescription = "个人头像",
+            modifier = Modifier
+                .size(72.dp)
+                .clip(CircleShape),
+            contentScale = ContentScale.Crop,
+        )
+        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Text(text = "高保真听众", fontSize = 22.sp, fontWeight = FontWeight.ExtraBold)
+            Text(text = "音乐是我的灵魂", color = MusicColors.Muted, fontSize = 14.sp)
         }
     }
 }
