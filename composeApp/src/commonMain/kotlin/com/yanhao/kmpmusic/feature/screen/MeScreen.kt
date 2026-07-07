@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
@@ -48,6 +49,11 @@ import org.jetbrains.compose.resources.ExperimentalResourceApi
 private const val FAVORITE_ALBUM_PREVIEW_COUNT = 3
 
 /**
+ * “我的”页最近播放摘要当前只承载空态骨架，真实 Top3 和跳转由后续切片接入。
+ */
+private const val RECENT_PLAYED_SUMMARY_ACTION_LABEL = "查看全部"
+
+/**
  * 我的页，提供本地资料、收藏资产和常听歌手摘要。
  */
 @Composable
@@ -65,6 +71,7 @@ fun MeScreen(
             libraryStats = libraryStats,
         )
         QuickActionsSection(onScanMusic = onScanMusic)
+        RecentPlayedSummarySection()
         Surface(shape = RoundedCornerShape(20.dp), color = MusicColors.Paper, tonalElevation = 1.dp) {
             Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
                 SectionTitle(title = "我的收藏", actionLabel = "查看", onAction = { albums.firstOrNull()?.let(onAlbumOpen) })
@@ -103,6 +110,101 @@ fun MeScreen(
             }
         }
         StaticSettingsMenuSection()
+    }
+}
+
+/**
+ * 最近播放摘要展示模型，当前切片只暴露标题、入口占位和空态文案。
+ */
+internal data class RecentPlayedSummaryDisplayModel(
+    val title: String,
+    val actionLabel: String,
+    val emptyMessage: String,
+    val isActionEnabled: Boolean,
+)
+
+/**
+ * 构造“我的”页最近播放摘要骨架，避免 UI 提前依赖真实最近播放歌曲列表。
+ */
+internal fun buildRecentPlayedSummaryDisplayModel(): RecentPlayedSummaryDisplayModel {
+    return RecentPlayedSummaryDisplayModel(
+        title = "最近播放",
+        actionLabel = RECENT_PLAYED_SUMMARY_ACTION_LABEL,
+        emptyMessage = "播放歌曲后，最近听过的音乐会出现在这里。",
+        isActionEnabled = false,
+    )
+}
+
+/**
+ * 最近播放摘要当前只展示空态和“查看全部”位置，不绑定跳转、队列或更多菜单。
+ */
+@Composable
+private fun RecentPlayedSummarySection() {
+    val displayModel: RecentPlayedSummaryDisplayModel = buildRecentPlayedSummaryDisplayModel()
+    Surface(
+        shape = RoundedCornerShape(20.dp),
+        color = MusicColors.Paper,
+        tonalElevation = 1.dp,
+    ) {
+        Column(
+            modifier = Modifier.padding(18.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp),
+        ) {
+            RecentPlayedSummaryHeader(displayModel = displayModel)
+            RecentPlayedSummaryEmptyState(message = displayModel.emptyMessage)
+        }
+    }
+}
+
+/**
+ * 标题行保留后续跳转入口的视觉位置，但当前切片不扩大可点击行为。
+ */
+@Composable
+private fun RecentPlayedSummaryHeader(displayModel: RecentPlayedSummaryDisplayModel) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = displayModel.title,
+            color = MusicColors.Ink,
+            fontSize = 18.sp,
+            fontWeight = FontWeight.ExtraBold,
+        )
+        Text(
+            text = "${displayModel.actionLabel}  ›",
+            color = MusicColors.Muted,
+            fontSize = 14.sp,
+            fontWeight = FontWeight.SemiBold,
+        )
+    }
+}
+
+/**
+ * 空态使用稳定最小高度，避免没有歌曲时摘要区塌陷成留白或影响全局播放器避让。
+ */
+@Composable
+private fun RecentPlayedSummaryEmptyState(message: String) {
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = 68.dp),
+        shape = RoundedCornerShape(16.dp),
+        color = MusicColors.AccentSoft,
+    ) {
+        Box(
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
+            contentAlignment = Alignment.CenterStart,
+        ) {
+            Text(
+                text = message,
+                color = MusicColors.Muted,
+                fontSize = 14.sp,
+                lineHeight = 20.sp,
+                fontWeight = FontWeight.Medium,
+            )
+        }
     }
 }
 
