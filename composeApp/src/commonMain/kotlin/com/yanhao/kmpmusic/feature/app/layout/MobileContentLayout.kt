@@ -290,6 +290,23 @@ private fun MobileOverlayScreenRoute(
             indication = null,
             onClick = {},
         )
+    if (shouldRenderOverlayScreenDirectly(overlayScreen = overlayScreen)) {
+        Box(
+            modifier = blockingModifier
+                .background(MaterialTheme.colorScheme.background),
+        ) {
+            MobileSecondaryScreenRoute(
+                secondaryScreen = overlayScreen,
+                state = state,
+                controller = controller,
+                discoveryPlatform = discoveryPlatform,
+                onScanLocalMusic = onScanLocalMusic,
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = contentPadding,
+            )
+        }
+        return
+    }
     Box(
         modifier = blockingModifier
             .background(MaterialTheme.colorScheme.background),
@@ -312,6 +329,13 @@ private fun MobileOverlayScreenRoute(
             )
         }
     }
+}
+
+/**
+ * 自带懒列表滚动的覆盖页不能再包一层纵向滚动容器，否则会触发无限高度测量。
+ */
+internal fun shouldRenderOverlayScreenDirectly(overlayScreen: SecondaryScreen): Boolean {
+    return overlayScreen == SecondaryScreen.AudioScan
 }
 
 /**

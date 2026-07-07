@@ -104,7 +104,7 @@ class MusicAppControllerTest {
     }
 
     /**
-     * 首页空态扫描入口应进入独立扫描页，而不是直接进入本地音乐来源分段。
+     * 首页空态扫描入口应进入覆盖型扫描页，让底层一级 chrome 保持原位。
      */
     @Test
     fun openAudioScanUsesDedicatedScanRoute(): Unit {
@@ -115,8 +115,17 @@ class MusicAppControllerTest {
             actual = controller.uiState.navigationState.secondaryScreen,
         )
         assertEquals(
-            expected = MobileFixedBarMode.SecondaryWithMiniPlayer,
+            expected = MobileFixedBarMode.SecondaryWithoutChrome,
             actual = controller.uiState.navigationState.fixedBarMode,
+        )
+        assertEquals(
+            expected = SecondaryScreen.AudioScan,
+            actual = controller.uiState.navigationState.chromeOverlayScreen,
+        )
+        assertNull(actual = controller.uiState.navigationState.chromeUnderlaySecondaryScreen)
+        assertEquals(
+            expected = MobileFixedBarMode.TopLevel,
+            actual = controller.uiState.navigationState.chromeUnderlayFixedBarMode,
         )
     }
 
@@ -1375,6 +1384,46 @@ class MusicAppControllerTest {
         controller.navigateBack()
 
         assertEquals(expected = SecondaryScreen.Settings, actual = controller.uiState.navigationState.secondaryScreen)
+        assertEquals(
+            expected = MobileFixedBarMode.SecondaryWithMiniPlayer,
+            actual = controller.uiState.navigationState.fixedBarMode,
+        )
+    }
+
+    /**
+     * 设置页打开扫描页时应覆盖当前页，底层 mini-player 不重新执行贴底或隐藏动画。
+     */
+    @Test
+    fun audioScanScreenCoversSettingsWithoutChangingUnderlayChrome(): Unit {
+        val controller = createController()
+        controller.navigateToRoot(tab = RootTab.Me)
+        controller.navigateToSecondary(screen = SecondaryScreen.Settings)
+
+        controller.openAudioScan()
+
+        assertEquals(
+            expected = SecondaryScreen.AudioScan,
+            actual = controller.uiState.navigationState.secondaryScreen,
+        )
+        assertEquals(
+            expected = MobileFixedBarMode.SecondaryWithoutChrome,
+            actual = controller.uiState.navigationState.fixedBarMode,
+        )
+        assertEquals(
+            expected = SecondaryScreen.Settings,
+            actual = controller.uiState.navigationState.chromeUnderlaySecondaryScreen,
+        )
+        assertEquals(
+            expected = MobileFixedBarMode.SecondaryWithMiniPlayer,
+            actual = controller.uiState.navigationState.chromeUnderlayFixedBarMode,
+        )
+
+        controller.navigateBack()
+
+        assertEquals(
+            expected = SecondaryScreen.Settings,
+            actual = controller.uiState.navigationState.secondaryScreen,
+        )
         assertEquals(
             expected = MobileFixedBarMode.SecondaryWithMiniPlayer,
             actual = controller.uiState.navigationState.fixedBarMode,

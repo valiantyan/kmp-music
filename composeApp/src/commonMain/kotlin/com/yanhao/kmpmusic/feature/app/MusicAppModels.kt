@@ -215,13 +215,14 @@ private fun mobileFixedBarModeFor(screen: SecondaryScreen?): MobileFixedBarMode 
     return when (screen) {
         null -> MobileFixedBarMode.TopLevel
         SecondaryScreen.Player -> MobileFixedBarMode.Player
-        SecondaryScreen.About -> MobileFixedBarMode.SecondaryWithoutChrome
+        SecondaryScreen.About,
+        SecondaryScreen.AudioScan,
+        -> MobileFixedBarMode.SecondaryWithoutChrome
         is SecondaryScreen.Search,
         SecondaryScreen.AlbumDetail,
         SecondaryScreen.ArtistDetail,
         SecondaryScreen.Settings,
         SecondaryScreen.Login,
-        SecondaryScreen.AudioScan,
         is SecondaryScreen.LocalMusic,
         -> MobileFixedBarMode.SecondaryWithMiniPlayer
     }
