@@ -72,7 +72,6 @@ fun DesktopRootScreenRoute(
             artists = state.artists,
             libraryStats = state.libraryStats,
             favoriteCount = state.likedSongIds.size,
-            onLogin = { controller.navigateToSecondary(SecondaryScreen.Login) },
             onFavorites = { controller.navigateToRoot(RootTab.Favorites) },
             onFolders = {
                 controller.openLocalMusic(section = LocalMusicSection.Sources)

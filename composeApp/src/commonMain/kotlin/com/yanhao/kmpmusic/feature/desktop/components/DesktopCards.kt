@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.ChevronRight
@@ -26,13 +25,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.yanhao.kmpmusic.domain.model.CoverArt
-import com.yanhao.kmpmusic.feature.components.CoverArtImage
 import com.yanhao.kmpmusic.feature.desktop.DesktopMusicColors
 import com.yanhao.kmpmusic.feature.desktop.DesktopMusicDimens
 import com.yanhao.kmpmusic.feature.desktop.DesktopMusicType
@@ -84,55 +80,6 @@ fun DesktopStatCard(
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
-            }
-        }
-    }
-}
-
-@Composable
-fun DesktopProfilePanel(
-    title: String,
-    description: String,
-    buttonText: String,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    coverArt: CoverArt = CoverArt.AlbumTimeForest,
-) {
-    Surface(
-        modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(18.dp),
-        color = Color.White.copy(alpha = 0.72f),
-        border = BorderStroke(width = 1.dp, color = DesktopMusicColors.Line),
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 24.dp, vertical = 22.dp),
-            horizontalArrangement = Arrangement.spacedBy(18.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            CoverArtImage(
-                coverArt = coverArt,
-                contentDescription = "账号头像视觉",
-                modifier = Modifier
-                    .size(88.dp)
-                    .clip(CircleShape),
-                contentScale = ContentScale.Crop,
-            )
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(10.dp),
-            ) {
-                Text(
-                    text = title,
-                    color = DesktopMusicColors.Ink,
-                    fontSize = DesktopMusicType.PageTitle,
-                    fontWeight = FontWeight.ExtraBold,
-                )
-                Text(
-                    text = description,
-                    color = DesktopMusicColors.MutedStrong,
-                    fontSize = DesktopMusicType.Eyebrow,
-                )
-                DesktopPrimaryButton(text = buttonText, onClick = onClick)
             }
         }
     }
