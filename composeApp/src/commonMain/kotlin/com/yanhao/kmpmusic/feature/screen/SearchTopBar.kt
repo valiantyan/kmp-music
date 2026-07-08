@@ -10,6 +10,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.Close
@@ -25,10 +27,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusState
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -40,6 +45,8 @@ internal fun SearchTopBar(
     query: String,
     onBack: () -> Unit,
     onQuery: (String) -> Unit,
+    onCommitSearch: () -> Unit,
+    onInputFocusChanged: (Boolean) -> Unit,
 ) {
     Row(
         modifier = Modifier
@@ -64,6 +71,8 @@ internal fun SearchTopBar(
         SearchInputPill(
             query = query,
             onQuery = onQuery,
+            onCommitSearch = onCommitSearch,
+            onInputFocusChanged = onInputFocusChanged,
             modifier = Modifier.weight(weight = 1f),
         )
     }
@@ -74,6 +83,8 @@ internal fun SearchTopBar(
 private fun SearchInputPill(
     query: String,
     onQuery: (String) -> Unit,
+    onCommitSearch: () -> Unit,
+    onInputFocusChanged: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var textFieldValue: TextFieldValue by remember {
@@ -108,7 +119,11 @@ private fun SearchInputPill(
                 textFieldValue = nextValue
                 onQuery(nextValue.text)
             },
-            modifier = Modifier.weight(weight = 1f),
+            modifier = Modifier
+                .weight(weight = 1f)
+                .onFocusChanged { focusState: FocusState ->
+                    onInputFocusChanged(focusState.isFocused)
+                },
             textStyle = TextStyle(
                 color = searchPrimaryTextColor,
                 fontSize = 14.sp,
@@ -117,6 +132,8 @@ private fun SearchInputPill(
             ),
             cursorBrush = SolidColor(value = searchAccentColor),
             singleLine = true,
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+            keyboardActions = KeyboardActions(onSearch = { onCommitSearch() }),
             decorationBox = { innerTextField ->
                 Box(contentAlignment = Alignment.CenterStart) {
                     if (query.isEmpty()) {

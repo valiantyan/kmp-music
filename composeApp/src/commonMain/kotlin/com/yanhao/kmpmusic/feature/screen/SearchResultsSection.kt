@@ -22,27 +22,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.yanhao.kmpmusic.domain.model.Album
-import com.yanhao.kmpmusic.domain.model.Artist
-import com.yanhao.kmpmusic.domain.model.PlaybackStatus
 import com.yanhao.kmpmusic.domain.model.SearchScope
-import com.yanhao.kmpmusic.domain.model.Song
-import com.yanhao.kmpmusic.domain.usecase.SearchResult
 
-// 搜索结果区域固定展示 tab；真实内容只在用户输入关键词后出现。
+// 结果标题和 tab 组合成 Figma 的“搜索结果”区块。
 @Composable
-internal fun SearchResultsSection(
-    query: String,
+internal fun SearchResultsHeader(
     selectedTab: SearchResultTab,
-    result: SearchResult,
-    currentSongId: String?,
-    currentPlaybackStatus: PlaybackStatus,
     onScope: (SearchScope) -> Unit,
-    onSongPlay: (Song, List<Song>) -> Unit,
-    onCurrentSongToggle: () -> Unit,
-    onMore: (Song) -> Unit,
-    onAlbumOpen: (Album) -> Unit,
-    onArtistOpen: (Artist) -> Unit,
 ) {
     Column(
         modifier = Modifier
@@ -50,35 +36,6 @@ internal fun SearchResultsSection(
             .padding(horizontal = searchHorizontalPadding),
         verticalArrangement = Arrangement.spacedBy(space = 24.dp),
     ) {
-        SearchResultsHeader(
-            selectedTab = selectedTab,
-            onScope = onScope,
-        )
-        if (shouldShowSearchResultContent(query = query)) {
-            SearchResultContent(
-                selectedTab = selectedTab,
-                result = result,
-                currentSongId = currentSongId,
-                currentPlaybackStatus = currentPlaybackStatus,
-                onSongPlay = onSongPlay,
-                onCurrentSongToggle = onCurrentSongToggle,
-                onMore = onMore,
-                onAlbumOpen = onAlbumOpen,
-                onArtistOpen = onArtistOpen,
-            )
-        } else {
-            SearchEmptySuggestion()
-        }
-    }
-}
-
-// 结果标题和 tab 组合成 Figma 的“搜索结果”区块。
-@Composable
-private fun SearchResultsHeader(
-    selectedTab: SearchResultTab,
-    onScope: (SearchScope) -> Unit,
-) {
-    Column(verticalArrangement = Arrangement.spacedBy(space = 24.dp)) {
         Text(
             text = "搜索结果",
             color = searchPrimaryTextColor,

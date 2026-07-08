@@ -1,9 +1,8 @@
 package com.yanhao.kmpmusic.feature.screen
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -11,115 +10,78 @@ import com.yanhao.kmpmusic.domain.model.Album
 import com.yanhao.kmpmusic.domain.model.Artist
 import com.yanhao.kmpmusic.domain.model.PlaybackStatus
 import com.yanhao.kmpmusic.domain.model.Song
-import com.yanhao.kmpmusic.domain.usecase.SearchResult
-import com.yanhao.kmpmusic.feature.components.AlbumCard
-import com.yanhao.kmpmusic.feature.components.ArtistRow
-import com.yanhao.kmpmusic.feature.components.SongRow
 
-// 根据当前 tab 渲染既有搜索结果组件，保持播放、收藏和详情入口逻辑不分叉。
+// 渲染外层 LazyColumn 提供的一行搜索结果，避免结果区一次性组合所有内容。
 @Composable
-internal fun SearchResultContent(
-    selectedTab: SearchResultTab,
-    result: SearchResult,
+internal fun SearchResultLazyRowContent(
+    row: SearchResultLazyRow,
     currentSongId: String?,
     currentPlaybackStatus: PlaybackStatus,
+    currentAlbumTitle: String?,
     onSongPlay: (Song, List<Song>) -> Unit,
     onCurrentSongToggle: () -> Unit,
     onMore: (Song) -> Unit,
+    onLike: (String) -> Unit,
     onAlbumOpen: (Album) -> Unit,
     onArtistOpen: (Artist) -> Unit,
 ) {
-    when (selectedTab) {
-        SearchResultTab.Songs -> SearchSongResults(
-            songs = result.songs,
+    when (row) {
+        is SearchResultLazyRow.HomeSongItem -> SearchSongResultRow(
+            row = row,
             currentSongId = currentSongId,
             currentPlaybackStatus = currentPlaybackStatus,
             onSongPlay = onSongPlay,
             onCurrentSongToggle = onCurrentSongToggle,
             onMore = onMore,
+            onLike = onLike,
         )
-        SearchResultTab.Albums -> SearchAlbumResults(
-            albums = result.albums,
+        is SearchResultLazyRow.HomeAlbumRow -> HomeAlbumRow(
+            rowAlbums = row.albums,
+            currentAlbumTitle = currentAlbumTitle,
             onAlbumOpen = onAlbumOpen,
         )
-        SearchResultTab.Artists -> SearchArtistResults(
-            artists = result.artists,
+        is SearchResultLazyRow.HomeArtistItem -> HomeArtistRow(
+            artist = row.artist,
             onArtistOpen = onArtistOpen,
         )
-        SearchResultTab.Playlists -> SearchNoResultState(message = "当前版本暂不支持歌单搜索")
+        is SearchResultLazyRow.Message -> SearchNoResultState(message = row.text)
     }
 }
 
-// 歌曲结果复用全局歌曲行，保证当前播放态和 more 面板语义一致。
+// 搜索结果行统一补齐页边距和首行间距，让 LazyColumn 拆项后仍保持原视觉节奏。
 @Composable
-private fun SearchSongResults(
-    songs: List<Song>,
+internal fun SearchResultRowFrame(
+    index: Int,
+    content: @Composable () -> Unit,
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = if (index == 0) 24.dp else 14.dp),
+    ) {
+        content()
+    }
+}
+
+// 歌曲结果复用首页歌曲行，搜索只注入当前播放 toggle 语义和搜索队列。
+@Composable
+private fun SearchSongResultRow(
+    row: SearchResultLazyRow.HomeSongItem,
     currentSongId: String?,
     currentPlaybackStatus: PlaybackStatus,
     onSongPlay: (Song, List<Song>) -> Unit,
     onCurrentSongToggle: () -> Unit,
     onMore: (Song) -> Unit,
+    onLike: (String) -> Unit,
 ) {
-    if (songs.isEmpty()) {
-        SearchNoResultState(message = "没有找到歌曲")
-        return
-    }
-    Column(verticalArrangement = Arrangement.spacedBy(space = 14.dp)) {
-        songs.forEach { song: Song ->
-            SongRow(
-                song = song,
-                isCurrentSong = song.id == currentSongId,
-                currentPlaybackStatus = currentPlaybackStatus,
-                onPlay = { selectedSong: Song -> onSongPlay(selectedSong, songs) },
-                onCurrentSongToggle = onCurrentSongToggle,
-                onMore = onMore,
-                dense = true,
-            )
-        }
-    }
-}
-
-// 专辑结果沿用现有专辑卡片，以双列网格贴近移动端浏览密度。
-@Composable
-private fun SearchAlbumResults(
-    albums: List<Album>,
-    onAlbumOpen: (Album) -> Unit,
-) {
-    if (albums.isEmpty()) {
-        SearchNoResultState(message = "没有找到专辑")
-        return
-    }
-    Column(verticalArrangement = Arrangement.spacedBy(space = 14.dp)) {
-        albums.chunked(size = 2).forEach { rowAlbums: List<Album> ->
-            Row(horizontalArrangement = Arrangement.spacedBy(space = 14.dp)) {
-                rowAlbums.forEach { album: Album ->
-                    AlbumCard(
-                        album = album,
-                        onOpen = onAlbumOpen,
-                        modifier = Modifier.weight(weight = 1f),
-                    )
-                }
-                if (rowAlbums.size == 1) {
-                    Spacer(modifier = Modifier.weight(weight = 1f))
-                }
-            }
-        }
-    }
-}
-
-// 歌手结果复用全局歌手行，避免详情入口和首页口径分叉。
-@Composable
-private fun SearchArtistResults(
-    artists: List<Artist>,
-    onArtistOpen: (Artist) -> Unit,
-) {
-    if (artists.isEmpty()) {
-        SearchNoResultState(message = "没有找到歌手")
-        return
-    }
-    Column {
-        artists.forEach { artist: Artist ->
-            ArtistRow(artist = artist, onOpen = onArtistOpen)
-        }
-    }
+    HomeSongRow(
+        song = row.song,
+        isCurrentSong = row.song.id == currentSongId,
+        queueSongs = row.queueSongs,
+        currentPlaybackStatus = currentPlaybackStatus,
+        onSongPlay = onSongPlay,
+        onCurrentSongToggle = onCurrentSongToggle,
+        onMore = onMore,
+        onLike = onLike,
+    )
 }

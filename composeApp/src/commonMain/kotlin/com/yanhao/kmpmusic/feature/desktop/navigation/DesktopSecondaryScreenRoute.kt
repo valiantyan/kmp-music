@@ -33,6 +33,7 @@ fun DesktopSecondaryScreenRoute(
             DesktopSearchScreen(
                 context = state.searchContext,
                 query = state.searchQuery,
+                activeQuery = state.activeSearchQuery,
                 scope = state.searchScope,
                 result = searchResult,
                 history = state.searchHistoryFor(),
@@ -51,19 +52,20 @@ fun DesktopSecondaryScreenRoute(
                 },
                 onHistoryClear = { controller.clearSearchHistory(context = state.searchContext) },
                 onSongPlay = { song: Song, queueSongs: List<Song> ->
-                    controller.commitSearchQueryToHistory()
                     controller.playSong(
                         song = song,
                         queueSongs = queueSongs,
                     )
                 },
+                onCurrentSongToggle = {
+                    controller.commitSearchQueryToHistory()
+                    controller.togglePlayback()
+                },
                 onMore = controller::openMore,
                 onAlbumOpen = { album: Album ->
-                    controller.commitSearchQueryToHistory()
                     controller.openAlbum(album = album)
                 },
                 onArtistOpen = { artist: Artist ->
-                    controller.commitSearchQueryToHistory()
                     controller.openArtist(artist = artist)
                 },
             )

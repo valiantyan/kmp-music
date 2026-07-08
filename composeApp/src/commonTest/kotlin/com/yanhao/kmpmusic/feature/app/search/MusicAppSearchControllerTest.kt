@@ -46,7 +46,7 @@ class MusicAppSearchControllerTest {
     }
 
     @Test
-    fun clearingSearchQueryCommitsPreviousQueryBeforeItIsLost(): Unit = runTest {
+    fun clearingUncommittedSearchQueryDoesNotWriteHistory(): Unit = runTest {
         val repository = FakeSearchHistoryRepository()
         val controller = SearchSessionController(
             searchHistoryRepository = repository,
@@ -66,8 +66,9 @@ class MusicAppSearchControllerTest {
         val nextState = controller.setSearchQuery(state = state, query = "")
 
         assertEquals(expected = "", actual = nextState.searchQuery)
-        assertEquals(expected = listOf("summer"), actual = nextState.localLibrarySearchHistory)
-        assertEquals(expected = listOf("summer"), actual = repository.getSearchHistory(SearchContext.LocalLibrary))
+        assertEquals(expected = "", actual = nextState.activeSearchQuery)
+        assertEquals(expected = emptyList(), actual = nextState.localLibrarySearchHistory)
+        assertEquals(expected = emptyList(), actual = repository.getSearchHistory(SearchContext.LocalLibrary))
     }
 
     @Test
@@ -89,6 +90,36 @@ class MusicAppSearchControllerTest {
         advanceTimeBy(1L)
         advanceUntilIdle()
         assertEquals(expected = "river", actual = state.activeSearchQuery)
+    }
+
+    @Test
+    fun debouncedSearchQueryOnlyPublishesActiveQueryUntilExplicitCommit(): Unit = runTest {
+        val repository = FakeSearchHistoryRepository()
+        var state = testState().copy(
+            navigationState = testState().navigationState.copy(
+                secondaryScreen = SecondaryScreen.Search(context = SearchContext.LocalLibrary),
+            ),
+            searchContext = SearchContext.LocalLibrary,
+        )
+        val controller = SearchSessionController(
+            searchHistoryRepository = repository,
+            controllerScope = this,
+            debounceMillis = 300L,
+            publishStateUpdate = { reducer -> state = reducer(state) },
+        )
+
+        state = controller.setSearchQuery(state = state, query = "雨")
+        advanceTimeBy(300L)
+        advanceUntilIdle()
+
+        assertEquals(expected = "雨", actual = state.activeSearchQuery)
+        assertEquals(expected = emptyList(), actual = state.localLibrarySearchHistory)
+        assertEquals(expected = emptyList(), actual = repository.getSearchHistory(SearchContext.LocalLibrary))
+
+        state = controller.commitSearchQueryToHistory(state = state)
+
+        assertEquals(expected = listOf("雨"), actual = state.localLibrarySearchHistory)
+        assertEquals(expected = listOf("雨"), actual = repository.getSearchHistory(SearchContext.LocalLibrary))
     }
 
     @Test
@@ -188,6 +219,7 @@ class MusicAppSearchControllerTest {
 
         firstController.openSearch(context = SearchContext.LocalLibrary)
         firstController.setSearchQuery(query = "One Summer")
+        firstController.commitSearchQueryToHistory()
         firstController.navigateBack()
 
         val restoredController = createController(searchHistoryRepository = repository)

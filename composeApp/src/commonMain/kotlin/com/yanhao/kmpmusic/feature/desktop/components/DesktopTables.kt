@@ -158,6 +158,10 @@ private fun DesktopSongTableRow(
 ) {
     val isCurrentSongPlaying: Boolean =
         isCurrentSong && currentPlaybackStatus.shouldShowPauseControl
+    val shouldToggleCurrentSong: Boolean = shouldToggleDesktopSongTableCurrentPlayback(
+        isCurrentSong = isCurrentSong,
+        currentPlaybackStatus = currentPlaybackStatus,
+    )
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -178,7 +182,7 @@ private fun DesktopSongTableRow(
             modifier = Modifier.width(42.dp),
             color = Color.Transparent,
             onClick = {
-                if (isCurrentSong) {
+                if (shouldToggleCurrentSong) {
                     onCurrentSongToggle()
                 } else {
                     onSongPlay(song, songs)
@@ -276,6 +280,17 @@ private fun DesktopSongTableRow(
             }
         }
     }
+}
+
+// 桌面表格当前歌曲只有在活动或暂停态走 toggle，错误/结束/空闲态应回到播放入口重试。
+internal fun shouldToggleDesktopSongTableCurrentPlayback(
+    isCurrentSong: Boolean,
+    currentPlaybackStatus: PlaybackStatus,
+): Boolean {
+    if (!isCurrentSong) {
+        return false
+    }
+    return currentPlaybackStatus.shouldShowPauseControl || currentPlaybackStatus == PlaybackStatus.Paused
 }
 
 private fun desktopSongTableTrailingValue(

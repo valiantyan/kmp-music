@@ -11,12 +11,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Favorite
-import androidx.compose.material.icons.rounded.FavoriteBorder
-import androidx.compose.material.icons.rounded.MoreVert
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -30,17 +24,20 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.yanhao.kmpmusic.core.theme.MusicColors
+import com.yanhao.kmpmusic.domain.model.PlaybackStatus
 import com.yanhao.kmpmusic.domain.model.Song
 import com.yanhao.kmpmusic.feature.components.CoverArtImage
 import com.yanhao.kmpmusic.feature.components.PlayingGlyph
 
-// 歌曲行使用收藏页同款卡片，保持首页自己的播放队列。
+// 歌曲行使用收藏页同款卡片，默认保持首页自己的播放队列。
 @Composable
 internal fun HomeSongRow(
     song: Song,
     isCurrentSong: Boolean,
     queueSongs: List<Song>,
+    currentPlaybackStatus: PlaybackStatus? = null,
     onSongPlay: (Song, List<Song>) -> Unit,
+    onCurrentSongToggle: (() -> Unit)? = null,
     onMore: (Song) -> Unit,
     onLike: (String) -> Unit,
 ) {
@@ -56,7 +53,16 @@ internal fun HomeSongRow(
         color = rowStyle.containerColor,
         border = rowStyle.border,
         shadowElevation = rowStyle.shadowElevation,
-        onClick = { onSongPlay(song, queueSongs) },
+        onClick = {
+            when (resolveHomeSongRowClickAction(
+                isCurrentSong = isCurrentSong,
+                currentPlaybackStatus = currentPlaybackStatus,
+                hasCurrentSongToggle = onCurrentSongToggle != null,
+            )) {
+                HomeSongRowClickAction.PlaySelectedSong -> onSongPlay(song, queueSongs)
+                HomeSongRowClickAction.ToggleCurrentPlayback -> onCurrentSongToggle?.invoke()
+            }
+        },
     ) {
         Row(
             modifier = Modifier.padding(all = favoritesSongRowPadding),
@@ -143,58 +149,4 @@ private fun HomeSongText(
             overflow = TextOverflow.Ellipsis,
         )
     }
-}
-
-// 首页行尾跟收藏页一致提供收藏和更多入口。
-@Composable
-private fun HomeSongActions(
-    song: Song,
-    isCurrentSong: Boolean,
-    onMore: (Song) -> Unit,
-    onLike: (String) -> Unit,
-) {
-    Row(
-        horizontalArrangement = Arrangement.spacedBy(space = 8.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        IconButton(
-            modifier = Modifier.size(size = favoritesSongActionSize),
-            onClick = { onLike(song.id) },
-        ) {
-            Icon(
-                imageVector = if (song.isLiked) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder,
-                contentDescription = if (song.isLiked) "取消收藏 ${song.title}" else "收藏 ${song.title}",
-                modifier = Modifier.size(width = 20.dp, height = 20.dp),
-                tint = resolveHomeFavoriteIconTint(
-                    song = song,
-                    isCurrentSong = isCurrentSong,
-                ),
-            )
-        }
-        IconButton(
-            modifier = Modifier.size(size = favoritesSongActionSize),
-            onClick = { onMore(song) },
-        ) {
-            Icon(
-                imageVector = Icons.Rounded.MoreVert,
-                contentDescription = "${song.title} 更多操作",
-                modifier = Modifier.size(width = 20.dp, height = 20.dp),
-                tint = favoritesMutedIconColor,
-            )
-        }
-    }
-}
-
-// 未收藏歌曲使用弱化心形，避免把当前播放态误表达成已收藏。
-private fun resolveHomeFavoriteIconTint(
-    song: Song,
-    isCurrentSong: Boolean,
-): Color {
-    if (!song.isLiked) {
-        return favoritesMutedIconColor
-    }
-    if (isCurrentSong) {
-        return MusicColors.PlayingRed
-    }
-    return favoritesTitleColor
 }

@@ -43,6 +43,7 @@ import com.yanhao.kmpmusic.domain.repository.SearchHistoryRepository
 import com.yanhao.kmpmusic.domain.repository.UserPreferencesRepository
 import com.yanhao.kmpmusic.domain.usecase.ScanLocalMusicUseCase
 import com.yanhao.kmpmusic.domain.usecase.ScanLocalMusicUseCaseImpl
+import com.yanhao.kmpmusic.domain.usecase.SearchResult
 import com.yanhao.kmpmusic.domain.usecase.ToggleFavoriteUseCase
 import com.yanhao.kmpmusic.domain.usecase.ToggleFavoriteUseCaseImpl
 import com.yanhao.kmpmusic.domain.usecase.buildSearchResult
@@ -211,7 +212,6 @@ class MusicAppController(
 
     /** 进入二级页面并隐藏主 Tab。 */
     fun navigateToSecondary(screen: SecondaryScreen) {
-        commitActiveSearchQueryToHistoryIfNeeded()
         uiState = NavigationStateController.navigateToSecondary(
             state = uiState,
             screen = screen,
@@ -220,7 +220,6 @@ class MusicAppController(
 
     /** 切换一级 Tab。 */
     fun navigateToRoot(tab: RootTab) {
-        commitActiveSearchQueryToHistoryIfNeeded()
         uiState = NavigationStateController.navigateToRoot(
             state = uiState,
             tab = tab,
@@ -229,7 +228,6 @@ class MusicAppController(
 
     /** 从二级页面返回上一个一级页面。 */
     fun navigateBack() {
-        commitActiveSearchQueryToHistoryIfNeeded()
         uiState = NavigationStateController.navigateBack(state = uiState)
     }
 
@@ -479,7 +477,7 @@ class MusicAppController(
 
     /** 播放歌曲但留在当前页面，未显式传列表时优先复用当前队列上下文。 */
     fun playSong(song: Song, queueSongs: List<Song> = emptyList()) {
-        commitActiveSearchQueryToHistoryIfNeeded()
+        commitSearchQueryForResultActionIfNeeded()
         val resolvedQueueSongs: List<Song> = resolvePlaybackQueueSongs(
             song = song,
             queueSongs = queueSongs,
@@ -612,7 +610,7 @@ class MusicAppController(
 
     /** 打开专辑详情。 */
     fun openAlbum(album: Album) {
-        commitActiveSearchQueryToHistoryIfNeeded()
+        commitSearchQueryForResultActionIfNeeded()
         loadLocalMusicLibrary()
         uiState = uiState.copy(selectedAlbumId = album.id)
         navigateToSecondary(screen = SecondaryScreen.AlbumDetail)
@@ -620,7 +618,7 @@ class MusicAppController(
 
     /** 打开歌手详情。 */
     fun openArtist(artist: Artist) {
-        commitActiveSearchQueryToHistoryIfNeeded()
+        commitSearchQueryForResultActionIfNeeded()
         loadLocalMusicLibrary()
         uiState = uiState.copy(selectedArtistId = artist.id)
         navigateToSecondary(screen = SecondaryScreen.ArtistDetail)
@@ -659,7 +657,7 @@ class MusicAppController(
         uiState = uiState.copy(favoriteSection = section)
     }
 
-    /** 更新搜索关键词，清空输入前先保留用户刚刚搜索过的非空词。 */
+    /** 更新搜索关键词；历史只在提交或点击搜索结果等明确动作中写入。 */
     fun setSearchQuery(query: String) {
         uiState = searchSessionController.setSearchQuery(
             state = uiState,
@@ -712,7 +710,10 @@ class MusicAppController(
     }
 
     /** 执行搜索，供 UI 渲染派生结果。 */
-    fun search(): com.yanhao.kmpmusic.domain.usecase.SearchResult {
+    fun search(): SearchResult {
+        if (!shouldResolveCurrentSearchResult()) {
+            return emptySearchResult()
+        }
         return buildSearchResult(
             query = uiState.activeSearchQuery,
             scope = uiState.searchScope,
@@ -720,8 +721,24 @@ class MusicAppController(
         )
     }
 
-    // 离开搜索页前集中提交非空搜索词，避免各平台 UI 分别维护历史写入规则。
-    private fun commitActiveSearchQueryToHistoryIfNeeded() {
+    // 搜索结果必须等待防抖词追上输入词，避免空 active query 派生全量曲库。
+    private fun shouldResolveCurrentSearchResult(): Boolean {
+        val normalizedQuery: String = uiState.searchQuery.trim()
+        val normalizedActiveQuery: String = uiState.activeSearchQuery.trim()
+        return normalizedQuery.isNotEmpty() && normalizedQuery == normalizedActiveQuery
+    }
+
+    // pending 或空搜索统一返回空结果，让 UI 不需要消费全量曲库再隐藏。
+    private fun emptySearchResult(): SearchResult {
+        return SearchResult(
+            songs = emptyList(),
+            albums = emptyList(),
+            artists = emptyList(),
+        )
+    }
+
+    // 搜索结果动作前集中提交非空搜索词，避免各平台 UI 分别维护历史写入规则。
+    private fun commitSearchQueryForResultActionIfNeeded() {
         uiState = searchSessionController.commitActiveSearchQueryToHistoryIfNeeded(state = uiState)
     }
 

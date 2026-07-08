@@ -24,7 +24,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
-// 搜索历史区域使用真实历史，历史为空时用 Figma 示例保持页面节奏。
+// 搜索历史区域只负责渲染真实历史，是否显示由上层展示模型控制。
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 internal fun SearchHistorySection(

@@ -74,7 +74,7 @@ internal fun LazyListScope.homeAlbumGridItems(
 
 // 首页专辑行保持固定两列节奏，末行单项时补空列避免卡片变宽。
 @Composable
-private fun HomeAlbumRow(
+internal fun HomeAlbumRow(
     rowAlbums: List<Album>,
     currentAlbumTitle: String?,
     onAlbumOpen: (Album) -> Unit,

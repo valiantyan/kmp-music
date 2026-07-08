@@ -65,13 +65,16 @@ fun MobileSecondaryScreenRoute(
         )
         is SecondaryScreen.Search -> SearchScreen(
             query = state.searchQuery,
+            activeQuery = state.activeSearchQuery,
             scope = state.searchScope,
             history = state.searchHistoryFor(context = secondaryScreen.context),
             result = controller.search(),
             currentSongId = state.currentSongId,
             currentPlaybackStatus = state.playbackStatus,
+            currentAlbumTitle = state.currentSong?.album,
             onBack = controller::navigateBack,
             onQuery = controller::setSearchQuery,
+            onCommitSearch = controller::commitSearchQueryToHistory,
             onScope = controller::setSearchScope,
             onHistorySelect = controller::selectSearchHistory,
             onClearHistory = {
@@ -80,8 +83,12 @@ fun MobileSecondaryScreenRoute(
             onSongPlay = { song: Song, queueSongs: List<Song> ->
                 controller.playSong(song = song, queueSongs = queueSongs)
             },
-            onCurrentSongToggle = controller::togglePlayback,
+            onCurrentSongToggle = {
+                controller.commitSearchQueryToHistory()
+                controller.togglePlayback()
+            },
             onMore = controller::openMore,
+            onLike = controller::toggleFavorite,
             onAlbumOpen = controller::openAlbum,
             onArtistOpen = controller::openArtist,
             modifier = modifier

@@ -1417,10 +1417,10 @@ class MusicAppControllerTest {
     }
 
     /**
-     * 搜索输入每次变化都会重新派生结果，但不能因此反复读取持久层完整曲库。
+     * 搜索输入防抖生效前不应读取完整曲库，避免把空 active query 当成全量搜索。
      */
     @Test
-    fun repeatedSearchQueryChangesReuseLoadedLocalSongs(): Unit = runTest {
+    fun pendingSearchQueryDoesNotReturnFullLibraryBeforeDebounce(): Unit = runTest {
         val repository = SeededMusicLibraryRepository(seedCount = 8)
         val controller = createController(
             musicLibraryRepository = repository,
@@ -1429,15 +1429,19 @@ class MusicAppControllerTest {
 
         controller.openSearch(context = SearchContext.LocalLibrary)
         controller.setSearchScope(scope = SearchScope.Songs)
+        val fullLibraryReadsBeforeTyping: Int = repository.fullLibraryReads
         listOf("a", "as", "asf", "asfa", "asfasfasdffsadfasdf").forEach { query: String ->
             controller.setSearchQuery(query = query)
             controller.search()
         }
+        runCurrent()
 
-        assertEquals(expected = 1, actual = repository.fullLibraryReads)
-        assertEquals(expected = 8, actual = controller.search().songs.size)
+        assertEquals(expected = fullLibraryReadsBeforeTyping, actual = repository.fullLibraryReads)
+        assertTrue(actual = controller.search().songs.isEmpty())
         advanceTimeBy(delayTimeMillis = 301L)
+        runCurrent()
         advanceUntilIdle()
+        assertEquals(expected = "asfasfasdffsadfasdf", actual = controller.uiState.activeSearchQuery)
         assertTrue(actual = controller.search().songs.isEmpty())
     }
 
@@ -1458,10 +1462,10 @@ class MusicAppControllerTest {
     }
 
     /**
-     * 非空搜索词在离开搜索页时应自动写入历史，避免各平台 UI 自己补提交逻辑。
+     * 非空搜索词只输入后离开搜索页不应写入历史，避免把未执行搜索污染为历史。
      */
     @Test
-    fun nonBlankSearchQueryCommitsToHistoryWhenLeavingSearch(): Unit = runBlocking {
+    fun nonBlankSearchQueryDoesNotCommitToHistoryWhenLeavingSearchWithoutSubmit(): Unit = runBlocking {
         val controller = createController()
         controller.scanLocalMusic(request = LocalMusicScanRequest.Refresh)
 
@@ -1472,7 +1476,7 @@ class MusicAppControllerTest {
         controller.openSearch(context = SearchContext.LocalLibrary)
 
         assertEquals(
-            expected = listOf("One Summer"),
+            expected = emptyList(),
             actual = controller.uiState.searchHistoryFor(context = SearchContext.LocalLibrary),
         )
     }
@@ -1481,7 +1485,7 @@ class MusicAppControllerTest {
      * 搜索行为记录不依赖结果命中，用户搜过的无结果关键词也应能回到历史里。
      */
     @Test
-    fun searchQueryWithoutResultsCommitsToHistoryWhenLeavingSearch(): Unit = runBlocking {
+    fun searchQueryWithoutResultsCommitsToHistoryAfterExplicitSubmit(): Unit = runBlocking {
         val controller = createController()
         controller.scanLocalMusic(request = LocalMusicScanRequest.Refresh)
 
@@ -1497,6 +1501,61 @@ class MusicAppControllerTest {
 
         assertEquals(
             expected = listOf("绝对不存在的搜索词"),
+            actual = controller.uiState.searchHistoryFor(context = SearchContext.LocalLibrary),
+        )
+    }
+
+    /**
+     * 搜索结果动作应记录当前搜索词，覆盖歌曲播放、专辑打开和歌手打开三条入口。
+     */
+    @Test
+    fun searchResultActionsCommitCurrentQueryToHistory(): Unit = runBlocking {
+        val controller = createController()
+        controller.scanLocalMusic(request = LocalMusicScanRequest.Refresh)
+        val targetSong: Song = controller.uiState.homeLocalSongPreview.first()
+        controller.setHomeContentSection(section = HomeContentSection.Albums)
+        val targetAlbum: Album = controller.uiState.localAlbums.first()
+        controller.setHomeContentSection(section = HomeContentSection.Artists)
+        val targetArtist: Artist = controller.uiState.localArtists.first()
+
+        controller.openSearch(context = SearchContext.LocalLibrary)
+        controller.setSearchQuery(query = "歌曲动作")
+        controller.playSong(song = targetSong, queueSongs = listOf(targetSong))
+
+        controller.openSearch(context = SearchContext.LocalLibrary)
+        controller.setSearchQuery(query = "专辑动作")
+        controller.openAlbum(album = targetAlbum)
+
+        controller.openSearch(context = SearchContext.LocalLibrary)
+        controller.setSearchQuery(query = "歌手动作")
+        controller.openArtist(artist = targetArtist)
+
+        assertEquals(
+            expected = listOf("歌手动作", "专辑动作", "歌曲动作"),
+            actual = controller.uiState.searchHistoryFor(context = SearchContext.LocalLibrary),
+        )
+    }
+
+    /**
+     * 非搜索页里的播放和详情动作不应把残留输入词写入搜索历史。
+     */
+    @Test
+    fun nonSearchResultActionsDoNotCommitSearchHistory(): Unit = runBlocking {
+        val controller = createController()
+        controller.scanLocalMusic(request = LocalMusicScanRequest.Refresh)
+        val targetSong: Song = controller.uiState.homeLocalSongPreview.first()
+        controller.setHomeContentSection(section = HomeContentSection.Albums)
+        val targetAlbum: Album = controller.uiState.localAlbums.first()
+        controller.setHomeContentSection(section = HomeContentSection.Artists)
+        val targetArtist: Artist = controller.uiState.localArtists.first()
+
+        controller.setSearchQuery(query = "普通页面动作")
+        controller.playSong(song = targetSong, queueSongs = listOf(targetSong))
+        controller.openAlbum(album = targetAlbum)
+        controller.openArtist(artist = targetArtist)
+
+        assertEquals(
+            expected = emptyList(),
             actual = controller.uiState.searchHistoryFor(context = SearchContext.LocalLibrary),
         )
     }

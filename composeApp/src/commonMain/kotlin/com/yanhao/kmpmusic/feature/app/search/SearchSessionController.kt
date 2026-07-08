@@ -32,25 +32,8 @@ class SearchSessionController(
         )
     }
 
-    /** 更新搜索词；若用户清空搜索框，则先提交旧词再清空输入。 */
+    /** 更新搜索词；清空只重置输入态，不把未执行搜索写入历史。 */
     fun setSearchQuery(state: MusicAppUiState, query: String): MusicAppUiState {
-        val previousQuery: String = state.searchQuery
-        if (shouldCommitSearchQueryBeforeClearing(
-                state = state,
-                previousQuery = previousQuery,
-                nextQuery = query,
-            )
-        ) {
-            val committedState: MusicAppUiState = commitSearchQueryToHistory(
-                state = state,
-                query = previousQuery,
-                context = state.searchContext,
-            )
-            return syncActiveSearchQueryImmediately(
-                state = committedState,
-                query = "",
-            ).copy(searchQuery = query)
-        }
         val nextState: MusicAppUiState = state.copy(searchQuery = query)
         return scheduleActiveSearchQuerySync(
             state = nextState,
@@ -107,7 +90,7 @@ class SearchSessionController(
         )
     }
 
-    /** 离开搜索页前集中提交非空搜索词，避免平台 UI 自己维护这条规则。 */
+    /** 点击搜索结果前集中提交非空搜索词，避免平台 UI 自己维护这条规则。 */
     fun commitActiveSearchQueryToHistoryIfNeeded(state: MusicAppUiState): MusicAppUiState {
         if (state.navigationState.secondaryScreen !is SecondaryScreen.Search) {
             return state
@@ -115,18 +98,7 @@ class SearchSessionController(
         return commitSearchQueryToHistory(state = state)
     }
 
-    // 只有真实处于搜索页、且用户把非空词清空时，才需要先提交旧词。
-    private fun shouldCommitSearchQueryBeforeClearing(
-        state: MusicAppUiState,
-        previousQuery: String,
-        nextQuery: String,
-    ): Boolean {
-        return state.navigationState.secondaryScreen is SecondaryScreen.Search &&
-            previousQuery.trim().isNotBlank() &&
-            nextQuery.isBlank()
-    }
-
-    // 支持在覆盖 UI 输入前提交指定 query，避免清空输入时丢失旧搜索词。
+    // 显式搜索动作可以提交当前或指定 query，普通输入变化不直接污染历史。
     private fun commitSearchQueryToHistory(
         state: MusicAppUiState,
         query: String,
@@ -146,7 +118,7 @@ class SearchSessionController(
         )
     }
 
-    // 非空 query 通过发布 reducer 的方式延迟生效，保持 facade 仍是唯一 Compose 状态持有者。
+    // 非空 query 通过发布 reducer 延迟生效，真实历史只在显式提交时写入。
     private fun scheduleActiveSearchQuerySync(
         state: MusicAppUiState,
         query: String,
@@ -161,10 +133,21 @@ class SearchSessionController(
         debounceJob = controllerScope.launch {
             delay(timeMillis = debounceMillis)
             publishStateUpdate { currentState: MusicAppUiState ->
+                if (!shouldPublishDebouncedSearchQuery(state = currentState, query = query)) {
+                    return@publishStateUpdate currentState
+                }
                 currentState.copy(activeSearchQuery = query)
             }
         }
         return state
+    }
+
+    // 旧防抖任务醒来时必须确认输入仍匹配，避免把已清空或已替换的词发布为 active query。
+    private fun shouldPublishDebouncedSearchQuery(
+        state: MusicAppUiState,
+        query: String,
+    ): Boolean {
+        return state.searchQuery == query
     }
 
     // 显式提交、清空和历史点击必须立刻同步 active query。

@@ -51,6 +51,7 @@ import com.yanhao.kmpmusic.feature.desktop.components.DesktopTinyTextButton
 fun DesktopSearchScreen(
     context: SearchContext,
     query: String,
+    activeQuery: String,
     scope: SearchScope,
     result: SearchResult,
     history: List<String>,
@@ -64,6 +65,7 @@ fun DesktopSearchScreen(
     onHistoryRemove: (String) -> Unit,
     onHistoryClear: () -> Unit,
     onSongPlay: (Song, List<Song>) -> Unit,
+    onCurrentSongToggle: () -> Unit,
     onMore: (Song) -> Unit,
     onAlbumOpen: (Album) -> Unit,
     onArtistOpen: (Artist) -> Unit,
@@ -77,6 +79,10 @@ fun DesktopSearchScreen(
         SearchContext.Favorites -> "在收藏中搜索歌曲、专辑、歌手"
     }
     val isEmptyQuery: Boolean = query.isBlank()
+    val shouldShowResults: Boolean = shouldShowDesktopSearchResults(
+        query = query,
+        activeQuery = activeQuery,
+    )
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -116,6 +122,10 @@ fun DesktopSearchScreen(
             DesktopSectionEmptyMessage(message = "输入关键词后显示匹配歌曲、专辑和歌手")
             return
         }
+        if (!shouldShowResults) {
+            DesktopSectionEmptyMessage(message = "正在准备“${query.trim()}”的搜索结果")
+            return
+        }
         DesktopSearchResultsSection(
             query = query,
             scope = scope,
@@ -123,11 +133,22 @@ fun DesktopSearchScreen(
             currentSongId = currentSongId,
             currentPlaybackStatus = currentPlaybackStatus,
             onSongPlay = onSongPlay,
+            onCurrentSongToggle = onCurrentSongToggle,
             onMore = onMore,
             onAlbumOpen = onAlbumOpen,
             onArtistOpen = onArtistOpen,
         )
     }
+}
+
+// 桌面端同样要等待 activeQuery 跟输入同步，避免防抖期间误报空结果。
+internal fun shouldShowDesktopSearchResults(
+    query: String,
+    activeQuery: String,
+): Boolean {
+    val normalizedQuery: String = query.trim()
+    val normalizedActiveQuery: String = activeQuery.trim()
+    return normalizedQuery.isNotEmpty() && normalizedQuery == normalizedActiveQuery
 }
 
 /**
@@ -241,6 +262,7 @@ private fun DesktopSearchResultsSection(
     currentSongId: String?,
     currentPlaybackStatus: PlaybackStatus,
     onSongPlay: (Song, List<Song>) -> Unit,
+    onCurrentSongToggle: () -> Unit,
     onMore: (Song) -> Unit,
     onAlbumOpen: (Album) -> Unit,
     onArtistOpen: (Artist) -> Unit,
@@ -276,7 +298,7 @@ private fun DesktopSearchResultsSection(
             showFavoriteColumn = false,
             trailingDateLabel = "添加时间",
             onSongPlay = onSongPlay,
-            onCurrentSongToggle = {},
+            onCurrentSongToggle = onCurrentSongToggle,
             onMore = onMore,
         )
     }

@@ -69,7 +69,7 @@ internal fun LazyListScope.homeArtistListItems(
 
 // 歌手行只表达进入歌手详情，不承载播放或当前播放高亮语义。
 @Composable
-private fun HomeArtistRow(
+internal fun HomeArtistRow(
     artist: Artist,
     onArtistOpen: (Artist) -> Unit,
 ) {
