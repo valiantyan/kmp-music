@@ -1,6 +1,6 @@
 ---
 name: brainstorming
-description: "You MUST use this before any creative work - creating features, building components, adding functionality, or modifying behavior. Explores user intent, requirements and design before implementation."
+description: "Use when the user explicitly names brainstorming, uses /brainstorming, links to brainstorming/SKILL.md, or clearly asks to use this skill"
 disable-model-invocation: true
 ---
 
@@ -8,15 +8,33 @@ disable-model-invocation: true
 
 Help turn ideas into fully formed designs and specs through natural collaborative dialogue.
 
+Invoke this skill only when the current user message explicitly names `brainstorming`, uses `/brainstorming`, links to this skill, or clearly says to use brainstorming. Do not auto-invoke it just because the task involves creative work, product design, feature implementation, component building, or behavior changes.
+
 Start by understanding the current project context, then ask questions one at a time to refine the idea. Once you understand what you're building, present the design and get user approval.
 
 <HARD-GATE>
-Do NOT invoke any implementation skill, write any code, scaffold any project, or take any implementation action until you have presented a design and the user has approved it. This applies to EVERY project regardless of perceived simplicity.
+After this skill has been explicitly invoked, do NOT invoke any implementation skill, write any code, scaffold any project, or take any implementation action until you have presented a design and the user has approved it. This gate applies only to tasks where `brainstorming` was explicitly invoked.
 </HARD-GATE>
 
-## Anti-Pattern: "This Is Too Simple To Need A Design"
+## Invocation Gate
 
-Every project goes through this process. A todo list, a single-function utility, a config change — all of them. "Simple" projects are where unexamined assumptions cause the most wasted work. The design can be short (a few sentences for truly simple projects), but you MUST present it and get approval.
+Valid triggers:
+
+- The user writes `brainstorming` directly
+- The user uses `/brainstorming`
+- The user links to `brainstorming/SKILL.md`
+- The user clearly says to use, invoke, or load brainstorming
+
+Invalid triggers:
+
+- The user only asks to design a feature
+- The user only asks to implement a component
+- The user only asks to change behavior
+- The user only enters Plan mode or asks for a plan
+
+## Anti-Pattern: Auto-Invoking For Creative Work
+
+Do not turn "creative work benefits from design" into automatic invocation of `brainstorming`. If the user did not explicitly request this skill, continue with the normal workflow. If the user explicitly invoked this skill, follow the full design process below. Simple projects may have a very short design, but still require presentation and approval first.
 
 ## Checklist
 

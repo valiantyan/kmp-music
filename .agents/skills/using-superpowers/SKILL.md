@@ -1,6 +1,6 @@
 ---
 name: using-superpowers
-description: Use when starting any conversation - establishes how to find and use skills, requiring skill invocation before ANY response including clarifying questions
+description: "Use when the user explicitly names using-superpowers, uses /using-superpowers, links to using-superpowers/SKILL.md, or clearly asks to use this skill"
 disable-model-invocation: true
 ---
 
@@ -8,47 +8,44 @@ disable-model-invocation: true
 If you were dispatched as a subagent to execute a specific task, ignore this skill.
 </SUBAGENT-STOP>
 
-<EXTREMELY-IMPORTANT>
-If you think there is even a 1% chance a skill might apply to what you are doing, you ABSOLUTELY MUST invoke the skill.
+<INVOCATION-GATE>
+Invoke this skill only when the current user message explicitly names `using-superpowers`, uses `/using-superpowers`, links to this skill, or clearly says to use using-superpowers.
 
-IF A SKILL APPLIES TO YOUR TASK, YOU DO NOT HAVE A CHOICE. YOU MUST USE IT.
-
-This is not negotiable. You cannot rationalize your way out of this.
-</EXTREMELY-IMPORTANT>
+Do not auto-invoke this skill because it might be useful, seems related, or the conversation is starting.
+</INVOCATION-GATE>
 
 ## The Rule
 
-**Invoke relevant or requested skills BEFORE any response or action** — including clarifying questions, exploring the codebase, or checking files. If it turns out wrong for the situation, you don't have to use it.
+**Invoke only skills that the current user message explicitly specifies**, and invoke them before responding or acting. Explicit specification includes:
 
-**Before entering plan mode:** if you haven't already brainstormed, invoke the brainstorming skill first.
+- Writing the skill name directly, such as `using-superpowers`
+- Using slash form, such as `/using-superpowers`
+- Providing a Markdown link or file path that points to a skill
+- Clearly asking to use, invoke, or load a skill
 
-Then announce "Using [skill] to [purpose]" and follow the skill exactly. If it has a checklist, create a todo per item.
+If the user did not explicitly specify this skill, do not invoke it. Do not treat "the task seems related" as explicit specification.
+
+After invocation, announce "Using [skill] to [purpose]" and follow the invoked skill exactly. If it has a checklist, create a task for each checklist item.
 
 ## Skill Priority
 
-When multiple skills apply, process skills come first — they set the approach, then implementation skills (frontend-design, etc.) carry it out. Brainstorming and systematic-debugging are Superpowers' most common process skills, but the rule holds for any of them.
+When the same user message explicitly specifies multiple skills, run process skills first, then implementation skills.
 
-- "Let's build X" → superpowers:brainstorming first, then implementation skills.
-- "Fix this bug" → superpowers:systematic-debugging first, then domain skills.
+- "Use using-superpowers and writing-skills to edit a skill" -> use `using-superpowers` to confirm explicit skill invocation, then use `writing-skills` to edit the skill.
+- "/brainstorming design X" -> invoke `brainstorming`.
+- "Help me build X" without explicitly naming `brainstorming` -> do not auto-invoke `brainstorming` because the task is creative.
 
 ## Red Flags
 
-These thoughts mean STOP—you're rationalizing:
+These thoughts mean you are mistaking implicit relevance for explicit specification:
 
 | Thought | Reality |
 |---------|---------|
-| "This is just a simple question" | Questions are tasks. Check for skills. |
-| "I need more context first" | Skill check comes BEFORE clarifying questions. |
-| "Let me explore the codebase first" | Skills tell you HOW to explore. Check first. |
-| "I can check git/files quickly" | Files lack conversation context. Check for skills. |
-| "Let me gather information first" | Skills tell you HOW to gather information. |
-| "This doesn't need a formal skill" | If a skill exists, use it. |
-| "I remember this skill" | Skills evolve. Read current version. |
-| "This doesn't count as a task" | Action = task. Check for skills. |
-| "The skill is overkill" | Simple things become complex. Use it. |
-| "I'll just do this one thing first" | Check BEFORE doing anything. |
-| "This feels productive" | Undisciplined action wastes time. Skills prevent this. |
-| "I know what that means" | Knowing the concept ≠ using the skill. Invoke it. |
+| "This skill might be useful" | Might be useful is not explicit specification. |
+| "This is a new conversation, so invoke it" | A new conversation is not a trigger. |
+| "The user wants creative or implementation work, so auto-invoke brainstorming" | Do not invoke `brainstorming` unless it was explicitly named. |
+| "Invoking it just in case cannot hurt" | Unrequested skills can change the user's intended workflow. |
+| "The description used to say this was mandatory" | The current invocation gate wins: only explicit names, slash usage, links, or clear requests trigger it. |
 
 ## Platform Adaptation
 
