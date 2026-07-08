@@ -32,7 +32,7 @@ class SearchSessionController(
         )
     }
 
-    /** 更新搜索词；清空只重置输入态，不把未执行搜索写入历史。 */
+    /** 更新搜索词；清空只重置输入态，非空词在防抖生效后才记录为真实搜索。 */
     fun setSearchQuery(state: MusicAppUiState, query: String): MusicAppUiState {
         val nextState: MusicAppUiState = state.copy(searchQuery = query)
         return scheduleActiveSearchQuerySync(
@@ -98,7 +98,7 @@ class SearchSessionController(
         return commitSearchQueryToHistory(state = state)
     }
 
-    // 显式搜索动作可以提交当前或指定 query，普通输入变化不直接污染历史。
+    // 显式搜索动作仍可立即提交，避免等待防抖才能记录用户主动搜索。
     private fun commitSearchQueryToHistory(
         state: MusicAppUiState,
         query: String,
@@ -118,7 +118,7 @@ class SearchSessionController(
         )
     }
 
-    // 非空 query 通过发布 reducer 延迟生效，真实历史只在显式提交时写入。
+    // 非空 query 通过发布 reducer 延迟生效，只有可见结果生效时才记录历史。
     private fun scheduleActiveSearchQuerySync(
         state: MusicAppUiState,
         query: String,
@@ -136,10 +136,30 @@ class SearchSessionController(
                 if (!shouldPublishDebouncedSearchQuery(state = currentState, query = query)) {
                     return@publishStateUpdate currentState
                 }
-                currentState.copy(activeSearchQuery = query)
+                publishDebouncedSearchQuery(
+                    state = currentState,
+                    query = query,
+                )
             }
         }
         return state
+    }
+
+    // 防抖搜索已驱动可见结果时才写历史；离开搜索页后醒来的任务只同步 active query。
+    private fun publishDebouncedSearchQuery(
+        state: MusicAppUiState,
+        query: String,
+    ): MusicAppUiState {
+        val nextState: MusicAppUiState = state.copy(activeSearchQuery = query)
+        val secondaryScreen: SecondaryScreen = state.navigationState.secondaryScreen ?: return nextState
+        if (secondaryScreen !is SecondaryScreen.Search) {
+            return nextState
+        }
+        return commitSearchQueryToHistory(
+            state = nextState,
+            query = query,
+            context = secondaryScreen.context,
+        )
     }
 
     // 旧防抖任务醒来时必须确认输入仍匹配，避免把已清空或已替换的词发布为 active query。

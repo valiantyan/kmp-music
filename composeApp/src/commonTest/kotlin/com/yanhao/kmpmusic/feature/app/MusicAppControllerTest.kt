@@ -1462,10 +1462,10 @@ class MusicAppControllerTest {
     }
 
     /**
-     * 非空搜索词只输入后离开搜索页不应写入历史，避免把未执行搜索污染为历史。
+     * 非空搜索词在防抖结果生效前离开搜索页不应写入历史，避免把未执行搜索污染为历史。
      */
     @Test
-    fun nonBlankSearchQueryDoesNotCommitToHistoryWhenLeavingSearchWithoutSubmit(): Unit = runBlocking {
+    fun nonBlankSearchQueryDoesNotCommitToHistoryWhenLeavingSearchBeforeDebounce(): Unit = runBlocking {
         val controller = createController()
         controller.scanLocalMusic(request = LocalMusicScanRequest.Refresh)
 

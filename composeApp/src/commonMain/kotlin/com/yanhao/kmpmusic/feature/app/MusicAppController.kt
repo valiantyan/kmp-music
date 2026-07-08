@@ -657,7 +657,7 @@ class MusicAppController(
         uiState = uiState.copy(favoriteSection = section)
     }
 
-    /** 更新搜索关键词；历史只在提交或点击搜索结果等明确动作中写入。 */
+    /** 更新搜索关键词；防抖搜索生效或点击结果等明确动作会写入历史。 */
     fun setSearchQuery(query: String) {
         uiState = searchSessionController.setSearchQuery(
             state = uiState,

@@ -93,7 +93,7 @@ class MusicAppSearchControllerTest {
     }
 
     @Test
-    fun debouncedSearchQueryOnlyPublishesActiveQueryUntilExplicitCommit(): Unit = runTest {
+    fun debouncedSearchQueryPublishesActiveQueryAndCommitsVisibleHistory(): Unit = runTest {
         val repository = FakeSearchHistoryRepository()
         var state = testState().copy(
             navigationState = testState().navigationState.copy(
@@ -113,13 +113,28 @@ class MusicAppSearchControllerTest {
         advanceUntilIdle()
 
         assertEquals(expected = "雨", actual = state.activeSearchQuery)
-        assertEquals(expected = emptyList(), actual = state.localLibrarySearchHistory)
-        assertEquals(expected = emptyList(), actual = repository.getSearchHistory(SearchContext.LocalLibrary))
-
-        state = controller.commitSearchQueryToHistory(state = state)
-
         assertEquals(expected = listOf("雨"), actual = state.localLibrarySearchHistory)
         assertEquals(expected = listOf("雨"), actual = repository.getSearchHistory(SearchContext.LocalLibrary))
+    }
+
+    @Test
+    fun debouncedSearchQueryOutsideSearchPageDoesNotCommitHistory(): Unit = runTest {
+        val repository = FakeSearchHistoryRepository()
+        var state = testState().copy(searchContext = SearchContext.LocalLibrary)
+        val controller = SearchSessionController(
+            searchHistoryRepository = repository,
+            controllerScope = this,
+            debounceMillis = 300L,
+            publishStateUpdate = { reducer -> state = reducer(state) },
+        )
+
+        state = controller.setSearchQuery(state = state, query = "雨")
+        advanceTimeBy(300L)
+        advanceUntilIdle()
+
+        assertEquals(expected = "雨", actual = state.activeSearchQuery)
+        assertEquals(expected = emptyList(), actual = state.localLibrarySearchHistory)
+        assertEquals(expected = emptyList(), actual = repository.getSearchHistory(SearchContext.LocalLibrary))
     }
 
     @Test
