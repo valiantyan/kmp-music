@@ -69,6 +69,7 @@ fun MobileRootScreenRoute(
             currentSongId = state.currentSongId,
             libraryStats = state.libraryStats,
             onScanMusic = controller::openAudioScan,
+            onSongsStatClick = controller::openHomeSongs,
             onRecentPlayedViewAll = controller::openRecentPlayed,
             onRecentSongPlay = controller::playRecentSong,
             onRecentSongMore = controller::openMore,

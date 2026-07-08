@@ -241,6 +241,12 @@ class MusicAppController(
         uiState = uiState.copy(homeContentSection = section)
     }
 
+    /** 我的页歌曲统计回到首页歌曲分段，保持它作为一级页入口。 */
+    fun openHomeSongs() {
+        navigateToRoot(tab = RootTab.Home)
+        setHomeContentSection(section = HomeContentSection.Songs)
+    }
+
     /**
      * 处理 Android 系统返回键，优先关闭临时浮层，最后才退出二级页面。
      */

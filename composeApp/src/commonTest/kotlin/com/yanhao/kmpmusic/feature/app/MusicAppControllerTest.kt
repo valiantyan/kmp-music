@@ -187,6 +187,28 @@ class MusicAppControllerTest {
     }
 
     /**
+     * 我的页歌曲统计入口应回到首页歌曲分段，避免误进入本地音乐二级页或保留旧分段。
+     */
+    @Test
+    fun meSongStatOpensHomeSongsAsTopLevelPage(): Unit {
+        val controller = createController()
+        controller.setHomeContentSection(section = HomeContentSection.Albums)
+        controller.navigateToRoot(tab = RootTab.Me)
+        controller.openRecentPlayed()
+
+        controller.openHomeSongs()
+
+        assertEquals(expected = RootTab.Home, actual = controller.uiState.navigationState.rootTab)
+        assertNull(actual = controller.uiState.navigationState.secondaryScreen)
+        assertEquals(expected = HomeContentSection.Songs, actual = controller.uiState.homeContentSection)
+        assertEquals(
+            expected = MobileFixedBarMode.TopLevel,
+            actual = controller.uiState.navigationState.fixedBarMode,
+        )
+        assertTrue(actual = controller.uiState.navigationState.fixedBarMode.showsBottomNavigation)
+    }
+
+    /**
      * 扫描页统计必须使用完整曲库总数，不能误用首页预览列表的 6 条限制。
      */
     @Test

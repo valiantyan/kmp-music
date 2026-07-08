@@ -23,6 +23,7 @@ fun MeScreen(
     currentSongId: String?,
     libraryStats: LibraryStats,
     onScanMusic: () -> Unit,
+    onSongsStatClick: () -> Unit,
     onRecentPlayedViewAll: () -> Unit,
     onRecentSongPlay: (Song) -> Unit,
     onRecentSongMore: (Song) -> Unit,
@@ -46,7 +47,10 @@ fun MeScreen(
                 verticalArrangement = Arrangement.spacedBy(space = meSectionGap),
             ) {
                 MeProfileSection()
-                MeStatsSection(libraryStats = libraryStats)
+                MeStatsSection(
+                    libraryStats = libraryStats,
+                    onSongsClick = onSongsStatClick,
+                )
                 MeQuickActionsSection(onScanMusic = onScanMusic)
                 MeRecentPlayedSummarySection(
                     recentSongs = recentSongs,

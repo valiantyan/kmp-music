@@ -1,6 +1,7 @@
 package com.yanhao.kmpmusic.feature.screen
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -14,6 +15,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -31,11 +33,15 @@ private data class MeStatItem(
 )
 
 /**
- * 三列统计区按 Figma 使用白底和细分割线，不再使用旧版绿色卡片。
+ * 三列统计区按 Figma 使用白底和细分割线，并把歌曲统计作为回到首页的入口。
+ *
+ * @param libraryStats 当前曲库统计。
+ * @param onSongsClick 点击歌曲统计时回到首页歌曲分段。
  */
 @Composable
 internal fun MeStatsSection(
     libraryStats: LibraryStats,
+    onSongsClick: () -> Unit,
 ) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
@@ -51,7 +57,11 @@ internal fun MeStatsSection(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             val items: List<MeStatItem> = buildMeStatItems(libraryStats = libraryStats)
-            MeStatColumn(item = items[0], modifier = Modifier.weight(weight = 1f))
+            MeStatColumn(
+                item = items[0],
+                modifier = Modifier.weight(weight = 1f),
+                onClick = onSongsClick,
+            )
             MeStatsDivider()
             MeStatColumn(item = items[1], modifier = Modifier.weight(weight = 1f))
             MeStatsDivider()
@@ -71,14 +81,24 @@ private fun buildMeStatItems(
     )
 }
 
-// 单个统计列使用居中层级贴近 Figma 的 Paragraph 结构。
+// 单个统计列保持居中层级；只有传入动作的列才具备点击语义。
 @Composable
 private fun MeStatColumn(
     item: MeStatItem,
     modifier: Modifier = Modifier,
+    onClick: (() -> Unit)? = null,
 ) {
+    val columnModifier: Modifier = if (onClick == null) {
+        modifier
+    } else {
+        modifier.clickable(
+            onClickLabel = "查看首页歌曲",
+            role = Role.Button,
+            onClick = onClick,
+        )
+    }
     Column(
-        modifier = modifier,
+        modifier = columnModifier,
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Text(
