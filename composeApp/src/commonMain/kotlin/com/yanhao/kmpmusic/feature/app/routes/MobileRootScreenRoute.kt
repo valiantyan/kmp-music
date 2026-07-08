@@ -35,7 +35,6 @@ fun MobileRootScreenRoute(
             discoveryPlatform = discoveryPlatform,
             selectedSection = state.homeContentSection,
             currentSongId = state.currentSongId,
-            currentPlaybackStatus = state.playbackStatus,
             onSearch = controller::openSearch,
             onScan = controller::openAudioScan,
             onSection = controller::setHomeContentSection,
@@ -43,6 +42,7 @@ fun MobileRootScreenRoute(
                 controller.playSong(song = song, queueSongs = queueSongs)
             },
             onMore = controller::openMore,
+            onLike = controller::toggleFavorite,
             onAlbumOpen = controller::openAlbum,
             onArtistOpen = controller::openArtist,
             modifier = modifier,

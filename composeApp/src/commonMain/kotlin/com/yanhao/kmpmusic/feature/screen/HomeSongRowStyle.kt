@@ -5,44 +5,31 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.yanhao.kmpmusic.core.theme.MusicColors
-import com.yanhao.kmpmusic.domain.model.PlaybackStatus
 
 /**
- * 首页歌曲行的状态样式，集中约束 normal 与 active 的视觉差异。
+ * 首页歌曲行的状态样式，集中约束收藏页同款卡片和当前歌曲标识。
  */
 internal data class HomeSongRowStyle(
     val containerColor: Color,
     val border: BorderStroke?,
     val shadowElevation: Dp,
     val textColor: Color,
+    val metaColor: Color,
     val showsCoverPlaybackBadge: Boolean,
 )
 
-// 当前歌曲行保留选中背景；只有真实播放中才把文字切到播放红色。
+// 首页歌曲行跟收藏页卡片统一，只用红字和封面标识表达当前歌曲。
 internal fun resolveHomeSongRowStyle(
     isCurrentSong: Boolean,
-    currentPlaybackStatus: PlaybackStatus,
 ): HomeSongRowStyle {
-    val border: BorderStroke? = if (isCurrentSong) {
-        BorderStroke(
-            width = 1.dp,
-            color = homeActiveBorderColor,
-        )
-    } else {
-        null
-    }
-    val containerColor: Color = if (isCurrentSong) homeActiveRowColor else Color.White
-    val shadowElevation: Dp = 0.dp
-    val textColor: Color = if (isCurrentSong && currentPlaybackStatus == PlaybackStatus.Playing) {
-        MusicColors.PlayingRed
-    } else {
-        homeAccentColor
-    }
+    val textColor: Color = if (isCurrentSong) MusicColors.PlayingRed else favoritesTextColor
+    val metaColor: Color = if (isCurrentSong) MusicColors.PlayingRed else favoritesMetaColor
     return HomeSongRowStyle(
-        containerColor = containerColor,
-        border = border,
-        shadowElevation = shadowElevation,
+        containerColor = Color.White,
+        border = null,
+        shadowElevation = 2.dp,
         textColor = textColor,
-        showsCoverPlaybackBadge = false,
+        metaColor = metaColor,
+        showsCoverPlaybackBadge = isCurrentSong,
     )
 }

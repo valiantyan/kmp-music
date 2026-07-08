@@ -1,6 +1,5 @@
 package com.yanhao.kmpmusic.feature.screen
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -13,8 +12,11 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Favorite
+import androidx.compose.material.icons.rounded.FavoriteBorder
 import androidx.compose.material.icons.rounded.MoreVert
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -27,79 +29,95 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.yanhao.kmpmusic.domain.model.PlaybackStatus
+import com.yanhao.kmpmusic.core.theme.MusicColors
 import com.yanhao.kmpmusic.domain.model.Song
 import com.yanhao.kmpmusic.feature.components.CoverArtImage
+import com.yanhao.kmpmusic.feature.components.PlayingGlyph
 
-// 歌曲行保持 82dp 高度和 350dp 内容宽度节奏，对齐 Figma 列表项。
+// 歌曲行使用收藏页同款卡片，保持首页自己的播放队列。
 @Composable
 internal fun HomeSongRow(
     song: Song,
     isCurrentSong: Boolean,
-    currentPlaybackStatus: PlaybackStatus,
     queueSongs: List<Song>,
     onSongPlay: (Song, List<Song>) -> Unit,
     onMore: (Song) -> Unit,
+    onLike: (String) -> Unit,
 ) {
     val rowStyle: HomeSongRowStyle = resolveHomeSongRowStyle(
         isCurrentSong = isCurrentSong,
-        currentPlaybackStatus = currentPlaybackStatus,
     )
     Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .height(82.dp)
-            .padding(horizontal = 20.dp),
-        shape = RoundedCornerShape(16.dp),
+            .height(height = favoritesSongRowHeight)
+            .padding(horizontal = favoritesHorizontalPadding),
+        shape = RoundedCornerShape(size = favoritesSongRowRadius),
         color = rowStyle.containerColor,
         border = rowStyle.border,
         shadowElevation = rowStyle.shadowElevation,
         onClick = { onSongPlay(song, queueSongs) },
     ) {
         Row(
-            modifier = Modifier.padding(13.dp),
-            horizontalArrangement = Arrangement.spacedBy(16.dp),
+            modifier = Modifier.padding(all = favoritesSongRowPadding),
+            horizontalArrangement = Arrangement.spacedBy(space = 16.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             HomeSongCover(
                 song = song,
+                showsPlaybackBadge = rowStyle.showsCoverPlaybackBadge,
             )
             HomeSongText(
                 song = song,
                 textColor = rowStyle.textColor,
+                metaColor = rowStyle.metaColor,
                 modifier = Modifier.weight(weight = 1f),
             )
-            HomeSongMoreButton(
+            HomeSongActions(
                 song = song,
+                isCurrentSong = isCurrentSong,
                 onMore = onMore,
+                onLike = onLike,
             )
         }
     }
 }
 
-// 封面保留 56dp 正方形和 12dp 圆角，播放状态改由文字颜色表达。
+// 封面跟收藏页保持同款尺寸，当前歌曲用角标补充播放态。
 @Composable
 private fun HomeSongCover(
     song: Song,
+    showsPlaybackBadge: Boolean,
 ) {
-    Box(modifier = Modifier.size(56.dp)) {
+    Box(modifier = Modifier.size(size = favoritesSongCoverSize)) {
         CoverArtImage(
             coverArt = song.coverArt,
             coverImageUri = song.coverImageUri,
             contentDescription = "${song.title} 封面",
             modifier = Modifier
                 .fillMaxSize()
-                .clip(RoundedCornerShape(12.dp)),
+                .clip(shape = RoundedCornerShape(size = favoritesSongCoverRadius)),
             contentScale = ContentScale.Crop,
         )
+        if (showsPlaybackBadge) {
+            Box(
+                modifier = Modifier
+                    .align(alignment = Alignment.BottomEnd)
+                    .clip(shape = CircleShape)
+                    .padding(all = 4.dp),
+            ) {
+                PlayingGlyph(color = MusicColors.PlayingRed)
+            }
+        }
     }
 }
 
-// 歌曲标题和歌手名共享同一颜色，播放中由 [HomeSongRowStyle] 切到红色。
+// 歌曲标题和歌手名跟收藏页层级一致，当前歌曲由 [HomeSongRowStyle] 切到红色。
 @Composable
 private fun HomeSongText(
     song: Song,
     textColor: Color,
+    metaColor: Color,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -109,42 +127,74 @@ private fun HomeSongText(
         Text(
             text = song.title,
             color = textColor,
-            fontSize = 18.sp,
-            lineHeight = 28.sp,
+            fontSize = 14.sp,
+            lineHeight = 16.sp,
             fontWeight = FontWeight.Medium,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
         Text(
             text = song.artist,
-            color = textColor,
+            color = metaColor,
             fontSize = 14.sp,
             lineHeight = 20.sp,
             fontWeight = FontWeight.Normal,
-            maxLines = 1,
+            maxLines = 2,
             overflow = TextOverflow.Ellipsis,
         )
     }
 }
 
-// 更多按钮延续全局歌曲操作入口，但尺寸按 Figma 压缩到 40dp 宽。
+// 首页行尾跟收藏页一致提供收藏和更多入口。
 @Composable
-private fun HomeSongMoreButton(
+private fun HomeSongActions(
     song: Song,
+    isCurrentSong: Boolean,
     onMore: (Song) -> Unit,
+    onLike: (String) -> Unit,
 ) {
-    Box(
-        modifier = Modifier
-            .size(width = 40.dp, height = 38.dp)
-            .clip(CircleShape)
-            .clickable { onMore(song) },
-        contentAlignment = Alignment.CenterEnd,
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(space = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Icon(
-            imageVector = Icons.Rounded.MoreVert,
-            contentDescription = "${song.title} 更多操作",
-            modifier = Modifier.size(width = 20.dp, height = 20.dp),
-            tint = homeMutedColor,
-        )
+        IconButton(
+            modifier = Modifier.size(size = favoritesSongActionSize),
+            onClick = { onLike(song.id) },
+        ) {
+            Icon(
+                imageVector = if (song.isLiked) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder,
+                contentDescription = if (song.isLiked) "取消收藏 ${song.title}" else "收藏 ${song.title}",
+                modifier = Modifier.size(width = 20.dp, height = 20.dp),
+                tint = resolveHomeFavoriteIconTint(
+                    song = song,
+                    isCurrentSong = isCurrentSong,
+                ),
+            )
+        }
+        IconButton(
+            modifier = Modifier.size(size = favoritesSongActionSize),
+            onClick = { onMore(song) },
+        ) {
+            Icon(
+                imageVector = Icons.Rounded.MoreVert,
+                contentDescription = "${song.title} 更多操作",
+                modifier = Modifier.size(width = 20.dp, height = 20.dp),
+                tint = favoritesMutedIconColor,
+            )
+        }
     }
+}
+
+// 未收藏歌曲使用弱化心形，避免把当前播放态误表达成已收藏。
+private fun resolveHomeFavoriteIconTint(
+    song: Song,
+    isCurrentSong: Boolean,
+): Color {
+    if (!song.isLiked) {
+        return favoritesMutedIconColor
+    }
+    if (isCurrentSong) {
+        return MusicColors.PlayingRed
+    }
+    return favoritesTitleColor
 }

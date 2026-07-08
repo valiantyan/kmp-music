@@ -18,7 +18,6 @@ import com.yanhao.kmpmusic.domain.model.Album
 import com.yanhao.kmpmusic.domain.model.Artist
 import com.yanhao.kmpmusic.domain.model.LibraryStats
 import com.yanhao.kmpmusic.domain.model.LocalMusicScanState
-import com.yanhao.kmpmusic.domain.model.PlaybackStatus
 import com.yanhao.kmpmusic.domain.model.Song
 import com.yanhao.kmpmusic.feature.app.HomeContentSection
 
@@ -35,12 +34,12 @@ fun HomeScreen(
     discoveryPlatform: LocalMusicDiscoveryPlatform = LocalMusicDiscoveryPlatform.Android,
     selectedSection: HomeContentSection,
     currentSongId: String?,
-    currentPlaybackStatus: PlaybackStatus,
     onSearch: () -> Unit,
     onScan: () -> Unit,
     onSection: (HomeContentSection) -> Unit,
     onSongPlay: (Song, List<Song>) -> Unit,
     onMore: (Song) -> Unit,
+    onLike: (String) -> Unit,
     onAlbumOpen: (Album) -> Unit,
     onArtistOpen: (Artist) -> Unit,
     modifier: Modifier = Modifier,
@@ -71,10 +70,10 @@ fun HomeScreen(
                     scanState = scanState,
                     discoveryPlatform = discoveryPlatform,
                     currentSongId = currentSongId,
-                    currentPlaybackStatus = currentPlaybackStatus,
                     onScan = onScan,
                     onSongPlay = onSongPlay,
                     onMore = onMore,
+                    onLike = onLike,
                 )
                 HomeContentSection.Albums -> homeAlbumItems(
                     albums = albums,
@@ -109,10 +108,10 @@ private fun LazyListScope.homeSongItems(
     scanState: LocalMusicScanState,
     discoveryPlatform: LocalMusicDiscoveryPlatform,
     currentSongId: String?,
-    currentPlaybackStatus: PlaybackStatus,
     onScan: () -> Unit,
     onSongPlay: (Song, List<Song>) -> Unit,
     onMore: (Song) -> Unit,
+    onLike: (String) -> Unit,
 ) {
     item(key = "home-filter-title-gap") {
         Spacer(modifier = Modifier.height(16.dp))
@@ -146,12 +145,12 @@ private fun LazyListScope.homeSongItems(
         HomeSongRow(
             song = song,
             isCurrentSong = song.id == currentSongId,
-            currentPlaybackStatus = currentPlaybackStatus,
             queueSongs = songs,
             onSongPlay = onSongPlay,
             onMore = onMore,
+            onLike = onLike,
         )
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(height = favoritesSongRowGap))
     }
 }
 
