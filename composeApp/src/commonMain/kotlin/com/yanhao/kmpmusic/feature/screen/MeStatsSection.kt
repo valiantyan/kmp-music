@@ -1,5 +1,6 @@
 package com.yanhao.kmpmusic.feature.screen
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -40,6 +41,7 @@ internal fun MeStatsSection(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(size = meStatsRadius),
         color = meBackgroundColor,
+        border = BorderStroke(width = 1.dp, color = meOutlineColor),
     ) {
         Row(
             modifier = Modifier

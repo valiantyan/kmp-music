@@ -1,7 +1,9 @@
 package com.yanhao.kmpmusic.feature.screen
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -36,22 +38,16 @@ private data class MeSettingsMenuItem(
 )
 
 /**
- * 设置菜单按 Figma 使用白底大圆角容器和三条静态入口。
+ * 设置菜单按 Figma 使用三条独立白底描边入口。
  */
 @Composable
 internal fun MeSettingsMenuSection() {
-    Surface(
+    Column(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(size = meSettingsRadius),
-        color = meBackgroundColor,
+        verticalArrangement = Arrangement.spacedBy(space = meSettingsRowGap),
     ) {
-        Column(modifier = Modifier.padding(all = meSettingsPadding)) {
-            buildMeSettingsMenuItems().forEachIndexed { index: Int, item: MeSettingsMenuItem ->
-                MeSettingsMenuRow(item = item)
-                if (index < 2) {
-                    MeSettingsMenuDivider()
-                }
-            }
+        buildMeSettingsMenuItems().forEach { item: MeSettingsMenuItem ->
+            MeSettingsMenuRow(item = item)
         }
     }
 }
@@ -59,9 +55,18 @@ internal fun MeSettingsMenuSection() {
 // 构造静态菜单，避免视觉还原时误接半成品设置路由。
 private fun buildMeSettingsMenuItems(): List<MeSettingsMenuItem> {
     return listOf(
-        MeSettingsMenuItem(icon = Icons.Rounded.Storage, title = "存储管理"),
-        MeSettingsMenuItem(icon = Icons.Rounded.Palette, title = "主题与外观"),
-        MeSettingsMenuItem(icon = Icons.Rounded.Info, title = "关于"),
+        MeSettingsMenuItem(
+            icon = Icons.Rounded.Storage,
+            title = "存储管理",
+        ),
+        MeSettingsMenuItem(
+            icon = Icons.Rounded.Palette,
+            title = "主题与外观",
+        ),
+        MeSettingsMenuItem(
+            icon = Icons.Rounded.Info,
+            title = "关于",
+        ),
     )
 }
 
@@ -70,52 +75,45 @@ private fun buildMeSettingsMenuItems(): List<MeSettingsMenuItem> {
 private fun MeSettingsMenuRow(
     item: MeSettingsMenuItem,
 ) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(
-                start = meSettingsRowHorizontalPadding,
-                top = meSettingsRowTopPadding,
-                end = meSettingsRowHorizontalPadding,
-                bottom = meSettingsRowBottomPadding,
-            ),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(space = 16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Icon(
-                imageVector = item.icon,
-                contentDescription = null,
-                modifier = Modifier.size(size = 20.dp),
-                tint = meMetaColor,
-            )
-            Text(
-                text = item.title,
-                color = meTextColor,
-                fontSize = 16.sp,
-                lineHeight = 24.sp,
-                fontWeight = FontWeight.Medium,
-            )
-        }
-        Icon(
-            imageVector = Icons.Rounded.ChevronRight,
-            contentDescription = null,
-            modifier = Modifier.size(size = 14.dp),
-            tint = meMetaColor,
-        )
-    }
-}
-
-// 分割线复刻 Figma 的底边线，保持菜单内部密度。
-@Composable
-private fun MeSettingsMenuDivider() {
     Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .height(height = 1.dp),
-        color = meDividerColor,
-    ) {}
+            .height(height = meSettingsRowHeight),
+        shape = RoundedCornerShape(size = meSettingsRowRadius),
+        color = meBackgroundColor,
+        border = BorderStroke(width = 1.dp, color = meOutlineColor),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(all = meSettingsRowPadding),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(space = 16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(
+                    imageVector = item.icon,
+                    contentDescription = null,
+                    modifier = Modifier.size(size = 20.dp),
+                    tint = meMetaColor,
+                )
+                Text(
+                    text = item.title,
+                    color = meTextColor,
+                    fontSize = 16.sp,
+                    lineHeight = 24.sp,
+                    fontWeight = FontWeight.Medium,
+                )
+            }
+            Icon(
+                imageVector = Icons.Rounded.ChevronRight,
+                contentDescription = null,
+                modifier = Modifier.size(size = 14.dp),
+                tint = meMetaColor,
+            )
+        }
+    }
 }

@@ -1,5 +1,6 @@
 package com.yanhao.kmpmusic.feature.screen
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -14,6 +15,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.MoreVert
 import androidx.compose.material3.Icon
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -172,45 +174,52 @@ private fun MeRecentPlayedSongRow(
     val song: Song = row.song
     val titleColor: Color = if (row.isCurrentSong) MusicColors.PlayingRed else meTextColor
     val metaColor: Color = if (row.isCurrentSong) MusicColors.PlayingRed else meMetaColor
-    Row(
+    Surface(
         modifier = Modifier
-            .fillMaxWidth()
-            .clip(shape = RoundedCornerShape(size = 16.dp))
-            .clickable { onSongPlay(song) }
-            .padding(all = meRecentSongPadding),
-        horizontalArrangement = Arrangement.spacedBy(space = 16.dp),
-        verticalAlignment = Alignment.CenterVertically,
+            .fillMaxWidth(),
+        shape = RoundedCornerShape(size = 16.dp),
+        color = meBackgroundColor,
+        border = BorderStroke(width = 1.dp, color = meOutlineColor),
+        onClick = { onSongPlay(song) },
     ) {
-        CoverArtImage(
-            coverArt = song.coverArt,
-            coverImageUri = song.coverImageUri,
-            contentDescription = "${song.title} 封面",
+        Row(
             modifier = Modifier
-                .size(size = meRecentCoverSize)
-                .clip(shape = RoundedCornerShape(size = meRecentCoverRadius)),
-            contentScale = ContentScale.Crop,
-        )
-        Column(
-            modifier = Modifier.weight(weight = 1f),
+                .fillMaxWidth()
+                .padding(all = meRecentSongPadding),
+            horizontalArrangement = Arrangement.spacedBy(space = 16.dp),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text(
-                text = song.title,
-                color = titleColor,
-                fontSize = 16.sp,
-                lineHeight = 24.sp,
-                fontWeight = FontWeight.Normal,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
+            CoverArtImage(
+                coverArt = song.coverArt,
+                coverImageUri = song.coverImageUri,
+                contentDescription = "${song.title} 封面",
+                modifier = Modifier
+                    .size(size = meRecentCoverSize)
+                    .clip(shape = RoundedCornerShape(size = meRecentCoverRadius)),
+                contentScale = ContentScale.Crop,
             )
-            MeRecentPlayedSongMeta(
+            Column(
+                modifier = Modifier.weight(weight = 1f),
+            ) {
+                Text(
+                    text = song.title,
+                    color = titleColor,
+                    fontSize = 16.sp,
+                    lineHeight = 24.sp,
+                    fontWeight = FontWeight.Normal,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                MeRecentPlayedSongMeta(
+                    row = row,
+                    metaColor = metaColor,
+                )
+            }
+            MeRecentPlayedMoreButton(
                 row = row,
-                metaColor = metaColor,
+                onSongMore = onSongMore,
             )
         }
-        MeRecentPlayedMoreButton(
-            row = row,
-            onSongMore = onSongMore,
-        )
     }
 }
 
