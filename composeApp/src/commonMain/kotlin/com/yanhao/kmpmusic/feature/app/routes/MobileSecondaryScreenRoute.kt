@@ -66,12 +66,17 @@ fun MobileSecondaryScreenRoute(
         is SecondaryScreen.Search -> SearchScreen(
             query = state.searchQuery,
             scope = state.searchScope,
+            history = state.searchHistoryFor(context = secondaryScreen.context),
             result = controller.search(),
             currentSongId = state.currentSongId,
             currentPlaybackStatus = state.playbackStatus,
             onBack = controller::navigateBack,
             onQuery = controller::setSearchQuery,
             onScope = controller::setSearchScope,
+            onHistorySelect = controller::selectSearchHistory,
+            onClearHistory = {
+                controller.clearSearchHistory(context = secondaryScreen.context)
+            },
             onSongPlay = { song: Song, queueSongs: List<Song> ->
                 controller.playSong(song = song, queueSongs = queueSongs)
             },
@@ -79,6 +84,11 @@ fun MobileSecondaryScreenRoute(
             onMore = controller::openMore,
             onAlbumOpen = controller::openAlbum,
             onArtistOpen = controller::openArtist,
+            modifier = modifier
+                .fillMaxSize()
+                .statusBarsPadding()
+                .navigationBarsPadding(),
+            contentPadding = contentPadding,
         )
         SecondaryScreen.Player -> state.currentSong?.let { song ->
             PlayerScreen(

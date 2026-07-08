@@ -79,6 +79,7 @@ fun MobileContentLayout(
                 state.navigationState.rootTab == RootTab.Me)
         if (
             secondaryScreen is SecondaryScreen.LocalMusic ||
+            secondaryScreen is SecondaryScreen.Search ||
             secondaryScreen == SecondaryScreen.AudioScan ||
             secondaryScreen == SecondaryScreen.AlbumDetail ||
             secondaryScreen == SecondaryScreen.ArtistDetail ||

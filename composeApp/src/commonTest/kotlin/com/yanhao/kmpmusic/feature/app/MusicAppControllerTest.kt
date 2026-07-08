@@ -1334,6 +1334,11 @@ class MusicAppControllerTest {
         )
         assertEquals(expected = RootTab.Home, actual = controller.uiState.navigationState.previousRootTab)
         assertEquals(expected = SearchContext.LocalLibrary, actual = controller.uiState.searchContext)
+        assertEquals(
+            expected = MobileFixedBarMode.SecondaryWithMiniPlayer,
+            actual = controller.uiState.navigationState.fixedBarMode,
+        )
+        assertFalse(actual = controller.uiState.navigationState.fixedBarMode.showsBottomNavigation)
     }
 
     /**
@@ -1352,6 +1357,11 @@ class MusicAppControllerTest {
         )
         assertEquals(expected = RootTab.Favorites, actual = controller.uiState.navigationState.previousRootTab)
         assertEquals(expected = SearchContext.Favorites, actual = controller.uiState.searchContext)
+        assertEquals(
+            expected = MobileFixedBarMode.SecondaryWithMiniPlayer,
+            actual = controller.uiState.navigationState.fixedBarMode,
+        )
+        assertFalse(actual = controller.uiState.navigationState.fixedBarMode.showsBottomNavigation)
     }
 
     /**
