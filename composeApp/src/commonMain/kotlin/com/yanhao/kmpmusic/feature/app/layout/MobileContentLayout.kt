@@ -74,7 +74,9 @@ fun MobileContentLayout(
     saveableStateHolder.SaveableStateProvider(key = state.navigationState.chromeUnderlayScrollStateKey) {
         val secondaryScreen: SecondaryScreen? = state.navigationState.chromeUnderlaySecondaryScreen
         val isFigmaFullBleedRoot: Boolean = secondaryScreen == null &&
-            (state.navigationState.rootTab == RootTab.Home || state.navigationState.rootTab == RootTab.Favorites)
+            (state.navigationState.rootTab == RootTab.Home ||
+                state.navigationState.rootTab == RootTab.Favorites ||
+                state.navigationState.rootTab == RootTab.Me)
         if (
             secondaryScreen is SecondaryScreen.LocalMusic ||
             secondaryScreen == SecondaryScreen.AudioScan ||

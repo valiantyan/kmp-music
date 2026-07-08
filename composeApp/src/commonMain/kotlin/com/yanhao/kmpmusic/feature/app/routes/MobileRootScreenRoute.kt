@@ -72,6 +72,8 @@ fun MobileRootScreenRoute(
             onRecentPlayedViewAll = controller::openRecentPlayed,
             onRecentSongPlay = controller::playRecentSong,
             onRecentSongMore = controller::openMore,
+            modifier = modifier,
+            contentPadding = contentPadding,
         )
     }
 }
