@@ -14,10 +14,6 @@ import com.yanhao.kmpmusic.domain.model.Album
 import com.yanhao.kmpmusic.domain.model.Artist
 import com.yanhao.kmpmusic.domain.model.LibrarySnapshot
 import com.yanhao.kmpmusic.domain.model.LibraryStats
-import com.yanhao.kmpmusic.domain.model.LocalMusicLastScanSummary
-import com.yanhao.kmpmusic.domain.model.LocalMusicScanErrorType
-import com.yanhao.kmpmusic.domain.model.LocalMusicScanProgress
-import com.yanhao.kmpmusic.domain.model.LocalMusicScanException
 import com.yanhao.kmpmusic.domain.model.LocalMusicScanRequest
 import com.yanhao.kmpmusic.domain.model.LocalMusicScanState
 import com.yanhao.kmpmusic.domain.model.PlaybackHistory
@@ -46,6 +42,7 @@ import com.yanhao.kmpmusic.domain.usecase.ToggleFavoriteUseCaseImpl
 import com.yanhao.kmpmusic.feature.app.search.SearchResultController
 import com.yanhao.kmpmusic.feature.app.favorites.FavoriteStateSynchronizer
 import com.yanhao.kmpmusic.feature.app.library.LibraryStateSynchronizer
+import com.yanhao.kmpmusic.feature.app.library.LocalMusicScanController
 import com.yanhao.kmpmusic.feature.app.library.MusicLibraryProjector
 import com.yanhao.kmpmusic.feature.app.navigation.ContentNavigationController
 import com.yanhao.kmpmusic.feature.app.navigation.NavigationStateController
@@ -58,15 +55,9 @@ import com.yanhao.kmpmusic.feature.app.session.LoginAndDialogStateController
 import com.yanhao.kmpmusic.feature.app.system.SystemBackController
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
-import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.launch
 
 private const val DEFAULT_SEARCH_QUERY_DEBOUNCE_MILLIS = 300L
-
-// 本地扫描日志统一前缀，方便从平台日志中过滤扫描生命周期。
-private const val LOCAL_MUSIC_SCAN_LOG_PREFIX = "[LocalMusicScan]"
 
 /**
  * App 状态控制器，替代原型中的 React `useState` 集群。
@@ -117,6 +108,9 @@ class MusicAppController(
         musicLibraryRepository = musicLibraryRepository,
     )
 
+    // 本地扫描工作流统一收敛会话取消、权限确认和旧事件丢弃。
+    private val localMusicScanController: LocalMusicScanController
+
     // 播放协调器统一托管运行时播放、队列和快照写入。
     private val playbackCoordinator: PlaybackCoordinator = PlaybackCoordinator(
         playbackRepository = playbackRepository,
@@ -139,15 +133,6 @@ class MusicAppController(
 
     // 冷启动恢复请求在曲库尚未准备好时先挂起，等扫描结果到位后再真正执行。
     private var isPlaybackRestorePending: Boolean = false
-
-    // 扫描入口必须是单任务，运行中再次触发只会标记取消。
-    private var isLocalMusicScanRunning: Boolean = false
-
-    // 取消后旧 scanner 可能稍后返回，用该标记阻止它覆盖取消结果。
-    private var isLocalMusicScanCancellationRequested: Boolean = false
-
-    // 当前扫描协程，取消入口通过它向实际扫描任务发出取消信号。
-    private var currentLocalMusicScanJob: Job? = null
 
     // 搜索会话子控制器负责搜索输入态、防抖和历史 reducer。
     private val searchSessionController: SearchSessionController = SearchSessionController(
@@ -199,6 +184,19 @@ class MusicAppController(
                     extraSongs = songs,
                 )
             },
+        )
+        localMusicScanController = LocalMusicScanController(
+            scanLocalMusicUseCase = scanLocalMusicUseCase,
+            permissionSettingsOpener = permissionSettingsOpener,
+            controllerScope = controllerScope,
+            nowMillis = nowMillis,
+            resolveLikedSongIdsForScan = { _: MusicAppUiState ->
+                resolveLikedSongIdsForScan()
+            },
+            shouldConfirmPermissionSettingsBeforeScan = { state: MusicAppUiState ->
+                libraryStateSynchronizer.shouldConfirmPermissionSettingsBeforeScan(state = state)
+            },
+            publishStateUpdate = ::reduceUiState,
         )
         contentNavigationController = ContentNavigationController(
             libraryStateSynchronizer = libraryStateSynchronizer,
@@ -296,142 +294,24 @@ class MusicAppController(
 
     /** 使用控制器生命周期启动扫描，避免主题切换重组取消 UI 协程后卡住扫描态。 */
     fun requestLocalMusicScan(request: LocalMusicScanRequest = LocalMusicScanRequest.Refresh) {
-        controllerScope.launch(start = CoroutineStart.UNDISPATCHED) {
-            scanLocalMusic(request = request)
-        }
+        localMusicScanController.requestLocalMusicScan(
+            state = uiState,
+            request = request,
+            onLibrarySnapshot = { snapshot: LibrarySnapshot ->
+                syncLibrarySnapshot(snapshot = snapshot)
+            },
+        )
     }
 
     /** 扫描本地音乐并同步曲库快照。 */
     suspend fun scanLocalMusic(request: LocalMusicScanRequest = LocalMusicScanRequest.Refresh) {
-        if (isLocalMusicScanRunning) {
-            cancelRunningLocalMusicScan()
-            return
-        }
-        if (shouldConfirmPermissionSettingsBeforeScan()) {
-            openPermissionSettingsDialog()
-            return
-        }
-        isLocalMusicScanRunning = true
-        isLocalMusicScanCancellationRequested = false
-        currentLocalMusicScanJob = currentCoroutineContext()[Job]
-        val previousSummary: LocalMusicLastScanSummary? = findLastScanSummary(scanState = uiState.scanState)
-        logLocalMusicScan(message = "开始扫描: request=$request, previousState=${uiState.scanState}")
-        uiState = uiState.copy(
-            scanState = LocalMusicScanState.Scanning(
-                progress = LocalMusicScanProgress(currentSourceName = "本地音乐"),
-                previousSummary = previousSummary,
-            ),
-            isQueueOpen = false,
-            moreSongId = null,
+        localMusicScanController.scanLocalMusic(
+            state = uiState,
+            request = request,
+            onLibrarySnapshot = { snapshot: LibrarySnapshot ->
+                syncLibrarySnapshot(snapshot = snapshot)
+            },
         )
-        try {
-            val likedSongIdsForScan: Set<String> = resolveLikedSongIdsForScan()
-            val snapshot: LibrarySnapshot = scanLocalMusicUseCase(
-                request = request,
-                likedSongIds = likedSongIdsForScan,
-                preferences = uiState.localMusicDiscoveryPreferences,
-            )
-            logLocalMusicScan(
-                message = "扫描用例完成: request=$request, songCount=${snapshot.stats.songCount}, scanState=${snapshot.scanState}",
-            )
-            if (isLocalMusicScanCancellationRequested) {
-                logLocalMusicScan(message = "扫描结果已忽略: request=$request, reason=cancelRequested")
-                return
-            }
-            syncLibrarySnapshot(snapshot = snapshot)
-        } catch (cancellationException: CancellationException) {
-            logLocalMusicScan(
-                message = "扫描协程被取消: request=$request, userRequested=$isLocalMusicScanCancellationRequested, reason=${cancellationException.message.orEmpty()}",
-            )
-            publishCancelledLocalMusicScanIfRunning()
-            throw cancellationException
-        } catch (scanException: LocalMusicScanException) {
-            if (scanException.error.type == LocalMusicScanErrorType.UserCancelled) {
-                logLocalMusicScan(message = "扫描被平台报告为用户取消: request=$request")
-                publishCancelledLocalMusicScan()
-                return
-            }
-            logLocalMusicScan(
-                message = "扫描失败: request=$request, errorType=${scanException.error.type}, message=${scanException.error.message}",
-            )
-            uiState = uiState.copy(
-                scanState = LocalMusicScanState.Error(
-                    error = scanException.error,
-                    summary = previousSummary,
-                ),
-                isQueueOpen = false,
-                moreSongId = null,
-            )
-        } finally {
-            isLocalMusicScanRunning = false
-            currentLocalMusicScanJob = null
-            logLocalMusicScan(message = "扫描流程结束: request=$request, finalState=${uiState.scanState}")
-        }
-    }
-
-    /** 运行中的扫描入口直接取消，不再弹二次确认或启动新 scanner。 */
-    private fun cancelRunningLocalMusicScan() {
-        isLocalMusicScanCancellationRequested = true
-        logLocalMusicScan(message = "用户请求取消当前扫描")
-        currentLocalMusicScanJob?.cancel(
-            cause = CancellationException("用户取消了本地音乐扫描"),
-        )
-        publishCancelledLocalMusicScan()
-    }
-
-    // 外部协程取消时只在 UI 仍显示运行中时发布取消态，避免用户取消路径重复刷新结果时间。
-    private fun publishCancelledLocalMusicScanIfRunning() {
-        val scanState: LocalMusicScanState = uiState.scanState
-        if (scanState !is LocalMusicScanState.Scanning && scanState !is LocalMusicScanState.Importing) {
-            return
-        }
-        publishCancelledLocalMusicScan()
-    }
-
-    /** 生成取消结果态，保证 UI 能稳定展示“已取消”和曲库保留说明。 */
-    private fun publishCancelledLocalMusicScan() {
-        uiState = uiState.copy(
-            scanState = LocalMusicScanState.Cancelled(
-                summary = LocalMusicLastScanSummary(
-                    addedCount = 0,
-                    updatedCount = 0,
-                    removedCount = 0,
-                    problemCount = 0,
-                    completedAt = scanResultTimeMillis(),
-                ),
-            ),
-            isQueueOpen = false,
-            moreSongId = null,
-            isPermissionSettingsDialogOpen = false,
-        )
-    }
-
-    // commonMain 没有统一日志依赖，先用标准输出给各平台保留轻量扫描诊断。
-    private fun logLocalMusicScan(message: String) {
-        println("$LOCAL_MUSIC_SCAN_LOG_PREFIX $message")
-    }
-
-    /** 测试环境可能不注入时钟，取消结果仍需要一个可展示的结果时间。 */
-    private fun scanResultTimeMillis(): Long {
-        val currentTimeMillis: Long = nowMillis()
-        if (currentTimeMillis > 0L) {
-            return currentTimeMillis
-        }
-        return 1L
-    }
-
-    // 进入运行中状态前保留上一轮结果，避免扫描页把“上次扫描”回退为空。
-    private fun findLastScanSummary(scanState: LocalMusicScanState): LocalMusicLastScanSummary? {
-        return when (scanState) {
-            LocalMusicScanState.Idle,
-            LocalMusicScanState.WaitingForPermission,
-            -> null
-            is LocalMusicScanState.Importing -> scanState.previousSummary
-            is LocalMusicScanState.Scanning -> scanState.previousSummary
-            is LocalMusicScanState.Done -> scanState.summary
-            is LocalMusicScanState.Cancelled -> scanState.summary
-            is LocalMusicScanState.Error -> scanState.summary
-        }
     }
 
     /**
@@ -448,25 +328,17 @@ class MusicAppController(
 
     /** 打开权限设置确认框，由用户选择是否离开 App 进入系统设置。 */
     fun openPermissionSettingsDialog() {
-        uiState = uiState.copy(
-            isPermissionSettingsDialogOpen = true,
-            isQueueOpen = false,
-            moreSongId = null,
-        )
+        localMusicScanController.openPermissionSettingsDialog()
     }
 
     /** 关闭权限设置确认框，保留当前权限错误态供用户稍后重试。 */
     fun closePermissionSettingsDialog() {
-        uiState = uiState.copy(isPermissionSettingsDialogOpen = false)
+        localMusicScanController.closePermissionSettingsDialog()
     }
 
     /** 用户确认后再打开系统权限设置页，避免永久拒绝后突然跳出 App。 */
     fun confirmPermissionSettings() {
-        uiState = uiState.copy(
-            isPermissionSettingsDialogOpen = false,
-            scanState = LocalMusicScanState.WaitingForPermission,
-        )
-        permissionSettingsOpener.openPermissionSettings()
+        localMusicScanController.confirmPermissionSettings()
     }
 
     /** 打开本地音乐二级页并指定初始分段。 */
@@ -891,11 +763,6 @@ class MusicAppController(
                 context = SearchContext.Favorites,
             ),
         )
-    }
-
-    // 永久拒绝后首页按钮表示“打开权限设置”，再次点击时先弹确认框。
-    private fun shouldConfirmPermissionSettingsBeforeScan(): Boolean {
-        return libraryStateSynchronizer.shouldConfirmPermissionSettingsBeforeScan(state = uiState)
     }
 
     // common fake 演示环境自动填充收藏压力数据；真实平台使用注入仓库，不写入演示收藏。

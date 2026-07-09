@@ -45,6 +45,7 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
@@ -52,6 +53,7 @@ import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.withContext
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -532,6 +534,45 @@ class MusicAppControllerTest {
         scanJob.join()
         assertFalse(actual = controller.uiState.scanState is LocalMusicScanState.Scanning)
         assertNull(actual = renderCancelEntryLabelOrNull(scanState = controller.uiState.scanState))
+    }
+
+    /**
+     * 用户取消扫描后，旧扫描结果晚到不能覆盖取消态或队列状态。
+     */
+    @Test
+    fun lateScanResultAfterCancellationDoesNotOverwriteCancelledStateOrQueue(): Unit = runTest {
+        val scanner = LateSuccessAfterCancellationScanner()
+        val controller = createController(
+            localMusicScanner = scanner,
+            controllerScope = backgroundScope,
+        )
+        val queueSongs: List<Song> = listOf(
+            testSong(
+                id = "queue:1",
+                title = "Queue One",
+                modifiedAt = 1L,
+            ),
+            testSong(
+                id = "queue:2",
+                title = "Queue Two",
+                modifiedAt = 2L,
+            ),
+        )
+        controller.playSong(song = queueSongs[0], queueSongs = queueSongs)
+        advanceUntilIdle()
+
+        controller.requestLocalMusicScan(request = LocalMusicScanRequest.Refresh)
+        scanner.awaitStarted()
+        controller.requestLocalMusicScan(request = LocalMusicScanRequest.Refresh)
+        scanner.releaseLateResult()
+        advanceUntilIdle()
+
+        assertTrue(actual = controller.uiState.scanState is LocalMusicScanState.Cancelled)
+        assertEquals(expected = 0, actual = controller.uiState.libraryStats.songCount)
+        assertEquals(
+            expected = queueSongs.map { song: Song -> song.id },
+            actual = controller.uiState.queueSongIds,
+        )
     }
 
     /**
@@ -2056,6 +2097,42 @@ private class BlockingAfterFirstScanScanner : LocalMusicScanner {
     /** 释放第二次扫描，让测试可以收尾。 */
     fun completeSecondScan() {
         secondScanCanComplete.complete(value = Unit)
+    }
+}
+
+/**
+ * 取消后仍会晚到返回结果，用来验证门面不会被旧扫描覆盖。
+ */
+private class LateSuccessAfterCancellationScanner : LocalMusicScanner {
+    // 记录扫描已启动，便于测试稳定触发取消。
+    private val started: CompletableDeferred<Unit> = CompletableDeferred()
+
+    // 即使收到取消也继续等待该信号，制造旧结果晚到。
+    private val release: CompletableDeferred<Unit> = CompletableDeferred()
+
+    /**
+     * 忽略协程取消并晚到返回结果，模拟不配合取消的平台扫描器。
+     */
+    override suspend fun scan(request: LocalMusicScanRequest): LocalMusicScanResult {
+        started.complete(value = Unit)
+        try {
+            release.await()
+        } catch (cancellationException: CancellationException) {
+            withContext(NonCancellable) {
+                release.await()
+            }
+        }
+        return com.yanhao.kmpmusic.data.FakeLocalMusicScanner(demoSongCount = 8).scan(request = request)
+    }
+
+    /** 等待扫描启动。 */
+    suspend fun awaitStarted() {
+        started.await()
+    }
+
+    /** 释放晚到结果。 */
+    fun releaseLateResult() {
+        release.complete(value = Unit)
     }
 }
 

@@ -1807,7 +1807,7 @@ git commit -m "拆分播放动作工作流"
 - 消费：`ScanLocalMusicUseCase`、`LibraryStateSynchronizer.shouldConfirmPermissionSettingsBeforeScan`、`PermissionSettingsOpener`、`CoroutineScope`、`nowMillis`、`LocalMusicScanRequest`。
 - 产出：`LocalMusicScanController.scanLocalMusic(state, request, onLibrarySnapshot)`、`requestLocalMusicScan`、`openPermissionSettingsDialog`、`closePermissionSettingsDialog`、`confirmPermissionSettings`。
 
-- [ ] **步骤 1：写会话取消和旧事件丢弃聚焦测试**
+- [x] **步骤 1：写会话取消和旧事件丢弃聚焦测试**
 
 创建 `LocalMusicScanControllerTest.kt`，覆盖二次触发取消、旧成功晚到和旧错误晚到。旧事件测试必须使用会忽略取消并继续返回的 fake，不能使用普通可取消挂起点：
 
@@ -2084,7 +2084,7 @@ private fun baseState(): MusicAppUiState {
 }
 ```
 
-- [ ] **步骤 2：在门面测试补旧结果晚到回归**
+- [x] **步骤 2：在门面测试补旧结果晚到回归**
 
 在 `MusicAppControllerTest` 扫描测试附近加入。这里同样使用忽略取消的 scanner，确保测试真的覆盖旧结果晚到；同时在文件 import 区加入 `kotlinx.coroutines.NonCancellable` 和 `kotlinx.coroutines.withContext`：
 
@@ -2143,7 +2143,7 @@ private class LateSuccessAfterCancellationScanner : LocalMusicScanner {
 }
 ```
 
-- [ ] **步骤 3：运行测试确认红灯**
+- [x] **步骤 3：运行测试确认红灯**
 
 运行：
 
@@ -2153,7 +2153,7 @@ private class LateSuccessAfterCancellationScanner : LocalMusicScanner {
 
 预期：聚焦测试失败，错误包含 `Unresolved reference: LocalMusicScanController`；门面测试可能先失败于旧结果覆盖，也可能通过，保留作为迁移回归。
 
-- [ ] **步骤 4：实现 `LocalMusicScanController`**
+- [x] **步骤 4：实现 `LocalMusicScanController`**
 
 创建 `LocalMusicScanController.kt`：
 
@@ -2374,7 +2374,7 @@ class LocalMusicScanController(
 }
 ```
 
-- [ ] **步骤 5：让门面委派扫描**
+- [x] **步骤 5：让门面委派扫描**
 
 在 `MusicAppController.kt` 先声明延迟初始化属性：
 
@@ -2431,7 +2431,7 @@ class LocalMusicScanController(
 
 删除门面中 `isLocalMusicScanRunning`、`isLocalMusicScanCancellationRequested`、`currentLocalMusicScanJob`、`cancelRunningLocalMusicScan`、`publishCancelledLocalMusicScanIfRunning`、`publishCancelledLocalMusicScan`、`logLocalMusicScan`、`scanResultTimeMillis`、`findLastScanSummary` 和 `shouldConfirmPermissionSettingsBeforeScan`。
 
-- [ ] **步骤 6：运行任务七测试和扫描回归**
+- [x] **步骤 6：运行任务七测试和扫描回归**
 
 运行：
 
@@ -2441,7 +2441,7 @@ class LocalMusicScanController(
 
 预期：全部通过。
 
-- [ ] **步骤 7：提交任务七**
+- [x] **步骤 7：提交任务七**
 
 运行：
 
