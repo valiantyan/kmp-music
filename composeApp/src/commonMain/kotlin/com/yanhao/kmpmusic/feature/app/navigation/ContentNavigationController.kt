@@ -15,7 +15,7 @@ import com.yanhao.kmpmusic.feature.app.library.LibraryStateSynchronizer
 /**
  * 内容导航工作流控制器，集中管理需要曲库预热的内容页导航规则。
  */
-class ContentNavigationController(
+internal class ContentNavigationController(
     // 复用现有曲库同步器，避免在导航层重复维护歌曲、专辑和歌手投影规则。
     private val libraryStateSynchronizer: LibraryStateSynchronizer,
 ) {
@@ -25,7 +25,7 @@ class ContentNavigationController(
      * @property state 归约后的最新 UI 状态
      * @property loadedFullLibrary 本次导航是否触发了完整曲库预热
      */
-    data class Result(
+    internal data class Result(
         val state: MusicAppUiState,
         val loadedFullLibrary: Boolean = false,
     )

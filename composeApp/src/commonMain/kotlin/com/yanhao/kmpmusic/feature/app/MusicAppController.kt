@@ -652,6 +652,7 @@ class MusicAppController(
 
     /** 从歌曲打开专辑详情。 */
     fun openAlbumFromSong(song: Song) {
+        commitSearchQueryForResultActionIfNeeded()
         applyContentNavigationResult(
             result = contentNavigationController.openAlbumFromSong(
                 state = uiState,
@@ -662,6 +663,7 @@ class MusicAppController(
 
     /** 从歌曲打开歌手详情。 */
     fun openArtistFromSong(song: Song) {
+        commitSearchQueryForResultActionIfNeeded()
         applyContentNavigationResult(
             result = contentNavigationController.openArtistFromSong(
                 state = uiState,

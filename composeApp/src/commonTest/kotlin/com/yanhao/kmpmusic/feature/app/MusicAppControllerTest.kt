@@ -1541,7 +1541,7 @@ class MusicAppControllerTest {
     }
 
     /**
-     * 搜索结果动作应记录当前搜索词，覆盖歌曲播放、专辑打开和歌手打开三条入口。
+     * 搜索结果动作应记录当前搜索词，覆盖歌曲播放、专辑打开、歌手打开以及歌曲更多菜单详情入口。
      */
     @Test
     fun searchResultActionsCommitCurrentQueryToHistory(): Unit = runTest {
@@ -1582,6 +1582,35 @@ class MusicAppControllerTest {
         controller.openArtist(artist = targetArtist)
         assertEquals(
             expected = listOf("久石让", "Dream Stories", "Summer Waltz"),
+            actual = controller.uiState.searchHistoryFor(context = SearchContext.LocalLibrary),
+        )
+
+        controller.openSearch(context = SearchContext.LocalLibrary)
+        controller.setSearchQuery(query = "One Summer's Day")
+        advanceTimeBy(delayTimeMillis = 301L)
+        advanceUntilIdle()
+        val songAlbumResult: SearchResult = controller.search()
+        val albumSourceSong: Song = songAlbumResult.songs.first()
+        controller.openAlbumFromSong(song = albumSourceSong)
+        assertEquals(
+            expected = listOf("One Summer's Day", "久石让", "Dream Stories", "Summer Waltz"),
+            actual = controller.uiState.searchHistoryFor(context = SearchContext.LocalLibrary),
+        )
+
+        controller.openSearch(context = SearchContext.LocalLibrary)
+        controller.setSearchQuery(query = "Summer Waltz")
+        advanceTimeBy(delayTimeMillis = 301L)
+        advanceUntilIdle()
+        val songArtistResult: SearchResult = controller.search()
+        val artistSourceSong: Song = songArtistResult.songs.first()
+        controller.openArtistFromSong(song = artistSourceSong)
+        assertEquals(
+            expected = listOf(
+                "Summer Waltz",
+                "One Summer's Day",
+                "久石让",
+                "Dream Stories",
+            ),
             actual = controller.uiState.searchHistoryFor(context = SearchContext.LocalLibrary),
         )
     }
