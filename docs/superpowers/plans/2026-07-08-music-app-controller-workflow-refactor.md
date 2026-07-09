@@ -956,7 +956,7 @@ git commit -m "拆分搜索结果派生工作流"
 - 消费：`LibraryStateSynchronizer`、`NavigationStateController`、`Album`、`Artist`、`Song`。
 - 产出：`ContentNavigationController.Result(state: MusicAppUiState, loadedFullLibrary: Boolean)` 和内容导航方法。
 
-- [ ] **步骤 1：写内容导航聚焦测试**
+- [x] **步骤 1：写内容导航聚焦测试**
 
 创建 `ContentNavigationControllerTest.kt`：
 
@@ -1081,7 +1081,7 @@ private fun baseState(): MusicAppUiState {
 }
 ```
 
-- [ ] **步骤 2：运行测试确认红灯**
+- [x] **步骤 2：运行测试确认红灯**
 
 运行：
 
@@ -1091,7 +1091,7 @@ private fun baseState(): MusicAppUiState {
 
 预期：失败，错误包含 `Unresolved reference: ContentNavigationController`。
 
-- [ ] **步骤 3：实现 `ContentNavigationController`**
+- [x] **步骤 3：实现 `ContentNavigationController`**
 
 创建 `ContentNavigationController.kt`：
 
@@ -1254,7 +1254,7 @@ class ContentNavigationController(
 }
 ```
 
-- [ ] **步骤 4：让门面委派内容导航**
+- [x] **步骤 4：让门面委派内容导航**
 
 在 `MusicAppController.kt` 增加属性：
 
@@ -1317,7 +1317,7 @@ import com.yanhao.kmpmusic.feature.app.navigation.ContentNavigationController
     }
 ```
 
-- [ ] **步骤 5：运行任务五测试和导航回归**
+- [x] **步骤 5：运行任务五测试和导航回归**
 
 运行：
 
@@ -1327,7 +1327,7 @@ import com.yanhao.kmpmusic.feature.app.navigation.ContentNavigationController
 
 预期：全部通过。
 
-- [ ] **步骤 6：提交任务五**
+- [x] **步骤 6：提交任务五**
 
 运行：
 

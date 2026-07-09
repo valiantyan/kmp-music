@@ -28,8 +28,6 @@ import com.yanhao.kmpmusic.domain.model.SearchContext
 import com.yanhao.kmpmusic.domain.model.SearchScope
 import com.yanhao.kmpmusic.domain.model.Song
 import com.yanhao.kmpmusic.domain.model.ThemeMode
-import com.yanhao.kmpmusic.domain.model.hasSameAlbumTitle
-import com.yanhao.kmpmusic.domain.model.hasSameArtistName
 import com.yanhao.kmpmusic.domain.persistence.InMemoryPlaybackSnapshotStore
 import com.yanhao.kmpmusic.domain.persistence.PlaybackSnapshotStore
 import com.yanhao.kmpmusic.domain.playback.AudioPlayerEngine
@@ -49,6 +47,7 @@ import com.yanhao.kmpmusic.feature.app.search.SearchResultController
 import com.yanhao.kmpmusic.feature.app.favorites.FavoriteStateSynchronizer
 import com.yanhao.kmpmusic.feature.app.library.LibraryStateSynchronizer
 import com.yanhao.kmpmusic.feature.app.library.MusicLibraryProjector
+import com.yanhao.kmpmusic.feature.app.navigation.ContentNavigationController
 import com.yanhao.kmpmusic.feature.app.navigation.NavigationStateController
 import com.yanhao.kmpmusic.feature.app.playback.PlaybackRestoreOrchestrator
 import com.yanhao.kmpmusic.feature.app.playback.PlaybackUiStateSynchronizer
@@ -102,6 +101,9 @@ class MusicAppController(
 
     // 冷启动恢复由编排器统一管理依赖顺序，避免 facade 混杂实体解析与恢复时序。
     private val playbackRestoreOrchestrator: PlaybackRestoreOrchestrator
+
+    // 内容导航工作流统一处理曲库预热与内容路由，facade 只保留门面时序。
+    private val contentNavigationController: ContentNavigationController
 
     // 偏好设置工作流统一处理主题与本地发现设置的持久化和状态同步。
     private val preferenceStateController: PreferenceStateController = PreferenceStateController(
@@ -188,6 +190,9 @@ class MusicAppController(
                 )
             },
         )
+        contentNavigationController = ContentNavigationController(
+            libraryStateSynchronizer = libraryStateSynchronizer,
+        )
         playbackUiStateSynchronizer = PlaybackUiStateSynchronizer(
             playbackRepository = playbackRepository,
             recentSongsBuilder = libraryStateSynchronizer::buildRecentSongs,
@@ -224,6 +229,14 @@ class MusicAppController(
         uiState = reducer(uiState)
     }
 
+    /** 应用内容导航结果，并在首次拿到完整曲库后补跑待恢复的播放快照。 */
+    private fun applyContentNavigationResult(result: ContentNavigationController.Result) {
+        uiState = result.state
+        if (result.loadedFullLibrary) {
+            restorePlaybackSnapshotIfPending()
+        }
+    }
+
     /** 进入二级页面并隐藏主 Tab。 */
     fun navigateToSecondary(screen: SecondaryScreen) {
         uiState = NavigationStateController.navigateToSecondary(
@@ -247,16 +260,19 @@ class MusicAppController(
 
     /** 切换首页内容页签，聚合型页签按需加载完整本地曲库。 */
     fun setHomeContentSection(section: HomeContentSection) {
-        if (section == HomeContentSection.Albums || section == HomeContentSection.Artists) {
-            loadLocalMusicLibrary()
-        }
-        uiState = uiState.copy(homeContentSection = section)
+        applyContentNavigationResult(
+            result = contentNavigationController.setHomeContentSection(
+                state = uiState,
+                section = section,
+            ),
+        )
     }
 
     /** 我的页歌曲统计回到首页歌曲分段，保持它作为一级页入口。 */
     fun openHomeSongs() {
-        navigateToRoot(tab = RootTab.Home)
-        setHomeContentSection(section = HomeContentSection.Songs)
+        applyContentNavigationResult(
+            result = contentNavigationController.openHomeSongs(state = uiState),
+        )
     }
 
     /**
@@ -445,18 +461,26 @@ class MusicAppController(
 
     /** 打开本地音乐二级页并指定初始分段。 */
     fun openLocalMusic(section: LocalMusicSection = LocalMusicSection.Songs) {
-        loadLocalMusicLibrary()
-        navigateToSecondary(screen = SecondaryScreen.LocalMusic(initialSection = section))
+        applyContentNavigationResult(
+            result = contentNavigationController.openLocalMusic(
+                state = uiState,
+                section = section,
+            ),
+        )
     }
 
     /** 打开独立扫描页，让首页入口先展示扫描设置和统计。 */
     fun openAudioScan() {
-        navigateToSecondary(screen = SecondaryScreen.AudioScan)
+        applyContentNavigationResult(
+            result = contentNavigationController.openAudioScan(state = uiState),
+        )
     }
 
     /** 打开最近播放普通二级页，完整列表行为由后续切片补齐。 */
     fun openRecentPlayed() {
-        navigateToSecondary(screen = SecondaryScreen.RecentPlayed)
+        applyContentNavigationResult(
+            result = contentNavigationController.openRecentPlayed(state = uiState),
+        )
     }
 
     /** 搜索页应按入口上下文拿到对应数据集合，避免搜索结果跨页面串联。 */
@@ -607,45 +631,43 @@ class MusicAppController(
     /** 打开专辑详情。 */
     fun openAlbum(album: Album) {
         commitSearchQueryForResultActionIfNeeded()
-        loadLocalMusicLibrary()
-        uiState = uiState.copy(selectedAlbumId = album.id)
-        navigateToSecondary(screen = SecondaryScreen.AlbumDetail)
+        applyContentNavigationResult(
+            result = contentNavigationController.openAlbum(
+                state = uiState,
+                album = album,
+            ),
+        )
     }
 
     /** 打开歌手详情。 */
     fun openArtist(artist: Artist) {
         commitSearchQueryForResultActionIfNeeded()
-        loadLocalMusicLibrary()
-        uiState = uiState.copy(selectedArtistId = artist.id)
-        navigateToSecondary(screen = SecondaryScreen.ArtistDetail)
+        applyContentNavigationResult(
+            result = contentNavigationController.openArtist(
+                state = uiState,
+                artist = artist,
+            ),
+        )
     }
 
     /** 从歌曲打开专辑详情。 */
     fun openAlbumFromSong(song: Song) {
-        loadLocalMusicLibrary()
-        uiState.detailAlbums.firstOrNull { album: Album ->
-            hasSameAlbumTitle(
-                firstTitle = album.title,
-                secondTitle = song.album,
-            )
-        }?.let { album: Album ->
-            uiState = uiState.copy(moreSongId = null)
-            openAlbum(album = album)
-        }
+        applyContentNavigationResult(
+            result = contentNavigationController.openAlbumFromSong(
+                state = uiState,
+                song = song,
+            ),
+        )
     }
 
     /** 从歌曲打开歌手详情。 */
     fun openArtistFromSong(song: Song) {
-        loadLocalMusicLibrary()
-        uiState.detailArtists.firstOrNull { artist: Artist ->
-            hasSameArtistName(
-                firstName = artist.name,
-                secondName = song.artist,
-            )
-        }?.let { artist: Artist ->
-            uiState = uiState.copy(moreSongId = null)
-            openArtist(artist = artist)
-        }
+        applyContentNavigationResult(
+            result = contentNavigationController.openArtistFromSong(
+                state = uiState,
+                song = song,
+            ),
+        )
     }
 
     /** 更新收藏页分段。 */
@@ -928,11 +950,9 @@ class MusicAppController(
 
     /** 按需读取完整本地曲库，避免首页冷启动直接打满持久层。 */
     fun loadLocalMusicLibrary() {
-        val previousLocalSongsLoaded: Boolean = uiState.localSongs.isNotEmpty()
-        uiState = libraryStateSynchronizer.loadLocalMusicLibrary(state = uiState)
-        if (!previousLocalSongsLoaded && uiState.localSongs.isNotEmpty()) {
-            restorePlaybackSnapshotIfPending()
-        }
+        applyContentNavigationResult(
+            result = contentNavigationController.loadLocalMusicLibrary(state = uiState),
+        )
     }
 
     // 当前状态里已经拿到的歌曲优先参与收藏/恢复，避免重复构造不同实例。
