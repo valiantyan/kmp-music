@@ -29,6 +29,7 @@ import com.yanhao.kmpmusic.domain.model.MusicFileMetadata
 import com.yanhao.kmpmusic.domain.model.SearchContext
 import com.yanhao.kmpmusic.domain.model.SearchScope
 import com.yanhao.kmpmusic.domain.model.Song
+import com.yanhao.kmpmusic.domain.usecase.SearchResult
 import com.yanhao.kmpmusic.domain.persistence.InMemoryPlaybackSnapshotStore
 import com.yanhao.kmpmusic.domain.repository.FavoritesRepository
 import com.yanhao.kmpmusic.domain.repository.LocalMusicScanner
@@ -1500,16 +1501,15 @@ class MusicAppControllerTest {
      * 非空搜索词在防抖结果生效前离开搜索页不应写入历史，避免把未执行搜索污染为历史。
      */
     @Test
-    fun nonBlankSearchQueryDoesNotCommitToHistoryWhenLeavingSearchBeforeDebounce(): Unit = runBlocking {
-        val controller = createController()
+    fun nonBlankSearchQueryDoesNotCommitToHistoryWhenLeavingSearchBeforeDebounce(): Unit = runTest {
+        val controller = createController(controllerScope = backgroundScope)
         controller.scanLocalMusic(request = LocalMusicScanRequest.Refresh)
-
         controller.openSearch(context = SearchContext.LocalLibrary)
         controller.setSearchQuery(query = "One Summer")
-
         controller.navigateBack()
+        advanceTimeBy(delayTimeMillis = 301L)
+        advanceUntilIdle()
         controller.openSearch(context = SearchContext.LocalLibrary)
-
         assertEquals(
             expected = emptyList(),
             actual = controller.uiState.searchHistoryFor(context = SearchContext.LocalLibrary),
@@ -1544,29 +1544,31 @@ class MusicAppControllerTest {
      * 搜索结果动作应记录当前搜索词，覆盖歌曲播放、专辑打开和歌手打开三条入口。
      */
     @Test
-    fun searchResultActionsCommitCurrentQueryToHistory(): Unit = runBlocking {
-        val controller = createController()
+    fun searchResultActionsCommitCurrentQueryToHistory(): Unit = runTest {
+        val controller = createController(controllerScope = backgroundScope)
         controller.scanLocalMusic(request = LocalMusicScanRequest.Refresh)
-        val targetSong: Song = controller.uiState.homeLocalSongPreview.first()
-        controller.setHomeContentSection(section = HomeContentSection.Albums)
-        val targetAlbum: Album = controller.uiState.localAlbums.first()
-        controller.setHomeContentSection(section = HomeContentSection.Artists)
-        val targetArtist: Artist = controller.uiState.localArtists.first()
-
         controller.openSearch(context = SearchContext.LocalLibrary)
-        controller.setSearchQuery(query = "歌曲动作")
-        controller.playSong(song = targetSong, queueSongs = listOf(targetSong))
-
+        controller.setSearchQuery(query = "Dream Stories")
+        advanceTimeBy(delayTimeMillis = 301L)
+        advanceUntilIdle()
+        val songAndAlbumResult: SearchResult = controller.search()
+        val targetSong: Song = songAndAlbumResult.songs.first()
+        val targetAlbum: Album = songAndAlbumResult.albums.first()
+        controller.playSong(song = targetSong, queueSongs = songAndAlbumResult.songs)
         controller.openSearch(context = SearchContext.LocalLibrary)
-        controller.setSearchQuery(query = "专辑动作")
+        controller.setSearchQuery(query = "Dream Stories")
+        advanceTimeBy(delayTimeMillis = 301L)
+        advanceUntilIdle()
         controller.openAlbum(album = targetAlbum)
-
         controller.openSearch(context = SearchContext.LocalLibrary)
-        controller.setSearchQuery(query = "歌手动作")
+        controller.setSearchQuery(query = "久石让")
+        advanceTimeBy(delayTimeMillis = 301L)
+        advanceUntilIdle()
+        val artistResult: SearchResult = controller.search()
+        val targetArtist: Artist = artistResult.artists.first()
         controller.openArtist(artist = targetArtist)
-
         assertEquals(
-            expected = listOf("歌手动作", "专辑动作", "歌曲动作"),
+            expected = listOf("久石让", "Dream Stories"),
             actual = controller.uiState.searchHistoryFor(context = SearchContext.LocalLibrary),
         )
     }

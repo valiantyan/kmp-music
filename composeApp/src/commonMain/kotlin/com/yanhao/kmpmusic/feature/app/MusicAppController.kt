@@ -45,7 +45,7 @@ import com.yanhao.kmpmusic.domain.usecase.ScanLocalMusicUseCaseImpl
 import com.yanhao.kmpmusic.domain.usecase.SearchResult
 import com.yanhao.kmpmusic.domain.usecase.ToggleFavoriteUseCase
 import com.yanhao.kmpmusic.domain.usecase.ToggleFavoriteUseCaseImpl
-import com.yanhao.kmpmusic.domain.usecase.buildSearchResult
+import com.yanhao.kmpmusic.feature.app.search.SearchResultController
 import com.yanhao.kmpmusic.feature.app.favorites.FavoriteStateSynchronizer
 import com.yanhao.kmpmusic.feature.app.library.LibraryStateSynchronizer
 import com.yanhao.kmpmusic.feature.app.library.MusicLibraryProjector
@@ -143,6 +143,11 @@ class MusicAppController(
         controllerScope = controllerScope,
         debounceMillis = searchQueryDebounceMillis,
         publishStateUpdate = ::reduceUiState,
+    )
+
+    // 搜索结果派生单独收敛，避免 facade 继续持有上下文分流和 pending query 规则。
+    private val searchResultController: SearchResultController = SearchResultController(
+        musicLibraryRepository = musicLibraryRepository,
     )
 
     /**
@@ -702,49 +707,12 @@ class MusicAppController(
 
     /** 执行搜索，供 UI 渲染派生结果。 */
     fun search(): SearchResult {
-        if (!shouldResolveCurrentSearchResult()) {
-            return emptySearchResult()
-        }
-        return buildSearchResult(
-            query = uiState.activeSearchQuery,
-            scope = uiState.searchScope,
-            allSongs = searchSourceSongs(),
-        )
-    }
-
-    // 搜索结果必须等待防抖词追上输入词，避免空 active query 派生全量曲库。
-    private fun shouldResolveCurrentSearchResult(): Boolean {
-        val normalizedQuery: String = uiState.searchQuery.trim()
-        val normalizedActiveQuery: String = uiState.activeSearchQuery.trim()
-        return normalizedQuery.isNotEmpty() && normalizedQuery == normalizedActiveQuery
-    }
-
-    // pending 或空搜索统一返回空结果，让 UI 不需要消费全量曲库再隐藏。
-    private fun emptySearchResult(): SearchResult {
-        return SearchResult(
-            songs = emptyList(),
-            albums = emptyList(),
-            artists = emptyList(),
-        )
+        return searchResultController.search(state = uiState)
     }
 
     // 搜索结果动作前集中提交非空搜索词，避免各平台 UI 分别维护历史写入规则。
     private fun commitSearchQueryForResultActionIfNeeded() {
         uiState = searchSessionController.commitActiveSearchQueryToHistoryIfNeeded(state = uiState)
-    }
-
-    // 按搜索上下文选择共享数据源，保证 UI 只消费派生结果。
-    private fun searchSourceSongs(): List<Song> {
-        return when (uiState.searchContext) {
-            SearchContext.LocalLibrary -> {
-                if (uiState.localSongs.isNotEmpty()) {
-                    uiState.localSongs
-                } else {
-                    musicLibraryRepository.getAllAvailableSongs()
-                }
-            }
-            SearchContext.Favorites -> uiState.favoriteSongs
-        }
     }
 
     /** 设置主题模式。 */

@@ -669,7 +669,7 @@ git commit -m "拆分偏好设置工作流"
 - 消费：`MusicLibraryRepository`、`MusicAppUiState`、`SearchContext`、`SearchScope`。
 - 产出：`SearchResultController.search(state: MusicAppUiState): SearchResult`。
 
-- [ ] **步骤 1：写搜索结果聚焦测试**
+- [x] **步骤 1：写搜索结果聚焦测试**
 
 创建 `SearchResultControllerTest.kt`：
 
@@ -760,7 +760,7 @@ private fun baseState(): MusicAppUiState {
 }
 ```
 
-- [ ] **步骤 2：运行测试确认红灯**
+- [x] **步骤 2：运行测试确认红灯**
 
 运行：
 
@@ -770,7 +770,7 @@ private fun baseState(): MusicAppUiState {
 
 预期：失败，错误包含 `Unresolved reference: SearchResultController`。
 
-- [ ] **步骤 3：补强门面搜索历史回归测试**
+- [x] **步骤 3：补强门面搜索历史回归测试**
 
 把 `MusicAppControllerTest.nonBlankSearchQueryDoesNotCommitToHistoryWhenLeavingSearchBeforeDebounce` 改成 `runTest`，并在离开搜索页后推进防抖时间：
 
@@ -836,7 +836,7 @@ private fun baseState(): MusicAppUiState {
     }
 ```
 
-- [ ] **步骤 4：实现 `SearchResultController`**
+- [x] **步骤 4：实现 `SearchResultController`**
 
 创建 `SearchResultController.kt`：
 
@@ -897,7 +897,7 @@ class SearchResultController(
 }
 ```
 
-- [ ] **步骤 5：让门面委派搜索结果**
+- [x] **步骤 5：让门面委派搜索结果**
 
 在 `MusicAppController.kt` 新增属性：
 
@@ -924,7 +924,7 @@ import com.yanhao.kmpmusic.feature.app.search.SearchResultController
 
 删除 `shouldResolveCurrentSearchResult()`、`emptySearchResult()` 和 `searchSourceSongs()`。
 
-- [ ] **步骤 6：运行任务四测试和门面回归**
+- [x] **步骤 6：运行任务四测试和门面回归**
 
 运行：
 
@@ -934,7 +934,7 @@ import com.yanhao.kmpmusic.feature.app.search.SearchResultController
 
 预期：全部通过。
 
-- [ ] **步骤 7：提交任务四**
+- [x] **步骤 7：提交任务四**
 
 运行：
 
