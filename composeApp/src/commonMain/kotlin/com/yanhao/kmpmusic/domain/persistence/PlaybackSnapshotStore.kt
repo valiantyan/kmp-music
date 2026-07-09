@@ -76,7 +76,7 @@ class InMemoryPlaybackSnapshotStore : PlaybackSnapshotStore {
      * 只有保存过队列时才暴露身份，避免空快照触发无意义的待恢复请求。
      */
     override suspend fun getSavedSnapshotIdentity(): PlaybackSnapshotIdentity? {
-        if (snapshot.queueState.songIds.isEmpty()) {
+        if (snapshot.queueState.songIds.isEmpty() || snapshot.playbackState.currentSongId == null) {
             return null
         }
         return snapshot.identity
@@ -158,7 +158,7 @@ class RoomPlaybackSnapshotStore(
         val queueSongIds: List<String> = database.playbackQueueDao().getQueueItems().map { item: PlaybackQueueItemEntity ->
             item.songId
         }
-        if (queueSongIds.isEmpty()) {
+        if (queueSongIds.isEmpty() || snapshotEntity.currentSongId == null) {
             return null
         }
         return PlaybackSnapshotIdentity(

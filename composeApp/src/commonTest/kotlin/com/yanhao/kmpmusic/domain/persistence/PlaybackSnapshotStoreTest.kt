@@ -65,6 +65,32 @@ class PlaybackSnapshotStoreTest {
     }
 
     /**
+     * 保存队列但缺少当前歌曲时不应暴露恢复身份，避免门面创建永远无法完成的待恢复请求。
+     */
+    @Test
+    fun getSavedSnapshotIdentityReturnsNullWhenCurrentSongIsMissing(): Unit = runTest {
+        val store: InMemoryPlaybackSnapshotStore = InMemoryPlaybackSnapshotStore()
+        store.saveSnapshot(
+            snapshot = PlaybackSnapshot(
+                playbackState = PlaybackState(
+                    currentSongId = null,
+                    status = PlaybackStatus.Paused,
+                    positionMs = 42_000L,
+                ),
+                queueState = QueueState(
+                    songIds = listOf("song-1", "song-2"),
+                    currentIndex = 1,
+                ),
+                updatedAt = 1_000L,
+            ),
+        )
+
+        val identity: PlaybackSnapshotIdentity? = store.getSavedSnapshotIdentity()
+
+        assertNull(actual = identity)
+    }
+
+    /**
      * 恢复快照时应保留队列顺序，并统一以暂停态冷启动。
      */
     @Test

@@ -17,6 +17,7 @@ import com.yanhao.kmpmusic.domain.model.LibraryStats
 import com.yanhao.kmpmusic.domain.model.LocalMusicScanRequest
 import com.yanhao.kmpmusic.domain.model.LocalMusicScanState
 import com.yanhao.kmpmusic.domain.model.PlaybackHistory
+import com.yanhao.kmpmusic.domain.model.PlaybackSnapshot
 import com.yanhao.kmpmusic.domain.model.PlaybackState
 import com.yanhao.kmpmusic.domain.model.PlaybackStatus
 import com.yanhao.kmpmusic.domain.model.QueueState
@@ -217,7 +218,6 @@ class MusicAppController(
         playbackRestoreOrchestrator = PlaybackRestoreOrchestrator(
             playbackSnapshotStore = playbackSnapshotStore,
             availableSongsResolver = libraryStateSynchronizer::resolveAvailableSongsByIds,
-            restoreSnapshot = playbackCoordinator::restoreSnapshot,
         )
         uiState = createInitialState(
             homePreview = initialHomePreview,
@@ -365,8 +365,24 @@ class MusicAppController(
                     playbackSnapshotHydrationGeneration == generationAtStart
             },
         )
-        if (playbackSnapshotHydrationGeneration != generationAtStart) {
+        if (!isPendingPlaybackSnapshotRequestCurrent(request = request, generation = generationAtStart)) {
             return
+        }
+        result.restoredSnapshot?.let { restoredSnapshot: PlaybackSnapshot ->
+            val queueSongsSnapshot: List<Song> = result.queueSongsSnapshot ?: return@let
+            val didApplySnapshot: Boolean = playbackCoordinator.applyRestoredSnapshot(
+                snapshot = restoredSnapshot,
+                availableSongs = queueSongsSnapshot,
+                canCommit = {
+                    isPendingPlaybackSnapshotRequestCurrent(
+                        request = request,
+                        generation = generationAtStart,
+                    )
+                },
+            )
+            if (!didApplySnapshot) {
+                return
+            }
         }
         result.queueSongsSnapshot?.let { queueSongsSnapshot: List<Song> ->
             reduceUiState { currentState: MusicAppUiState ->
@@ -878,6 +894,12 @@ class MusicAppController(
                 }
             }
         }
+    }
+
+    // 只有请求身份和代际都未变化时，恢复结果才允许继续提交到运行时播放事实。
+    private fun isPendingPlaybackSnapshotRequestCurrent(request: PendingPlaybackSnapshotRequest, generation: Long): Boolean {
+        return pendingPlaybackSnapshotRequest == request &&
+            playbackSnapshotHydrationGeneration == generation
     }
 
     /** 按需读取完整本地曲库，避免首页冷启动直接打满持久层。 */

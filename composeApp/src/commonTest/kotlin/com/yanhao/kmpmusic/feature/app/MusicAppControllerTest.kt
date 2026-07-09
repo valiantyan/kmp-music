@@ -1250,42 +1250,48 @@ class MusicAppControllerTest {
     @Test
     fun explicitPlayInvalidatesPendingPlaybackSnapshotRequest(): Unit = runTest {
         val snapshotStore: InMemoryPlaybackSnapshotStore = InMemoryPlaybackSnapshotStore()
+        val audioPlayerEngine: BlockingFirstSetQueueAudioPlayerEngine = BlockingFirstSetQueueAudioPlayerEngine()
+        val controller: MusicAppController = createController(
+            audioPlayerEngine = audioPlayerEngine,
+            playbackSnapshotStore = snapshotStore,
+            controllerScope = backgroundScope,
+        )
+        controller.scanLocalMusic(request = LocalMusicScanRequest.Refresh)
+        advanceUntilIdle()
+        val previewSongs: List<Song> = controller.uiState.homeLocalSongPreview.take(n = 3)
         snapshotStore.saveSnapshot(
             snapshot = PlaybackSnapshot(
                 playbackState = PlaybackState(
-                    currentSongId = "seed:8",
+                    currentSongId = previewSongs[0].id,
                     status = PlaybackStatus.Paused,
                     positionMs = 42_000L,
-                    durationMs = 180_000L,
+                    durationMs = previewSongs[0].durationMs,
                 ),
                 queueState = QueueState(
-                    songIds = listOf("seed:8"),
+                    songIds = previewSongs.map { song: Song -> song.id },
                     currentIndex = 0,
                 ),
                 updatedAt = 1_719_360_000_000L,
             ),
         )
-        val controller: MusicAppController = createController(
-            musicLibraryRepository = SeededMusicLibraryRepository(seedCount = 2),
-            localMusicScanner = RecordingLocalMusicScanner(),
-            playbackSnapshotStore = snapshotStore,
-            controllerScope = backgroundScope,
-        )
 
-        controller.restorePlaybackSnapshot()
-        val userSong: Song = controller.uiState.homeLocalSongPreview.first()
+        val restoreJob: Job = launch {
+            controller.restorePlaybackSnapshot()
+        }
+        audioPlayerEngine.awaitFirstSetQueueStarted()
+        val userSong: Song = previewSongs[1]
         controller.playSong(
             song = userSong,
-            queueSongs = controller.uiState.homeLocalSongPreview,
+            queueSongs = previewSongs,
         )
-        advanceUntilIdle()
-        controller.scanLocalMusic(request = LocalMusicScanRequest.Refresh)
+        audioPlayerEngine.releaseFirstSetQueue()
+        restoreJob.join()
         advanceUntilIdle()
 
         assertEquals(expected = userSong.id, actual = controller.uiState.currentSongId)
         assertEquals(expected = userSong.id, actual = controller.uiState.currentSong?.id)
         assertEquals(
-            expected = controller.uiState.homeLocalSongPreview.map { song: Song -> song.id },
+            expected = previewSongs.map { song: Song -> song.id },
             actual = controller.uiState.queueSongIds,
         )
         assertEquals(expected = 0L, actual = controller.uiState.playbackPositionMs)
@@ -2634,6 +2640,86 @@ private class RecordingLocalMusicScanner : LocalMusicScanner {
     override suspend fun scan(request: LocalMusicScanRequest): LocalMusicScanResult {
         requests += request
         return com.yanhao.kmpmusic.data.FakeLocalMusicScanner(demoSongCount = 8).scan(request = request)
+    }
+}
+
+/**
+ * 首次 [AudioPlayerEngine.setQueue] 会故意卡住且忽略取消，用来验证旧恢复完成得再晚也不能覆盖新播放事实。
+ */
+private class BlockingFirstSetQueueAudioPlayerEngine : AudioPlayerEngine {
+    // 真实事件语义仍交给假引擎，测试只额外控制第一次 setQueue 的时序。
+    private val delegate: FakeAudioPlayerEngine = FakeAudioPlayerEngine()
+
+    // 记录第一次 setQueue 已经进入，避免测试靠时间猜测恢复窗口。
+    private val firstSetQueueStarted: CompletableDeferred<Unit> = CompletableDeferred()
+
+    // 显式释放第一次 setQueue，让旧恢复在用户动作之后才继续。
+    private val firstSetQueueCanFinish: CompletableDeferred<Unit> = CompletableDeferred()
+
+    // 第一次 setQueue 之后就不再阻塞，保证用户显式播放可以顺利提交新队列。
+    private var hasBlockedFirstSetQueue: Boolean = false
+
+    override val events = delegate.events
+
+    /** 首次 setQueue 即使收到取消也会继续完成，模拟平台层晚到的旧恢复操作。 */
+    override suspend fun setQueue(items: List<com.yanhao.kmpmusic.domain.model.PlayableMedia>, startIndex: Int, startPositionMs: Long) {
+        if (!hasBlockedFirstSetQueue) {
+            hasBlockedFirstSetQueue = true
+            firstSetQueueStarted.complete(value = Unit)
+            withContext(context = NonCancellable) {
+                firstSetQueueCanFinish.await()
+            }
+        }
+        delegate.setQueue(
+            items = items,
+            startIndex = startIndex,
+            startPositionMs = startPositionMs,
+        )
+    }
+
+    /** 其余播放命令全部透传给假引擎，保持共享测试里的真实回流行为。 */
+    override fun play() {
+        delegate.play()
+    }
+
+    /** 其余播放命令全部透传给假引擎，保持共享测试里的真实回流行为。 */
+    override fun pause() {
+        delegate.pause()
+    }
+
+    /** 其余播放命令全部透传给假引擎，保持共享测试里的真实回流行为。 */
+    override fun seekTo(positionMs: Long) {
+        delegate.seekTo(positionMs = positionMs)
+    }
+
+    /** 其余播放命令全部透传给假引擎，保持共享测试里的真实回流行为。 */
+    override fun skipToIndex(index: Int) {
+        delegate.skipToIndex(index = index)
+    }
+
+    /** 其余播放命令全部透传给假引擎，保持共享测试里的真实回流行为。 */
+    override fun setPlaybackMode(playbackMode: PlaybackMode) {
+        delegate.setPlaybackMode(playbackMode = playbackMode)
+    }
+
+    /** 其余播放命令全部透传给假引擎，保持共享测试里的真实回流行为。 */
+    override fun setVolume(volume: Float) {
+        delegate.setVolume(volume = volume)
+    }
+
+    /** 其余播放命令全部透传给假引擎，保持共享测试里的真实回流行为。 */
+    override fun stop() {
+        delegate.stop()
+    }
+
+    /** 等待第一次 setQueue 真的卡在恢复窗口里。 */
+    suspend fun awaitFirstSetQueueStarted() {
+        firstSetQueueStarted.await()
+    }
+
+    /** 释放第一次 setQueue，让旧恢复在用户动作之后继续执行。 */
+    fun releaseFirstSetQueue() {
+        firstSetQueueCanFinish.complete(value = Unit)
     }
 }
 

@@ -1,5 +1,6 @@
 package com.yanhao.kmpmusic.feature.app.playback
 
+import com.yanhao.kmpmusic.domain.model.PlaybackSnapshot
 import com.yanhao.kmpmusic.domain.model.Song
 import com.yanhao.kmpmusic.domain.model.PlaybackSnapshotIdentity
 import com.yanhao.kmpmusic.domain.persistence.PlaybackSnapshotStore
@@ -13,12 +14,11 @@ data class PendingPlaybackSnapshotRequest(
 )
 
 /**
- * 冷启动恢复前先补齐可用歌曲实体，再把真正恢复动作委托给播放协调器。
+ * 冷启动恢复前先补齐可用歌曲实体，并把可提交的恢复负载交回门面做最后一跳 gate。
  */
 class PlaybackRestoreOrchestrator(
     private val playbackSnapshotStore: PlaybackSnapshotStore,
     private val availableSongsResolver: (songIds: List<String>, preferredSongs: List<Song>) -> List<Song>,
-    private val restoreSnapshot: suspend (availableSongs: List<Song>) -> Unit,
 ) {
     /**
      * 恢复执行结果，只回传需要并入最新 UI 状态的实体快照和请求状态。
@@ -29,6 +29,7 @@ class PlaybackRestoreOrchestrator(
      */
     data class Result(
         val queueSongsSnapshot: List<Song>?,
+        val restoredSnapshot: PlaybackSnapshot?,
         val pendingRequest: PendingPlaybackSnapshotRequest?,
         val didHydrateSnapshot: Boolean,
     )
@@ -54,18 +55,29 @@ class PlaybackRestoreOrchestrator(
         val request: PendingPlaybackSnapshotRequest = pendingRequest
             ?: return Result(
                 queueSongsSnapshot = null,
+                restoredSnapshot = null,
                 pendingRequest = null,
                 didHydrateSnapshot = false,
             )
         val savedIdentity: PlaybackSnapshotIdentity = playbackSnapshotStore.getSavedSnapshotIdentity()
             ?: return Result(
                 queueSongsSnapshot = null,
+                restoredSnapshot = null,
                 pendingRequest = null,
                 didHydrateSnapshot = false,
             )
         if (savedIdentity != request.identity) {
             return Result(
                 queueSongsSnapshot = null,
+                restoredSnapshot = null,
+                pendingRequest = null,
+                didHydrateSnapshot = false,
+            )
+        }
+        if (request.identity.currentSongId == null) {
+            return Result(
+                queueSongsSnapshot = null,
+                restoredSnapshot = null,
                 pendingRequest = null,
                 didHydrateSnapshot = false,
             )
@@ -78,12 +90,13 @@ class PlaybackRestoreOrchestrator(
         val hasCompleteQueue: Boolean = request.identity.queueSongIds.all { songId: String ->
             availableSongIds.contains(element = songId)
         }
-        val hasCurrentSong: Boolean = request.identity.currentSongId?.let { songId: String ->
+        val hasCurrentSong: Boolean = request.identity.currentSongId.let { songId: String ->
             availableSongIds.contains(element = songId)
-        } ?: false
+        }
         if (!hasCompleteQueue || !hasCurrentSong) {
             return Result(
                 queueSongsSnapshot = null,
+                restoredSnapshot = null,
                 pendingRequest = request,
                 didHydrateSnapshot = false,
             )
@@ -91,13 +104,25 @@ class PlaybackRestoreOrchestrator(
         if (!isRequestCurrent(request) || playbackSnapshotStore.getSavedSnapshotIdentity() != request.identity) {
             return Result(
                 queueSongsSnapshot = null,
+                restoredSnapshot = null,
                 pendingRequest = null,
                 didHydrateSnapshot = false,
             )
         }
-        restoreSnapshot(availableSongs)
+        val restoredSnapshot: PlaybackSnapshot = playbackSnapshotStore.restoreSnapshot(
+            availableSongIds = availableSongIds,
+        )
+        if (!isRequestCurrent(request) || playbackSnapshotStore.getSavedSnapshotIdentity() != request.identity) {
+            return Result(
+                queueSongsSnapshot = null,
+                restoredSnapshot = null,
+                pendingRequest = null,
+                didHydrateSnapshot = false,
+            )
+        }
         return Result(
             queueSongsSnapshot = availableSongs,
+            restoredSnapshot = restoredSnapshot,
             pendingRequest = null,
             didHydrateSnapshot = true,
         )
