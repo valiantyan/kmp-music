@@ -33,35 +33,11 @@ internal class AndroidPlaybackMediaNotificationProvider(
         mediaButtonPreferences: ImmutableList<CommandButton>,
         showPauseButton: Boolean,
     ): ImmutableList<CommandButton> {
-        return resolveOrderedMediaButtons(
+        return AndroidPlaybackMediaButtonOrdering.orderMediaButtons(
             playerCommands = playerCommands,
             mediaButtonPreferences = mediaButtonPreferences,
             showPauseButton = showPauseButton,
         )
-    }
-
-    /**
-     * 按产品固定位置解析媒体按钮；[playerCommands] 只代表当前队列边界能力，不应改变固定按钮数量。
-     */
-    @Suppress("UNUSED_PARAMETER")
-    fun resolveOrderedMediaButtons(
-        playerCommands: Player.Commands,
-        mediaButtonPreferences: ImmutableList<CommandButton>,
-        showPauseButton: Boolean,
-    ): ImmutableList<CommandButton> {
-        val orderedButtons: ImmutableList.Builder<CommandButton> = ImmutableList.builder()
-        mediaButtonPreferences.firstOrNull(PlaybackMediaCommandCatalog::isToggleFavoriteButton)
-            ?.let { favoriteButton: CommandButton -> orderedButtons.add(favoriteButton) }
-        orderedButtons.add(AndroidPlaybackMediaButtonFactory.createPreviousButton())
-        orderedButtons.add(
-            AndroidPlaybackMediaButtonFactory.createPlayPauseButton(
-                shouldShowPauseButton = showPauseButton,
-            ),
-        )
-        orderedButtons.add(AndroidPlaybackMediaButtonFactory.createNextButton())
-        mediaButtonPreferences.firstOrNull(PlaybackMediaCommandCatalog::isPlaybackModeButton)
-            ?.let { playbackModeButton: CommandButton -> orderedButtons.add(playbackModeButton) }
-        return orderedButtons.build()
     }
 
     /**
