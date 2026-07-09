@@ -126,6 +126,7 @@ iOS 侧当前提供 `MainViewController()` 供 SwiftUI/UIKit 宿主调用，入�
 | 视觉应该参考哪里？ | `prototypes/kmp-music-hi-fi` 和它自己的 `AGENTS.md` | 原型只作视觉参考，不作为生产入口 |
 | 列表卡顿、掉帧或重组需要复盘怎么办？ | `$compose-scroll-performance-diagnostics` | 这是手动技能，只有显式调用时使用；先测量分类，再决定优化点 |
 | 改动后该跑什么验证？ | README 的常用命令、`AGENTS.md` 测试与提交 | 触及共享状态时至少跑 `desktopTest`，UI 大改至少跑 Android 编译 |
+| 如何在 GitHub 提 BUG？ | `docs/GITHUB_BUG_REPORT_GUIDE.md` | 按模板填写问题现象、复现步骤、期望行为、实际行为和验收标准 |
 
 ## 架构约定
 
