@@ -13,14 +13,10 @@ import com.yanhao.kmpmusic.data.InMemoryUserPreferencesRepository
 import com.yanhao.kmpmusic.domain.model.Album
 import com.yanhao.kmpmusic.domain.model.Artist
 import com.yanhao.kmpmusic.domain.model.LibrarySnapshot
-import com.yanhao.kmpmusic.domain.model.LibraryStats
 import com.yanhao.kmpmusic.domain.model.LocalMusicScanRequest
-import com.yanhao.kmpmusic.domain.model.LocalMusicScanState
 import com.yanhao.kmpmusic.domain.model.PlaybackHistory
-import com.yanhao.kmpmusic.domain.model.PlaybackSnapshot
 import com.yanhao.kmpmusic.domain.model.PlaybackState
 import com.yanhao.kmpmusic.domain.model.PlaybackStatus
-import com.yanhao.kmpmusic.domain.model.QueueState
 import com.yanhao.kmpmusic.domain.model.SearchContext
 import com.yanhao.kmpmusic.domain.model.SearchScope
 import com.yanhao.kmpmusic.domain.model.Song
@@ -47,21 +43,15 @@ import com.yanhao.kmpmusic.feature.app.library.LocalMusicScanController
 import com.yanhao.kmpmusic.feature.app.library.MusicLibraryProjector
 import com.yanhao.kmpmusic.feature.app.navigation.ContentNavigationController
 import com.yanhao.kmpmusic.feature.app.navigation.NavigationStateController
-import com.yanhao.kmpmusic.feature.app.playback.PendingPlaybackSnapshotRequest
-import com.yanhao.kmpmusic.feature.app.playback.PlaybackRestoreOrchestrator
 import com.yanhao.kmpmusic.feature.app.playback.PlaybackActionController
+import com.yanhao.kmpmusic.feature.app.playback.PlaybackRestoreGate
+import com.yanhao.kmpmusic.feature.app.playback.PlaybackRestoreOrchestrator
 import com.yanhao.kmpmusic.feature.app.playback.PlaybackUiStateSynchronizer
 import com.yanhao.kmpmusic.feature.app.preferences.PreferenceStateController
 import com.yanhao.kmpmusic.feature.app.search.SearchSessionController
 import com.yanhao.kmpmusic.feature.app.session.LoginAndDialogStateController
 import com.yanhao.kmpmusic.feature.app.system.SystemBackController
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.CoroutineStart
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.currentCoroutineContext
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
 
 private const val DEFAULT_SEARCH_QUERY_DEBOUNCE_MILLIS = 300L
 
@@ -97,8 +87,8 @@ class MusicAppController(
     // 播放状态投影由专用同步器统一负责，facade 只保留状态所有权与观察者发布。
     private val playbackUiStateSynchronizer: PlaybackUiStateSynchronizer
 
-    // 冷启动恢复由编排器统一管理依赖顺序，避免 facade 混杂实体解析与恢复时序。
-    private val playbackRestoreOrchestrator: PlaybackRestoreOrchestrator
+    // 播放恢复 gate 统一持有 pending/job/generation/mutex，facade 只保留触发点。
+    private val playbackRestoreGate: PlaybackRestoreGate
 
     // 内容导航工作流统一处理曲库预热与内容路由，facade 只保留门面时序。
     private val contentNavigationController: ContentNavigationController
@@ -136,18 +126,6 @@ class MusicAppController(
 
     // 播放 UI 刷新观察者，供平台通知或其他宿主订阅共享状态。
     private var playbackUiObserver: (MusicAppUiState) -> Unit = {}
-
-    // 冷启动恢复请求只保存身份，不在门面里缓存整份持久化快照。
-    private var pendingPlaybackSnapshotRequest: PendingPlaybackSnapshotRequest? = null
-
-    // 防止扫描完成、首次全量加载和用户显式恢复同时并发触发多次 hydration。
-    private var playbackSnapshotHydrationJob: Job? = null
-
-    // 每次用户显式改变播放事实时递增，用来丢弃已经过期的恢复结果。
-    private var playbackSnapshotHydrationGeneration: Long = 0L
-
-    // 恢复提交与显式改写播放事实的入口必须串行，避免旧恢复在新动作之后继续落地。
-    private val playbackFactMutationMutex: Mutex = Mutex()
 
     // 搜索会话子控制器负责搜索输入态、防抖和历史 reducer。
     private val searchSessionController: SearchSessionController = SearchSessionController(
@@ -220,11 +198,37 @@ class MusicAppController(
             playbackRepository = playbackRepository,
             recentSongsBuilder = libraryStateSynchronizer::buildRecentSongs,
         )
-        playbackRestoreOrchestrator = PlaybackRestoreOrchestrator(
+        val playbackRestoreOrchestrator: PlaybackRestoreOrchestrator = PlaybackRestoreOrchestrator(
             playbackSnapshotStore = playbackSnapshotStore,
             availableSongsResolver = libraryStateSynchronizer::resolveAvailableSongsByIds,
         )
-        uiState = createInitialState(
+        playbackRestoreGate = PlaybackRestoreGate(
+            playbackRestoreOrchestrator = playbackRestoreOrchestrator,
+            playbackCoordinator = playbackCoordinator,
+            controllerScope = controllerScope,
+            stateHost = object : PlaybackRestoreGate.StateHost {
+                override fun getState(): MusicAppUiState {
+                    return uiState
+                }
+
+                override fun getPreferredKnownSongs(): List<Song> {
+                    return preferredKnownSongs()
+                }
+
+                override fun reduceState(reducer: (MusicAppUiState) -> MusicAppUiState) {
+                    reduceUiState(reducer = reducer)
+                }
+            },
+        )
+        val initialStateBuilder: MusicAppInitialStateBuilder = MusicAppInitialStateBuilder(
+            musicLibraryRepository = musicLibraryRepository,
+            playbackRepository = playbackRepository,
+            userPreferencesRepository = userPreferencesRepository,
+            searchHistoryRepository = searchHistoryRepository,
+            favoriteSongsBuilder = libraryStateSynchronizer::buildFavoriteSongs,
+            recentSongsBuilder = libraryStateSynchronizer::buildRecentSongs,
+        )
+        uiState = initialStateBuilder.build(
             homePreview = initialHomePreview,
             initialLikedSongIds = initialLikedSongIds,
         )
@@ -255,7 +259,7 @@ class MusicAppController(
     private fun applyContentNavigationResult(result: ContentNavigationController.Result) {
         uiState = result.state
         if (result.loadedFullLibrary) {
-            restorePlaybackSnapshotIfPending()
+            playbackRestoreGate.restorePlaybackSnapshotIfPending()
         }
     }
 
@@ -332,62 +336,7 @@ class MusicAppController(
      * 按可用曲库恢复持久化播放快照，并始终以暂停态回填共享 UI。
      */
     suspend fun restorePlaybackSnapshot() {
-        if (playbackSnapshotHydrationJob?.isActive == true) {
-            return
-        }
-        val request: PendingPlaybackSnapshotRequest = pendingPlaybackSnapshotRequest
-            ?: playbackRestoreOrchestrator.createPendingRequest()
-            ?: run {
-                pendingPlaybackSnapshotRequest = null
-                return
-            }
-        pendingPlaybackSnapshotRequest = request
-        val activeJob: Job = currentCoroutineContext()[Job] ?: run {
-            hydratePendingPlaybackSnapshot(request = request)
-            return
-        }
-        playbackSnapshotHydrationJob = activeJob
-        try {
-            hydratePendingPlaybackSnapshot(request = request)
-        } finally {
-            if (playbackSnapshotHydrationJob == activeJob) {
-                playbackSnapshotHydrationJob = null
-            }
-        }
-    }
-
-    /**
-     * 真正执行一次挂起恢复，只把解析出的队列实体并回最新 [uiState]。
-     */
-    private suspend fun hydratePendingPlaybackSnapshot(request: PendingPlaybackSnapshotRequest) {
-        val generationAtStart: Long = playbackSnapshotHydrationGeneration
-        val result: PlaybackRestoreOrchestrator.Result = playbackRestoreOrchestrator.restore(
-            state = uiState,
-            preferredSongs = preferredKnownSongs(),
-            pendingRequest = request,
-            isRequestCurrent = { currentRequest: PendingPlaybackSnapshotRequest ->
-                pendingPlaybackSnapshotRequest == currentRequest &&
-                    playbackSnapshotHydrationGeneration == generationAtStart
-            },
-        )
-        playbackFactMutationMutex.withLock {
-            if (!isPendingPlaybackSnapshotRequestCurrent(request = request, generation = generationAtStart)) {
-                return
-            }
-            result.restoredSnapshot?.let { restoredSnapshot: PlaybackSnapshot ->
-                val queueSongsSnapshot: List<Song> = result.queueSongsSnapshot ?: return@let
-                playbackCoordinator.applyRestoredSnapshot(
-                    snapshot = restoredSnapshot,
-                    availableSongs = queueSongsSnapshot,
-                )
-            }
-            result.queueSongsSnapshot?.let { queueSongsSnapshot: List<Song> ->
-                reduceUiState { currentState: MusicAppUiState ->
-                    currentState.copy(queueSongsSnapshot = queueSongsSnapshot)
-                }
-            }
-            pendingPlaybackSnapshotRequest = result.pendingRequest
-        }
+        playbackRestoreGate.restorePlaybackSnapshot()
     }
 
     /** 打开权限设置确认框，由用户选择是否离开 App 进入系统设置。 */
@@ -445,7 +394,6 @@ class MusicAppController(
     fun playSong(song: Song, queueSongs: List<Song> = emptyList()) {
         commitSearchQueryForResultActionIfNeeded()
         launchPlaybackFactMutation {
-            clearPendingPlaybackSnapshotRequest()
             val action: PlaybackActionController.PreparedPlaySong = playbackActionController.preparePlaySong(
                 state = uiState,
                 song = song,
@@ -460,7 +408,6 @@ class MusicAppController(
     fun playRecentSong(song: Song) {
         commitSearchQueryForResultActionIfNeeded()
         launchPlaybackFactMutation {
-            clearPendingPlaybackSnapshotRequest()
             val action: PlaybackActionController.PreparedPlaySong = playbackActionController.preparePlayRecentSong(
                 state = uiState,
                 song = song,
@@ -493,7 +440,6 @@ class MusicAppController(
     /** 切换上一首或下一首。 */
     fun moveTrack(direction: Int) {
         launchPlaybackFactMutation {
-            clearPendingPlaybackSnapshotRequest()
             playbackActionController.moveTrack(direction = direction)
         }
     }
@@ -501,7 +447,6 @@ class MusicAppController(
     /** 按精确队列下标切歌，并带入系统命令指定的起始进度。 */
     fun skipToQueueIndex(index: Int, positionMs: Long = 0L) {
         launchPlaybackFactMutation {
-            clearPendingPlaybackSnapshotRequest()
             playbackActionController.skipToQueueIndex(
                 index = index,
                 positionMs = positionMs,
@@ -512,7 +457,6 @@ class MusicAppController(
     /** 拖动播放进度时同时更新运行态与持久化快照，避免冷启动回到旧进度。 */
     fun seekTo(positionMs: Long) {
         launchPlaybackFactMutation {
-            clearPendingPlaybackSnapshotRequest()
             playbackActionController.seekTo(positionMs = positionMs)
         }
     }
@@ -520,7 +464,6 @@ class MusicAppController(
     /** 播放模式按钮只负责触发协调器切换，UI 统一从仓库回读。 */
     fun cyclePlaybackMode() {
         launchPlaybackFactMutation {
-            clearPendingPlaybackSnapshotRequest()
             playbackActionController.cyclePlaybackMode()
         }
     }
@@ -723,7 +666,6 @@ class MusicAppController(
     /** 从队列移除歌曲，至少保留一首。 */
     fun removeFromQueue(songId: String) {
         launchPlaybackFactMutation {
-            clearPendingPlaybackSnapshotRequest()
             playbackActionController.removeFromQueue(
                 state = uiState,
                 songId = songId,
@@ -731,23 +673,9 @@ class MusicAppController(
         }
     }
 
-    /**
-     * 用户显式改变播放事实后，旧恢复请求必须作废，避免晚到结果覆盖最新意图。
-     */
-    private fun clearPendingPlaybackSnapshotRequest() {
-        pendingPlaybackSnapshotRequest = null
-        playbackSnapshotHydrationGeneration += 1
-        playbackSnapshotHydrationJob?.cancel()
-        playbackSnapshotHydrationJob = null
-    }
-
     // 所有会改写当前播放事实的公开入口都走同一串行域，避免旧恢复晚到覆盖新动作。
     private fun launchPlaybackFactMutation(block: suspend () -> Unit) {
-        controllerScope.launch(start = CoroutineStart.UNDISPATCHED) {
-            playbackFactMutationMutex.withLock {
-                block()
-            }
-        }
+        playbackRestoreGate.launchPlaybackFactMutation(block = block)
     }
 
     /** 打开更多操作弹层。 */
@@ -791,70 +719,6 @@ class MusicAppController(
         uiState = LoginAndDialogStateController.sendLoginMail(state = uiState)
     }
 
-    // 创建初始状态，保证仓库初始化顺序集中。
-    private fun createInitialState(
-        homePreview: List<Song>,
-        initialLikedSongIds: Set<String>,
-    ): MusicAppUiState {
-        val stats: LibraryStats = musicLibraryRepository.getLibraryStats()
-        val playbackState: PlaybackState = playbackRepository.getPlaybackState()
-        val queueState: QueueState = playbackRepository.getQueueState()
-        val previewWithLikes = homePreview.map { song ->
-            song.copy(isLiked = initialLikedSongIds.contains(song.id) || song.isLiked)
-        }
-        val initialScanState: LocalMusicScanState = buildInitialScanState(stats = stats)
-        return MusicAppUiState(
-            homeLocalSongPreview = previewWithLikes,
-            localSongs = emptyList(),
-            localAlbums = emptyList(),
-            localArtists = emptyList(),
-            favoriteSongs = libraryStateSynchronizer.buildFavoriteSongs(
-                likedSongIds = initialLikedSongIds,
-                preferredSongs = previewWithLikes,
-            ),
-            queueSongsSnapshot = emptyList(),
-            likedSongIds = initialLikedSongIds,
-            currentSongId = playbackState.currentSongId,
-            playbackStatus = playbackState.status,
-            playbackPositionMs = playbackState.positionMs,
-            playbackDurationMs = playbackState.durationMs,
-            playbackMode = queueState.playbackMode,
-            playbackError = playbackState.error,
-            queueSongIds = queueState.songIds,
-            libraryStats = stats,
-            scanState = initialScanState,
-            recentSongs = libraryStateSynchronizer.buildRecentSongs(
-                state = MusicAppUiState(
-                    homeLocalSongPreview = previewWithLikes,
-                    localSongs = emptyList(),
-                    localAlbums = emptyList(),
-                    localArtists = emptyList(),
-                    favoriteSongs = emptyList(),
-                    queueSongsSnapshot = emptyList(),
-                    likedSongIds = initialLikedSongIds,
-                    currentSongId = playbackState.currentSongId,
-                    playbackStatus = playbackState.status,
-                    playbackPositionMs = playbackState.positionMs,
-                    playbackDurationMs = playbackState.durationMs,
-                    playbackMode = queueState.playbackMode,
-                    playbackError = playbackState.error,
-                    queueSongIds = queueState.songIds,
-                    libraryStats = stats,
-                    scanState = initialScanState,
-                ),
-                extraSongs = previewWithLikes,
-            ),
-            themeMode = userPreferencesRepository.getThemeMode(),
-            localMusicDiscoveryPreferences = userPreferencesRepository.getLocalMusicDiscoveryPreferences(),
-            localLibrarySearchHistory = searchHistoryRepository.getSearchHistory(
-                context = SearchContext.LocalLibrary,
-            ),
-            favoritesSearchHistory = searchHistoryRepository.getSearchHistory(
-                context = SearchContext.Favorites,
-            ),
-        )
-    }
-
     // common fake 演示环境自动填充收藏压力数据；真实平台使用注入仓库，不写入演示收藏。
     private fun resolveLikedSongIdsForScan(): Set<String> {
         if (injectedFavoritesRepository != null || uiState.likedSongIds.isNotEmpty()) {
@@ -865,11 +729,6 @@ class MusicAppController(
         val demoFavoriteSongIds: Set<String> = fakeScanner.demoFavoriteSongIds()
         favoritesRepository.replaceLikedSongIds(songIds = demoFavoriteSongIds)
         return demoFavoriteSongIds
-    }
-
-    // 持久层已有歌曲时，冷启动首页应表达“已有曲库，可重新扫描”，但不为此读取全量歌曲。
-    private fun buildInitialScanState(stats: LibraryStats): LocalMusicScanState {
-        return LibraryStateSynchronizer.buildInitialScanStateFromStats(stats = stats)
     }
 
     // 同步播放仓库和 UI 状态，避免多个入口各自写状态。
@@ -891,36 +750,7 @@ class MusicAppController(
                 snapshot = snapshot,
             )
         }
-        restorePlaybackSnapshotIfPending()
-    }
-
-    // 只有启动期显式请求过恢复时，扫描成功后才续上真正的快照恢复，避免平时扫描打断当前播放。
-    private fun restorePlaybackSnapshotIfPending() {
-        if (pendingPlaybackSnapshotRequest == null) {
-            return
-        }
-        if (playbackSnapshotHydrationJob?.isActive == true) {
-            return
-        }
-        controllerScope.launch(start = CoroutineStart.UNDISPATCHED) {
-            val activeJob: Job = coroutineContext[Job] ?: return@launch
-            playbackSnapshotHydrationJob = activeJob
-            try {
-                val request: PendingPlaybackSnapshotRequest = pendingPlaybackSnapshotRequest
-                    ?: return@launch
-                hydratePendingPlaybackSnapshot(request = request)
-            } finally {
-                if (playbackSnapshotHydrationJob == activeJob) {
-                    playbackSnapshotHydrationJob = null
-                }
-            }
-        }
-    }
-
-    // 只有请求身份和代际都未变化时，恢复结果才允许继续提交到运行时播放事实。
-    private fun isPendingPlaybackSnapshotRequestCurrent(request: PendingPlaybackSnapshotRequest, generation: Long): Boolean {
-        return pendingPlaybackSnapshotRequest == request &&
-            playbackSnapshotHydrationGeneration == generation
+        playbackRestoreGate.restorePlaybackSnapshotIfPending()
     }
 
     /** 按需读取完整本地曲库，避免首页冷启动直接打满持久层。 */
