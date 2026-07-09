@@ -76,6 +76,45 @@ class MusicAppControllerTest {
     }
 
     /**
+     * 改变当前播放事实的公开入口后，UI 队列、仓库队列和当前歌曲实体必须保持一致。
+     */
+    @Test
+    fun playbackActionsKeepQueueIdsAndRepositoryQueueConsistent(): Unit = runTest {
+        val playbackRepository = InMemoryPlaybackRepository()
+        val controller = createController(
+            playbackRepository = playbackRepository,
+            controllerScope = backgroundScope,
+        )
+        controller.scanLocalMusic(request = LocalMusicScanRequest.Refresh)
+        val queueSongs: List<Song> = controller.uiState.homeLocalSongPreview.take(n = 3)
+        val initialQueueIds: List<String> = queueSongs.map { song: Song -> song.id }
+
+        controller.playSong(song = queueSongs[0], queueSongs = queueSongs)
+        advanceUntilIdle()
+        assertPlaybackQueueInvariant(
+            controller = controller,
+            playbackRepository = playbackRepository,
+            expectedQueueSongIds = initialQueueIds,
+        )
+
+        controller.skipToQueueIndex(index = 1)
+        advanceUntilIdle()
+        assertPlaybackQueueInvariant(
+            controller = controller,
+            playbackRepository = playbackRepository,
+            expectedQueueSongIds = initialQueueIds,
+        )
+
+        controller.removeFromQueue(songId = queueSongs[0].id)
+        advanceUntilIdle()
+        assertPlaybackQueueInvariant(
+            controller = controller,
+            playbackRepository = playbackRepository,
+            expectedQueueSongIds = initialQueueIds.drop(n = 1),
+        )
+    }
+
+    /**
      * 查看全部应进入本地音乐二级页，底部 Tab 隐藏但 mini-player 策略保持普通二级页。
      */
     @Test
@@ -1836,6 +1875,20 @@ private fun createController(
         permissionSettingsOpener = permissionSettingsOpener,
         controllerScope = controllerScope,
         searchQueryDebounceMillis = searchQueryDebounceMillis,
+    )
+}
+
+private fun assertPlaybackQueueInvariant(
+    controller: MusicAppController,
+    playbackRepository: InMemoryPlaybackRepository,
+    expectedQueueSongIds: List<String>,
+) {
+    assertEquals(expected = expectedQueueSongIds, actual = playbackRepository.getQueueState().songIds)
+    assertEquals(expected = expectedQueueSongIds, actual = controller.uiState.queueSongIds)
+    assertEquals(expected = expectedQueueSongIds, actual = controller.uiState.queueSongs.map { song: Song -> song.id })
+    assertEquals(
+        expected = controller.uiState.currentSongId,
+        actual = controller.uiState.currentSong?.id,
     )
 }
 

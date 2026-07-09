@@ -1352,7 +1352,7 @@ git commit -m "拆分内容导航工作流"
 
 队列不变量说明：`queueSongIds` 来自 `PlaybackRepository.getQueueState()`，`queueSongsSnapshot` 是 UI 能稳定解析队列实体的快照，`queueSongs` 是 `MusicAppUiState` 按 `queueSongIds` 从 `queueSongsSnapshot`、完整曲库、首页预览和收藏投影中派生出的实体列表。`playSong` 必须先把 `queueSongsSnapshot` 写回门面状态，再启动 `PlaybackCoordinator.playSong` 副作用，避免 coordinator 的同步状态被旧 `state.copy(...)` 覆盖。
 
-- [ ] **步骤 1：写播放动作聚焦测试**
+- [x] **步骤 1：写播放动作聚焦测试**
 
 创建 `PlaybackActionControllerTest.kt`：
 
@@ -1450,7 +1450,7 @@ private fun baseState(): MusicAppUiState {
 }
 ```
 
-- [ ] **步骤 2：给门面补队列不变量回归测试**
+- [x] **步骤 2：给门面补队列不变量回归测试**
 
 在 `MusicAppControllerTest` 的播放队列测试附近加入：
 
@@ -1508,7 +1508,7 @@ private fun assertPlaybackQueueInvariant(
 }
 ```
 
-- [ ] **步骤 3：运行测试确认红灯**
+- [x] **步骤 3：运行测试确认红灯**
 
 运行：
 
@@ -1518,7 +1518,7 @@ private fun assertPlaybackQueueInvariant(
 
 预期：聚焦测试失败，错误包含 `Unresolved reference: PlaybackActionController`；门面队列不变量测试可以先通过，保留作为迁移回归。
 
-- [ ] **步骤 4：实现 `PlaybackActionController`**
+- [x] **步骤 4：实现 `PlaybackActionController`**
 
 创建 `PlaybackActionController.kt`：
 
@@ -1710,7 +1710,7 @@ class PlaybackActionController(
 }
 ```
 
-- [ ] **步骤 5：让门面委派播放动作**
+- [x] **步骤 5：让门面委派播放动作**
 
 在 `MusicAppController.kt` 初始化 `playbackCoordinator` 后创建：
 
@@ -1774,7 +1774,7 @@ class PlaybackActionController(
     }
 ```
 
-- [ ] **步骤 6：运行任务六测试和播放回归**
+- [x] **步骤 6：运行任务六测试和播放回归**
 
 运行：
 
@@ -1784,7 +1784,7 @@ class PlaybackActionController(
 
 预期：全部通过。
 
-- [ ] **步骤 7：提交任务六**
+- [x] **步骤 7：提交任务六**
 
 运行：
 
