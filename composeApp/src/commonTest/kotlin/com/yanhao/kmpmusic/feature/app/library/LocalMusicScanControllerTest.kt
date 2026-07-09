@@ -138,6 +138,71 @@ class LocalMusicScanControllerTest {
 
         assertTrue(actual = state.scanState is LocalMusicScanState.Cancelled)
     }
+
+    /**
+     * 取消发布后即使旧扫描还没真正退出，再次触发也必须启动新会话，并继续丢弃旧成功。
+     */
+    @Test
+    fun restartAfterCancellationStartsNewSessionBeforeOldSessionFinishes(): Unit = runTest {
+        var state: MusicAppUiState = baseState()
+        val syncedSongCounts: MutableList<Int> = mutableListOf()
+        val useCase = RestartableLateSuccessUseCase()
+        val controller = LocalMusicScanController(
+            scanLocalMusicUseCase = useCase,
+            permissionSettingsOpener = PermissionSettingsOpener {},
+            controllerScope = backgroundScope,
+            nowMillis = { 10L },
+            resolveLikedSongIdsForScan = { currentState: MusicAppUiState -> currentState.likedSongIds },
+            shouldConfirmPermissionSettingsBeforeScan = { false },
+            publishStateUpdate = { reducer: (MusicAppUiState) -> MusicAppUiState -> state = reducer(state) },
+        )
+
+        val firstJob = launch {
+            controller.scanLocalMusic(
+                state = state,
+                request = LocalMusicScanRequest.Refresh,
+                onLibrarySnapshot = { snapshot: LibrarySnapshot ->
+                    syncedSongCounts += snapshot.stats.songCount
+                    state = state.copy(scanState = snapshot.scanState)
+                },
+            )
+        }
+        useCase.awaitFirstStarted()
+
+        controller.scanLocalMusic(
+            state = state,
+            request = LocalMusicScanRequest.Refresh,
+            onLibrarySnapshot = {},
+        )
+        assertTrue(actual = state.scanState is LocalMusicScanState.Cancelled)
+
+        val secondJob = launch {
+            controller.scanLocalMusic(
+                state = state,
+                request = LocalMusicScanRequest.Refresh,
+                onLibrarySnapshot = { snapshot: LibrarySnapshot ->
+                    syncedSongCounts += snapshot.stats.songCount
+                    state = state.copy(scanState = snapshot.scanState)
+                },
+            )
+        }
+        useCase.awaitSecondStarted()
+
+        assertEquals(expected = 2, actual = useCase.callCount)
+        assertTrue(actual = state.scanState is LocalMusicScanState.Scanning)
+
+        useCase.releaseFirstLateResult()
+        firstJob.join()
+
+        assertTrue(actual = state.scanState is LocalMusicScanState.Scanning)
+        assertTrue(actual = syncedSongCounts.isEmpty())
+
+        useCase.releaseSecondResult()
+        secondJob.join()
+
+        assertEquals(expected = listOf(22), actual = syncedSongCounts)
+        assertTrue(actual = state.scanState is LocalMusicScanState.Done)
+    }
 }
 
 private class BlockingScanUseCase : ScanLocalMusicUseCase {
@@ -281,6 +346,97 @@ private class LateSuccessAfterCancellationUseCase : ScanLocalMusicUseCase {
     /** 释放晚到成功。 */
     fun releaseLateResult() {
         release.complete(value = Unit)
+    }
+}
+
+private class RestartableLateSuccessUseCase : ScanLocalMusicUseCase {
+    // 第一次扫描进入用例的信号，保证取消前旧会话已在运行。
+    private val firstStarted: CompletableDeferred<Unit> = CompletableDeferred()
+
+    // 第二次扫描进入用例的信号，证明取消后可以立刻重试。
+    private val secondStarted: CompletableDeferred<Unit> = CompletableDeferred()
+
+    // 第一次扫描即使取消也要等到这里才晚到返回。
+    private val firstRelease: CompletableDeferred<Unit> = CompletableDeferred()
+
+    // 第二次扫描的正常完成信号。
+    private val secondRelease: CompletableDeferred<Unit> = CompletableDeferred()
+
+    // 记录调用次数，验证新会话已经真正启动。
+    var callCount: Int = 0
+        private set
+
+    /**
+     * 第一次调用忽略取消后晚到成功，第二次调用代表取消后的新会话。
+     */
+    override suspend fun invoke(
+        request: LocalMusicScanRequest,
+        likedSongIds: Set<String>,
+        preferences: LocalMusicDiscoveryPreferences,
+    ): LibrarySnapshot {
+        callCount += 1
+        return if (callCount == 1) {
+            firstStarted.complete(value = Unit)
+            awaitFirstRelease()
+            createSnapshot(songCount = 11)
+        } else {
+            secondStarted.complete(value = Unit)
+            secondRelease.await()
+            createSnapshot(songCount = 22)
+        }
+    }
+
+    /** 等待第一次扫描进入用例。 */
+    suspend fun awaitFirstStarted() {
+        firstStarted.await()
+    }
+
+    /** 等待第二次扫描进入用例。 */
+    suspend fun awaitSecondStarted() {
+        secondStarted.await()
+    }
+
+    /** 释放第一次扫描的晚到成功。 */
+    fun releaseFirstLateResult() {
+        firstRelease.complete(value = Unit)
+    }
+
+    /** 释放第二次扫描的正常成功。 */
+    fun releaseSecondResult() {
+        secondRelease.complete(value = Unit)
+    }
+
+    /** 在第一次调用里忽略取消，稳定复现旧成功晚到。 */
+    private suspend fun awaitFirstRelease() {
+        try {
+            firstRelease.await()
+        } catch (cancellationException: CancellationException) {
+            withContext(NonCancellable) {
+                firstRelease.await()
+            }
+        }
+    }
+
+    /** 构造带可识别歌曲数的快照，方便断言只有新会话被同步。 */
+    private fun createSnapshot(songCount: Int): LibrarySnapshot {
+        return LibrarySnapshot(
+            songs = emptyList(),
+            albums = emptyList(),
+            artists = emptyList(),
+            stats = LibraryStats(songCount = songCount),
+            sources = emptyList(),
+            scanState = LocalMusicScanState.Done(
+                summary = LocalMusicLastScanSummary(
+                    addedCount = songCount,
+                    updatedCount = 0,
+                    removedCount = 0,
+                    problemCount = 0,
+                    completedAt = 10L,
+                ),
+            ),
+            lastScanSummary = null,
+            problems = emptyList(),
+        )
     }
 }
 

@@ -175,12 +175,15 @@ class LocalMusicScanController(
     /** 运行中再次触发时只取消当前会话，不启动第二个扫描。 */
     private fun cancelRunningLocalMusicScan() {
         val sessionId: Long = runningSessionId ?: return
+        val runningJob: Job? = currentLocalMusicScanJob
         cancelledSessionIds += sessionId
         logLocalMusicScan(message = "用户请求取消当前扫描: sessionId=$sessionId")
-        currentLocalMusicScanJob?.cancel(
+        runningSessionId = null
+        currentLocalMusicScanJob = null
+        runningJob?.cancel(
             cause = CancellationException("用户取消了本地音乐扫描"),
         )
-        publishCancelledLocalMusicScan(sessionId = sessionId)
+        publishCancelledState()
     }
 
     /** 外部协程取消时，只在 UI 仍显示运行中时发布取消态。 */
@@ -203,6 +206,11 @@ class LocalMusicScanController(
         if (!isCurrentSession(sessionId = sessionId)) {
             return
         }
+        publishCancelledState()
+    }
+
+    /** 发布统一取消态，让主动取消后可以马上开启下一次扫描。 */
+    private fun publishCancelledState() {
         publishStateUpdate { state: MusicAppUiState ->
             buildCancelledState(state = state)
         }

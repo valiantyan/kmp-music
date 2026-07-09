@@ -75,3 +75,20 @@
 
 - 当前 Gradle 构建会继续输出项目已有的 Kotlin Android Source Set 相关弃用警告，本任务未处理这些非功能性告警。
 - `MusicAppControllerTest` 里已有两处 “No cast needed” 编译警告，本任务没有顺手清理，避免扩散到任务范围之外。
+
+## Task 7 fix：取消后立即重试修复
+
+### 修复摘要
+
+- 修正 `LocalMusicScanController` 的取消路径：第二次触发只负责取消当前会话并立即释放 `runningSessionId` / `currentLocalMusicScanJob`，让用户看到取消态后可以马上发起新扫描。
+- 保留旧会话 `cancelledSessionIds` 标记与 `finishSession` 的当前会话守卫，确保旧成功、旧错误和旧 `finally` 都不会覆盖新会话，也不会清掉新会话的运行中标记。
+- 新增 `LocalMusicScanControllerTest.restartAfterCancellationStartsNewSessionBeforeOldSessionFinishes`，覆盖“旧 use case 忽略取消、第三次点击必须启动第二个会话、旧成功晚到仍被丢弃”。
+- 新增 `MusicAppControllerTest.scanCanRestartImmediatelyAfterCancellationWhileOldScannerIsStillFinishing`，补门面入口回归，确认 `requestLocalMusicScan` 在取消态出现后可立即进入新扫描。
+
+### 测试命令与结果
+
+```bash
+./gradlew :composeApp:desktopTest --tests "com.yanhao.kmpmusic.feature.app.library.LocalMusicScanControllerTest" --tests "com.yanhao.kmpmusic.feature.app.MusicAppControllerTest.scanEntryDuringRunningScanDoesNotStartSecondScan" --tests "com.yanhao.kmpmusic.feature.app.MusicAppControllerTest.lateScanResultAfterCancellationDoesNotOverwriteCancelledStateOrQueue" --tests "com.yanhao.kmpmusic.feature.app.MusicAppControllerTest.scanCanRestartImmediatelyAfterCancellationWhileOldScannerIsStillFinishing"
+```
+
+- 结果：通过，`BUILD SUCCESSFUL`。

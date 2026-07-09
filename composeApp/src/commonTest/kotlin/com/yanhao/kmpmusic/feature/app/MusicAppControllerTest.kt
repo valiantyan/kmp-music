@@ -576,6 +576,41 @@ class MusicAppControllerTest {
     }
 
     /**
+     * 用户看到取消态后立即再次触发扫描时，即使旧 scanner 还没退出也必须启动新会话。
+     */
+    @Test
+    fun scanCanRestartImmediatelyAfterCancellationWhileOldScannerIsStillFinishing(): Unit = runTest {
+        val scanner: RestartableLateSuccessScanner = RestartableLateSuccessScanner()
+        val controller = createController(
+            localMusicScanner = scanner,
+            controllerScope = backgroundScope,
+        )
+
+        controller.requestLocalMusicScan(request = LocalMusicScanRequest.Refresh)
+        scanner.awaitFirstStarted()
+
+        controller.requestLocalMusicScan(request = LocalMusicScanRequest.Refresh)
+        runCurrent()
+        assertTrue(actual = controller.uiState.scanState is LocalMusicScanState.Cancelled)
+
+        controller.requestLocalMusicScan(request = LocalMusicScanRequest.Refresh)
+        runCurrent()
+        scanner.awaitSecondStarted()
+
+        assertEquals(expected = 2, actual = scanner.scanCount)
+        assertTrue(actual = controller.uiState.scanState is LocalMusicScanState.Scanning)
+
+        scanner.releaseFirstLateResult()
+        runCurrent()
+
+        assertTrue(actual = controller.uiState.scanState is LocalMusicScanState.Scanning)
+        assertEquals(expected = 0, actual = controller.uiState.libraryStats.songCount)
+
+        scanner.releaseSecondResult()
+        advanceUntilIdle()
+    }
+
+    /**
      * 重新扫描期间应保留上一轮结果摘要，扫描页统计不能回退成未记录时间。
      */
     @Test
@@ -2133,6 +2168,106 @@ private class LateSuccessAfterCancellationScanner : LocalMusicScanner {
     /** 释放晚到结果。 */
     fun releaseLateResult() {
         release.complete(value = Unit)
+    }
+}
+
+/**
+ * 第一次扫描取消后晚到成功，第三次入口要能马上启动第二次真实扫描。
+ */
+private class RestartableLateSuccessScanner : LocalMusicScanner {
+    // 第一次扫描已进入 scanner 的信号。
+    private val firstStarted: CompletableDeferred<Unit> = CompletableDeferred()
+
+    // 第二次扫描已进入 scanner 的信号。
+    private val secondStarted: CompletableDeferred<Unit> = CompletableDeferred()
+
+    // 第一次扫描即使取消也会等到这里才返回。
+    private val firstRelease: CompletableDeferred<Unit> = CompletableDeferred()
+
+    // 第二次扫描的正常完成信号。
+    private val secondRelease: CompletableDeferred<Unit> = CompletableDeferred()
+
+    // 记录扫描调用次数，用来确认第三次入口确实启动了新扫描。
+    var scanCount: Int = 0
+        private set
+
+    /**
+     * 第一次调用忽略取消并晚到返回，第二次调用代表新的可见扫描会话。
+     */
+    override suspend fun scan(request: LocalMusicScanRequest): LocalMusicScanResult {
+        scanCount += 1
+        return if (scanCount == 1) {
+            firstStarted.complete(value = Unit)
+            awaitFirstRelease()
+            LocalMusicScanResult(
+                discovered = buildDiscoveredFiles(
+                    count = 2,
+                    prefix = "old",
+                ),
+                completedAt = 1_719_360_004_000L,
+            )
+        } else {
+            secondStarted.complete(value = Unit)
+            secondRelease.await()
+            LocalMusicScanResult(
+                discovered = buildDiscoveredFiles(
+                    count = 3,
+                    prefix = "new",
+                ),
+                completedAt = 1_719_360_005_000L,
+            )
+        }
+    }
+
+    /** 等待第一次扫描启动。 */
+    suspend fun awaitFirstStarted() {
+        firstStarted.await()
+    }
+
+    /** 等待第二次扫描启动。 */
+    suspend fun awaitSecondStarted() {
+        secondStarted.await()
+    }
+
+    /** 释放第一次扫描的晚到成功。 */
+    fun releaseFirstLateResult() {
+        firstRelease.complete(value = Unit)
+    }
+
+    /** 释放第二次扫描的正常成功。 */
+    fun releaseSecondResult() {
+        secondRelease.complete(value = Unit)
+    }
+
+    /** 第一次调用收到取消后继续等待，稳定复现复审里的竞态窗口。 */
+    private suspend fun awaitFirstRelease() {
+        try {
+            firstRelease.await()
+        } catch (cancellationException: CancellationException) {
+            withContext(NonCancellable) {
+                firstRelease.await()
+            }
+        }
+    }
+
+    /** 生成可区分来源前缀的发现结果，便于断言最终曲库来自新会话。 */
+    private fun buildDiscoveredFiles(count: Int, prefix: String): List<MusicFileMetadata> {
+        return (1..count).map { index: Int ->
+            MusicFileMetadata(
+                sourceId = "$prefix:$index",
+                sourceKind = LocalMusicSourceKind.FakeScanner,
+                localUri = "test://restart/$prefix/$index",
+                fileName = "$prefix-$index.mp3",
+                title = "$prefix track $index",
+                artist = "artist $prefix",
+                album = "album $prefix",
+                durationMs = 180_000L,
+                mimeType = "audio/mpeg",
+                sizeBytes = 1_000L + index,
+                modifiedAt = index.toLong(),
+                coverArt = CoverArt.HeroLocalMusic,
+            )
+        }
     }
 }
 
