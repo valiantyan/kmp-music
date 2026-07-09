@@ -33,32 +33,20 @@ internal class AndroidPlaybackMediaNotificationProvider(
         mediaButtonPreferences: ImmutableList<CommandButton>,
         showPauseButton: Boolean,
     ): ImmutableList<CommandButton> {
-        return resolveOrderedMediaButtons(
-            playerCommands = playerCommands,
-            mediaButtonPreferences = mediaButtonPreferences,
-            showPauseButton = showPauseButton,
-        )
-    }
-
-    /**
-     * 按产品固定位置解析媒体按钮；[playerCommands] 只代表当前队列边界能力，不应改变固定按钮数量。
-     */
-    @Suppress("UNUSED_PARAMETER")
-    fun resolveOrderedMediaButtons(
-        playerCommands: Player.Commands,
-        mediaButtonPreferences: ImmutableList<CommandButton>,
-        showPauseButton: Boolean,
-    ): ImmutableList<CommandButton> {
         val orderedButtons: ImmutableList.Builder<CommandButton> = ImmutableList.builder()
         mediaButtonPreferences.firstOrNull(PlaybackMediaCommandCatalog::isToggleFavoriteButton)
             ?.let { favoriteButton: CommandButton -> orderedButtons.add(favoriteButton) }
-        orderedButtons.add(AndroidPlaybackMediaButtonFactory.createPreviousButton())
-        orderedButtons.add(
-            AndroidPlaybackMediaButtonFactory.createPlayPauseButton(
-                shouldShowPauseButton = showPauseButton,
-            ),
-        )
-        orderedButtons.add(AndroidPlaybackMediaButtonFactory.createNextButton())
+        if (playerCommands.hasPreviousCommand()) {
+            orderedButtons.add(AndroidPlaybackMediaButtonFactory.createPreviousButton())
+        }
+        if (playerCommands.contains(Player.COMMAND_PLAY_PAUSE)) {
+            orderedButtons.add(
+                AndroidPlaybackMediaButtonFactory.createPlayPauseButton(shouldShowPauseButton = showPauseButton),
+            )
+        }
+        if (playerCommands.hasNextCommand()) {
+            orderedButtons.add(AndroidPlaybackMediaButtonFactory.createNextButton())
+        }
         mediaButtonPreferences.firstOrNull(PlaybackMediaCommandCatalog::isPlaybackModeButton)
             ?.let { playbackModeButton: CommandButton -> orderedButtons.add(playbackModeButton) }
         return orderedButtons.build()
@@ -119,6 +107,18 @@ internal class AndroidPlaybackMediaNotificationProvider(
         return listOf(firstIndex, playPauseIndex, nextIndex)
             .filter { index: Int -> index >= 0 }
             .toIntArray()
+    }
+
+    // 判断控制器是否允许上一首相关命令，兼容 Media3 对上一首命令的新旧拆分。
+    private fun Player.Commands.hasPreviousCommand(): Boolean {
+        return contains(Player.COMMAND_SEEK_TO_PREVIOUS) ||
+            contains(Player.COMMAND_SEEK_TO_PREVIOUS_MEDIA_ITEM)
+    }
+
+    // 判断控制器是否允许下一首相关命令，兼容 Media3 对下一首命令的新旧拆分。
+    private fun Player.Commands.hasNextCommand(): Boolean {
+        return contains(Player.COMMAND_SEEK_TO_NEXT) ||
+            contains(Player.COMMAND_SEEK_TO_NEXT_MEDIA_ITEM)
     }
 
     // 判断按钮是否承载上一首命令，用于紧凑态 fallback。
