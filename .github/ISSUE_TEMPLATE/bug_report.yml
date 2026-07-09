@@ -1,0 +1,80 @@
+name: BUG 报告
+description: 报告一个可复现的问题，供 Codex 根据本地 issue 流程修复。
+title: "[BUG] "
+labels:
+  - bug
+  - needs-triage
+body:
+  - type: markdown
+    attributes:
+      value: |
+        感谢反馈。请尽量提供可复现信息；信息不足时，维护者或 Codex 会先标记为 `needs-info`，不会直接修复。
+  - type: textarea
+    id: problem
+    attributes:
+      label: 问题现象
+      description: 简要描述你遇到的问题，以及它影响了哪个页面、平台或流程。
+      placeholder: 例如：在 Android 首页点击迷你播放器后，播放页没有打开。
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: 复现步骤
+      description: 请写出从干净状态开始的具体步骤。
+      placeholder: |
+        1. 打开应用
+        2. 进入 ...
+        3. 点击 ...
+        4. 观察到 ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: 期望行为
+      description: 你认为正确的表现是什么？
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: 实际行为
+      description: 实际发生了什么？如果有错误日志、截图或录屏，请附上。
+    validations:
+      required: true
+  - type: dropdown
+    id: platform
+    attributes:
+      label: 发生平台
+      multiple: true
+      options:
+        - Android
+        - iOS
+        - Desktop/macOS
+        - 共享逻辑
+        - 不确定
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: 版本或提交
+      description: 如果知道，请填写应用版本、分支名或 commit hash。
+      placeholder: main / commit hash / APK 版本
+  - type: textarea
+    id: evidence
+    attributes:
+      label: 截图、录屏或日志
+      description: 粘贴关键日志，或拖入截图、录屏、bugreport 等附件。
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: 验收标准
+      description: 修复后你会如何确认问题已经解决？不确定也请写最小期望。
+      placeholder: |
+        - [ ] 按上述步骤不再复现问题
+        - [ ] 相关页面/状态保持正确
+        - [ ] 已补充或更新回归测试
+    validations:
+      required: true

@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 讨论或非 BUG 需求
+    url: https://github.com/valiantyan/kmp-music/discussions
+    about: 如果不是可复现 BUG，请先用讨论区或直接联系维护者确认范围。
