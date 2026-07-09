@@ -23,7 +23,7 @@ private const val LOCAL_MUSIC_SCAN_LOG_PREFIX = "[LocalMusicScan]"
 /**
  * 本地音乐扫描工作流，把一次扫描视为独立会话并丢弃旧会话晚到事件。
  */
-class LocalMusicScanController(
+internal class LocalMusicScanController(
     private val scanLocalMusicUseCase: ScanLocalMusicUseCase,
     private val permissionSettingsOpener: PermissionSettingsOpener,
     private val controllerScope: CoroutineScope,

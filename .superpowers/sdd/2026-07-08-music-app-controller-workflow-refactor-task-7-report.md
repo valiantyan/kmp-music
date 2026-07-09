@@ -92,3 +92,18 @@
 ```
 
 - 结果：通过，`BUILD SUCCESSFUL`。
+
+## Task 7 复审补丁：收紧本地扫描工作流可见性
+
+### 修复摘要
+
+- 将 `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/app/library/LocalMusicScanController.kt` 中的 `LocalMusicScanController` 改为 `internal`，避免它作为 commonMain 的模块公开 API 暴露出去。
+- `MusicAppController` 仍可在同模块内正常实例化并持有该协作者，`commonTest` 里的定点测试也保持可访问。
+
+### 测试命令与结果
+
+```bash
+./gradlew :composeApp:desktopTest --tests "com.yanhao.kmpmusic.feature.app.library.LocalMusicScanControllerTest" --tests "com.yanhao.kmpmusic.feature.app.MusicAppControllerTest.scanCanRestartImmediatelyAfterCancellationWhileOldScannerIsStillFinishing"
+```
+
+- 结果：通过，`BUILD SUCCESSFUL`。
