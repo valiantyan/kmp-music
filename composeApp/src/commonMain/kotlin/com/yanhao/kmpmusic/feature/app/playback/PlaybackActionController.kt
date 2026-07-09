@@ -8,7 +8,6 @@ import com.yanhao.kmpmusic.domain.playback.PlaybackCoordinator
 import com.yanhao.kmpmusic.domain.repository.PlaybackRepository
 import com.yanhao.kmpmusic.feature.app.MusicAppUiState
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.launch
 
 /**
@@ -49,13 +48,11 @@ class PlaybackActionController(
     }
 
     /** 门面写入实体队列快照后，再启动真正播放副作用。 */
-    fun startPlayback(action: PreparedPlaySong) {
-        controllerScope.launch(start = CoroutineStart.UNDISPATCHED) {
-            playbackCoordinator.playSong(
-                song = action.song,
-                queueSongs = action.queueSongs,
-            )
-        }
+    suspend fun startPlayback(action: PreparedPlaySong) {
+        playbackCoordinator.playSong(
+            song = action.song,
+            queueSongs = action.queueSongs,
+        )
     }
 
     /** 最近播放入口必须复用完整最近播放列表。 */
@@ -150,16 +147,14 @@ class PlaybackActionController(
     }
 
     /** 从队列移除歌曲，至少保留一首。 */
-    fun removeFromQueue(
+    suspend fun removeFromQueue(
         state: MusicAppUiState,
         songId: String,
     ) {
-        controllerScope.launch(start = CoroutineStart.UNDISPATCHED) {
-            playbackCoordinator.removeFromQueue(
-                songId = songId,
-                availableSongs = state.queueSongs,
-            )
-        }
+        playbackCoordinator.removeFromQueue(
+            songId = songId,
+            availableSongs = state.queueSongs,
+        )
     }
 
     /** 清空真实最近播放历史，并立即同步当前页面列表。 */

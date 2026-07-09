@@ -60,6 +60,8 @@ import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
 private const val DEFAULT_SEARCH_QUERY_DEBOUNCE_MILLIS = 300L
 
@@ -143,6 +145,9 @@ class MusicAppController(
 
     // 每次用户显式改变播放事实时递增，用来丢弃已经过期的恢复结果。
     private var playbackSnapshotHydrationGeneration: Long = 0L
+
+    // 恢复提交与显式改写播放事实的入口必须串行，避免旧恢复在新动作之后继续落地。
+    private val playbackFactMutationMutex: Mutex = Mutex()
 
     // 搜索会话子控制器负责搜索输入态、防抖和历史 reducer。
     private val searchSessionController: SearchSessionController = SearchSessionController(
@@ -365,31 +370,24 @@ class MusicAppController(
                     playbackSnapshotHydrationGeneration == generationAtStart
             },
         )
-        if (!isPendingPlaybackSnapshotRequestCurrent(request = request, generation = generationAtStart)) {
-            return
-        }
-        result.restoredSnapshot?.let { restoredSnapshot: PlaybackSnapshot ->
-            val queueSongsSnapshot: List<Song> = result.queueSongsSnapshot ?: return@let
-            val didApplySnapshot: Boolean = playbackCoordinator.applyRestoredSnapshot(
-                snapshot = restoredSnapshot,
-                availableSongs = queueSongsSnapshot,
-                canCommit = {
-                    isPendingPlaybackSnapshotRequestCurrent(
-                        request = request,
-                        generation = generationAtStart,
-                    )
-                },
-            )
-            if (!didApplySnapshot) {
+        playbackFactMutationMutex.withLock {
+            if (!isPendingPlaybackSnapshotRequestCurrent(request = request, generation = generationAtStart)) {
                 return
             }
-        }
-        result.queueSongsSnapshot?.let { queueSongsSnapshot: List<Song> ->
-            reduceUiState { currentState: MusicAppUiState ->
-                currentState.copy(queueSongsSnapshot = queueSongsSnapshot)
+            result.restoredSnapshot?.let { restoredSnapshot: PlaybackSnapshot ->
+                val queueSongsSnapshot: List<Song> = result.queueSongsSnapshot ?: return@let
+                playbackCoordinator.applyRestoredSnapshot(
+                    snapshot = restoredSnapshot,
+                    availableSongs = queueSongsSnapshot,
+                )
             }
+            result.queueSongsSnapshot?.let { queueSongsSnapshot: List<Song> ->
+                reduceUiState { currentState: MusicAppUiState ->
+                    currentState.copy(queueSongsSnapshot = queueSongsSnapshot)
+                }
+            }
+            pendingPlaybackSnapshotRequest = result.pendingRequest
         }
-        pendingPlaybackSnapshotRequest = result.pendingRequest
     }
 
     /** 打开权限设置确认框，由用户选择是否离开 App 进入系统设置。 */
@@ -446,26 +444,30 @@ class MusicAppController(
     /** 播放歌曲但留在当前页面，未显式传列表时优先复用当前队列上下文。 */
     fun playSong(song: Song, queueSongs: List<Song> = emptyList()) {
         commitSearchQueryForResultActionIfNeeded()
-        clearPendingPlaybackSnapshotRequest()
-        val action: PlaybackActionController.PreparedPlaySong = playbackActionController.preparePlaySong(
-            state = uiState,
-            song = song,
-            queueSongs = queueSongs,
-        )
-        uiState = action.state
-        playbackActionController.startPlayback(action = action)
+        launchPlaybackFactMutation {
+            clearPendingPlaybackSnapshotRequest()
+            val action: PlaybackActionController.PreparedPlaySong = playbackActionController.preparePlaySong(
+                state = uiState,
+                song = song,
+                queueSongs = queueSongs,
+            )
+            uiState = action.state
+            playbackActionController.startPlayback(action = action)
+        }
     }
 
     /** 最近播放入口必须复用完整过滤后列表，避免“我的”页摘要 Top3 截断播放队列。 */
     fun playRecentSong(song: Song) {
         commitSearchQueryForResultActionIfNeeded()
-        clearPendingPlaybackSnapshotRequest()
-        val action: PlaybackActionController.PreparedPlaySong = playbackActionController.preparePlayRecentSong(
-            state = uiState,
-            song = song,
-        )
-        uiState = action.state
-        playbackActionController.startPlayback(action = action)
+        launchPlaybackFactMutation {
+            clearPendingPlaybackSnapshotRequest()
+            val action: PlaybackActionController.PreparedPlaySong = playbackActionController.preparePlayRecentSong(
+                state = uiState,
+                song = song,
+            )
+            uiState = action.state
+            playbackActionController.startPlayback(action = action)
+        }
     }
 
     /** 打开当前播放页，供迷你播放器和 Android 通知正文复用同一路由入口。 */
@@ -490,29 +492,37 @@ class MusicAppController(
 
     /** 切换上一首或下一首。 */
     fun moveTrack(direction: Int) {
-        clearPendingPlaybackSnapshotRequest()
-        playbackActionController.moveTrack(direction = direction)
+        launchPlaybackFactMutation {
+            clearPendingPlaybackSnapshotRequest()
+            playbackActionController.moveTrack(direction = direction)
+        }
     }
 
     /** 按精确队列下标切歌，并带入系统命令指定的起始进度。 */
     fun skipToQueueIndex(index: Int, positionMs: Long = 0L) {
-        clearPendingPlaybackSnapshotRequest()
-        playbackActionController.skipToQueueIndex(
-            index = index,
-            positionMs = positionMs,
-        )
+        launchPlaybackFactMutation {
+            clearPendingPlaybackSnapshotRequest()
+            playbackActionController.skipToQueueIndex(
+                index = index,
+                positionMs = positionMs,
+            )
+        }
     }
 
     /** 拖动播放进度时同时更新运行态与持久化快照，避免冷启动回到旧进度。 */
     fun seekTo(positionMs: Long) {
-        clearPendingPlaybackSnapshotRequest()
-        playbackActionController.seekTo(positionMs = positionMs)
+        launchPlaybackFactMutation {
+            clearPendingPlaybackSnapshotRequest()
+            playbackActionController.seekTo(positionMs = positionMs)
+        }
     }
 
     /** 播放模式按钮只负责触发协调器切换，UI 统一从仓库回读。 */
     fun cyclePlaybackMode() {
-        clearPendingPlaybackSnapshotRequest()
-        playbackActionController.cyclePlaybackMode()
+        launchPlaybackFactMutation {
+            clearPendingPlaybackSnapshotRequest()
+            playbackActionController.cyclePlaybackMode()
+        }
     }
 
     /** 调整共享播放器音量，所有页面读取同一份状态后再由 [PlaybackCoordinator] 下发到播放引擎。 */
@@ -712,11 +722,13 @@ class MusicAppController(
 
     /** 从队列移除歌曲，至少保留一首。 */
     fun removeFromQueue(songId: String) {
-        clearPendingPlaybackSnapshotRequest()
-        playbackActionController.removeFromQueue(
-            state = uiState,
-            songId = songId,
-        )
+        launchPlaybackFactMutation {
+            clearPendingPlaybackSnapshotRequest()
+            playbackActionController.removeFromQueue(
+                state = uiState,
+                songId = songId,
+            )
+        }
     }
 
     /**
@@ -727,6 +739,15 @@ class MusicAppController(
         playbackSnapshotHydrationGeneration += 1
         playbackSnapshotHydrationJob?.cancel()
         playbackSnapshotHydrationJob = null
+    }
+
+    // 所有会改写当前播放事实的公开入口都走同一串行域，避免旧恢复晚到覆盖新动作。
+    private fun launchPlaybackFactMutation(block: suspend () -> Unit) {
+        controllerScope.launch(start = CoroutineStart.UNDISPATCHED) {
+            playbackFactMutationMutex.withLock {
+                block()
+            }
+        }
     }
 
     /** 打开更多操作弹层。 */
