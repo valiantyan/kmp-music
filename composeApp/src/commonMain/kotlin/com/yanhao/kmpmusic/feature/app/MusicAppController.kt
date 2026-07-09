@@ -55,6 +55,7 @@ import com.yanhao.kmpmusic.feature.app.playback.PlaybackRestoreOrchestrator
 import com.yanhao.kmpmusic.feature.app.playback.PlaybackUiStateSynchronizer
 import com.yanhao.kmpmusic.feature.app.search.SearchSessionController
 import com.yanhao.kmpmusic.feature.app.session.LoginAndDialogStateController
+import com.yanhao.kmpmusic.feature.app.system.SystemBackController
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.CancellationException
@@ -252,27 +253,9 @@ class MusicAppController(
      * 处理 Android 系统返回键，优先关闭临时浮层，最后才退出二级页面。
      */
     fun handleSystemBack(): Boolean {
-        if (uiState.isPermissionSettingsDialogOpen) {
-            closePermissionSettingsDialog()
-            return true
-        }
-        if (uiState.isClearCacheDialogOpen) {
-            closeClearCacheDialog()
-            return true
-        }
-        if (uiState.moreSongId != null) {
-            closeMore()
-            return true
-        }
-        if (uiState.isQueueOpen) {
-            closeQueue()
-            return true
-        }
-        if (!uiState.navigationState.isTopLevel) {
-            navigateBack()
-            return true
-        }
-        return false
+        val result: SystemBackController.Result = SystemBackController.handleSystemBack(state = uiState)
+        uiState = result.state
+        return result.wasHandled
     }
 
     /** 使用控制器生命周期启动扫描，避免主题切换重组取消 UI 协程后卡住扫描态。 */

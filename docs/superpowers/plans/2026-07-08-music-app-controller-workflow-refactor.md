@@ -195,7 +195,7 @@ git commit -m "重构 MusicAppController 状态写入口"
 - 消费：`MusicAppUiState`、`NavigationStateController.navigateBack(state: MusicAppUiState): MusicAppUiState`。
 - 产出：`SystemBackController.handleSystemBack(state: MusicAppUiState): SystemBackController.Result`。
 
-- [ ] **步骤 1：写系统返回聚焦测试**
+- [x] **步骤 1：写系统返回聚焦测试**
 
 创建 `SystemBackControllerTest.kt`：
 
@@ -303,7 +303,7 @@ private fun baseState(): MusicAppUiState {
 }
 ```
 
-- [ ] **步骤 2：运行测试确认红灯**
+- [x] **步骤 2：运行测试确认红灯**
 
 运行：
 
@@ -313,7 +313,7 @@ private fun baseState(): MusicAppUiState {
 
 预期：失败，错误包含 `Unresolved reference: SystemBackController`。
 
-- [ ] **步骤 3：实现 `SystemBackController`**
+- [x] **步骤 3：实现 `SystemBackController`**
 
 创建 `SystemBackController.kt`：
 
@@ -380,7 +380,7 @@ object SystemBackController {
 }
 ```
 
-- [ ] **步骤 4：让门面委派系统返回**
+- [x] **步骤 4：让门面委派系统返回**
 
 在 `MusicAppController.kt` 增加 import：
 
@@ -401,7 +401,7 @@ import com.yanhao.kmpmusic.feature.app.system.SystemBackController
     }
 ```
 
-- [ ] **步骤 5：运行任务二测试和门面回归**
+- [x] **步骤 5：运行任务二测试和门面回归**
 
 运行：
 
@@ -411,7 +411,7 @@ import com.yanhao.kmpmusic.feature.app.system.SystemBackController
 
 预期：全部通过。
 
-- [ ] **步骤 6：提交任务二**
+- [x] **步骤 6：提交任务二**
 
 运行：
 
