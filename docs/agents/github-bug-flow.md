@@ -72,6 +72,8 @@ gh auth status
 curl -L --fail --output ".scratch/github-bugs/assets/<编号>/<文件名>" "<附件 URL>"
 ```
 
+如果附件 URL 不包含原始文件名或扩展名，下载后必须根据 `file`、`Content-Type` 或内容检查结果重命名为可审计文件名，例如 `issue-<编号>-<用途>.<扩展名>`，避免只保存为 GitHub asset UUID。
+
 agent 必须在本地镜像 issue 中记录附件清单：原始 URL、本地保存路径、文件类型、文件大小、下载是否成功、检查结论、是否影响根因判断。除非用户明确要求，不要把原始图片、视频、日志附件 stage 或 commit；提交本地镜像 issue 中的文字证据即可。
 
 如果附件下载失败，agent 必须记录失败命令、错误原因和下一步需求。缺少关键附件且无法判断问题时，停止修复并把 GitHub Issue 标记为 `needs-info`，不要靠猜测继续。
