@@ -2,6 +2,7 @@ package com.yanhao.kmpmusic.feature.app.playback
 
 import com.yanhao.kmpmusic.domain.model.CoverArt
 import com.yanhao.kmpmusic.domain.model.PlaybackSnapshot
+import com.yanhao.kmpmusic.domain.model.PlaybackSnapshotIdentity
 import com.yanhao.kmpmusic.domain.model.PlaybackState
 import com.yanhao.kmpmusic.domain.model.PlaybackStatus
 import com.yanhao.kmpmusic.domain.model.QueueState
@@ -17,7 +18,41 @@ import kotlin.test.assertTrue
 
 class MusicAppPlaybackRestoreOrchestratorTest {
     @Test
-    fun restoreMarksPendingWhenSavedSongsCannotBeResolved(): Unit = runTest {
+    fun snapshotIdentityIncludesCurrentSongPositionAndUpdatedAt(): Unit = runTest {
+        val firstStore: InMemoryPlaybackSnapshotStore = InMemoryPlaybackSnapshotStore()
+        firstStore.saveSnapshot(
+            snapshot = PlaybackSnapshot(
+                playbackState = PlaybackState(
+                    currentSongId = "song-1",
+                    positionMs = 1_000L,
+                ),
+                queueState = QueueState(
+                    songIds = listOf("song-1", "song-2"),
+                    currentIndex = 0,
+                ),
+                updatedAt = 10L,
+            ),
+        )
+        val secondStore: InMemoryPlaybackSnapshotStore = InMemoryPlaybackSnapshotStore()
+        secondStore.saveSnapshot(
+            snapshot = PlaybackSnapshot(
+                playbackState = PlaybackState(
+                    currentSongId = "song-2",
+                    positionMs = 2_000L,
+                ),
+                queueState = QueueState(
+                    songIds = listOf("song-1", "song-2"),
+                    currentIndex = 1,
+                ),
+                updatedAt = 20L,
+            ),
+        )
+
+        assertTrue(actual = firstStore.getSavedSnapshotIdentity() != secondStore.getSavedSnapshotIdentity())
+    }
+
+    @Test
+    fun restoreReturnsEmptyResultWithoutPendingRequest(): Unit = runTest {
         val orchestrator: PlaybackRestoreOrchestrator = PlaybackRestoreOrchestrator(
             playbackSnapshotStore = snapshotStoreWithQueue(songIds = listOf("missing")),
             availableSongsResolver = { _, _ -> emptyList() },
@@ -27,10 +62,89 @@ class MusicAppPlaybackRestoreOrchestratorTest {
         val result: PlaybackRestoreOrchestrator.Result = orchestrator.restore(
             state = testState(),
             preferredSongs = emptyList(),
+            pendingRequest = null,
+            isRequestCurrent = { true },
         )
 
-        assertTrue(actual = result.isPending)
-        assertEquals(expected = emptyList(), actual = result.state.queueSongsSnapshot)
+        assertEquals(expected = null, actual = result.pendingRequest)
+        assertEquals(expected = null, actual = result.queueSongsSnapshot)
+        assertFalse(actual = result.didHydrateSnapshot)
+    }
+
+    @Test
+    fun restoreWaitsUntilEntireSavedQueueAndCurrentSongAreResolvable(): Unit = runTest {
+        val restoredCalls: MutableList<List<String>> = mutableListOf()
+        val store: PlaybackSnapshotStore = snapshotStoreWithQueue(songIds = listOf("song-1", "song-2"))
+        val orchestrator: PlaybackRestoreOrchestrator = PlaybackRestoreOrchestrator(
+            playbackSnapshotStore = store,
+            availableSongsResolver = { _, preferredSongs: List<Song> -> preferredSongs },
+            restoreSnapshot = { songs: List<Song> ->
+                restoredCalls += songs.map { song: Song -> song.id }
+            },
+        )
+        val request: PendingPlaybackSnapshotRequest = orchestrator.createPendingRequest()
+            ?: error("保存快照应创建待加载请求")
+
+        val result: PlaybackRestoreOrchestrator.Result = orchestrator.restore(
+            state = testState(),
+            preferredSongs = listOf(testSong(id = "song-1")),
+            pendingRequest = request,
+            isRequestCurrent = { true },
+        )
+
+        assertEquals(expected = request, actual = result.pendingRequest)
+        assertEquals(expected = emptyList(), actual = restoredCalls)
+        assertEquals(expected = null, actual = result.queueSongsSnapshot)
+        assertFalse(actual = result.didHydrateSnapshot)
+    }
+
+    @Test
+    fun restoreClearsPendingRequestWhenSavedIdentityChanges(): Unit = runTest {
+        val store: InMemoryPlaybackSnapshotStore = InMemoryPlaybackSnapshotStore()
+        store.saveSnapshot(
+            snapshot = PlaybackSnapshot(
+                playbackState = PlaybackState(
+                    currentSongId = "song-1",
+                    positionMs = 1_000L,
+                ),
+                queueState = QueueState(
+                    songIds = listOf("song-1"),
+                    currentIndex = 0,
+                ),
+                updatedAt = 10L,
+            ),
+        )
+        val orchestrator: PlaybackRestoreOrchestrator = PlaybackRestoreOrchestrator(
+            playbackSnapshotStore = store,
+            availableSongsResolver = { _, preferredSongs: List<Song> -> preferredSongs },
+            restoreSnapshot = { error("身份变化后不应继续恢复") },
+        )
+        val request: PendingPlaybackSnapshotRequest = orchestrator.createPendingRequest()
+            ?: error("保存快照应创建待加载请求")
+        store.saveSnapshot(
+            snapshot = PlaybackSnapshot(
+                playbackState = PlaybackState(
+                    currentSongId = "song-2",
+                    positionMs = 2_000L,
+                ),
+                queueState = QueueState(
+                    songIds = listOf("song-2"),
+                    currentIndex = 0,
+                ),
+                updatedAt = 20L,
+            ),
+        )
+
+        val result: PlaybackRestoreOrchestrator.Result = orchestrator.restore(
+            state = testState(),
+            preferredSongs = listOf(testSong(id = "song-2")),
+            pendingRequest = request,
+            isRequestCurrent = { true },
+        )
+
+        assertEquals(expected = null, actual = result.pendingRequest)
+        assertEquals(expected = null, actual = result.queueSongsSnapshot)
+        assertFalse(actual = result.didHydrateSnapshot)
     }
 
     @Test
@@ -46,18 +160,36 @@ class MusicAppPlaybackRestoreOrchestratorTest {
                 restoredCalls += songs.map { restoredSong: Song -> restoredSong.id }
             },
         )
+        val request: PendingPlaybackSnapshotRequest = orchestrator.createPendingRequest()
+            ?: error("保存快照应创建待加载请求")
 
         val result: PlaybackRestoreOrchestrator.Result = orchestrator.restore(
             state = testState(),
             preferredSongs = listOf(song),
+            pendingRequest = request,
+            isRequestCurrent = { candidate: PendingPlaybackSnapshotRequest -> candidate == request },
         )
 
-        assertFalse(actual = result.isPending)
+        assertFalse(actual = result.pendingRequest != null)
+        assertTrue(actual = result.didHydrateSnapshot)
         assertEquals(
             expected = listOf("song-1"),
-            actual = result.state.queueSongsSnapshot.map { restoredSong: Song -> restoredSong.id },
+            actual = result.queueSongsSnapshot?.map { restoredSong: Song -> restoredSong.id },
         )
         assertEquals(expected = listOf(listOf("song-1")), actual = restoredCalls)
+    }
+
+    @Test
+    fun createPendingRequestReturnsNullWhenNoSavedQueueExists(): Unit = runTest {
+        val orchestrator: PlaybackRestoreOrchestrator = PlaybackRestoreOrchestrator(
+            playbackSnapshotStore = InMemoryPlaybackSnapshotStore(),
+            availableSongsResolver = { _, preferredSongs: List<Song> -> preferredSongs },
+            restoreSnapshot = { error("没有请求时不应恢复") },
+        )
+
+        val request: PendingPlaybackSnapshotRequest? = orchestrator.createPendingRequest()
+
+        assertEquals(expected = null, actual = request)
     }
 
     private suspend fun snapshotStoreWithQueue(songIds: List<String>): PlaybackSnapshotStore {

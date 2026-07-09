@@ -2,9 +2,11 @@ package com.yanhao.kmpmusic.domain.playback
 
 import com.yanhao.kmpmusic.data.InMemoryPlaybackRepository
 import com.yanhao.kmpmusic.domain.model.PlaybackSnapshot
+import com.yanhao.kmpmusic.domain.model.PlaybackSnapshotIdentity
 import com.yanhao.kmpmusic.domain.model.PlaybackState
 import com.yanhao.kmpmusic.domain.model.PlaybackStatus
 import com.yanhao.kmpmusic.domain.model.QueueState
+import com.yanhao.kmpmusic.domain.model.identity
 import com.yanhao.kmpmusic.domain.persistence.PlaybackSnapshotStore
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -167,6 +169,15 @@ class PlaybackSnapshotWriterTest {
             return savedSnapshots.lastOrNull()?.queueState?.songIds ?: emptyList()
         }
 
+        /** 用最近一次保存快照的身份补齐接口契约。 */
+        override suspend fun getSavedSnapshotIdentity(): PlaybackSnapshotIdentity? {
+            val snapshot: PlaybackSnapshot = savedSnapshots.lastOrNull() ?: return null
+            if (snapshot.queueState.songIds.isEmpty()) {
+                return null
+            }
+            return snapshot.identity
+        }
+
         /** 返回最近一次保存的快照。 */
         override suspend fun restoreSnapshot(availableSongIds: Set<String>): PlaybackSnapshot {
             return savedSnapshots.lastOrNull() ?: PlaybackSnapshot()
@@ -190,6 +201,11 @@ class PlaybackSnapshotWriterTest {
         /** 失败 store 不提供历史队列。 */
         override suspend fun getSavedQueueSongIds(): List<String> {
             return emptyList()
+        }
+
+        /** 失败 store 不提供历史身份。 */
+        override suspend fun getSavedSnapshotIdentity(): PlaybackSnapshotIdentity? {
+            return null
         }
 
         /** 恢复实现对本测试无影响，返回默认空快照即可。 */

@@ -46,6 +46,7 @@ import com.yanhao.kmpmusic.feature.app.library.LocalMusicScanController
 import com.yanhao.kmpmusic.feature.app.library.MusicLibraryProjector
 import com.yanhao.kmpmusic.feature.app.navigation.ContentNavigationController
 import com.yanhao.kmpmusic.feature.app.navigation.NavigationStateController
+import com.yanhao.kmpmusic.feature.app.playback.PendingPlaybackSnapshotRequest
 import com.yanhao.kmpmusic.feature.app.playback.PlaybackRestoreOrchestrator
 import com.yanhao.kmpmusic.feature.app.playback.PlaybackActionController
 import com.yanhao.kmpmusic.feature.app.playback.PlaybackUiStateSynchronizer
@@ -55,6 +56,8 @@ import com.yanhao.kmpmusic.feature.app.session.LoginAndDialogStateController
 import com.yanhao.kmpmusic.feature.app.system.SystemBackController
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.launch
 
 private const val DEFAULT_SEARCH_QUERY_DEBOUNCE_MILLIS = 300L
@@ -131,8 +134,14 @@ class MusicAppController(
     // 播放 UI 刷新观察者，供平台通知或其他宿主订阅共享状态。
     private var playbackUiObserver: (MusicAppUiState) -> Unit = {}
 
-    // 冷启动恢复请求在曲库尚未准备好时先挂起，等扫描结果到位后再真正执行。
-    private var isPlaybackRestorePending: Boolean = false
+    // 冷启动恢复请求只保存身份，不在门面里缓存整份持久化快照。
+    private var pendingPlaybackSnapshotRequest: PendingPlaybackSnapshotRequest? = null
+
+    // 防止扫描完成、首次全量加载和用户显式恢复同时并发触发多次 hydration。
+    private var playbackSnapshotHydrationJob: Job? = null
+
+    // 每次用户显式改变播放事实时递增，用来丢弃已经过期的恢复结果。
+    private var playbackSnapshotHydrationGeneration: Long = 0L
 
     // 搜索会话子控制器负责搜索输入态、防抖和历史 reducer。
     private val searchSessionController: SearchSessionController = SearchSessionController(
@@ -318,12 +327,53 @@ class MusicAppController(
      * 按可用曲库恢复持久化播放快照，并始终以暂停态回填共享 UI。
      */
     suspend fun restorePlaybackSnapshot() {
+        if (playbackSnapshotHydrationJob?.isActive == true) {
+            return
+        }
+        val request: PendingPlaybackSnapshotRequest = pendingPlaybackSnapshotRequest
+            ?: playbackRestoreOrchestrator.createPendingRequest()
+            ?: run {
+                pendingPlaybackSnapshotRequest = null
+                return
+            }
+        pendingPlaybackSnapshotRequest = request
+        val activeJob: Job = currentCoroutineContext()[Job] ?: run {
+            hydratePendingPlaybackSnapshot(request = request)
+            return
+        }
+        playbackSnapshotHydrationJob = activeJob
+        try {
+            hydratePendingPlaybackSnapshot(request = request)
+        } finally {
+            if (playbackSnapshotHydrationJob == activeJob) {
+                playbackSnapshotHydrationJob = null
+            }
+        }
+    }
+
+    /**
+     * 真正执行一次挂起恢复，只把解析出的队列实体并回最新 [uiState]。
+     */
+    private suspend fun hydratePendingPlaybackSnapshot(request: PendingPlaybackSnapshotRequest) {
+        val generationAtStart: Long = playbackSnapshotHydrationGeneration
         val result: PlaybackRestoreOrchestrator.Result = playbackRestoreOrchestrator.restore(
             state = uiState,
             preferredSongs = preferredKnownSongs(),
+            pendingRequest = request,
+            isRequestCurrent = { currentRequest: PendingPlaybackSnapshotRequest ->
+                pendingPlaybackSnapshotRequest == currentRequest &&
+                    playbackSnapshotHydrationGeneration == generationAtStart
+            },
         )
-        uiState = uiState.copy(queueSongsSnapshot = result.state.queueSongsSnapshot)
-        isPlaybackRestorePending = result.isPending
+        if (playbackSnapshotHydrationGeneration != generationAtStart) {
+            return
+        }
+        result.queueSongsSnapshot?.let { queueSongsSnapshot: List<Song> ->
+            reduceUiState { currentState: MusicAppUiState ->
+                currentState.copy(queueSongsSnapshot = queueSongsSnapshot)
+            }
+        }
+        pendingPlaybackSnapshotRequest = result.pendingRequest
     }
 
     /** 打开权限设置确认框，由用户选择是否离开 App 进入系统设置。 */
@@ -409,13 +459,11 @@ class MusicAppController(
 
     /** 切换播放暂停。 */
     fun togglePlayback() {
-        clearPendingPlaybackSnapshotRequest()
         playbackActionController.togglePlayback()
     }
 
     /** 显式恢复或开始播放，供 Android 系统媒体命令调用。 */
     fun play() {
-        clearPendingPlaybackSnapshotRequest()
         playbackActionController.play()
     }
 
@@ -591,7 +639,6 @@ class MusicAppController(
 
     /** 清空真实最近播放历史，并立即同步当前页面列表。 */
     fun clearRecentPlaybackHistory() {
-        clearPendingPlaybackSnapshotRequest()
         uiState = playbackActionController.clearRecentPlaybackHistory(state = uiState)
     }
 
@@ -656,8 +703,14 @@ class MusicAppController(
         )
     }
 
+    /**
+     * 用户显式改变播放事实后，旧恢复请求必须作废，避免晚到结果覆盖最新意图。
+     */
     private fun clearPendingPlaybackSnapshotRequest() {
-        // 任务八会补齐带身份的失效逻辑；任务六只保留兼容占位，避免提前改变冷启动恢复状态机。
+        pendingPlaybackSnapshotRequest = null
+        playbackSnapshotHydrationGeneration += 1
+        playbackSnapshotHydrationJob?.cancel()
+        playbackSnapshotHydrationJob = null
     }
 
     /** 打开更多操作弹层。 */
@@ -806,11 +859,24 @@ class MusicAppController(
 
     // 只有启动期显式请求过恢复时，扫描成功后才续上真正的快照恢复，避免平时扫描打断当前播放。
     private fun restorePlaybackSnapshotIfPending() {
-        if (!isPlaybackRestorePending) {
+        if (pendingPlaybackSnapshotRequest == null) {
+            return
+        }
+        if (playbackSnapshotHydrationJob?.isActive == true) {
             return
         }
         controllerScope.launch(start = CoroutineStart.UNDISPATCHED) {
-            restorePlaybackSnapshot()
+            val activeJob: Job = coroutineContext[Job] ?: return@launch
+            playbackSnapshotHydrationJob = activeJob
+            try {
+                val request: PendingPlaybackSnapshotRequest = pendingPlaybackSnapshotRequest
+                    ?: return@launch
+                hydratePendingPlaybackSnapshot(request = request)
+            } finally {
+                if (playbackSnapshotHydrationJob == activeJob) {
+                    playbackSnapshotHydrationJob = null
+                }
+            }
         }
     }
 

@@ -184,3 +184,30 @@ data class PlaybackSnapshot(
     val queueState: QueueState = QueueState(),
     val updatedAt: Long = 0L,
 )
+
+/**
+ * 保存快照身份，用来判断一次加载上次播放数据请求是否仍然对应同一份持久化快照。
+ *
+ * @property queueSongIds 保存队列中的歌曲标识，顺序必须参与身份判断。
+ * @property currentSongId 保存时的当前歌曲标识。
+ * @property currentIndex 保存时的当前队列下标。
+ * @property positionMs 保存时的播放进度。
+ * @property updatedAt 保存快照更新时间。
+ */
+data class PlaybackSnapshotIdentity(
+    val queueSongIds: List<String>,
+    val currentSongId: String?,
+    val currentIndex: Int,
+    val positionMs: Long,
+    val updatedAt: Long,
+)
+
+/** 把完整快照压缩成可比较身份，避免门面持有整份快照副本。 */
+val PlaybackSnapshot.identity: PlaybackSnapshotIdentity
+    get() = PlaybackSnapshotIdentity(
+        queueSongIds = queueState.songIds,
+        currentSongId = playbackState.currentSongId,
+        currentIndex = queueState.currentIndex,
+        positionMs = playbackState.positionMs,
+        updatedAt = updatedAt,
+    )

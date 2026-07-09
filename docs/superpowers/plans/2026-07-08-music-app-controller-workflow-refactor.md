@@ -2471,7 +2471,7 @@ git commit -m "拆分本地扫描工作流"
 
 完整队列约束在 `PlaybackRestoreOrchestrator` 层执行：保存队列中的歌曲实体和当前歌曲实体没有全部解析前，不调用 `PlaybackSnapshotStore.restoreSnapshot(...)`。不要为了这个约束删除 `PlaybackSnapshotStore` 底层过滤失效歌曲的能力；底层 store 测试继续证明它能安全过滤，App 编排测试证明门面不会部分加载。
 
-- [ ] **步骤 1：写待加载请求失效回归测试**
+- [x] **步骤 1：写待加载请求失效回归测试**
 
 在 `MusicAppControllerTest` 的加载上次播放数据测试附近加入：
 
@@ -2580,7 +2580,7 @@ git commit -m "拆分本地扫描工作流"
     }
 ```
 
-- [ ] **步骤 2：新增保存快照身份模型和存储接口**
+- [x] **步骤 2：新增保存快照身份模型和存储接口**
 
 在 `PlaybackModels.kt` 的 `PlaybackSnapshot` 后加入：
 
@@ -2675,7 +2675,7 @@ composeApp/src/commonTest/kotlin/com/yanhao/kmpmusic/domain/playback/PlaybackSna
     }
 ```
 
-- [ ] **步骤 3：改造 `PlaybackRestoreOrchestrator`**
+- [x] **步骤 3：改造 `PlaybackRestoreOrchestrator`**
 
 把 `Result` 改成只返回要合入最新 UI 状态的队列实体快照，避免把挂起前的旧 `MusicAppUiState` 整包写回：
 
@@ -2770,7 +2770,7 @@ data class PendingPlaybackSnapshotRequest(
         )
 ```
 
-- [ ] **步骤 4：让门面持有描述符和进行中保护**
+- [x] **步骤 4：让门面持有描述符和进行中保护**
 
 在 `MusicAppController.kt` 把：
 
@@ -2868,7 +2868,7 @@ import com.yanhao.kmpmusic.feature.app.playback.PendingPlaybackSnapshotRequest
 
 在 `playSong`、`playRecentSong`、`removeFromQueue`、`moveTrack`、`skipToQueueIndex`、`seekTo` 和 `cyclePlaybackMode` 开头调用 `clearPendingPlaybackSnapshotRequest()`。`togglePlayback`、`play` 和 `pause` 只改变播放/暂停状态，不改变当前歌曲、队列或进度，不清理待加载请求；如果执行中发现它们会写持久播放事实，必须暂停并补测试后再决定。
 
-- [ ] **步骤 5：运行待加载播放快照测试**
+- [x] **步骤 5：运行待加载播放快照测试**
 
 运行：
 
@@ -2878,7 +2878,7 @@ import com.yanhao.kmpmusic.feature.app.playback.PendingPlaybackSnapshotRequest
 
 预期：全部通过；`explicitPlayInvalidatesPendingPlaybackSnapshotRequest` 证明旧请求不会在扫描完成后覆盖用户播放意图。
 
-- [ ] **步骤 6：提交任务八**
+- [x] **步骤 6：提交任务八**
 
 运行：
 

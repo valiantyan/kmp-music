@@ -1245,6 +1245,54 @@ class MusicAppControllerTest {
     }
 
     /**
+     * 用户显式播放后，旧待加载请求失效，后续扫描完成不能覆盖用户的新播放意图。
+     */
+    @Test
+    fun explicitPlayInvalidatesPendingPlaybackSnapshotRequest(): Unit = runTest {
+        val snapshotStore: InMemoryPlaybackSnapshotStore = InMemoryPlaybackSnapshotStore()
+        snapshotStore.saveSnapshot(
+            snapshot = PlaybackSnapshot(
+                playbackState = PlaybackState(
+                    currentSongId = "seed:8",
+                    status = PlaybackStatus.Paused,
+                    positionMs = 42_000L,
+                    durationMs = 180_000L,
+                ),
+                queueState = QueueState(
+                    songIds = listOf("seed:8"),
+                    currentIndex = 0,
+                ),
+                updatedAt = 1_719_360_000_000L,
+            ),
+        )
+        val controller: MusicAppController = createController(
+            musicLibraryRepository = SeededMusicLibraryRepository(seedCount = 2),
+            localMusicScanner = RecordingLocalMusicScanner(),
+            playbackSnapshotStore = snapshotStore,
+            controllerScope = backgroundScope,
+        )
+
+        controller.restorePlaybackSnapshot()
+        val userSong: Song = controller.uiState.homeLocalSongPreview.first()
+        controller.playSong(
+            song = userSong,
+            queueSongs = controller.uiState.homeLocalSongPreview,
+        )
+        advanceUntilIdle()
+        controller.scanLocalMusic(request = LocalMusicScanRequest.Refresh)
+        advanceUntilIdle()
+
+        assertEquals(expected = userSong.id, actual = controller.uiState.currentSongId)
+        assertEquals(expected = userSong.id, actual = controller.uiState.currentSong?.id)
+        assertEquals(
+            expected = controller.uiState.homeLocalSongPreview.map { song: Song -> song.id },
+            actual = controller.uiState.queueSongIds,
+        )
+        assertEquals(expected = 0L, actual = controller.uiState.playbackPositionMs)
+        assertEquals(expected = PlaybackStatus.Playing, actual = controller.uiState.playbackStatus)
+    }
+
+    /**
      * 收藏歌曲应独立于 localSongs 是否已加载，只要喜欢列表里有 id，就应能先补齐实体，再按需进入详情。
      */
     @Test
