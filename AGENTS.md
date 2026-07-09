@@ -128,7 +128,7 @@
 
 Issues and PRDs are tracked as local markdown files under `.scratch/<feature-slug>/`; external PRs are not a triage surface. See `docs/agents/issue-tracker.md`.
 
-GitHub Issue 可以作为 BUG 入口，但本地 `.scratch/.../issues` 仍是执行和审计主记录。修复 GitHub BUG 时，先按 `docs/agents/github-bug-flow.md` 镜像成本地 issue；测试成功、提交并 push 后，再把修复日志写回 GitHub Issue 并关闭。
+GitHub Issue 可以作为 BUG 入口，但本地 `.scratch/.../issues` 仍是执行和审计主记录。修复 GitHub BUG 时，先按 `docs/agents/github-bug-flow.md` 镜像成本地 issue；必须下载并检查 Issue 正文和评论里的附件，在本地镜像 issue 记录附件证据；测试成功、提交并 push 后，必须在 GitHub Issue 评论问题原因、解决方案和影响范围，再关闭 Issue。
 
 ### Triage labels
 
