@@ -53,6 +53,7 @@ import com.yanhao.kmpmusic.feature.app.library.MusicLibraryProjector
 import com.yanhao.kmpmusic.feature.app.navigation.NavigationStateController
 import com.yanhao.kmpmusic.feature.app.playback.PlaybackRestoreOrchestrator
 import com.yanhao.kmpmusic.feature.app.playback.PlaybackUiStateSynchronizer
+import com.yanhao.kmpmusic.feature.app.preferences.PreferenceStateController
 import com.yanhao.kmpmusic.feature.app.search.SearchSessionController
 import com.yanhao.kmpmusic.feature.app.session.LoginAndDialogStateController
 import com.yanhao.kmpmusic.feature.app.system.SystemBackController
@@ -102,6 +103,11 @@ class MusicAppController(
 
     // 冷启动恢复由编排器统一管理依赖顺序，避免 facade 混杂实体解析与恢复时序。
     private val playbackRestoreOrchestrator: PlaybackRestoreOrchestrator
+
+    // 偏好设置工作流统一处理主题与本地发现设置的持久化和状态同步。
+    private val preferenceStateController: PreferenceStateController = PreferenceStateController(
+        userPreferencesRepository = userPreferencesRepository,
+    )
 
     // 本地扫描用例。
     private val scanLocalMusicUseCase: ScanLocalMusicUseCase = ScanLocalMusicUseCaseImpl(
@@ -744,38 +750,34 @@ class MusicAppController(
 
     /** 设置主题模式。 */
     fun setThemeMode(themeMode: ThemeMode) {
-        userPreferencesRepository.saveThemeMode(themeMode = themeMode)
-        uiState = uiState.copy(themeMode = themeMode)
+        uiState = preferenceStateController.setThemeMode(
+            state = uiState,
+            themeMode = themeMode,
+        )
     }
 
     /** 设置启动时自动扫描偏好。 */
     fun setLocalMusicAutoScanOnLaunchEnabled(isEnabled: Boolean) {
-        updateLocalMusicDiscoveryPreferences { preferences: LocalMusicDiscoveryPreferences ->
-            preferences.copy(isAutoScanOnLaunchEnabled = isEnabled)
-        }
+        uiState = preferenceStateController.setLocalMusicAutoScanOnLaunchEnabled(
+            state = uiState,
+            isEnabled = isEnabled,
+        )
     }
 
     /** 设置短音频过滤偏好。 */
     fun setLocalMusicShortAudioIgnored(isIgnored: Boolean) {
-        updateLocalMusicDiscoveryPreferences { preferences: LocalMusicDiscoveryPreferences ->
-            preferences.copy(shouldIgnoreShortAudio = isIgnored)
-        }
+        uiState = preferenceStateController.setLocalMusicShortAudioIgnored(
+            state = uiState,
+            isIgnored = isIgnored,
+        )
     }
 
     /** 设置系统文件夹排除偏好。 */
     fun setLocalMusicSystemFoldersExcluded(isExcluded: Boolean) {
-        updateLocalMusicDiscoveryPreferences { preferences: LocalMusicDiscoveryPreferences ->
-            preferences.copy(shouldExcludeSystemFolders = isExcluded)
-        }
-    }
-
-    // 统一保存本地音频发现偏好，避免各个开关各自维护缓存。
-    private fun updateLocalMusicDiscoveryPreferences(
-        transform: (LocalMusicDiscoveryPreferences) -> LocalMusicDiscoveryPreferences,
-    ) {
-        val preferences: LocalMusicDiscoveryPreferences = transform(uiState.localMusicDiscoveryPreferences)
-        userPreferencesRepository.saveLocalMusicDiscoveryPreferences(preferences = preferences)
-        uiState = uiState.copy(localMusicDiscoveryPreferences = preferences)
+        uiState = preferenceStateController.setLocalMusicSystemFoldersExcluded(
+            state = uiState,
+            isExcluded = isExcluded,
+        )
     }
 
     /** 打开队列弹层。 */

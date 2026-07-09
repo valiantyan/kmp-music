@@ -433,7 +433,7 @@ git commit -m "拆分系统返回工作流"
 - 消费：`UserPreferencesRepository`、`ThemeMode`、`LocalMusicDiscoveryPreferences`、`MusicAppUiState`。
 - 产出：`PreferenceStateController.setThemeMode`、`setLocalMusicAutoScanOnLaunchEnabled`、`setLocalMusicShortAudioIgnored`、`setLocalMusicSystemFoldersExcluded`。
 
-- [ ] **步骤 1：写偏好聚焦测试**
+- [x] **步骤 1：写偏好聚焦测试**
 
 创建 `PreferenceStateControllerTest.kt`：
 
@@ -505,7 +505,7 @@ private fun baseState(): MusicAppUiState {
 }
 ```
 
-- [ ] **步骤 2：运行测试确认红灯**
+- [x] **步骤 2：运行测试确认红灯**
 
 运行：
 
@@ -515,7 +515,7 @@ private fun baseState(): MusicAppUiState {
 
 预期：失败，错误包含 `Unresolved reference: PreferenceStateController`。
 
-- [ ] **步骤 3：实现 `PreferenceStateController`**
+- [x] **步骤 3：实现 `PreferenceStateController`**
 
 创建 `PreferenceStateController.kt`：
 
@@ -583,7 +583,7 @@ class PreferenceStateController(
 }
 ```
 
-- [ ] **步骤 4：让门面委派偏好设置**
+- [x] **步骤 4：让门面委派偏好设置**
 
 在 `MusicAppController.kt` 增加属性：
 
@@ -637,7 +637,7 @@ import com.yanhao.kmpmusic.feature.app.preferences.PreferenceStateController
 
 删除 `MusicAppController` 中的私有 `updateLocalMusicDiscoveryPreferences`。
 
-- [ ] **步骤 5：运行任务三测试和门面回归**
+- [x] **步骤 5：运行任务三测试和门面回归**
 
 运行：
 
@@ -647,7 +647,7 @@ import com.yanhao.kmpmusic.feature.app.preferences.PreferenceStateController
 
 预期：全部通过。
 
-- [ ] **步骤 6：提交任务三**
+- [x] **步骤 6：提交任务三**
 
 运行：
 
