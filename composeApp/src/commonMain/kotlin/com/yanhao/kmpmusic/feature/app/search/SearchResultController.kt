@@ -10,7 +10,7 @@ import com.yanhao.kmpmusic.feature.app.MusicAppUiState
 /**
  * 搜索结果派生器，按搜索上下文选择数据源并避免 pending query 泄漏全量曲库。
  */
-class SearchResultController(
+internal class SearchResultController(
     // 搜索结果在本地库上下文需要兜底读取完整曲库。
     private val musicLibraryRepository: MusicLibraryRepository,
 ) {
