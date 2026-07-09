@@ -174,6 +174,7 @@ class FakeAudioPlayerEngineTest {
             durationMs = durationMs,
             localUri = "content://media/$songId",
             coverArt = CoverArt.HeroLocalMusic,
+            coverImageUri = null,
             mimeType = "audio/mpeg",
         )
     }

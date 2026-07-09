@@ -98,6 +98,7 @@ sealed interface AudioSource {
  * @property durationMs 媒体总时长，未知时为 null。
  * @property localUri 平台 scanner 提供的本地可播放 URI，可能是 `content://`、`file://` 或平台文件 URI。
  * @property coverArt 当前媒体封面。
+ * @property coverImageUri 扫描音频提取出的封面图片 URI，缺失时使用 [coverArt]。
  * @property mimeType 平台识别的媒体类型，未知时为 null。
  */
 data class PlayableMedia(
@@ -108,6 +109,7 @@ data class PlayableMedia(
     val durationMs: Long?,
     val localUri: String,
     val coverArt: CoverArt,
+    val coverImageUri: String?,
     val mimeType: String?,
 ) {
     /**

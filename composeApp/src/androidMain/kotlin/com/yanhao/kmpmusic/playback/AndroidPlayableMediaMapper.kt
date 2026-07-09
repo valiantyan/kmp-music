@@ -45,6 +45,7 @@ internal object AndroidPlayableMediaMapper {
             .setDurationMs(durationMs?.takeIf { value: Long -> value >= 0L })
         AndroidPlaybackMediaMetadataAssets.artworkData(
             context = context,
+            coverImageUri = coverImageUri,
             coverArt = coverArt,
         )?.let { artworkData: ByteArray ->
             metadataBuilder.setArtworkData(

@@ -1,6 +1,7 @@
 package com.yanhao.kmpmusic.playback
 
 import android.content.Context
+import android.net.Uri
 import com.yanhao.kmpmusic.domain.model.CoverArt
 
 /**
@@ -11,9 +12,19 @@ internal object AndroidPlaybackMediaMetadataAssets {
     private val artworkDataCache: MutableMap<CoverArt, ByteArray> = LinkedHashMap()
 
     /**
-     * 从 Compose Multiplatform 复制到 Android assets 的资源中读取系统媒体通知封面数据。
+     * 优先读取扫描音频提取出的封面图片，缺失时回退到内置封面资源。
      */
-    fun artworkData(context: Context, coverArt: CoverArt): ByteArray? {
+    fun artworkData(
+        context: Context,
+        coverImageUri: String?,
+        coverArt: CoverArt,
+    ): ByteArray? {
+        readCoverImageUri(
+            context = context,
+            coverImageUri = coverImageUri,
+        )?.let { artworkData: ByteArray ->
+            return artworkData
+        }
         artworkDataCache[coverArt]?.let { cachedData: ByteArray ->
             return cachedData.copyOf()
         }
@@ -24,6 +35,18 @@ internal object AndroidPlaybackMediaMetadataAssets {
         }.getOrNull()?.also { artworkData: ByteArray ->
             artworkDataCache[coverArt] = artworkData
         }?.copyOf()
+    }
+
+    // 系统媒体通知不能读取 Compose 自绘状态，因此这里把真实封面 URI 转成 Media3 metadata 字节。
+    private fun readCoverImageUri(context: Context, coverImageUri: String?): ByteArray? {
+        val normalizedCoverImageUri: String = coverImageUri?.trim()?.takeIf { uri: String ->
+            uri.isNotEmpty()
+        } ?: return null
+        return runCatching {
+            context.contentResolver.openInputStream(Uri.parse(normalizedCoverImageUri))?.use { input ->
+                input.readBytes()
+            }
+        }.getOrNull()?.takeIf { artworkData: ByteArray -> artworkData.isNotEmpty() }
     }
 
     // 将 domain 封面枚举映射到 Android assets 中的 Compose 资源路径。

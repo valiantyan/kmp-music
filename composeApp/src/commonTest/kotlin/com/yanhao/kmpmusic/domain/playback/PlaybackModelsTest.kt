@@ -65,11 +65,16 @@ class PlaybackModelsTest {
             durationMs = 180_000L,
             localUri = "content://media/external/audio/media/42",
             coverArt = CoverArt.HeroLocalMusic,
+            coverImageUri = "file:///data/user/0/com.yanhao.kmpmusic/cache/audio-artwork/42.art",
             mimeType = "audio/mpeg",
         )
         assertEquals(
             expected = "content://media/external/audio/media/42",
             actual = media.localUri,
+        )
+        assertEquals(
+            expected = "file:///data/user/0/com.yanhao.kmpmusic/cache/audio-artwork/42.art",
+            actual = media.coverImageUri,
         )
     }
 
@@ -83,6 +88,7 @@ class PlaybackModelsTest {
             durationMs = 180_000L,
             localUri = "content://media/external/audio/media/42",
             coverArt = CoverArt.HeroLocalMusic,
+            coverImageUri = null,
             mimeType = "audio/mpeg",
         )
 
@@ -102,6 +108,7 @@ class PlaybackModelsTest {
             durationMs = 240_000L,
             localUri = "file:///Users/tester/Music/song.flac",
             coverArt = CoverArt.HeroLocalMusic,
+            coverImageUri = null,
             mimeType = "audio/flac",
         )
 

@@ -478,6 +478,7 @@ class DesktopVlcjAudioPlayerEngineTest {
             durationMs = durationMs,
             localUri = uri,
             coverArt = CoverArt.HeroLocalMusic,
+            coverImageUri = null,
             mimeType = "audio/mpeg",
         )
     }

@@ -720,6 +720,7 @@ class PlaybackCoordinatorTest {
             durationMs = durationMs,
             localUri = localUri,
             coverArt = coverArt,
+            coverImageUri = coverImageUri,
             mimeType = mimeType,
         )
     }
