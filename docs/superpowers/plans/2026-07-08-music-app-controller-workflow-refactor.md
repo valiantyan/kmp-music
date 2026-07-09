@@ -72,7 +72,7 @@
 - 消费：现有 `SearchSessionController` 的 `publishStateUpdate: ((MusicAppUiState) -> MusicAppUiState) -> Unit`。
 - 产出：`MusicAppController` 私有函数 `reduceUiState(reducer: (MusicAppUiState) -> MusicAppUiState): Unit`，所有异步归约都经由它串行写回当前 `uiState`。
 
-- [ ] **步骤 1：写异步交错失败测试**
+- [x] **步骤 1：写异步交错失败测试**
 
 在 `MusicAppControllerTest` 的搜索防抖测试附近加入下面测试：
 
@@ -110,7 +110,7 @@
     }
 ```
 
-- [ ] **步骤 2：运行测试确认红灯或现有行为未被锁住**
+- [x] **步骤 2：运行测试确认红灯或现有行为未被锁住**
 
 运行：
 
@@ -120,7 +120,7 @@
 
 预期：如果当前实现已经使用最新状态归约，测试可能直接通过；若失败，失败应表现为 `currentSongId` 或 `queueSongIds` 被防抖搜索写回覆盖。无论红灯还是直接绿灯，都保留该测试作为后续拆分保护。
 
-- [ ] **步骤 3：在门面中新增统一状态写入口**
+- [x] **步骤 3：在门面中新增统一状态写入口**
 
 在 `MusicAppController` 的 `publishPlaybackUiState()` 后加入：
 
@@ -163,7 +163,7 @@
     }
 ```
 
-- [ ] **步骤 4：运行任务一测试**
+- [x] **步骤 4：运行任务一测试**
 
 运行：
 
@@ -173,7 +173,7 @@
 
 预期：通过。
 
-- [ ] **步骤 5：提交任务一**
+- [x] **步骤 5：提交任务一**
 
 运行：
 

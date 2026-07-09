@@ -136,9 +136,7 @@ class MusicAppController(
         searchHistoryRepository = searchHistoryRepository,
         controllerScope = controllerScope,
         debounceMillis = searchQueryDebounceMillis,
-        publishStateUpdate = { reducer: (MusicAppUiState) -> MusicAppUiState ->
-            uiState = reducer(uiState)
-        },
+        publishStateUpdate = ::reduceUiState,
     )
 
     /**
@@ -208,6 +206,11 @@ class MusicAppController(
     /** 统一向宿主发布最新播放 UI 状态，避免控制器外部重复读取内部细节。 */
     private fun publishPlaybackUiState() {
         playbackUiObserver(uiState)
+    }
+
+    /** 所有异步协作者都经由这里提交同步归约，避免晚到结果覆盖最新 [uiState]。 */
+    private fun reduceUiState(reducer: (MusicAppUiState) -> MusicAppUiState) {
+        uiState = reducer(uiState)
     }
 
     /** 进入二级页面并隐藏主 Tab。 */
@@ -941,19 +944,23 @@ class MusicAppController(
 
     // 同步播放仓库和 UI 状态，避免多个入口各自写状态。
     private fun syncPlaybackState(playbackState: PlaybackState) {
-        uiState = playbackUiStateSynchronizer.syncPlaybackState(
-            state = uiState,
-            playbackState = playbackState,
-        )
+        reduceUiState { currentState: MusicAppUiState ->
+            playbackUiStateSynchronizer.syncPlaybackState(
+                state = currentState,
+                playbackState = playbackState,
+            )
+        }
         publishPlaybackUiState()
     }
 
     // 曲库快照是首页、搜索、收藏和我的页的唯一列表来源。
     private fun syncLibrarySnapshot(snapshot: LibrarySnapshot) {
-        uiState = libraryStateSynchronizer.syncLibrarySnapshot(
-            state = uiState,
-            snapshot = snapshot,
-        )
+        reduceUiState { currentState: MusicAppUiState ->
+            libraryStateSynchronizer.syncLibrarySnapshot(
+                state = currentState,
+                snapshot = snapshot,
+            )
+        }
         restorePlaybackSnapshotIfPending()
     }
 

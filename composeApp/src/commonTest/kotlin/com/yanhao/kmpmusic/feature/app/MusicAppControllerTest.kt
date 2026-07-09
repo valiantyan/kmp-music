@@ -1462,6 +1462,41 @@ class MusicAppControllerTest {
     }
 
     /**
+     * 防抖搜索醒来时必须基于最新 [uiState] 归约，不能覆盖期间到达的播放状态。
+     */
+    @Test
+    fun debouncedSearchUpdatePreservesPlaybackStateChangedBeforeDebounce(): Unit = runTest {
+        val controller = createController(controllerScope = backgroundScope)
+        controller.scanLocalMusic(request = LocalMusicScanRequest.Refresh)
+        advanceUntilIdle()
+        val queueSongs: List<Song> = controller.uiState.localSongs.take(n = 3)
+            .ifEmpty { controller.uiState.homeLocalSongPreview.take(n = 3) }
+        val firstSong: Song = queueSongs[0]
+        val secondSong: Song = queueSongs[1]
+
+        controller.openSearch(context = SearchContext.LocalLibrary)
+        controller.setSearchQuery(query = "river")
+        controller.playSong(song = firstSong, queueSongs = queueSongs)
+        advanceUntilIdle()
+        controller.playSong(song = secondSong, queueSongs = queueSongs)
+        advanceUntilIdle()
+
+        advanceTimeBy(delayTimeMillis = 301L)
+        advanceUntilIdle()
+
+        assertEquals(expected = "river", actual = controller.uiState.activeSearchQuery)
+        assertEquals(expected = secondSong.id, actual = controller.uiState.currentSongId)
+        assertEquals(
+            expected = queueSongs.map { song: Song -> song.id },
+            actual = controller.uiState.queueSongIds,
+        )
+        assertEquals(
+            expected = queueSongs.map { song: Song -> song.id },
+            actual = controller.uiState.queueSongs.map { song: Song -> song.id },
+        )
+    }
+
+    /**
      * 非空搜索词在防抖结果生效前离开搜索页不应写入历史，避免把未执行搜索污染为历史。
      */
     @Test
