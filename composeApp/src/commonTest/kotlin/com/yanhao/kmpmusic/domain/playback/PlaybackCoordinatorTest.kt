@@ -9,10 +9,12 @@ import com.yanhao.kmpmusic.domain.model.PlaybackError
 import com.yanhao.kmpmusic.domain.model.PlaybackErrorType
 import com.yanhao.kmpmusic.domain.model.PlaybackMode
 import com.yanhao.kmpmusic.domain.model.PlaybackSnapshot
+import com.yanhao.kmpmusic.domain.model.PlaybackSnapshotIdentity
 import com.yanhao.kmpmusic.domain.model.PlaybackState
 import com.yanhao.kmpmusic.domain.model.PlaybackStatus
 import com.yanhao.kmpmusic.domain.model.QueueState
 import com.yanhao.kmpmusic.domain.model.Song
+import com.yanhao.kmpmusic.domain.model.identity
 import com.yanhao.kmpmusic.domain.persistence.InMemoryPlaybackSnapshotStore
 import com.yanhao.kmpmusic.domain.persistence.PlaybackSnapshotStore
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -739,6 +741,11 @@ class PlaybackCoordinatorTest {
         /** 测试不需要队列入口。 */
         override suspend fun getSavedQueueSongIds(): List<String> {
             return emptyList()
+        }
+
+        /** 失败 store 不提供可比较身份。 */
+        override suspend fun getSavedSnapshotIdentity(): PlaybackSnapshotIdentity? {
+            return null
         }
 
         /** 测试不需要恢复入口。 */

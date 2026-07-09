@@ -29,7 +29,9 @@ import com.yanhao.kmpmusic.domain.model.MusicFileMetadata
 import com.yanhao.kmpmusic.domain.model.SearchContext
 import com.yanhao.kmpmusic.domain.model.SearchScope
 import com.yanhao.kmpmusic.domain.model.Song
+import com.yanhao.kmpmusic.domain.usecase.SearchResult
 import com.yanhao.kmpmusic.domain.persistence.InMemoryPlaybackSnapshotStore
+import com.yanhao.kmpmusic.domain.persistence.PlaybackSnapshotStore
 import com.yanhao.kmpmusic.domain.repository.FavoritesRepository
 import com.yanhao.kmpmusic.domain.repository.LocalMusicScanner
 import com.yanhao.kmpmusic.domain.repository.MusicLibraryRepository
@@ -44,6 +46,7 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
@@ -51,6 +54,7 @@ import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.withContext
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -72,6 +76,45 @@ class MusicAppControllerTest {
         controller.playSong(song = queueSongs[0], queueSongs = queueSongs)
 
         assertEquals(expected = queueSongs.map { song -> song.id }, actual = controller.uiState.queueSongs.map { song -> song.id })
+    }
+
+    /**
+     * 改变当前播放事实的公开入口后，UI 队列、仓库队列和当前歌曲实体必须保持一致。
+     */
+    @Test
+    fun playbackActionsKeepQueueIdsAndRepositoryQueueConsistent(): Unit = runTest {
+        val playbackRepository = InMemoryPlaybackRepository()
+        val controller = createController(
+            playbackRepository = playbackRepository,
+            controllerScope = backgroundScope,
+        )
+        controller.scanLocalMusic(request = LocalMusicScanRequest.Refresh)
+        val queueSongs: List<Song> = controller.uiState.homeLocalSongPreview.take(n = 3)
+        val initialQueueIds: List<String> = queueSongs.map { song: Song -> song.id }
+
+        controller.playSong(song = queueSongs[0], queueSongs = queueSongs)
+        advanceUntilIdle()
+        assertPlaybackQueueInvariant(
+            controller = controller,
+            playbackRepository = playbackRepository,
+            expectedQueueSongIds = initialQueueIds,
+        )
+
+        controller.skipToQueueIndex(index = 1)
+        advanceUntilIdle()
+        assertPlaybackQueueInvariant(
+            controller = controller,
+            playbackRepository = playbackRepository,
+            expectedQueueSongIds = initialQueueIds,
+        )
+
+        controller.removeFromQueue(songId = queueSongs[0].id)
+        advanceUntilIdle()
+        assertPlaybackQueueInvariant(
+            controller = controller,
+            playbackRepository = playbackRepository,
+            expectedQueueSongIds = initialQueueIds.drop(n = 1),
+        )
     }
 
     /**
@@ -492,6 +535,80 @@ class MusicAppControllerTest {
         scanJob.join()
         assertFalse(actual = controller.uiState.scanState is LocalMusicScanState.Scanning)
         assertNull(actual = renderCancelEntryLabelOrNull(scanState = controller.uiState.scanState))
+    }
+
+    /**
+     * 用户取消扫描后，旧扫描结果晚到不能覆盖取消态或队列状态。
+     */
+    @Test
+    fun lateScanResultAfterCancellationDoesNotOverwriteCancelledStateOrQueue(): Unit = runTest {
+        val scanner = LateSuccessAfterCancellationScanner()
+        val controller = createController(
+            localMusicScanner = scanner,
+            controllerScope = backgroundScope,
+        )
+        val queueSongs: List<Song> = listOf(
+            testSong(
+                id = "queue:1",
+                title = "Queue One",
+                modifiedAt = 1L,
+            ),
+            testSong(
+                id = "queue:2",
+                title = "Queue Two",
+                modifiedAt = 2L,
+            ),
+        )
+        controller.playSong(song = queueSongs[0], queueSongs = queueSongs)
+        advanceUntilIdle()
+
+        controller.requestLocalMusicScan(request = LocalMusicScanRequest.Refresh)
+        scanner.awaitStarted()
+        controller.requestLocalMusicScan(request = LocalMusicScanRequest.Refresh)
+        scanner.releaseLateResult()
+        advanceUntilIdle()
+
+        assertTrue(actual = controller.uiState.scanState is LocalMusicScanState.Cancelled)
+        assertEquals(expected = 0, actual = controller.uiState.libraryStats.songCount)
+        assertEquals(
+            expected = queueSongs.map { song: Song -> song.id },
+            actual = controller.uiState.queueSongIds,
+        )
+    }
+
+    /**
+     * 用户看到取消态后立即再次触发扫描时，即使旧 scanner 还没退出也必须启动新会话。
+     */
+    @Test
+    fun scanCanRestartImmediatelyAfterCancellationWhileOldScannerIsStillFinishing(): Unit = runTest {
+        val scanner: RestartableLateSuccessScanner = RestartableLateSuccessScanner()
+        val controller = createController(
+            localMusicScanner = scanner,
+            controllerScope = backgroundScope,
+        )
+
+        controller.requestLocalMusicScan(request = LocalMusicScanRequest.Refresh)
+        scanner.awaitFirstStarted()
+
+        controller.requestLocalMusicScan(request = LocalMusicScanRequest.Refresh)
+        runCurrent()
+        assertTrue(actual = controller.uiState.scanState is LocalMusicScanState.Cancelled)
+
+        controller.requestLocalMusicScan(request = LocalMusicScanRequest.Refresh)
+        runCurrent()
+        scanner.awaitSecondStarted()
+
+        assertEquals(expected = 2, actual = scanner.scanCount)
+        assertTrue(actual = controller.uiState.scanState is LocalMusicScanState.Scanning)
+
+        scanner.releaseFirstLateResult()
+        runCurrent()
+
+        assertTrue(actual = controller.uiState.scanState is LocalMusicScanState.Scanning)
+        assertEquals(expected = 0, actual = controller.uiState.libraryStats.songCount)
+
+        scanner.releaseSecondResult()
+        advanceUntilIdle()
     }
 
     /**
@@ -1129,6 +1246,70 @@ class MusicAppControllerTest {
     }
 
     /**
+     * 用户显式播放后，旧待加载请求失效，后续扫描完成不能覆盖用户的新播放意图。
+     */
+    @Test
+    fun explicitPlayInvalidatesPendingPlaybackSnapshotRequest(): Unit = runTest {
+        val persistedSnapshotStore: InMemoryPlaybackSnapshotStore = InMemoryPlaybackSnapshotStore()
+        val audioPlayerEngine: RecordingAudioPlayerEngine = RecordingAudioPlayerEngine()
+        val blockingSnapshotStore: BlockingRestoreSnapshotStore = BlockingRestoreSnapshotStore(
+            delegate = persistedSnapshotStore,
+        )
+        val controller: MusicAppController = createController(
+            audioPlayerEngine = audioPlayerEngine,
+            playbackSnapshotStore = blockingSnapshotStore,
+            controllerScope = backgroundScope,
+        )
+        controller.scanLocalMusic(request = LocalMusicScanRequest.Refresh)
+        advanceUntilIdle()
+        val previewSongs: List<Song> = controller.uiState.homeLocalSongPreview.take(n = 3)
+        val restoredQueueSongs: List<Song> = listOf(previewSongs[0], previewSongs[2])
+        persistedSnapshotStore.saveSnapshot(
+            snapshot = PlaybackSnapshot(
+                playbackState = PlaybackState(
+                    currentSongId = restoredQueueSongs[0].id,
+                    status = PlaybackStatus.Paused,
+                    positionMs = 42_000L,
+                    durationMs = restoredQueueSongs[0].durationMs,
+                ),
+                queueState = QueueState(
+                    songIds = restoredQueueSongs.map { song: Song -> song.id },
+                    currentIndex = 0,
+                ),
+                updatedAt = 1_719_360_000_000L,
+            ),
+        )
+
+        val restoreJob: Job = launch {
+            controller.restorePlaybackSnapshot()
+        }
+        blockingSnapshotStore.awaitRestoreStarted()
+        val userSong: Song = previewSongs[1]
+        controller.playSong(
+            song = userSong,
+            queueSongs = previewSongs,
+        )
+        blockingSnapshotStore.releaseRestore()
+        restoreJob.join()
+        advanceUntilIdle()
+
+        assertEquals(expected = userSong.id, actual = controller.uiState.currentSongId)
+        assertEquals(expected = userSong.id, actual = controller.uiState.currentSong?.id)
+        assertEquals(
+            expected = previewSongs.map { song: Song -> song.id },
+            actual = controller.uiState.queueSongIds,
+        )
+        assertEquals(expected = 0L, actual = controller.uiState.playbackPositionMs)
+        assertEquals(expected = PlaybackStatus.Playing, actual = controller.uiState.playbackStatus)
+        assertEquals(
+            expected = listOf(previewSongs.map { song: Song -> song.id }),
+            actual = audioPlayerEngine.setQueueSongIdCalls,
+        )
+        assertEquals(expected = 1, actual = audioPlayerEngine.playCalls)
+        assertEquals(expected = 0, actual = audioPlayerEngine.pauseCalls)
+    }
+
+    /**
      * 收藏歌曲应独立于 localSongs 是否已加载，只要喜欢列表里有 id，就应能先补齐实体，再按需进入详情。
      */
     @Test
@@ -1462,19 +1643,53 @@ class MusicAppControllerTest {
     }
 
     /**
+     * 防抖搜索醒来时必须基于最新 [uiState] 归约，不能覆盖期间到达的播放状态。
+     */
+    @Test
+    fun debouncedSearchUpdatePreservesPlaybackStateChangedBeforeDebounce(): Unit = runTest {
+        val controller = createController(controllerScope = backgroundScope)
+        controller.scanLocalMusic(request = LocalMusicScanRequest.Refresh)
+        advanceUntilIdle()
+        val queueSongs: List<Song> = controller.uiState.localSongs.take(n = 3)
+            .ifEmpty { controller.uiState.homeLocalSongPreview.take(n = 3) }
+        val firstSong: Song = queueSongs[0]
+        val secondSong: Song = queueSongs[1]
+
+        controller.openSearch(context = SearchContext.LocalLibrary)
+        controller.setSearchQuery(query = "river")
+        controller.playSong(song = firstSong, queueSongs = queueSongs)
+        advanceUntilIdle()
+        controller.playSong(song = secondSong, queueSongs = queueSongs)
+        advanceUntilIdle()
+
+        advanceTimeBy(delayTimeMillis = 301L)
+        advanceUntilIdle()
+
+        assertEquals(expected = "river", actual = controller.uiState.activeSearchQuery)
+        assertEquals(expected = secondSong.id, actual = controller.uiState.currentSongId)
+        assertEquals(
+            expected = queueSongs.map { song: Song -> song.id },
+            actual = controller.uiState.queueSongIds,
+        )
+        assertEquals(
+            expected = queueSongs.map { song: Song -> song.id },
+            actual = controller.uiState.queueSongs.map { song: Song -> song.id },
+        )
+    }
+
+    /**
      * 非空搜索词在防抖结果生效前离开搜索页不应写入历史，避免把未执行搜索污染为历史。
      */
     @Test
-    fun nonBlankSearchQueryDoesNotCommitToHistoryWhenLeavingSearchBeforeDebounce(): Unit = runBlocking {
-        val controller = createController()
+    fun nonBlankSearchQueryDoesNotCommitToHistoryWhenLeavingSearchBeforeDebounce(): Unit = runTest {
+        val controller = createController(controllerScope = backgroundScope)
         controller.scanLocalMusic(request = LocalMusicScanRequest.Refresh)
-
         controller.openSearch(context = SearchContext.LocalLibrary)
         controller.setSearchQuery(query = "One Summer")
-
         controller.navigateBack()
+        advanceTimeBy(delayTimeMillis = 301L)
+        advanceUntilIdle()
         controller.openSearch(context = SearchContext.LocalLibrary)
-
         assertEquals(
             expected = emptyList(),
             actual = controller.uiState.searchHistoryFor(context = SearchContext.LocalLibrary),
@@ -1506,32 +1721,76 @@ class MusicAppControllerTest {
     }
 
     /**
-     * 搜索结果动作应记录当前搜索词，覆盖歌曲播放、专辑打开和歌手打开三条入口。
+     * 搜索结果动作应记录当前搜索词，覆盖歌曲播放、专辑打开、歌手打开以及歌曲更多菜单详情入口。
      */
     @Test
-    fun searchResultActionsCommitCurrentQueryToHistory(): Unit = runBlocking {
-        val controller = createController()
+    fun searchResultActionsCommitCurrentQueryToHistory(): Unit = runTest {
+        val controller = createController(controllerScope = backgroundScope)
         controller.scanLocalMusic(request = LocalMusicScanRequest.Refresh)
-        val targetSong: Song = controller.uiState.homeLocalSongPreview.first()
-        controller.setHomeContentSection(section = HomeContentSection.Albums)
-        val targetAlbum: Album = controller.uiState.localAlbums.first()
-        controller.setHomeContentSection(section = HomeContentSection.Artists)
-        val targetArtist: Artist = controller.uiState.localArtists.first()
 
         controller.openSearch(context = SearchContext.LocalLibrary)
-        controller.setSearchQuery(query = "歌曲动作")
-        controller.playSong(song = targetSong, queueSongs = listOf(targetSong))
 
-        controller.openSearch(context = SearchContext.LocalLibrary)
-        controller.setSearchQuery(query = "专辑动作")
-        controller.openAlbum(album = targetAlbum)
-
-        controller.openSearch(context = SearchContext.LocalLibrary)
-        controller.setSearchQuery(query = "歌手动作")
-        controller.openArtist(artist = targetArtist)
-
+        controller.setSearchQuery(query = "Summer Waltz")
+        advanceTimeBy(delayTimeMillis = 301L)
+        advanceUntilIdle()
+        val songResult: SearchResult = controller.search()
+        val targetSong: Song = songResult.songs.first()
+        controller.playSong(song = targetSong, queueSongs = songResult.songs)
         assertEquals(
-            expected = listOf("歌手动作", "专辑动作", "歌曲动作"),
+            expected = listOf("Summer Waltz"),
+            actual = controller.uiState.searchHistoryFor(context = SearchContext.LocalLibrary),
+        )
+
+        controller.openSearch(context = SearchContext.LocalLibrary)
+        controller.setSearchQuery(query = "Dream Stories")
+        advanceTimeBy(delayTimeMillis = 301L)
+        advanceUntilIdle()
+        val albumResult: SearchResult = controller.search()
+        val targetAlbum: Album = albumResult.albums.first()
+        controller.openAlbum(album = targetAlbum)
+        assertEquals(
+            expected = listOf("Dream Stories", "Summer Waltz"),
+            actual = controller.uiState.searchHistoryFor(context = SearchContext.LocalLibrary),
+        )
+
+        controller.openSearch(context = SearchContext.LocalLibrary)
+        controller.setSearchQuery(query = "久石让")
+        advanceTimeBy(delayTimeMillis = 301L)
+        advanceUntilIdle()
+        val artistResult: SearchResult = controller.search()
+        val targetArtist: Artist = artistResult.artists.first()
+        controller.openArtist(artist = targetArtist)
+        assertEquals(
+            expected = listOf("久石让", "Dream Stories", "Summer Waltz"),
+            actual = controller.uiState.searchHistoryFor(context = SearchContext.LocalLibrary),
+        )
+
+        controller.openSearch(context = SearchContext.LocalLibrary)
+        controller.setSearchQuery(query = "One Summer's Day")
+        advanceTimeBy(delayTimeMillis = 301L)
+        advanceUntilIdle()
+        val songAlbumResult: SearchResult = controller.search()
+        val albumSourceSong: Song = songAlbumResult.songs.first()
+        controller.openAlbumFromSong(song = albumSourceSong)
+        assertEquals(
+            expected = listOf("One Summer's Day", "久石让", "Dream Stories", "Summer Waltz"),
+            actual = controller.uiState.searchHistoryFor(context = SearchContext.LocalLibrary),
+        )
+
+        controller.openSearch(context = SearchContext.LocalLibrary)
+        controller.setSearchQuery(query = "Summer Waltz")
+        advanceTimeBy(delayTimeMillis = 301L)
+        advanceUntilIdle()
+        val songArtistResult: SearchResult = controller.search()
+        val artistSourceSong: Song = songArtistResult.songs.first()
+        controller.openArtistFromSong(song = artistSourceSong)
+        assertEquals(
+            expected = listOf(
+                "Summer Waltz",
+                "One Summer's Day",
+                "久石让",
+                "Dream Stories",
+            ),
             actual = controller.uiState.searchHistoryFor(context = SearchContext.LocalLibrary),
         )
     }
@@ -1737,7 +1996,7 @@ private fun createController(
     localMusicScanner: LocalMusicScanner = FakeControllerLocalMusicScanner,
     playbackRepository: InMemoryPlaybackRepository = InMemoryPlaybackRepository(),
     audioPlayerEngine: AudioPlayerEngine = FakeAudioPlayerEngine(),
-    playbackSnapshotStore: InMemoryPlaybackSnapshotStore = InMemoryPlaybackSnapshotStore(),
+    playbackSnapshotStore: PlaybackSnapshotStore = InMemoryPlaybackSnapshotStore(),
     favoritesRepository: FavoritesRepository? = null,
     userPreferencesRepository: UserPreferencesRepository = InMemoryUserPreferencesRepository(),
     searchHistoryRepository: SearchHistoryRepository = FakeSearchHistoryRepository(),
@@ -1757,6 +2016,20 @@ private fun createController(
         permissionSettingsOpener = permissionSettingsOpener,
         controllerScope = controllerScope,
         searchQueryDebounceMillis = searchQueryDebounceMillis,
+    )
+}
+
+private fun assertPlaybackQueueInvariant(
+    controller: MusicAppController,
+    playbackRepository: InMemoryPlaybackRepository,
+    expectedQueueSongIds: List<String>,
+) {
+    assertEquals(expected = expectedQueueSongIds, actual = playbackRepository.getQueueState().songIds)
+    assertEquals(expected = expectedQueueSongIds, actual = controller.uiState.queueSongIds)
+    assertEquals(expected = expectedQueueSongIds, actual = controller.uiState.queueSongs.map { song: Song -> song.id })
+    assertEquals(
+        expected = controller.uiState.currentSongId,
+        actual = controller.uiState.currentSong?.id,
     )
 }
 
@@ -1924,6 +2197,142 @@ private class BlockingAfterFirstScanScanner : LocalMusicScanner {
     /** 释放第二次扫描，让测试可以收尾。 */
     fun completeSecondScan() {
         secondScanCanComplete.complete(value = Unit)
+    }
+}
+
+/**
+ * 取消后仍会晚到返回结果，用来验证门面不会被旧扫描覆盖。
+ */
+private class LateSuccessAfterCancellationScanner : LocalMusicScanner {
+    // 记录扫描已启动，便于测试稳定触发取消。
+    private val started: CompletableDeferred<Unit> = CompletableDeferred()
+
+    // 即使收到取消也继续等待该信号，制造旧结果晚到。
+    private val release: CompletableDeferred<Unit> = CompletableDeferred()
+
+    /**
+     * 忽略协程取消并晚到返回结果，模拟不配合取消的平台扫描器。
+     */
+    override suspend fun scan(request: LocalMusicScanRequest): LocalMusicScanResult {
+        started.complete(value = Unit)
+        try {
+            release.await()
+        } catch (cancellationException: CancellationException) {
+            withContext(NonCancellable) {
+                release.await()
+            }
+        }
+        return com.yanhao.kmpmusic.data.FakeLocalMusicScanner(demoSongCount = 8).scan(request = request)
+    }
+
+    /** 等待扫描启动。 */
+    suspend fun awaitStarted() {
+        started.await()
+    }
+
+    /** 释放晚到结果。 */
+    fun releaseLateResult() {
+        release.complete(value = Unit)
+    }
+}
+
+/**
+ * 第一次扫描取消后晚到成功，第三次入口要能马上启动第二次真实扫描。
+ */
+private class RestartableLateSuccessScanner : LocalMusicScanner {
+    // 第一次扫描已进入 scanner 的信号。
+    private val firstStarted: CompletableDeferred<Unit> = CompletableDeferred()
+
+    // 第二次扫描已进入 scanner 的信号。
+    private val secondStarted: CompletableDeferred<Unit> = CompletableDeferred()
+
+    // 第一次扫描即使取消也会等到这里才返回。
+    private val firstRelease: CompletableDeferred<Unit> = CompletableDeferred()
+
+    // 第二次扫描的正常完成信号。
+    private val secondRelease: CompletableDeferred<Unit> = CompletableDeferred()
+
+    // 记录扫描调用次数，用来确认第三次入口确实启动了新扫描。
+    var scanCount: Int = 0
+        private set
+
+    /**
+     * 第一次调用忽略取消并晚到返回，第二次调用代表新的可见扫描会话。
+     */
+    override suspend fun scan(request: LocalMusicScanRequest): LocalMusicScanResult {
+        scanCount += 1
+        return if (scanCount == 1) {
+            firstStarted.complete(value = Unit)
+            awaitFirstRelease()
+            LocalMusicScanResult(
+                discovered = buildDiscoveredFiles(
+                    count = 2,
+                    prefix = "old",
+                ),
+                completedAt = 1_719_360_004_000L,
+            )
+        } else {
+            secondStarted.complete(value = Unit)
+            secondRelease.await()
+            LocalMusicScanResult(
+                discovered = buildDiscoveredFiles(
+                    count = 3,
+                    prefix = "new",
+                ),
+                completedAt = 1_719_360_005_000L,
+            )
+        }
+    }
+
+    /** 等待第一次扫描启动。 */
+    suspend fun awaitFirstStarted() {
+        firstStarted.await()
+    }
+
+    /** 等待第二次扫描启动。 */
+    suspend fun awaitSecondStarted() {
+        secondStarted.await()
+    }
+
+    /** 释放第一次扫描的晚到成功。 */
+    fun releaseFirstLateResult() {
+        firstRelease.complete(value = Unit)
+    }
+
+    /** 释放第二次扫描的正常成功。 */
+    fun releaseSecondResult() {
+        secondRelease.complete(value = Unit)
+    }
+
+    /** 第一次调用收到取消后继续等待，稳定复现复审里的竞态窗口。 */
+    private suspend fun awaitFirstRelease() {
+        try {
+            firstRelease.await()
+        } catch (cancellationException: CancellationException) {
+            withContext(NonCancellable) {
+                firstRelease.await()
+            }
+        }
+    }
+
+    /** 生成可区分来源前缀的发现结果，便于断言最终曲库来自新会话。 */
+    private fun buildDiscoveredFiles(count: Int, prefix: String): List<MusicFileMetadata> {
+        return (1..count).map { index: Int ->
+            MusicFileMetadata(
+                sourceId = "$prefix:$index",
+                sourceKind = LocalMusicSourceKind.FakeScanner,
+                localUri = "test://restart/$prefix/$index",
+                fileName = "$prefix-$index.mp3",
+                title = "$prefix track $index",
+                artist = "artist $prefix",
+                album = "album $prefix",
+                durationMs = 180_000L,
+                mimeType = "audio/mpeg",
+                sizeBytes = 1_000L + index,
+                modifiedAt = index.toLong(),
+                coverArt = CoverArt.HeroLocalMusic,
+            )
+        }
     }
 }
 
@@ -2242,6 +2651,109 @@ private class RecordingLocalMusicScanner : LocalMusicScanner {
     override suspend fun scan(request: LocalMusicScanRequest): LocalMusicScanResult {
         requests += request
         return com.yanhao.kmpmusic.data.FakeLocalMusicScanner(demoSongCount = 8).scan(request = request)
+    }
+}
+
+/**
+ * restoreSnapshot 会故意卡住且忽略取消，用来验证旧恢复晚到时不会再触碰音频引擎。
+ */
+private class BlockingRestoreSnapshotStore(
+    private val delegate: PlaybackSnapshotStore,
+) : PlaybackSnapshotStore {
+    // 记录恢复读取已经开始，避免测试靠时间猜测竞态窗口。
+    private val restoreStarted: CompletableDeferred<Unit> = CompletableDeferred()
+
+    // 显式放行 restoreSnapshot，让失效后的旧恢复继续跑到提交边界。
+    private val allowRestoreToFinish: CompletableDeferred<Unit> = CompletableDeferred()
+
+    override suspend fun saveSnapshot(snapshot: PlaybackSnapshot) {
+        delegate.saveSnapshot(snapshot = snapshot)
+    }
+
+    override suspend fun hasSavedSnapshot(): Boolean {
+        return delegate.hasSavedSnapshot()
+    }
+
+    override suspend fun getSavedQueueSongIds(): List<String> {
+        return delegate.getSavedQueueSongIds()
+    }
+
+    override suspend fun getSavedSnapshotIdentity(): com.yanhao.kmpmusic.domain.model.PlaybackSnapshotIdentity? {
+        return delegate.getSavedSnapshotIdentity()
+    }
+
+    override suspend fun restoreSnapshot(availableSongIds: Set<String>): PlaybackSnapshot {
+        restoreStarted.complete(value = Unit)
+        withContext(context = NonCancellable) {
+            allowRestoreToFinish.await()
+        }
+        return delegate.restoreSnapshot(availableSongIds = availableSongIds)
+    }
+
+    suspend fun awaitRestoreStarted() {
+        restoreStarted.await()
+    }
+
+    fun releaseRestore() {
+        allowRestoreToFinish.complete(value = Unit)
+    }
+}
+
+/**
+ * 记录音频引擎是否真的收到旧恢复提交，直接验证 setQueue/pause/play 的副作用边界。
+ */
+private class RecordingAudioPlayerEngine : AudioPlayerEngine {
+    private val delegate: FakeAudioPlayerEngine = FakeAudioPlayerEngine()
+
+    val setQueueSongIdCalls: MutableList<List<String>> = mutableListOf()
+    var playCalls: Int = 0
+        private set
+    var pauseCalls: Int = 0
+        private set
+
+    override val events = delegate.events
+
+    override suspend fun setQueue(
+        items: List<com.yanhao.kmpmusic.domain.model.PlayableMedia>,
+        startIndex: Int,
+        startPositionMs: Long,
+    ) {
+        setQueueSongIdCalls += items.map { media -> media.songId }
+        delegate.setQueue(
+            items = items,
+            startIndex = startIndex,
+            startPositionMs = startPositionMs,
+        )
+    }
+
+    override fun play() {
+        playCalls += 1
+        delegate.play()
+    }
+
+    override fun pause() {
+        pauseCalls += 1
+        delegate.pause()
+    }
+
+    override fun seekTo(positionMs: Long) {
+        delegate.seekTo(positionMs = positionMs)
+    }
+
+    override fun skipToIndex(index: Int) {
+        delegate.skipToIndex(index = index)
+    }
+
+    override fun setPlaybackMode(playbackMode: PlaybackMode) {
+        delegate.setPlaybackMode(playbackMode = playbackMode)
+    }
+
+    override fun setVolume(volume: Float) {
+        delegate.setVolume(volume = volume)
+    }
+
+    override fun stop() {
+        delegate.stop()
     }
 }
 

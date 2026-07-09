@@ -14,14 +14,10 @@ import com.yanhao.kmpmusic.domain.model.Album
 import com.yanhao.kmpmusic.domain.model.Artist
 import com.yanhao.kmpmusic.domain.model.LibrarySnapshot
 import com.yanhao.kmpmusic.domain.model.LibraryStats
-import com.yanhao.kmpmusic.domain.model.LocalMusicDiscoveryPreferences
-import com.yanhao.kmpmusic.domain.model.LocalMusicLastScanSummary
-import com.yanhao.kmpmusic.domain.model.LocalMusicScanErrorType
-import com.yanhao.kmpmusic.domain.model.LocalMusicScanProgress
-import com.yanhao.kmpmusic.domain.model.LocalMusicScanException
 import com.yanhao.kmpmusic.domain.model.LocalMusicScanRequest
 import com.yanhao.kmpmusic.domain.model.LocalMusicScanState
 import com.yanhao.kmpmusic.domain.model.PlaybackHistory
+import com.yanhao.kmpmusic.domain.model.PlaybackSnapshot
 import com.yanhao.kmpmusic.domain.model.PlaybackState
 import com.yanhao.kmpmusic.domain.model.PlaybackStatus
 import com.yanhao.kmpmusic.domain.model.QueueState
@@ -29,8 +25,6 @@ import com.yanhao.kmpmusic.domain.model.SearchContext
 import com.yanhao.kmpmusic.domain.model.SearchScope
 import com.yanhao.kmpmusic.domain.model.Song
 import com.yanhao.kmpmusic.domain.model.ThemeMode
-import com.yanhao.kmpmusic.domain.model.hasSameAlbumTitle
-import com.yanhao.kmpmusic.domain.model.hasSameArtistName
 import com.yanhao.kmpmusic.domain.persistence.InMemoryPlaybackSnapshotStore
 import com.yanhao.kmpmusic.domain.persistence.PlaybackSnapshotStore
 import com.yanhao.kmpmusic.domain.playback.AudioPlayerEngine
@@ -46,26 +40,30 @@ import com.yanhao.kmpmusic.domain.usecase.ScanLocalMusicUseCaseImpl
 import com.yanhao.kmpmusic.domain.usecase.SearchResult
 import com.yanhao.kmpmusic.domain.usecase.ToggleFavoriteUseCase
 import com.yanhao.kmpmusic.domain.usecase.ToggleFavoriteUseCaseImpl
-import com.yanhao.kmpmusic.domain.usecase.buildSearchResult
+import com.yanhao.kmpmusic.feature.app.search.SearchResultController
 import com.yanhao.kmpmusic.feature.app.favorites.FavoriteStateSynchronizer
 import com.yanhao.kmpmusic.feature.app.library.LibraryStateSynchronizer
+import com.yanhao.kmpmusic.feature.app.library.LocalMusicScanController
 import com.yanhao.kmpmusic.feature.app.library.MusicLibraryProjector
+import com.yanhao.kmpmusic.feature.app.navigation.ContentNavigationController
 import com.yanhao.kmpmusic.feature.app.navigation.NavigationStateController
+import com.yanhao.kmpmusic.feature.app.playback.PendingPlaybackSnapshotRequest
 import com.yanhao.kmpmusic.feature.app.playback.PlaybackRestoreOrchestrator
+import com.yanhao.kmpmusic.feature.app.playback.PlaybackActionController
 import com.yanhao.kmpmusic.feature.app.playback.PlaybackUiStateSynchronizer
+import com.yanhao.kmpmusic.feature.app.preferences.PreferenceStateController
 import com.yanhao.kmpmusic.feature.app.search.SearchSessionController
 import com.yanhao.kmpmusic.feature.app.session.LoginAndDialogStateController
+import com.yanhao.kmpmusic.feature.app.system.SystemBackController
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
 private const val DEFAULT_SEARCH_QUERY_DEBOUNCE_MILLIS = 300L
-
-// 本地扫描日志统一前缀，方便从平台日志中过滤扫描生命周期。
-private const val LOCAL_MUSIC_SCAN_LOG_PREFIX = "[LocalMusicScan]"
 
 /**
  * App 状态控制器，替代原型中的 React `useState` 集群。
@@ -102,11 +100,22 @@ class MusicAppController(
     // 冷启动恢复由编排器统一管理依赖顺序，避免 facade 混杂实体解析与恢复时序。
     private val playbackRestoreOrchestrator: PlaybackRestoreOrchestrator
 
+    // 内容导航工作流统一处理曲库预热与内容路由，facade 只保留门面时序。
+    private val contentNavigationController: ContentNavigationController
+
+    // 偏好设置工作流统一处理主题与本地发现设置的持久化和状态同步。
+    private val preferenceStateController: PreferenceStateController = PreferenceStateController(
+        userPreferencesRepository = userPreferencesRepository,
+    )
+
     // 本地扫描用例。
     private val scanLocalMusicUseCase: ScanLocalMusicUseCase = ScanLocalMusicUseCaseImpl(
         localMusicScanner = localMusicScanner,
         musicLibraryRepository = musicLibraryRepository,
     )
+
+    // 本地扫描工作流统一收敛会话取消、权限确认和旧事件丢弃。
+    private val localMusicScanController: LocalMusicScanController
 
     // 播放协调器统一托管运行时播放、队列和快照写入。
     private val playbackCoordinator: PlaybackCoordinator = PlaybackCoordinator(
@@ -116,29 +125,41 @@ class MusicAppController(
         nowMillis = nowMillis,
     )
 
+    // 播放动作工作流统一处理会改变播放事实的入口，facade 只保留公开 API 与状态发布时序。
+    private val playbackActionController: PlaybackActionController = PlaybackActionController(
+        playbackCoordinator = playbackCoordinator,
+        playbackRepository = playbackRepository,
+        playbackSnapshotStore = playbackSnapshotStore,
+        controllerScope = controllerScope,
+        nowMillis = nowMillis,
+    )
+
     // 播放 UI 刷新观察者，供平台通知或其他宿主订阅共享状态。
     private var playbackUiObserver: (MusicAppUiState) -> Unit = {}
 
-    // 冷启动恢复请求在曲库尚未准备好时先挂起，等扫描结果到位后再真正执行。
-    private var isPlaybackRestorePending: Boolean = false
+    // 冷启动恢复请求只保存身份，不在门面里缓存整份持久化快照。
+    private var pendingPlaybackSnapshotRequest: PendingPlaybackSnapshotRequest? = null
 
-    // 扫描入口必须是单任务，运行中再次触发只会标记取消。
-    private var isLocalMusicScanRunning: Boolean = false
+    // 防止扫描完成、首次全量加载和用户显式恢复同时并发触发多次 hydration。
+    private var playbackSnapshotHydrationJob: Job? = null
 
-    // 取消后旧 scanner 可能稍后返回，用该标记阻止它覆盖取消结果。
-    private var isLocalMusicScanCancellationRequested: Boolean = false
+    // 每次用户显式改变播放事实时递增，用来丢弃已经过期的恢复结果。
+    private var playbackSnapshotHydrationGeneration: Long = 0L
 
-    // 当前扫描协程，取消入口通过它向实际扫描任务发出取消信号。
-    private var currentLocalMusicScanJob: Job? = null
+    // 恢复提交与显式改写播放事实的入口必须串行，避免旧恢复在新动作之后继续落地。
+    private val playbackFactMutationMutex: Mutex = Mutex()
 
     // 搜索会话子控制器负责搜索输入态、防抖和历史 reducer。
     private val searchSessionController: SearchSessionController = SearchSessionController(
         searchHistoryRepository = searchHistoryRepository,
         controllerScope = controllerScope,
         debounceMillis = searchQueryDebounceMillis,
-        publishStateUpdate = { reducer: (MusicAppUiState) -> MusicAppUiState ->
-            uiState = reducer(uiState)
-        },
+        publishStateUpdate = ::reduceUiState,
+    )
+
+    // 搜索结果派生单独收敛，避免 facade 继续持有上下文分流和 pending query 规则。
+    private val searchResultController: SearchResultController = SearchResultController(
+        musicLibraryRepository = musicLibraryRepository,
     )
 
     /**
@@ -179,6 +200,22 @@ class MusicAppController(
                 )
             },
         )
+        localMusicScanController = LocalMusicScanController(
+            scanLocalMusicUseCase = scanLocalMusicUseCase,
+            permissionSettingsOpener = permissionSettingsOpener,
+            controllerScope = controllerScope,
+            nowMillis = nowMillis,
+            resolveLikedSongIdsForScan = { _: MusicAppUiState ->
+                resolveLikedSongIdsForScan()
+            },
+            shouldConfirmPermissionSettingsBeforeScan = { state: MusicAppUiState ->
+                libraryStateSynchronizer.shouldConfirmPermissionSettingsBeforeScan(state = state)
+            },
+            publishStateUpdate = ::reduceUiState,
+        )
+        contentNavigationController = ContentNavigationController(
+            libraryStateSynchronizer = libraryStateSynchronizer,
+        )
         playbackUiStateSynchronizer = PlaybackUiStateSynchronizer(
             playbackRepository = playbackRepository,
             recentSongsBuilder = libraryStateSynchronizer::buildRecentSongs,
@@ -186,7 +223,6 @@ class MusicAppController(
         playbackRestoreOrchestrator = PlaybackRestoreOrchestrator(
             playbackSnapshotStore = playbackSnapshotStore,
             availableSongsResolver = libraryStateSynchronizer::resolveAvailableSongsByIds,
-            restoreSnapshot = playbackCoordinator::restoreSnapshot,
         )
         uiState = createInitialState(
             homePreview = initialHomePreview,
@@ -208,6 +244,19 @@ class MusicAppController(
     /** 统一向宿主发布最新播放 UI 状态，避免控制器外部重复读取内部细节。 */
     private fun publishPlaybackUiState() {
         playbackUiObserver(uiState)
+    }
+
+    /** 所有异步协作者都经由这里提交同步归约，避免晚到结果覆盖最新 [uiState]。 */
+    private fun reduceUiState(reducer: (MusicAppUiState) -> MusicAppUiState) {
+        uiState = reducer(uiState)
+    }
+
+    /** 应用内容导航结果，并在首次拿到完整曲库后补跑待恢复的播放快照。 */
+    private fun applyContentNavigationResult(result: ContentNavigationController.Result) {
+        uiState = result.state
+        if (result.loadedFullLibrary) {
+            restorePlaybackSnapshotIfPending()
+        }
     }
 
     /** 进入二级页面并隐藏主 Tab。 */
@@ -233,234 +282,151 @@ class MusicAppController(
 
     /** 切换首页内容页签，聚合型页签按需加载完整本地曲库。 */
     fun setHomeContentSection(section: HomeContentSection) {
-        if (section == HomeContentSection.Albums || section == HomeContentSection.Artists) {
-            loadLocalMusicLibrary()
-        }
-        uiState = uiState.copy(homeContentSection = section)
+        applyContentNavigationResult(
+            result = contentNavigationController.setHomeContentSection(
+                state = uiState,
+                section = section,
+            ),
+        )
     }
 
     /** 我的页歌曲统计回到首页歌曲分段，保持它作为一级页入口。 */
     fun openHomeSongs() {
-        navigateToRoot(tab = RootTab.Home)
-        setHomeContentSection(section = HomeContentSection.Songs)
+        applyContentNavigationResult(
+            result = contentNavigationController.openHomeSongs(state = uiState),
+        )
     }
 
     /**
      * 处理 Android 系统返回键，优先关闭临时浮层，最后才退出二级页面。
      */
     fun handleSystemBack(): Boolean {
-        if (uiState.isPermissionSettingsDialogOpen) {
-            closePermissionSettingsDialog()
-            return true
-        }
-        if (uiState.isClearCacheDialogOpen) {
-            closeClearCacheDialog()
-            return true
-        }
-        if (uiState.moreSongId != null) {
-            closeMore()
-            return true
-        }
-        if (uiState.isQueueOpen) {
-            closeQueue()
-            return true
-        }
-        if (!uiState.navigationState.isTopLevel) {
-            navigateBack()
-            return true
-        }
-        return false
+        val result: SystemBackController.Result = SystemBackController.handleSystemBack(state = uiState)
+        uiState = result.state
+        return result.wasHandled
     }
 
     /** 使用控制器生命周期启动扫描，避免主题切换重组取消 UI 协程后卡住扫描态。 */
     fun requestLocalMusicScan(request: LocalMusicScanRequest = LocalMusicScanRequest.Refresh) {
-        controllerScope.launch(start = CoroutineStart.UNDISPATCHED) {
-            scanLocalMusic(request = request)
-        }
+        localMusicScanController.requestLocalMusicScan(
+            state = uiState,
+            request = request,
+            onLibrarySnapshot = { snapshot: LibrarySnapshot ->
+                syncLibrarySnapshot(snapshot = snapshot)
+            },
+        )
     }
 
     /** 扫描本地音乐并同步曲库快照。 */
     suspend fun scanLocalMusic(request: LocalMusicScanRequest = LocalMusicScanRequest.Refresh) {
-        if (isLocalMusicScanRunning) {
-            cancelRunningLocalMusicScan()
-            return
-        }
-        if (shouldConfirmPermissionSettingsBeforeScan()) {
-            openPermissionSettingsDialog()
-            return
-        }
-        isLocalMusicScanRunning = true
-        isLocalMusicScanCancellationRequested = false
-        currentLocalMusicScanJob = currentCoroutineContext()[Job]
-        val previousSummary: LocalMusicLastScanSummary? = findLastScanSummary(scanState = uiState.scanState)
-        logLocalMusicScan(message = "开始扫描: request=$request, previousState=${uiState.scanState}")
-        uiState = uiState.copy(
-            scanState = LocalMusicScanState.Scanning(
-                progress = LocalMusicScanProgress(currentSourceName = "本地音乐"),
-                previousSummary = previousSummary,
-            ),
-            isQueueOpen = false,
-            moreSongId = null,
+        localMusicScanController.scanLocalMusic(
+            state = uiState,
+            request = request,
+            onLibrarySnapshot = { snapshot: LibrarySnapshot ->
+                syncLibrarySnapshot(snapshot = snapshot)
+            },
         )
-        try {
-            val likedSongIdsForScan: Set<String> = resolveLikedSongIdsForScan()
-            val snapshot: LibrarySnapshot = scanLocalMusicUseCase(
-                request = request,
-                likedSongIds = likedSongIdsForScan,
-                preferences = uiState.localMusicDiscoveryPreferences,
-            )
-            logLocalMusicScan(
-                message = "扫描用例完成: request=$request, songCount=${snapshot.stats.songCount}, scanState=${snapshot.scanState}",
-            )
-            if (isLocalMusicScanCancellationRequested) {
-                logLocalMusicScan(message = "扫描结果已忽略: request=$request, reason=cancelRequested")
-                return
-            }
-            syncLibrarySnapshot(snapshot = snapshot)
-        } catch (cancellationException: CancellationException) {
-            logLocalMusicScan(
-                message = "扫描协程被取消: request=$request, userRequested=$isLocalMusicScanCancellationRequested, reason=${cancellationException.message.orEmpty()}",
-            )
-            publishCancelledLocalMusicScanIfRunning()
-            throw cancellationException
-        } catch (scanException: LocalMusicScanException) {
-            if (scanException.error.type == LocalMusicScanErrorType.UserCancelled) {
-                logLocalMusicScan(message = "扫描被平台报告为用户取消: request=$request")
-                publishCancelledLocalMusicScan()
-                return
-            }
-            logLocalMusicScan(
-                message = "扫描失败: request=$request, errorType=${scanException.error.type}, message=${scanException.error.message}",
-            )
-            uiState = uiState.copy(
-                scanState = LocalMusicScanState.Error(
-                    error = scanException.error,
-                    summary = previousSummary,
-                ),
-                isQueueOpen = false,
-                moreSongId = null,
-            )
-        } finally {
-            isLocalMusicScanRunning = false
-            currentLocalMusicScanJob = null
-            logLocalMusicScan(message = "扫描流程结束: request=$request, finalState=${uiState.scanState}")
-        }
-    }
-
-    /** 运行中的扫描入口直接取消，不再弹二次确认或启动新 scanner。 */
-    private fun cancelRunningLocalMusicScan() {
-        isLocalMusicScanCancellationRequested = true
-        logLocalMusicScan(message = "用户请求取消当前扫描")
-        currentLocalMusicScanJob?.cancel(
-            cause = CancellationException("用户取消了本地音乐扫描"),
-        )
-        publishCancelledLocalMusicScan()
-    }
-
-    // 外部协程取消时只在 UI 仍显示运行中时发布取消态，避免用户取消路径重复刷新结果时间。
-    private fun publishCancelledLocalMusicScanIfRunning() {
-        val scanState: LocalMusicScanState = uiState.scanState
-        if (scanState !is LocalMusicScanState.Scanning && scanState !is LocalMusicScanState.Importing) {
-            return
-        }
-        publishCancelledLocalMusicScan()
-    }
-
-    /** 生成取消结果态，保证 UI 能稳定展示“已取消”和曲库保留说明。 */
-    private fun publishCancelledLocalMusicScan() {
-        uiState = uiState.copy(
-            scanState = LocalMusicScanState.Cancelled(
-                summary = LocalMusicLastScanSummary(
-                    addedCount = 0,
-                    updatedCount = 0,
-                    removedCount = 0,
-                    problemCount = 0,
-                    completedAt = scanResultTimeMillis(),
-                ),
-            ),
-            isQueueOpen = false,
-            moreSongId = null,
-            isPermissionSettingsDialogOpen = false,
-        )
-    }
-
-    // commonMain 没有统一日志依赖，先用标准输出给各平台保留轻量扫描诊断。
-    private fun logLocalMusicScan(message: String) {
-        println("$LOCAL_MUSIC_SCAN_LOG_PREFIX $message")
-    }
-
-    /** 测试环境可能不注入时钟，取消结果仍需要一个可展示的结果时间。 */
-    private fun scanResultTimeMillis(): Long {
-        val currentTimeMillis: Long = nowMillis()
-        if (currentTimeMillis > 0L) {
-            return currentTimeMillis
-        }
-        return 1L
-    }
-
-    // 进入运行中状态前保留上一轮结果，避免扫描页把“上次扫描”回退为空。
-    private fun findLastScanSummary(scanState: LocalMusicScanState): LocalMusicLastScanSummary? {
-        return when (scanState) {
-            LocalMusicScanState.Idle,
-            LocalMusicScanState.WaitingForPermission,
-            -> null
-            is LocalMusicScanState.Importing -> scanState.previousSummary
-            is LocalMusicScanState.Scanning -> scanState.previousSummary
-            is LocalMusicScanState.Done -> scanState.summary
-            is LocalMusicScanState.Cancelled -> scanState.summary
-            is LocalMusicScanState.Error -> scanState.summary
-        }
     }
 
     /**
      * 按可用曲库恢复持久化播放快照，并始终以暂停态回填共享 UI。
      */
     suspend fun restorePlaybackSnapshot() {
+        if (playbackSnapshotHydrationJob?.isActive == true) {
+            return
+        }
+        val request: PendingPlaybackSnapshotRequest = pendingPlaybackSnapshotRequest
+            ?: playbackRestoreOrchestrator.createPendingRequest()
+            ?: run {
+                pendingPlaybackSnapshotRequest = null
+                return
+            }
+        pendingPlaybackSnapshotRequest = request
+        val activeJob: Job = currentCoroutineContext()[Job] ?: run {
+            hydratePendingPlaybackSnapshot(request = request)
+            return
+        }
+        playbackSnapshotHydrationJob = activeJob
+        try {
+            hydratePendingPlaybackSnapshot(request = request)
+        } finally {
+            if (playbackSnapshotHydrationJob == activeJob) {
+                playbackSnapshotHydrationJob = null
+            }
+        }
+    }
+
+    /**
+     * 真正执行一次挂起恢复，只把解析出的队列实体并回最新 [uiState]。
+     */
+    private suspend fun hydratePendingPlaybackSnapshot(request: PendingPlaybackSnapshotRequest) {
+        val generationAtStart: Long = playbackSnapshotHydrationGeneration
         val result: PlaybackRestoreOrchestrator.Result = playbackRestoreOrchestrator.restore(
             state = uiState,
             preferredSongs = preferredKnownSongs(),
+            pendingRequest = request,
+            isRequestCurrent = { currentRequest: PendingPlaybackSnapshotRequest ->
+                pendingPlaybackSnapshotRequest == currentRequest &&
+                    playbackSnapshotHydrationGeneration == generationAtStart
+            },
         )
-        uiState = uiState.copy(queueSongsSnapshot = result.state.queueSongsSnapshot)
-        isPlaybackRestorePending = result.isPending
+        playbackFactMutationMutex.withLock {
+            if (!isPendingPlaybackSnapshotRequestCurrent(request = request, generation = generationAtStart)) {
+                return
+            }
+            result.restoredSnapshot?.let { restoredSnapshot: PlaybackSnapshot ->
+                val queueSongsSnapshot: List<Song> = result.queueSongsSnapshot ?: return@let
+                playbackCoordinator.applyRestoredSnapshot(
+                    snapshot = restoredSnapshot,
+                    availableSongs = queueSongsSnapshot,
+                )
+            }
+            result.queueSongsSnapshot?.let { queueSongsSnapshot: List<Song> ->
+                reduceUiState { currentState: MusicAppUiState ->
+                    currentState.copy(queueSongsSnapshot = queueSongsSnapshot)
+                }
+            }
+            pendingPlaybackSnapshotRequest = result.pendingRequest
+        }
     }
 
     /** 打开权限设置确认框，由用户选择是否离开 App 进入系统设置。 */
     fun openPermissionSettingsDialog() {
-        uiState = uiState.copy(
-            isPermissionSettingsDialogOpen = true,
-            isQueueOpen = false,
-            moreSongId = null,
-        )
+        localMusicScanController.openPermissionSettingsDialog()
     }
 
     /** 关闭权限设置确认框，保留当前权限错误态供用户稍后重试。 */
     fun closePermissionSettingsDialog() {
-        uiState = uiState.copy(isPermissionSettingsDialogOpen = false)
+        localMusicScanController.closePermissionSettingsDialog()
     }
 
     /** 用户确认后再打开系统权限设置页，避免永久拒绝后突然跳出 App。 */
     fun confirmPermissionSettings() {
-        uiState = uiState.copy(
-            isPermissionSettingsDialogOpen = false,
-            scanState = LocalMusicScanState.WaitingForPermission,
-        )
-        permissionSettingsOpener.openPermissionSettings()
+        localMusicScanController.confirmPermissionSettings()
     }
 
     /** 打开本地音乐二级页并指定初始分段。 */
     fun openLocalMusic(section: LocalMusicSection = LocalMusicSection.Songs) {
-        loadLocalMusicLibrary()
-        navigateToSecondary(screen = SecondaryScreen.LocalMusic(initialSection = section))
+        applyContentNavigationResult(
+            result = contentNavigationController.openLocalMusic(
+                state = uiState,
+                section = section,
+            ),
+        )
     }
 
     /** 打开独立扫描页，让首页入口先展示扫描设置和统计。 */
     fun openAudioScan() {
-        navigateToSecondary(screen = SecondaryScreen.AudioScan)
+        applyContentNavigationResult(
+            result = contentNavigationController.openAudioScan(state = uiState),
+        )
     }
 
     /** 打开最近播放普通二级页，完整列表行为由后续切片补齐。 */
     fun openRecentPlayed() {
-        navigateToSecondary(screen = SecondaryScreen.RecentPlayed)
+        applyContentNavigationResult(
+            result = contentNavigationController.openRecentPlayed(state = uiState),
+        )
     }
 
     /** 搜索页应按入口上下文拿到对应数据集合，避免搜索结果跨页面串联。 */
@@ -478,34 +444,30 @@ class MusicAppController(
     /** 播放歌曲但留在当前页面，未显式传列表时优先复用当前队列上下文。 */
     fun playSong(song: Song, queueSongs: List<Song> = emptyList()) {
         commitSearchQueryForResultActionIfNeeded()
-        val resolvedQueueSongs: List<Song> = resolvePlaybackQueueSongs(
-            song = song,
-            queueSongs = queueSongs,
-        )
-        uiState = uiState.copy(queueSongsSnapshot = resolvedQueueSongs)
-        controllerScope.launch(start = CoroutineStart.UNDISPATCHED) {
-            playbackCoordinator.playSong(song = song, queueSongs = resolvedQueueSongs)
+        launchPlaybackFactMutation {
+            clearPendingPlaybackSnapshotRequest()
+            val action: PlaybackActionController.PreparedPlaySong = playbackActionController.preparePlaySong(
+                state = uiState,
+                song = song,
+                queueSongs = queueSongs,
+            )
+            uiState = action.state
+            playbackActionController.startPlayback(action = action)
         }
     }
 
     /** 最近播放入口必须复用完整过滤后列表，避免“我的”页摘要 Top3 截断播放队列。 */
     fun playRecentSong(song: Song) {
-        playSong(
-            song = song,
-            queueSongs = uiState.recentSongs,
-        )
-    }
-
-    // 队列弹层等入口只有歌曲本身时，复用当前显式队列，避免变成单曲队列。
-    private fun resolvePlaybackQueueSongs(song: Song, queueSongs: List<Song>): List<Song> {
-        if (queueSongs.any { candidate -> candidate.id == song.id }) {
-            return queueSongs
+        commitSearchQueryForResultActionIfNeeded()
+        launchPlaybackFactMutation {
+            clearPendingPlaybackSnapshotRequest()
+            val action: PlaybackActionController.PreparedPlaySong = playbackActionController.preparePlayRecentSong(
+                state = uiState,
+                song = song,
+            )
+            uiState = action.state
+            playbackActionController.startPlayback(action = action)
         }
-        val currentQueueSongs: List<Song> = uiState.queueSongs
-        if (currentQueueSongs.any { candidate -> candidate.id == song.id }) {
-            return currentQueueSongs
-        }
-        return listOf(song)
     }
 
     /** 打开当前播放页，供迷你播放器和 Android 通知正文复用同一路由入口。 */
@@ -515,69 +477,67 @@ class MusicAppController(
 
     /** 切换播放暂停。 */
     fun togglePlayback() {
-        playbackCoordinator.togglePlayback()
+        playbackActionController.togglePlayback()
     }
 
     /** 显式恢复或开始播放，供 Android 系统媒体命令调用。 */
     fun play() {
-        playbackCoordinator.play()
+        playbackActionController.play()
     }
 
     /** 显式暂停播放，供 Android 系统媒体命令调用。 */
     fun pause() {
-        playbackCoordinator.pause()
+        playbackActionController.pause()
     }
 
     /** 切换上一首或下一首。 */
     fun moveTrack(direction: Int) {
-        if (direction < 0) {
-            playbackCoordinator.movePrevious()
-            return
+        launchPlaybackFactMutation {
+            clearPendingPlaybackSnapshotRequest()
+            playbackActionController.moveTrack(direction = direction)
         }
-        playbackCoordinator.moveNext()
     }
 
     /** 按精确队列下标切歌，并带入系统命令指定的起始进度。 */
     fun skipToQueueIndex(index: Int, positionMs: Long = 0L) {
-        playbackCoordinator.skipToQueueIndex(
-            index = index,
-            positionMs = positionMs,
-        )
+        launchPlaybackFactMutation {
+            clearPendingPlaybackSnapshotRequest()
+            playbackActionController.skipToQueueIndex(
+                index = index,
+                positionMs = positionMs,
+            )
+        }
     }
 
     /** 拖动播放进度时同时更新运行态与持久化快照，避免冷启动回到旧进度。 */
     fun seekTo(positionMs: Long) {
-        playbackCoordinator.seekTo(positionMs = positionMs)
-        controllerScope.launch {
-            playbackSnapshotStore.saveSnapshot(
-                snapshot = com.yanhao.kmpmusic.domain.model.PlaybackSnapshot(
-                    playbackState = playbackRepository.getPlaybackState().copy(
-                        positionMs = positionMs.coerceAtLeast(minimumValue = 0L),
-                    ),
-                    queueState = playbackRepository.getQueueState(),
-                    updatedAt = nowMillis(),
-                ),
-            )
+        launchPlaybackFactMutation {
+            clearPendingPlaybackSnapshotRequest()
+            playbackActionController.seekTo(positionMs = positionMs)
         }
     }
 
     /** 播放模式按钮只负责触发协调器切换，UI 统一从仓库回读。 */
     fun cyclePlaybackMode() {
-        playbackCoordinator.cyclePlaybackMode()
+        launchPlaybackFactMutation {
+            clearPendingPlaybackSnapshotRequest()
+            playbackActionController.cyclePlaybackMode()
+        }
     }
 
     /** 调整共享播放器音量，所有页面读取同一份状态后再由 [PlaybackCoordinator] 下发到播放引擎。 */
     fun setVolume(volume: Float) {
-        val safeVolume: Float = volume.coerceIn(minimumValue = 0f, maximumValue = 1f)
-        uiState = uiState.copy(playbackVolume = safeVolume)
-        playbackCoordinator.setVolume(volume = safeVolume)
+        uiState = playbackActionController.setVolume(
+            state = uiState,
+            volume = volume,
+        )
     }
 
     /**
      * Android 播放 service 退出前，通过协调器补写最终暂停快照，避免恢复时丢掉最后位置。
      */
     fun persistPlaybackSnapshotForServiceTeardown(positionMs: Long, durationMs: Long?) {
-        playbackCoordinator.persistSnapshotForServiceTeardown(
+        playbackActionController.persistPlaybackSnapshotForServiceTeardown(
             positionMs = positionMs,
             durationMs = durationMs,
         )
@@ -587,7 +547,7 @@ class MusicAppController(
      * Desktop 进程退出前同步固化最后进度，避免宿主关闭数据库或协程作用域时丢掉尾帧。
      */
     suspend fun persistPlaybackSnapshotForProcessTeardown(positionMs: Long, durationMs: Long?) {
-        playbackCoordinator.persistSnapshotForProcessTeardown(
+        playbackActionController.persistPlaybackSnapshotForProcessTeardown(
             positionMs = positionMs,
             durationMs = durationMs,
         )
@@ -611,45 +571,45 @@ class MusicAppController(
     /** 打开专辑详情。 */
     fun openAlbum(album: Album) {
         commitSearchQueryForResultActionIfNeeded()
-        loadLocalMusicLibrary()
-        uiState = uiState.copy(selectedAlbumId = album.id)
-        navigateToSecondary(screen = SecondaryScreen.AlbumDetail)
+        applyContentNavigationResult(
+            result = contentNavigationController.openAlbum(
+                state = uiState,
+                album = album,
+            ),
+        )
     }
 
     /** 打开歌手详情。 */
     fun openArtist(artist: Artist) {
         commitSearchQueryForResultActionIfNeeded()
-        loadLocalMusicLibrary()
-        uiState = uiState.copy(selectedArtistId = artist.id)
-        navigateToSecondary(screen = SecondaryScreen.ArtistDetail)
+        applyContentNavigationResult(
+            result = contentNavigationController.openArtist(
+                state = uiState,
+                artist = artist,
+            ),
+        )
     }
 
     /** 从歌曲打开专辑详情。 */
     fun openAlbumFromSong(song: Song) {
-        loadLocalMusicLibrary()
-        uiState.detailAlbums.firstOrNull { album: Album ->
-            hasSameAlbumTitle(
-                firstTitle = album.title,
-                secondTitle = song.album,
-            )
-        }?.let { album: Album ->
-            uiState = uiState.copy(moreSongId = null)
-            openAlbum(album = album)
-        }
+        commitSearchQueryForResultActionIfNeeded()
+        applyContentNavigationResult(
+            result = contentNavigationController.openAlbumFromSong(
+                state = uiState,
+                song = song,
+            ),
+        )
     }
 
     /** 从歌曲打开歌手详情。 */
     fun openArtistFromSong(song: Song) {
-        loadLocalMusicLibrary()
-        uiState.detailArtists.firstOrNull { artist: Artist ->
-            hasSameArtistName(
-                firstName = artist.name,
-                secondName = song.artist,
-            )
-        }?.let { artist: Artist ->
-            uiState = uiState.copy(moreSongId = null)
-            openArtist(artist = artist)
-        }
+        commitSearchQueryForResultActionIfNeeded()
+        applyContentNavigationResult(
+            result = contentNavigationController.openArtistFromSong(
+                state = uiState,
+                song = song,
+            ),
+        )
     }
 
     /** 更新收藏页分段。 */
@@ -705,36 +665,12 @@ class MusicAppController(
 
     /** 清空真实最近播放历史，并立即同步当前页面列表。 */
     fun clearRecentPlaybackHistory() {
-        playbackRepository.savePlaybackHistory(history = PlaybackHistory())
-        uiState = uiState.copy(recentSongs = emptyList())
+        uiState = playbackActionController.clearRecentPlaybackHistory(state = uiState)
     }
 
     /** 执行搜索，供 UI 渲染派生结果。 */
     fun search(): SearchResult {
-        if (!shouldResolveCurrentSearchResult()) {
-            return emptySearchResult()
-        }
-        return buildSearchResult(
-            query = uiState.activeSearchQuery,
-            scope = uiState.searchScope,
-            allSongs = searchSourceSongs(),
-        )
-    }
-
-    // 搜索结果必须等待防抖词追上输入词，避免空 active query 派生全量曲库。
-    private fun shouldResolveCurrentSearchResult(): Boolean {
-        val normalizedQuery: String = uiState.searchQuery.trim()
-        val normalizedActiveQuery: String = uiState.activeSearchQuery.trim()
-        return normalizedQuery.isNotEmpty() && normalizedQuery == normalizedActiveQuery
-    }
-
-    // pending 或空搜索统一返回空结果，让 UI 不需要消费全量曲库再隐藏。
-    private fun emptySearchResult(): SearchResult {
-        return SearchResult(
-            songs = emptyList(),
-            albums = emptyList(),
-            artists = emptyList(),
-        )
+        return searchResultController.search(state = uiState)
     }
 
     // 搜索结果动作前集中提交非空搜索词，避免各平台 UI 分别维护历史写入规则。
@@ -742,54 +678,36 @@ class MusicAppController(
         uiState = searchSessionController.commitActiveSearchQueryToHistoryIfNeeded(state = uiState)
     }
 
-    // 按搜索上下文选择共享数据源，保证 UI 只消费派生结果。
-    private fun searchSourceSongs(): List<Song> {
-        return when (uiState.searchContext) {
-            SearchContext.LocalLibrary -> {
-                if (uiState.localSongs.isNotEmpty()) {
-                    uiState.localSongs
-                } else {
-                    musicLibraryRepository.getAllAvailableSongs()
-                }
-            }
-            SearchContext.Favorites -> uiState.favoriteSongs
-        }
-    }
-
     /** 设置主题模式。 */
     fun setThemeMode(themeMode: ThemeMode) {
-        userPreferencesRepository.saveThemeMode(themeMode = themeMode)
-        uiState = uiState.copy(themeMode = themeMode)
+        uiState = preferenceStateController.setThemeMode(
+            state = uiState,
+            themeMode = themeMode,
+        )
     }
 
     /** 设置启动时自动扫描偏好。 */
     fun setLocalMusicAutoScanOnLaunchEnabled(isEnabled: Boolean) {
-        updateLocalMusicDiscoveryPreferences { preferences: LocalMusicDiscoveryPreferences ->
-            preferences.copy(isAutoScanOnLaunchEnabled = isEnabled)
-        }
+        uiState = preferenceStateController.setLocalMusicAutoScanOnLaunchEnabled(
+            state = uiState,
+            isEnabled = isEnabled,
+        )
     }
 
     /** 设置短音频过滤偏好。 */
     fun setLocalMusicShortAudioIgnored(isIgnored: Boolean) {
-        updateLocalMusicDiscoveryPreferences { preferences: LocalMusicDiscoveryPreferences ->
-            preferences.copy(shouldIgnoreShortAudio = isIgnored)
-        }
+        uiState = preferenceStateController.setLocalMusicShortAudioIgnored(
+            state = uiState,
+            isIgnored = isIgnored,
+        )
     }
 
     /** 设置系统文件夹排除偏好。 */
     fun setLocalMusicSystemFoldersExcluded(isExcluded: Boolean) {
-        updateLocalMusicDiscoveryPreferences { preferences: LocalMusicDiscoveryPreferences ->
-            preferences.copy(shouldExcludeSystemFolders = isExcluded)
-        }
-    }
-
-    // 统一保存本地音频发现偏好，避免各个开关各自维护缓存。
-    private fun updateLocalMusicDiscoveryPreferences(
-        transform: (LocalMusicDiscoveryPreferences) -> LocalMusicDiscoveryPreferences,
-    ) {
-        val preferences: LocalMusicDiscoveryPreferences = transform(uiState.localMusicDiscoveryPreferences)
-        userPreferencesRepository.saveLocalMusicDiscoveryPreferences(preferences = preferences)
-        uiState = uiState.copy(localMusicDiscoveryPreferences = preferences)
+        uiState = preferenceStateController.setLocalMusicSystemFoldersExcluded(
+            state = uiState,
+            isExcluded = isExcluded,
+        )
     }
 
     /** 打开队列弹层。 */
@@ -804,11 +722,31 @@ class MusicAppController(
 
     /** 从队列移除歌曲，至少保留一首。 */
     fun removeFromQueue(songId: String) {
-        controllerScope.launch(start = CoroutineStart.UNDISPATCHED) {
-            playbackCoordinator.removeFromQueue(
+        launchPlaybackFactMutation {
+            clearPendingPlaybackSnapshotRequest()
+            playbackActionController.removeFromQueue(
+                state = uiState,
                 songId = songId,
-                availableSongs = uiState.queueSongs,
             )
+        }
+    }
+
+    /**
+     * 用户显式改变播放事实后，旧恢复请求必须作废，避免晚到结果覆盖最新意图。
+     */
+    private fun clearPendingPlaybackSnapshotRequest() {
+        pendingPlaybackSnapshotRequest = null
+        playbackSnapshotHydrationGeneration += 1
+        playbackSnapshotHydrationJob?.cancel()
+        playbackSnapshotHydrationJob = null
+    }
+
+    // 所有会改写当前播放事实的公开入口都走同一串行域，避免旧恢复晚到覆盖新动作。
+    private fun launchPlaybackFactMutation(block: suspend () -> Unit) {
+        controllerScope.launch(start = CoroutineStart.UNDISPATCHED) {
+            playbackFactMutationMutex.withLock {
+                block()
+            }
         }
     }
 
@@ -917,11 +855,6 @@ class MusicAppController(
         )
     }
 
-    // 永久拒绝后首页按钮表示“打开权限设置”，再次点击时先弹确认框。
-    private fun shouldConfirmPermissionSettingsBeforeScan(): Boolean {
-        return libraryStateSynchronizer.shouldConfirmPermissionSettingsBeforeScan(state = uiState)
-    }
-
     // common fake 演示环境自动填充收藏压力数据；真实平台使用注入仓库，不写入演示收藏。
     private fun resolveLikedSongIdsForScan(): Set<String> {
         if (injectedFavoritesRepository != null || uiState.likedSongIds.isNotEmpty()) {
@@ -941,39 +874,60 @@ class MusicAppController(
 
     // 同步播放仓库和 UI 状态，避免多个入口各自写状态。
     private fun syncPlaybackState(playbackState: PlaybackState) {
-        uiState = playbackUiStateSynchronizer.syncPlaybackState(
-            state = uiState,
-            playbackState = playbackState,
-        )
+        reduceUiState { currentState: MusicAppUiState ->
+            playbackUiStateSynchronizer.syncPlaybackState(
+                state = currentState,
+                playbackState = playbackState,
+            )
+        }
         publishPlaybackUiState()
     }
 
     // 曲库快照是首页、搜索、收藏和我的页的唯一列表来源。
     private fun syncLibrarySnapshot(snapshot: LibrarySnapshot) {
-        uiState = libraryStateSynchronizer.syncLibrarySnapshot(
-            state = uiState,
-            snapshot = snapshot,
-        )
+        reduceUiState { currentState: MusicAppUiState ->
+            libraryStateSynchronizer.syncLibrarySnapshot(
+                state = currentState,
+                snapshot = snapshot,
+            )
+        }
         restorePlaybackSnapshotIfPending()
     }
 
     // 只有启动期显式请求过恢复时，扫描成功后才续上真正的快照恢复，避免平时扫描打断当前播放。
     private fun restorePlaybackSnapshotIfPending() {
-        if (!isPlaybackRestorePending) {
+        if (pendingPlaybackSnapshotRequest == null) {
+            return
+        }
+        if (playbackSnapshotHydrationJob?.isActive == true) {
             return
         }
         controllerScope.launch(start = CoroutineStart.UNDISPATCHED) {
-            restorePlaybackSnapshot()
+            val activeJob: Job = coroutineContext[Job] ?: return@launch
+            playbackSnapshotHydrationJob = activeJob
+            try {
+                val request: PendingPlaybackSnapshotRequest = pendingPlaybackSnapshotRequest
+                    ?: return@launch
+                hydratePendingPlaybackSnapshot(request = request)
+            } finally {
+                if (playbackSnapshotHydrationJob == activeJob) {
+                    playbackSnapshotHydrationJob = null
+                }
+            }
         }
+    }
+
+    // 只有请求身份和代际都未变化时，恢复结果才允许继续提交到运行时播放事实。
+    private fun isPendingPlaybackSnapshotRequestCurrent(request: PendingPlaybackSnapshotRequest, generation: Long): Boolean {
+        return pendingPlaybackSnapshotRequest == request &&
+            playbackSnapshotHydrationGeneration == generation
     }
 
     /** 按需读取完整本地曲库，避免首页冷启动直接打满持久层。 */
     fun loadLocalMusicLibrary() {
-        val previousLocalSongsLoaded: Boolean = uiState.localSongs.isNotEmpty()
-        uiState = libraryStateSynchronizer.loadLocalMusicLibrary(state = uiState)
-        if (!previousLocalSongsLoaded && uiState.localSongs.isNotEmpty()) {
-            restorePlaybackSnapshotIfPending()
-        }
+        applyContentNavigationResult(
+            result = contentNavigationController.loadLocalMusicLibrary(state = uiState),
+        )
     }
 
     // 当前状态里已经拿到的歌曲优先参与收藏/恢复，避免重复构造不同实例。

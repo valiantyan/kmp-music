@@ -72,7 +72,7 @@
 - 消费：现有 `SearchSessionController` 的 `publishStateUpdate: ((MusicAppUiState) -> MusicAppUiState) -> Unit`。
 - 产出：`MusicAppController` 私有函数 `reduceUiState(reducer: (MusicAppUiState) -> MusicAppUiState): Unit`，所有异步归约都经由它串行写回当前 `uiState`。
 
-- [ ] **步骤 1：写异步交错失败测试**
+- [x] **步骤 1：写异步交错失败测试**
 
 在 `MusicAppControllerTest` 的搜索防抖测试附近加入下面测试：
 
@@ -110,7 +110,7 @@
     }
 ```
 
-- [ ] **步骤 2：运行测试确认红灯或现有行为未被锁住**
+- [x] **步骤 2：运行测试确认红灯或现有行为未被锁住**
 
 运行：
 
@@ -120,7 +120,7 @@
 
 预期：如果当前实现已经使用最新状态归约，测试可能直接通过；若失败，失败应表现为 `currentSongId` 或 `queueSongIds` 被防抖搜索写回覆盖。无论红灯还是直接绿灯，都保留该测试作为后续拆分保护。
 
-- [ ] **步骤 3：在门面中新增统一状态写入口**
+- [x] **步骤 3：在门面中新增统一状态写入口**
 
 在 `MusicAppController` 的 `publishPlaybackUiState()` 后加入：
 
@@ -163,7 +163,7 @@
     }
 ```
 
-- [ ] **步骤 4：运行任务一测试**
+- [x] **步骤 4：运行任务一测试**
 
 运行：
 
@@ -173,7 +173,7 @@
 
 预期：通过。
 
-- [ ] **步骤 5：提交任务一**
+- [x] **步骤 5：提交任务一**
 
 运行：
 
@@ -195,7 +195,7 @@ git commit -m "重构 MusicAppController 状态写入口"
 - 消费：`MusicAppUiState`、`NavigationStateController.navigateBack(state: MusicAppUiState): MusicAppUiState`。
 - 产出：`SystemBackController.handleSystemBack(state: MusicAppUiState): SystemBackController.Result`。
 
-- [ ] **步骤 1：写系统返回聚焦测试**
+- [x] **步骤 1：写系统返回聚焦测试**
 
 创建 `SystemBackControllerTest.kt`：
 
@@ -303,7 +303,7 @@ private fun baseState(): MusicAppUiState {
 }
 ```
 
-- [ ] **步骤 2：运行测试确认红灯**
+- [x] **步骤 2：运行测试确认红灯**
 
 运行：
 
@@ -313,7 +313,7 @@ private fun baseState(): MusicAppUiState {
 
 预期：失败，错误包含 `Unresolved reference: SystemBackController`。
 
-- [ ] **步骤 3：实现 `SystemBackController`**
+- [x] **步骤 3：实现 `SystemBackController`**
 
 创建 `SystemBackController.kt`：
 
@@ -380,7 +380,7 @@ object SystemBackController {
 }
 ```
 
-- [ ] **步骤 4：让门面委派系统返回**
+- [x] **步骤 4：让门面委派系统返回**
 
 在 `MusicAppController.kt` 增加 import：
 
@@ -401,7 +401,7 @@ import com.yanhao.kmpmusic.feature.app.system.SystemBackController
     }
 ```
 
-- [ ] **步骤 5：运行任务二测试和门面回归**
+- [x] **步骤 5：运行任务二测试和门面回归**
 
 运行：
 
@@ -411,7 +411,7 @@ import com.yanhao.kmpmusic.feature.app.system.SystemBackController
 
 预期：全部通过。
 
-- [ ] **步骤 6：提交任务二**
+- [x] **步骤 6：提交任务二**
 
 运行：
 
@@ -433,7 +433,7 @@ git commit -m "拆分系统返回工作流"
 - 消费：`UserPreferencesRepository`、`ThemeMode`、`LocalMusicDiscoveryPreferences`、`MusicAppUiState`。
 - 产出：`PreferenceStateController.setThemeMode`、`setLocalMusicAutoScanOnLaunchEnabled`、`setLocalMusicShortAudioIgnored`、`setLocalMusicSystemFoldersExcluded`。
 
-- [ ] **步骤 1：写偏好聚焦测试**
+- [x] **步骤 1：写偏好聚焦测试**
 
 创建 `PreferenceStateControllerTest.kt`：
 
@@ -505,7 +505,7 @@ private fun baseState(): MusicAppUiState {
 }
 ```
 
-- [ ] **步骤 2：运行测试确认红灯**
+- [x] **步骤 2：运行测试确认红灯**
 
 运行：
 
@@ -515,7 +515,7 @@ private fun baseState(): MusicAppUiState {
 
 预期：失败，错误包含 `Unresolved reference: PreferenceStateController`。
 
-- [ ] **步骤 3：实现 `PreferenceStateController`**
+- [x] **步骤 3：实现 `PreferenceStateController`**
 
 创建 `PreferenceStateController.kt`：
 
@@ -583,7 +583,7 @@ class PreferenceStateController(
 }
 ```
 
-- [ ] **步骤 4：让门面委派偏好设置**
+- [x] **步骤 4：让门面委派偏好设置**
 
 在 `MusicAppController.kt` 增加属性：
 
@@ -637,7 +637,7 @@ import com.yanhao.kmpmusic.feature.app.preferences.PreferenceStateController
 
 删除 `MusicAppController` 中的私有 `updateLocalMusicDiscoveryPreferences`。
 
-- [ ] **步骤 5：运行任务三测试和门面回归**
+- [x] **步骤 5：运行任务三测试和门面回归**
 
 运行：
 
@@ -647,7 +647,7 @@ import com.yanhao.kmpmusic.feature.app.preferences.PreferenceStateController
 
 预期：全部通过。
 
-- [ ] **步骤 6：提交任务三**
+- [x] **步骤 6：提交任务三**
 
 运行：
 
@@ -669,7 +669,7 @@ git commit -m "拆分偏好设置工作流"
 - 消费：`MusicLibraryRepository`、`MusicAppUiState`、`SearchContext`、`SearchScope`。
 - 产出：`SearchResultController.search(state: MusicAppUiState): SearchResult`。
 
-- [ ] **步骤 1：写搜索结果聚焦测试**
+- [x] **步骤 1：写搜索结果聚焦测试**
 
 创建 `SearchResultControllerTest.kt`：
 
@@ -760,7 +760,7 @@ private fun baseState(): MusicAppUiState {
 }
 ```
 
-- [ ] **步骤 2：运行测试确认红灯**
+- [x] **步骤 2：运行测试确认红灯**
 
 运行：
 
@@ -770,7 +770,7 @@ private fun baseState(): MusicAppUiState {
 
 预期：失败，错误包含 `Unresolved reference: SearchResultController`。
 
-- [ ] **步骤 3：补强门面搜索历史回归测试**
+- [x] **步骤 3：补强门面搜索历史回归测试**
 
 把 `MusicAppControllerTest.nonBlankSearchQueryDoesNotCommitToHistoryWhenLeavingSearchBeforeDebounce` 改成 `runTest`，并在离开搜索页后推进防抖时间：
 
@@ -836,7 +836,7 @@ private fun baseState(): MusicAppUiState {
     }
 ```
 
-- [ ] **步骤 4：实现 `SearchResultController`**
+- [x] **步骤 4：实现 `SearchResultController`**
 
 创建 `SearchResultController.kt`：
 
@@ -897,7 +897,7 @@ class SearchResultController(
 }
 ```
 
-- [ ] **步骤 5：让门面委派搜索结果**
+- [x] **步骤 5：让门面委派搜索结果**
 
 在 `MusicAppController.kt` 新增属性：
 
@@ -924,7 +924,7 @@ import com.yanhao.kmpmusic.feature.app.search.SearchResultController
 
 删除 `shouldResolveCurrentSearchResult()`、`emptySearchResult()` 和 `searchSourceSongs()`。
 
-- [ ] **步骤 6：运行任务四测试和门面回归**
+- [x] **步骤 6：运行任务四测试和门面回归**
 
 运行：
 
@@ -934,7 +934,7 @@ import com.yanhao.kmpmusic.feature.app.search.SearchResultController
 
 预期：全部通过。
 
-- [ ] **步骤 7：提交任务四**
+- [x] **步骤 7：提交任务四**
 
 运行：
 
@@ -956,7 +956,7 @@ git commit -m "拆分搜索结果派生工作流"
 - 消费：`LibraryStateSynchronizer`、`NavigationStateController`、`Album`、`Artist`、`Song`。
 - 产出：`ContentNavigationController.Result(state: MusicAppUiState, loadedFullLibrary: Boolean)` 和内容导航方法。
 
-- [ ] **步骤 1：写内容导航聚焦测试**
+- [x] **步骤 1：写内容导航聚焦测试**
 
 创建 `ContentNavigationControllerTest.kt`：
 
@@ -1081,7 +1081,7 @@ private fun baseState(): MusicAppUiState {
 }
 ```
 
-- [ ] **步骤 2：运行测试确认红灯**
+- [x] **步骤 2：运行测试确认红灯**
 
 运行：
 
@@ -1091,7 +1091,7 @@ private fun baseState(): MusicAppUiState {
 
 预期：失败，错误包含 `Unresolved reference: ContentNavigationController`。
 
-- [ ] **步骤 3：实现 `ContentNavigationController`**
+- [x] **步骤 3：实现 `ContentNavigationController`**
 
 创建 `ContentNavigationController.kt`：
 
@@ -1254,7 +1254,7 @@ class ContentNavigationController(
 }
 ```
 
-- [ ] **步骤 4：让门面委派内容导航**
+- [x] **步骤 4：让门面委派内容导航**
 
 在 `MusicAppController.kt` 增加属性：
 
@@ -1317,7 +1317,7 @@ import com.yanhao.kmpmusic.feature.app.navigation.ContentNavigationController
     }
 ```
 
-- [ ] **步骤 5：运行任务五测试和导航回归**
+- [x] **步骤 5：运行任务五测试和导航回归**
 
 运行：
 
@@ -1327,7 +1327,7 @@ import com.yanhao.kmpmusic.feature.app.navigation.ContentNavigationController
 
 预期：全部通过。
 
-- [ ] **步骤 6：提交任务五**
+- [x] **步骤 6：提交任务五**
 
 运行：
 
@@ -1352,7 +1352,7 @@ git commit -m "拆分内容导航工作流"
 
 队列不变量说明：`queueSongIds` 来自 `PlaybackRepository.getQueueState()`，`queueSongsSnapshot` 是 UI 能稳定解析队列实体的快照，`queueSongs` 是 `MusicAppUiState` 按 `queueSongIds` 从 `queueSongsSnapshot`、完整曲库、首页预览和收藏投影中派生出的实体列表。`playSong` 必须先把 `queueSongsSnapshot` 写回门面状态，再启动 `PlaybackCoordinator.playSong` 副作用，避免 coordinator 的同步状态被旧 `state.copy(...)` 覆盖。
 
-- [ ] **步骤 1：写播放动作聚焦测试**
+- [x] **步骤 1：写播放动作聚焦测试**
 
 创建 `PlaybackActionControllerTest.kt`：
 
@@ -1450,7 +1450,7 @@ private fun baseState(): MusicAppUiState {
 }
 ```
 
-- [ ] **步骤 2：给门面补队列不变量回归测试**
+- [x] **步骤 2：给门面补队列不变量回归测试**
 
 在 `MusicAppControllerTest` 的播放队列测试附近加入：
 
@@ -1508,7 +1508,7 @@ private fun assertPlaybackQueueInvariant(
 }
 ```
 
-- [ ] **步骤 3：运行测试确认红灯**
+- [x] **步骤 3：运行测试确认红灯**
 
 运行：
 
@@ -1518,7 +1518,7 @@ private fun assertPlaybackQueueInvariant(
 
 预期：聚焦测试失败，错误包含 `Unresolved reference: PlaybackActionController`；门面队列不变量测试可以先通过，保留作为迁移回归。
 
-- [ ] **步骤 4：实现 `PlaybackActionController`**
+- [x] **步骤 4：实现 `PlaybackActionController`**
 
 创建 `PlaybackActionController.kt`：
 
@@ -1710,7 +1710,7 @@ class PlaybackActionController(
 }
 ```
 
-- [ ] **步骤 5：让门面委派播放动作**
+- [x] **步骤 5：让门面委派播放动作**
 
 在 `MusicAppController.kt` 初始化 `playbackCoordinator` 后创建：
 
@@ -1774,7 +1774,7 @@ class PlaybackActionController(
     }
 ```
 
-- [ ] **步骤 6：运行任务六测试和播放回归**
+- [x] **步骤 6：运行任务六测试和播放回归**
 
 运行：
 
@@ -1784,7 +1784,7 @@ class PlaybackActionController(
 
 预期：全部通过。
 
-- [ ] **步骤 7：提交任务六**
+- [x] **步骤 7：提交任务六**
 
 运行：
 
@@ -1807,7 +1807,7 @@ git commit -m "拆分播放动作工作流"
 - 消费：`ScanLocalMusicUseCase`、`LibraryStateSynchronizer.shouldConfirmPermissionSettingsBeforeScan`、`PermissionSettingsOpener`、`CoroutineScope`、`nowMillis`、`LocalMusicScanRequest`。
 - 产出：`LocalMusicScanController.scanLocalMusic(state, request, onLibrarySnapshot)`、`requestLocalMusicScan`、`openPermissionSettingsDialog`、`closePermissionSettingsDialog`、`confirmPermissionSettings`。
 
-- [ ] **步骤 1：写会话取消和旧事件丢弃聚焦测试**
+- [x] **步骤 1：写会话取消和旧事件丢弃聚焦测试**
 
 创建 `LocalMusicScanControllerTest.kt`，覆盖二次触发取消、旧成功晚到和旧错误晚到。旧事件测试必须使用会忽略取消并继续返回的 fake，不能使用普通可取消挂起点：
 
@@ -2084,7 +2084,7 @@ private fun baseState(): MusicAppUiState {
 }
 ```
 
-- [ ] **步骤 2：在门面测试补旧结果晚到回归**
+- [x] **步骤 2：在门面测试补旧结果晚到回归**
 
 在 `MusicAppControllerTest` 扫描测试附近加入。这里同样使用忽略取消的 scanner，确保测试真的覆盖旧结果晚到；同时在文件 import 区加入 `kotlinx.coroutines.NonCancellable` 和 `kotlinx.coroutines.withContext`：
 
@@ -2143,7 +2143,7 @@ private class LateSuccessAfterCancellationScanner : LocalMusicScanner {
 }
 ```
 
-- [ ] **步骤 3：运行测试确认红灯**
+- [x] **步骤 3：运行测试确认红灯**
 
 运行：
 
@@ -2153,7 +2153,7 @@ private class LateSuccessAfterCancellationScanner : LocalMusicScanner {
 
 预期：聚焦测试失败，错误包含 `Unresolved reference: LocalMusicScanController`；门面测试可能先失败于旧结果覆盖，也可能通过，保留作为迁移回归。
 
-- [ ] **步骤 4：实现 `LocalMusicScanController`**
+- [x] **步骤 4：实现 `LocalMusicScanController`**
 
 创建 `LocalMusicScanController.kt`：
 
@@ -2374,7 +2374,7 @@ class LocalMusicScanController(
 }
 ```
 
-- [ ] **步骤 5：让门面委派扫描**
+- [x] **步骤 5：让门面委派扫描**
 
 在 `MusicAppController.kt` 先声明延迟初始化属性：
 
@@ -2431,7 +2431,7 @@ class LocalMusicScanController(
 
 删除门面中 `isLocalMusicScanRunning`、`isLocalMusicScanCancellationRequested`、`currentLocalMusicScanJob`、`cancelRunningLocalMusicScan`、`publishCancelledLocalMusicScanIfRunning`、`publishCancelledLocalMusicScan`、`logLocalMusicScan`、`scanResultTimeMillis`、`findLastScanSummary` 和 `shouldConfirmPermissionSettingsBeforeScan`。
 
-- [ ] **步骤 6：运行任务七测试和扫描回归**
+- [x] **步骤 6：运行任务七测试和扫描回归**
 
 运行：
 
@@ -2441,7 +2441,7 @@ class LocalMusicScanController(
 
 预期：全部通过。
 
-- [ ] **步骤 7：提交任务七**
+- [x] **步骤 7：提交任务七**
 
 运行：
 
@@ -2471,7 +2471,7 @@ git commit -m "拆分本地扫描工作流"
 
 完整队列约束在 `PlaybackRestoreOrchestrator` 层执行：保存队列中的歌曲实体和当前歌曲实体没有全部解析前，不调用 `PlaybackSnapshotStore.restoreSnapshot(...)`。不要为了这个约束删除 `PlaybackSnapshotStore` 底层过滤失效歌曲的能力；底层 store 测试继续证明它能安全过滤，App 编排测试证明门面不会部分加载。
 
-- [ ] **步骤 1：写待加载请求失效回归测试**
+- [x] **步骤 1：写待加载请求失效回归测试**
 
 在 `MusicAppControllerTest` 的加载上次播放数据测试附近加入：
 
@@ -2580,7 +2580,7 @@ git commit -m "拆分本地扫描工作流"
     }
 ```
 
-- [ ] **步骤 2：新增保存快照身份模型和存储接口**
+- [x] **步骤 2：新增保存快照身份模型和存储接口**
 
 在 `PlaybackModels.kt` 的 `PlaybackSnapshot` 后加入：
 
@@ -2675,7 +2675,7 @@ composeApp/src/commonTest/kotlin/com/yanhao/kmpmusic/domain/playback/PlaybackSna
     }
 ```
 
-- [ ] **步骤 3：改造 `PlaybackRestoreOrchestrator`**
+- [x] **步骤 3：改造 `PlaybackRestoreOrchestrator`**
 
 把 `Result` 改成只返回要合入最新 UI 状态的队列实体快照，避免把挂起前的旧 `MusicAppUiState` 整包写回：
 
@@ -2770,7 +2770,7 @@ data class PendingPlaybackSnapshotRequest(
         )
 ```
 
-- [ ] **步骤 4：让门面持有描述符和进行中保护**
+- [x] **步骤 4：让门面持有描述符和进行中保护**
 
 在 `MusicAppController.kt` 把：
 
@@ -2868,7 +2868,7 @@ import com.yanhao.kmpmusic.feature.app.playback.PendingPlaybackSnapshotRequest
 
 在 `playSong`、`playRecentSong`、`removeFromQueue`、`moveTrack`、`skipToQueueIndex`、`seekTo` 和 `cyclePlaybackMode` 开头调用 `clearPendingPlaybackSnapshotRequest()`。`togglePlayback`、`play` 和 `pause` 只改变播放/暂停状态，不改变当前歌曲、队列或进度，不清理待加载请求；如果执行中发现它们会写持久播放事实，必须暂停并补测试后再决定。
 
-- [ ] **步骤 5：运行待加载播放快照测试**
+- [x] **步骤 5：运行待加载播放快照测试**
 
 运行：
 
@@ -2878,7 +2878,7 @@ import com.yanhao.kmpmusic.feature.app.playback.PendingPlaybackSnapshotRequest
 
 预期：全部通过；`explicitPlayInvalidatesPendingPlaybackSnapshotRequest` 证明旧请求不会在扫描完成后覆盖用户播放意图。
 
-- [ ] **步骤 6：提交任务八**
+- [x] **步骤 6：提交任务八**
 
 运行：
 

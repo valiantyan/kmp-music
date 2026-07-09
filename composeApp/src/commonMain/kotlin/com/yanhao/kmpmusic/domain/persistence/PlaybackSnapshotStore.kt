@@ -3,9 +3,11 @@ package com.yanhao.kmpmusic.domain.persistence
 import androidx.room3.withWriteTransaction
 import com.yanhao.kmpmusic.domain.model.PlaybackMode
 import com.yanhao.kmpmusic.domain.model.PlaybackSnapshot
+import com.yanhao.kmpmusic.domain.model.PlaybackSnapshotIdentity
 import com.yanhao.kmpmusic.domain.model.PlaybackState
 import com.yanhao.kmpmusic.domain.model.PlaybackStatus
 import com.yanhao.kmpmusic.domain.model.QueueState
+import com.yanhao.kmpmusic.domain.model.identity
 
 /**
  * 播放快照存储接口，负责保存最新运行态并按冷启动规则恢复。
@@ -27,6 +29,11 @@ interface PlaybackSnapshotStore {
      * 读取最近一次保存快照中的队列歌曲 id，供控制器按需补齐恢复所需实体。
      */
     suspend fun getSavedQueueSongIds(): List<String>
+
+    /**
+     * 读取最近保存快照的身份；没有可加载队列时返回 null。
+     */
+    suspend fun getSavedSnapshotIdentity(): PlaybackSnapshotIdentity?
 
     /**
      * 按当前可用歌曲集合恢复快照，确保冷启动不会引用失效歌曲。
@@ -63,6 +70,16 @@ class InMemoryPlaybackSnapshotStore : PlaybackSnapshotStore {
     /** 返回最近一次保存的队列歌曲 id。 */
     override suspend fun getSavedQueueSongIds(): List<String> {
         return snapshot.queueState.songIds
+    }
+
+    /**
+     * 只有保存过队列时才暴露身份，避免空快照触发无意义的待恢复请求。
+     */
+    override suspend fun getSavedSnapshotIdentity(): PlaybackSnapshotIdentity? {
+        if (snapshot.queueState.songIds.isEmpty() || snapshot.playbackState.currentSongId == null) {
+            return null
+        }
+        return snapshot.identity
     }
 
     /**
@@ -130,6 +147,27 @@ class RoomPlaybackSnapshotStore(
         return database.playbackQueueDao().getQueueItems().map { item: PlaybackQueueItemEntity ->
             item.songId
         }
+    }
+
+    /**
+     * 读取数据库中的快照身份，供门面判断当前待恢复请求是否已过期。
+     */
+    override suspend fun getSavedSnapshotIdentity(): PlaybackSnapshotIdentity? {
+        val snapshotEntity: PlaybackSnapshotEntity = database.playbackSnapshotDao().getSnapshot()
+            ?: return null
+        val queueSongIds: List<String> = database.playbackQueueDao().getQueueItems().map { item: PlaybackQueueItemEntity ->
+            item.songId
+        }
+        if (queueSongIds.isEmpty() || snapshotEntity.currentSongId == null) {
+            return null
+        }
+        return PlaybackSnapshotIdentity(
+            queueSongIds = queueSongIds,
+            currentSongId = snapshotEntity.currentSongId,
+            currentIndex = snapshotEntity.currentIndex,
+            positionMs = snapshotEntity.positionMs,
+            updatedAt = snapshotEntity.updatedAt,
+        )
     }
 
     /**

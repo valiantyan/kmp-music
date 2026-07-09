@@ -2,17 +2,94 @@ package com.yanhao.kmpmusic.domain.persistence
 
 import com.yanhao.kmpmusic.domain.model.PlaybackMode
 import com.yanhao.kmpmusic.domain.model.PlaybackSnapshot
+import com.yanhao.kmpmusic.domain.model.PlaybackSnapshotIdentity
 import com.yanhao.kmpmusic.domain.model.PlaybackState
 import com.yanhao.kmpmusic.domain.model.PlaybackStatus
 import com.yanhao.kmpmusic.domain.model.QueueState
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNull
 
 /**
  * 验证播放快照存储在恢复时的契约规则。
  */
 class PlaybackSnapshotStoreTest {
+    /**
+     * 读取快照身份时应保留完整队列、当前项、进度和更新时间，供一次性恢复请求做失效判断。
+     */
+    @Test
+    fun getSavedSnapshotIdentityReturnsSavedQueueCurrentSongAndUpdatedAt(): Unit = runTest {
+        val store: InMemoryPlaybackSnapshotStore = InMemoryPlaybackSnapshotStore()
+        store.saveSnapshot(
+            snapshot = PlaybackSnapshot(
+                playbackState = PlaybackState(
+                    currentSongId = "song-2",
+                    status = PlaybackStatus.Playing,
+                    positionMs = 42_000L,
+                    durationMs = 180_000L,
+                ),
+                queueState = QueueState(
+                    songIds = listOf("song-1", "song-2"),
+                    currentIndex = 1,
+                    playbackMode = PlaybackMode.LoopAll,
+                ),
+                updatedAt = 1_000L,
+            ),
+        )
+
+        val identity: PlaybackSnapshotIdentity? = store.getSavedSnapshotIdentity()
+
+        assertEquals(
+            expected = PlaybackSnapshotIdentity(
+                queueSongIds = listOf("song-1", "song-2"),
+                currentSongId = "song-2",
+                currentIndex = 1,
+                positionMs = 42_000L,
+                updatedAt = 1_000L,
+            ),
+            actual = identity,
+        )
+    }
+
+    /**
+     * 没有保存队列时不应暴露快照身份，避免控制器创建无意义的待恢复请求。
+     */
+    @Test
+    fun getSavedSnapshotIdentityReturnsNullWithoutQueue(): Unit = runTest {
+        val store: InMemoryPlaybackSnapshotStore = InMemoryPlaybackSnapshotStore()
+
+        val identity: PlaybackSnapshotIdentity? = store.getSavedSnapshotIdentity()
+
+        assertNull(actual = identity)
+    }
+
+    /**
+     * 保存队列但缺少当前歌曲时不应暴露恢复身份，避免门面创建永远无法完成的待恢复请求。
+     */
+    @Test
+    fun getSavedSnapshotIdentityReturnsNullWhenCurrentSongIsMissing(): Unit = runTest {
+        val store: InMemoryPlaybackSnapshotStore = InMemoryPlaybackSnapshotStore()
+        store.saveSnapshot(
+            snapshot = PlaybackSnapshot(
+                playbackState = PlaybackState(
+                    currentSongId = null,
+                    status = PlaybackStatus.Paused,
+                    positionMs = 42_000L,
+                ),
+                queueState = QueueState(
+                    songIds = listOf("song-1", "song-2"),
+                    currentIndex = 1,
+                ),
+                updatedAt = 1_000L,
+            ),
+        )
+
+        val identity: PlaybackSnapshotIdentity? = store.getSavedSnapshotIdentity()
+
+        assertNull(actual = identity)
+    }
+
     /**
      * 恢复快照时应保留队列顺序，并统一以暂停态冷启动。
      */

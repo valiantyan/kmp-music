@@ -59,6 +59,8 @@ class PlaybackCoordinator(
 
     // 引擎事件订阅任务。
     private var eventJob: Job? = null
+    // priming 恢复队列期间忽略引擎回流事件，等最终 gate 通过后再手动提交真相。
+    private var isPrimingRestoreSnapshot: Boolean = false
 
     // 状态变化回调，供上层刷新 UI。
     private var onStateChanged: () -> Unit = {}
@@ -131,50 +133,62 @@ class PlaybackCoordinator(
         val snapshot: PlaybackSnapshot = playbackSnapshotStore.restoreSnapshot(
             availableSongIds = availableSongs.map { song -> song.id }.toSet(),
         )
-        val songsById: Map<String, Song> = availableSongs.associateBy { song -> song.id }
-        val restoredQueueSongs: List<Song> = snapshot.queueState.songIds.mapNotNull { songId ->
-            songsById[songId]
-        }
-        if (restoredQueueSongs.isEmpty()) {
-            playbackRepository.saveQueueState(state = QueueState())
-            playbackRepository.savePlaybackState(state = PlaybackState())
+        applyRestoredSnapshot(snapshot = snapshot, availableSongs = availableSongs)
+    }
+
+    /**
+     * 把已经读取好的恢复快照提交到引擎预热，并在同一提交窗口内写入仓库真相。
+     */
+    suspend fun applyRestoredSnapshot(snapshot: PlaybackSnapshot, availableSongs: List<Song>) {
+        isPrimingRestoreSnapshot = true
+        try {
+            val songsById: Map<String, Song> = availableSongs.associateBy { song -> song.id }
+            val restoredQueueSongs: List<Song> = snapshot.queueState.songIds.mapNotNull { songId ->
+                songsById[songId]
+            }
+            if (restoredQueueSongs.isEmpty()) {
+                playbackRepository.saveQueueState(state = QueueState())
+                playbackRepository.savePlaybackState(state = PlaybackState())
+                saveSnapshotNow()
+                onStateChanged()
+                audioPlayerEngine.stop()
+                return
+            }
+            val restoredIndex: Int = snapshot.queueState.currentIndex.coerceIn(
+                minimumValue = 0,
+                maximumValue = restoredQueueSongs.lastIndex,
+            )
+            val restoredSong: Song = restoredQueueSongs[restoredIndex]
+            val restoredQueueState: QueueState = snapshot.queueState.copy(
+                songIds = restoredQueueSongs.map { song -> song.id },
+                currentIndex = restoredIndex,
+                shuffleHistory = emptyList(),
+                shuffleRemaining = buildInitialShuffleRemaining(
+                    playbackMode = snapshot.queueState.playbackMode,
+                    queueSize = restoredQueueSongs.size,
+                    currentIndex = restoredIndex,
+                ),
+            )
+            val restoredPlaybackState: PlaybackState = snapshot.playbackState.copy(
+                currentSongId = restoredSong.id,
+                status = PlaybackStatus.Paused,
+                durationMs = restoredSong.durationMs,
+                error = null,
+            )
+            audioPlayerEngine.setPlaybackMode(playbackMode = restoredQueueState.playbackMode)
+            audioPlayerEngine.setQueue(
+                items = restoredQueueSongs.map { song -> song.toPlayableMedia() },
+                startIndex = restoredIndex,
+                startPositionMs = restoredPlaybackState.positionMs,
+            )
+            playbackRepository.saveQueueState(state = restoredQueueState)
+            playbackRepository.savePlaybackState(state = restoredPlaybackState)
             saveSnapshotNow()
             onStateChanged()
-            audioPlayerEngine.stop()
-            return
+            audioPlayerEngine.pause()
+        } finally {
+            isPrimingRestoreSnapshot = false
         }
-        val restoredIndex: Int = snapshot.queueState.currentIndex.coerceIn(
-            minimumValue = 0,
-            maximumValue = restoredQueueSongs.lastIndex,
-        )
-        val restoredSong: Song = restoredQueueSongs[restoredIndex]
-        val restoredQueueState: QueueState = snapshot.queueState.copy(
-            songIds = restoredQueueSongs.map { song -> song.id },
-            currentIndex = restoredIndex,
-            shuffleHistory = emptyList(),
-            shuffleRemaining = buildInitialShuffleRemaining(
-                playbackMode = snapshot.queueState.playbackMode,
-                queueSize = restoredQueueSongs.size,
-                currentIndex = restoredIndex,
-            ),
-        )
-        val restoredPlaybackState: PlaybackState = snapshot.playbackState.copy(
-            currentSongId = restoredSong.id,
-            status = PlaybackStatus.Paused,
-            durationMs = restoredSong.durationMs,
-            error = null,
-        )
-        playbackRepository.saveQueueState(state = restoredQueueState)
-        playbackRepository.savePlaybackState(state = restoredPlaybackState)
-        saveSnapshotNow()
-        onStateChanged()
-        audioPlayerEngine.setPlaybackMode(playbackMode = restoredQueueState.playbackMode)
-        audioPlayerEngine.setQueue(
-            items = restoredQueueSongs.map { song -> song.toPlayableMedia() },
-            startIndex = restoredIndex,
-            startPositionMs = restoredPlaybackState.positionMs,
-        )
-        audioPlayerEngine.pause()
     }
 
     /**
@@ -398,6 +412,9 @@ class PlaybackCoordinator(
      * 统一处理引擎回传事件，确保 repository 始终以真实事件为准。
      */
     private fun handleEngineEvent(event: PlaybackEngineEvent) {
+        if (isPrimingRestoreSnapshot) {
+            return
+        }
         when (event) {
             is PlaybackEngineEvent.CurrentMediaChanged -> handleCurrentMediaChanged(event = event)
             is PlaybackEngineEvent.ProgressChanged -> updateProgress(event = event)
