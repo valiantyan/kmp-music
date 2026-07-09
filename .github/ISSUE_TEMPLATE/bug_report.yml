@@ -47,6 +47,7 @@ body:
     id: platform
     attributes:
       label: 发生平台
+      description: 如果不确定，可以留空。
       multiple: true
       options:
         - Android
@@ -54,8 +55,6 @@ body:
         - Desktop/macOS
         - 共享逻辑
         - 不确定
-    validations:
-      required: true
   - type: input
     id: version
     attributes:
@@ -66,7 +65,7 @@ body:
     id: evidence
     attributes:
       label: 截图、录屏或日志
-      description: 粘贴关键日志，或拖入截图、录屏、bugreport 等附件。
+      description: 可选。粘贴关键日志，或拖入截图、录屏、bugreport 等附件。
   - type: textarea
     id: acceptance
     attributes:
