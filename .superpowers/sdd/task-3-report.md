@@ -64,4 +64,16 @@
 
 ## Commit SHA
 
-- 待提交后记录；最终提交信息为 `拆分偏好设置工作流`。
+- `10b83394` `拆分偏好设置工作流`
+
+## 本次审查修复记录
+
+- 修复项 1：将 `PreferenceStateController` 的类可见性从默认 public 收紧为 `internal`，继续保留同模块门面与 `commonTest` 对方法的访问能力。
+- 修复项 2：将提交信息更新为已有实现提交 `10b83394 拆分偏好设置工作流`。
+- 验证命令与结果：
+  - `./gradlew :composeApp:desktopTest --tests "com.yanhao.kmpmusic.feature.app.preferences.PreferenceStateControllerTest" --tests "com.yanhao.kmpmusic.feature.app.MusicAppControllerTest.localMusicDiscoveryPreferencesPersistAndFlowIntoScanner"`
+    - 结果：`BUILD SUCCESSFUL`
+  - `./gradlew :composeApp:compileDebugKotlinAndroid`
+    - 结果：`BUILD SUCCESSFUL`
+  - `git status --short --branch`
+    - 结果：`## codex/music-app-controller-workflow-refactor-prd`，当前仅有本次修复涉及的报告与协作者文件改动。

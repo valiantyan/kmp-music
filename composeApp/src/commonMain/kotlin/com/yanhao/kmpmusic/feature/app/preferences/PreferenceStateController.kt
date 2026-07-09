@@ -10,7 +10,7 @@ import com.yanhao.kmpmusic.feature.app.MusicAppUiState
  *
  * @property userPreferencesRepository 承载偏好持久化的仓库接口。
  */
-class PreferenceStateController(
+internal class PreferenceStateController(
     // 用户偏好仓库，保证门面外观不直接散落持久化细节。
     private val userPreferencesRepository: UserPreferencesRepository,
 ) {
