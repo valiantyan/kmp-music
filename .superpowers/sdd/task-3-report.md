@@ -77,3 +77,12 @@
     - 结果：`BUILD SUCCESSFUL`
   - `git status --short --branch`
     - 结果：`## codex/music-app-controller-workflow-refactor-prd`，当前仅有本次修复涉及的报告与协作者文件改动。
+
+## 复审后清理记录
+
+- 清理项：移除 `MusicAppController` 中已经不再使用的 `LocalMusicDiscoveryPreferences` import，避免后续审查被无关噪音干扰。
+- 验证命令与结果：
+  - `./gradlew :composeApp:desktopTest --tests "com.yanhao.kmpmusic.feature.app.preferences.PreferenceStateControllerTest" --tests "com.yanhao.kmpmusic.feature.app.MusicAppControllerTest.localMusicDiscoveryPreferencesPersistAndFlowIntoScanner"`
+    - 结果：`BUILD SUCCESSFUL`
+  - `./gradlew :composeApp:compileDebugKotlinAndroid`
+    - 结果：`BUILD SUCCESSFUL`
