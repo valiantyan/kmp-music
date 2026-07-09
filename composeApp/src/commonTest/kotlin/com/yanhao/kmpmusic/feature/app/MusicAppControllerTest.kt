@@ -1547,19 +1547,32 @@ class MusicAppControllerTest {
     fun searchResultActionsCommitCurrentQueryToHistory(): Unit = runTest {
         val controller = createController(controllerScope = backgroundScope)
         controller.scanLocalMusic(request = LocalMusicScanRequest.Refresh)
+
+        controller.openSearch(context = SearchContext.LocalLibrary)
+
+        controller.setSearchQuery(query = "Summer Waltz")
+        advanceTimeBy(delayTimeMillis = 301L)
+        advanceUntilIdle()
+        val songResult: SearchResult = controller.search()
+        val targetSong: Song = songResult.songs.first()
+        controller.playSong(song = targetSong, queueSongs = songResult.songs)
+        assertEquals(
+            expected = listOf("Summer Waltz"),
+            actual = controller.uiState.searchHistoryFor(context = SearchContext.LocalLibrary),
+        )
+
         controller.openSearch(context = SearchContext.LocalLibrary)
         controller.setSearchQuery(query = "Dream Stories")
         advanceTimeBy(delayTimeMillis = 301L)
         advanceUntilIdle()
-        val songAndAlbumResult: SearchResult = controller.search()
-        val targetSong: Song = songAndAlbumResult.songs.first()
-        val targetAlbum: Album = songAndAlbumResult.albums.first()
-        controller.playSong(song = targetSong, queueSongs = songAndAlbumResult.songs)
-        controller.openSearch(context = SearchContext.LocalLibrary)
-        controller.setSearchQuery(query = "Dream Stories")
-        advanceTimeBy(delayTimeMillis = 301L)
-        advanceUntilIdle()
+        val albumResult: SearchResult = controller.search()
+        val targetAlbum: Album = albumResult.albums.first()
         controller.openAlbum(album = targetAlbum)
+        assertEquals(
+            expected = listOf("Dream Stories", "Summer Waltz"),
+            actual = controller.uiState.searchHistoryFor(context = SearchContext.LocalLibrary),
+        )
+
         controller.openSearch(context = SearchContext.LocalLibrary)
         controller.setSearchQuery(query = "久石让")
         advanceTimeBy(delayTimeMillis = 301L)
@@ -1568,7 +1581,7 @@ class MusicAppControllerTest {
         val targetArtist: Artist = artistResult.artists.first()
         controller.openArtist(artist = targetArtist)
         assertEquals(
-            expected = listOf("久石让", "Dream Stories"),
+            expected = listOf("久石让", "Dream Stories", "Summer Waltz"),
             actual = controller.uiState.searchHistoryFor(context = SearchContext.LocalLibrary),
         )
     }
