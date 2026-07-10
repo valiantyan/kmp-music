@@ -47,6 +47,12 @@ object MusicColors {
     val DarkPaper: Color = Color(0xFF11191D)
     val DarkSoft: Color = Color(0xFF20282D)
     val DarkMuted: Color = Color(0xFFA9B4BD)
+    val DialogText: Color = Color(0xFF191C1D)
+    val DialogMuted: Color = Color(0xFF6D7A77)
+    val DialogAction: Color = Color(0xFF006A62)
+    val DialogControlBorder: Color = Color(0xFFBCC9C6)
+    val DialogSoft: Color = Color(0xFFECEEEF)
+    val DialogDivider: Color = Color(0xFFF2F4F5)
 }
 
 /**

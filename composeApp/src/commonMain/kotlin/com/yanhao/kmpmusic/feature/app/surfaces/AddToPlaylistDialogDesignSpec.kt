@@ -3,62 +3,71 @@ package com.yanhao.kmpmusic.feature.app.surfaces
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.yanhao.kmpmusic.core.theme.MusicColors
 
 /**
- * 添加到歌单弹窗的 Figma 节点 974:690 视觉规格。
+ * 添加到歌单弹窗的 Figma 节点 982:881 视觉规格。
  */
 internal object AddToPlaylistDialogDesignSpec {
-    // 弹窗基准宽度，对应节点 974:690 的 440px 容器。
-    val width: Dp = 440.dp
-    // 弹窗基准高度，对应节点 974:690 的 679px 容器。
-    val height: Dp = 679.dp
-    // 主容器圆角，对应节点 974:690 的 24px 圆角。
+    // 弹窗基准宽度，对应节点 982:882 的 358px 容器。
+    val width: Dp = 358.dp
+    // 弹窗基准高度，对应节点 982:882 的 651.94px 容器。
+    val height: Dp = 652.dp
+    // 主容器圆角，对应节点 982:882 的 24px 圆角。
     val cornerRadius: Dp = 24.dp
-    // 主内容内边距，对齐头部、搜索框、入口卡片和底部动作区。
-    val contentPadding: Dp = 24.dp
-    // 搜索框高度，对齐 Figma 中搜索区域的纵向节奏。
-    val searchHeight: Dp = 62.dp
-    // 搜索框圆角，对齐节点中的 12px 输入容器。
-    val searchRadius: Dp = 12.dp
-    // 新建歌单入口圆角，对齐虚线入口卡片。
-    val newPlaylistRadius: Dp = 16.dp
-    // 已有歌单行圆角，对齐选中和未选列表项。
-    val playlistRowRadius: Dp = 16.dp
-    // 已有歌单行封面尺寸，保留设计稿列表项的固定节奏。
-    val playlistCoverSize: Dp = 56.dp
-    // 底部动作区高度，用于保证完成按钮区域稳定。
-    val footerHeight: Dp = 70.dp
-    // 滚动列表底部留白，避免最后一项被底部动作区遮住。
-    val scrollBottomPadding: Dp = 86.dp
-    // 小窗口下弹窗最大高度比例，来自规格“三分之二”约束。
-    val maxHeightFraction: Float = 2f / 3f
+    // 头部高度，对齐标题所在 68px 区域。
+    val headerHeight: Dp = 68.dp
+    // 列表左右内边距，对齐 Figma 中 x=24 的内容起点。
+    val horizontalPadding: Dp = 24.dp
+    // 新建歌单行高度，对齐 68px 首行。
+    val newPlaylistRowHeight: Dp = 68.dp
+    // 已有歌单首行高度，对齐分隔线后的 68px 行。
+    val firstPlaylistRowHeight: Dp = 68.dp
+    // 已有歌单普通行高度，对齐后续 64px 行。
+    val playlistRowHeight: Dp = 64.dp
+    // 列表项封面尺寸，对齐 40px 方形缩略图。
+    val playlistCoverSize: Dp = 40.dp
+    // 列表项封面圆角，对齐 8px 圆角。
+    val playlistCoverRadius: Dp = 8.dp
+    // 新建入口加号图标内边距，对齐 24px 图标在 40px 容器里的视觉中心。
+    val newPlaylistIconPadding: Dp = 9.dp
+    // 图标列总宽度，保留 40px 封面与右侧 16px 间距。
+    val leadingSlotWidth: Dp = 56.dp
+    // 单选圆环尺寸，对齐 20px 选择控件。
+    val radioSize: Dp = 20.dp
+    // 单选圆环边框宽度，对齐 2px 描边。
+    val radioBorderWidth: Dp = 2.dp
+    // 选中圆点尺寸，保持单选反馈不改变外圈尺寸。
+    val radioDotSize: Dp = 10.dp
+    // 分隔线高度，对齐 1px 列表分割。
+    val dividerHeight: Dp = 1.dp
+    // 底部动作区外层高度，对齐节点 982:972 的 61.06px。
+    val footerHeight: Dp = 61.dp
+    // 底部动作实际点击区高度，对齐节点 982:973 的 54.06px。
+    val footerActionHeight: Dp = 54.dp
+    // 底部与列表之间的 7px 间隔。
+    val footerTopPadding: Dp = 7.dp
+    // 底部分栏竖线高度，对齐 32px 分隔线。
+    val footerDividerHeight: Dp = 32.dp
+    // 小窗口下保留 90% 高度，避免设计稿被系统 Dialog 约束裁掉。
+    val maxHeightFraction: Float = 0.9f
     // 弹窗白色底色，集中避免页面内散落硬编码颜色。
     val containerColor: Color = Color.White
-    // 主容器描边宽度，对齐半透明白边。
-    val borderWidth: Dp = 1.dp
-    // 主容器描边透明度，对齐 Figma 的 40% 白色边。
-    val borderAlpha: Float = 0.4f
-    // 新建入口图标容器尺寸，对齐节点内 48px 图标块。
-    val newPlaylistIconSize: Dp = 48.dp
-    // 新建入口图标容器圆角，对齐节点内 12px 图标块。
-    val newPlaylistIconRadius: Dp = 12.dp
-    // 新建入口整体内边距，对齐节点内 18px 入口卡片。
-    val newPlaylistPadding: Dp = 18.dp
-    // 入口与文本之间的横向间距。
-    val newPlaylistGap: Dp = 16.dp
-    // 入口图标内边距，保证图标视觉居中。
-    val iconPadding: Dp = 14.dp
-    // 列表行横向内边距。
-    val rowHorizontalPadding: Dp = 12.dp
-    // 列表行纵向内边距。
-    val rowVerticalPadding: Dp = 10.dp
-    // 列表行内部间距。
-    val rowGap: Dp = 8.dp
-    // 底部按钮间距。
-    val footerButtonGap: Dp = 16.dp
+    // 设计稿背景浅灰，复用在占位封面和新建图标块中。
+    val softContainerColor: Color = MusicColors.DialogSoft
+    // 列表分隔线颜色。
+    val dividerColor: Color = MusicColors.DialogDivider
+    // 主文字颜色。
+    val primaryTextColor: Color = MusicColors.DialogText
+    // 辅助文字颜色。
+    val secondaryTextColor: Color = MusicColors.DialogMuted
+    // 单选未选中描边色。
+    val radioBorderColor: Color = MusicColors.DialogControlBorder
+    // 底部按钮文字和新建图标色。
+    val actionColor: Color = MusicColors.DialogAction
 
     /**
-     * 根据窗口高度解析实际弹窗高度，保证不超过规格中的三分之二限制。
+     * 根据窗口高度解析实际弹窗高度，保证小窗口中不会被系统 Dialog 裁切。
      */
     fun resolveHeight(maxHeight: Dp): Dp {
         return minOf(a = height, b = maxHeight * maxHeightFraction)

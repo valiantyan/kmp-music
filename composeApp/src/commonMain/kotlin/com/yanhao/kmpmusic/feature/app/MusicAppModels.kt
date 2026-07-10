@@ -72,9 +72,7 @@ enum class SongMoreSourceContext {
  * 添加到歌单流程的临时弹窗状态。
  *
  * @property songId 本次要加入歌单的歌曲标识。
- * @property availablePlaylists 当前搜索条件下可选的已有歌单。
- * @property hasAnyPlaylist 本地数据库是否已有任意歌单，用于区分无歌单和搜索无结果。
- * @property playlistSearchQuery 已有歌单搜索框当前输入。
+ * @property availablePlaylists 当前可选的已有歌单。
  * @property selectedPlaylistId 当前选中的已有歌单；为空时不能完成保存。
  * @property isCreateDialogOpen 是否已经进入新建歌单弹窗。
  * @property newPlaylistName 新建歌单输入框当前名称。
@@ -83,8 +81,6 @@ enum class SongMoreSourceContext {
 data class AddToPlaylistFlowState(
     val songId: String,
     val availablePlaylists: List<LocalPlaylist> = emptyList(),
-    val hasAnyPlaylist: Boolean = false,
-    val playlistSearchQuery: String = "",
     val selectedPlaylistId: String? = null,
     val isCreateDialogOpen: Boolean = false,
     val newPlaylistName: String = "",

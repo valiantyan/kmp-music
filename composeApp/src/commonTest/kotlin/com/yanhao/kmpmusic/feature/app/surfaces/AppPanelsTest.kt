@@ -2,7 +2,6 @@ package com.yanhao.kmpmusic.feature.app.surfaces
 
 import androidx.compose.ui.unit.dp
 import com.yanhao.kmpmusic.domain.model.CoverArt
-import com.yanhao.kmpmusic.feature.app.AddToPlaylistFlowState
 import com.yanhao.kmpmusic.feature.app.LocalPlaylistDetailDisplayModel
 import com.yanhao.kmpmusic.domain.model.PlaybackStatus
 import com.yanhao.kmpmusic.domain.model.Song
@@ -19,33 +18,32 @@ import kotlin.test.assertTrue
  */
 class AppPanelsTest {
     /**
-     * 添加到歌单弹窗的关键视觉约束来自 Figma 节点 974:690，集中测试避免后续改动漂移。
+     * 添加到歌单弹窗的关键视觉约束来自 Figma 节点 982:881，集中测试避免后续改动漂移。
      */
     @Test
     fun addToPlaylistDialogDesignSpecMatchesFigmaNode(): Unit {
-        assertEquals(expected = 440.dp, actual = AddToPlaylistDialogDesignSpec.width)
-        assertEquals(expected = 679.dp, actual = AddToPlaylistDialogDesignSpec.height)
+        assertEquals(expected = 358.dp, actual = AddToPlaylistDialogDesignSpec.width)
+        assertEquals(expected = 652.dp, actual = AddToPlaylistDialogDesignSpec.height)
         assertEquals(expected = 24.dp, actual = AddToPlaylistDialogDesignSpec.cornerRadius)
-        assertEquals(expected = 24.dp, actual = AddToPlaylistDialogDesignSpec.contentPadding)
-        assertEquals(expected = 62.dp, actual = AddToPlaylistDialogDesignSpec.searchHeight)
-        assertEquals(expected = 56.dp, actual = AddToPlaylistDialogDesignSpec.playlistCoverSize)
-        assertEquals(expected = 86.dp, actual = AddToPlaylistDialogDesignSpec.scrollBottomPadding)
+        assertEquals(expected = 68.dp, actual = AddToPlaylistDialogDesignSpec.headerHeight)
+        assertEquals(expected = 40.dp, actual = AddToPlaylistDialogDesignSpec.playlistCoverSize)
+        assertEquals(expected = 61.dp, actual = AddToPlaylistDialogDesignSpec.footerHeight)
     }
 
     /**
-     * 小窗口下添加到歌单弹窗必须按窗口高度三分之二收敛，完整窗口下不超过设计稿高度。
+     * 小窗口下添加到歌单弹窗必须按窗口高度收敛，完整窗口下不超过设计稿高度。
      */
     @Test
-    fun addToPlaylistDialogHeightRespectsTwoThirdsViewportLimit(): Unit {
+    fun addToPlaylistDialogHeightRespectsViewportLimit(): Unit {
         assertEquals(
-            expected = 400.dp,
+            expected = 540.dp,
             actual = AddToPlaylistDialogDesignSpec.resolveHeight(maxHeight = 600.dp),
         )
         assertEquals(
-            expected = 679.dp,
+            expected = 652.dp,
             actual = AddToPlaylistDialogDesignSpec.resolveHeight(maxHeight = 1200.dp),
         )
-        assertTrue(actual = AddToPlaylistDialogDesignSpec.scrollBottomPadding > AddToPlaylistDialogDesignSpec.footerHeight)
+        assertTrue(actual = AddToPlaylistDialogDesignSpec.footerHeight > AddToPlaylistDialogDesignSpec.footerActionHeight)
     }
 
     /**
@@ -59,33 +57,6 @@ class AppPanelsTest {
         assertEquals(expected = 56.dp, actual = CreatePlaylistDialogDesignSpec.inputHeight)
         assertEquals(expected = 56.dp, actual = CreatePlaylistDialogDesignSpec.buttonHeight)
         assertEquals(expected = 0.85f, actual = CreatePlaylistDialogDesignSpec.backgroundAlpha)
-    }
-
-    /**
-     * 添加到歌单弹窗需要区分数据库为空和搜索无结果，避免空库时误导用户。
-     */
-    @Test
-    fun addToPlaylistEmptyStateDistinguishesEmptyDatabaseFromNoSearchResult(): Unit {
-        assertEquals(
-            expected = "暂无歌单",
-            actual = resolveAddToPlaylistEmptyStateText(
-                flow = AddToPlaylistFlowState(
-                    songId = "song-1",
-                    hasAnyPlaylist = false,
-                    playlistSearchQuery = "road",
-                ),
-            ),
-        )
-        assertEquals(
-            expected = "未找到相关歌单",
-            actual = resolveAddToPlaylistEmptyStateText(
-                flow = AddToPlaylistFlowState(
-                    songId = "song-1",
-                    hasAnyPlaylist = true,
-                    playlistSearchQuery = "road",
-                ),
-            ),
-        )
     }
 
     /**

@@ -780,16 +780,6 @@ class MusicAppController(
         )
     }
 
-    /** 更新已有歌单搜索词，并按仓库搜索规则刷新可选列表。 */
-    fun setAddToPlaylistSearchQuery(query: String) {
-        val playlists: List<LocalPlaylist> = findPlaylistsForAddToPlaylistQuery(query = query)
-        uiState = LoginAndDialogStateController.setAddToPlaylistSearchResults(
-            state = uiState,
-            query = query,
-            playlists = playlists,
-        )
-    }
-
     /** 单选已有歌单目标，完成按钮由 [AddToPlaylistFlowState.canCompleteExistingPlaylist] 控制。 */
     fun selectAddToPlaylistTarget(playlistId: String) {
         uiState = LoginAndDialogStateController.selectAddToPlaylistTarget(
@@ -858,15 +848,6 @@ class MusicAppController(
             playlistName = playlistName,
         ).copy(localPlaylists = buildLocalPlaylistCards())
         return refreshSelectedLocalPlaylistDetail(state = nextState)
-    }
-
-    // 搜索为空时回到全部歌单；非空时复用仓库的大小写不敏感匹配规则。
-    private fun findPlaylistsForAddToPlaylistQuery(query: String): List<LocalPlaylist> {
-        return if (query.trim().isEmpty()) {
-            localPlaylistRepository.getPlaylists()
-        } else {
-            localPlaylistRepository.searchPlaylists(query = query)
-        }
     }
 
     /** 清除一次性轻提示。 */

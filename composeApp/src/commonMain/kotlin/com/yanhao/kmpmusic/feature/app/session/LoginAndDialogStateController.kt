@@ -51,7 +51,6 @@ object LoginAndDialogStateController {
             addToPlaylistFlow = AddToPlaylistFlowState(
                 songId = songId,
                 availablePlaylists = playlists,
-                hasAnyPlaylist = playlists.isNotEmpty(),
             ),
         )
     }
@@ -86,26 +85,6 @@ object LoginAndDialogStateController {
             addToPlaylistFlow = flow.copy(
                 newPlaylistName = name,
                 newPlaylistNameError = null,
-            ),
-        )
-    }
-
-    /** 搜索已有歌单后刷新可见目标，并在选中项不可见时清空选择。 */
-    fun setAddToPlaylistSearchResults(
-        state: MusicAppUiState,
-        query: String,
-        playlists: List<LocalPlaylist>,
-    ): MusicAppUiState {
-        val flow: AddToPlaylistFlowState = state.addToPlaylistFlow ?: return state
-        val selectedPlaylistId: String? = flow.selectedPlaylistId?.takeIf { selectedId: String ->
-            playlists.any { playlist: LocalPlaylist -> playlist.id == selectedId }
-        }
-        return state.copy(
-            addToPlaylistFlow = flow.copy(
-                playlistSearchQuery = query,
-                availablePlaylists = playlists,
-                hasAnyPlaylist = flow.hasAnyPlaylist || playlists.isNotEmpty(),
-                selectedPlaylistId = selectedPlaylistId,
             ),
         )
     }

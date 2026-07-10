@@ -1150,46 +1150,10 @@ class MusicAppControllerTest {
     }
 
     /**
-     * 搜索已有歌单只匹配名称，空搜索回到全部，且无结果时保留空列表供 UI 展示空态。
+     * 已有歌单一次只允许选择一个，新版添加弹窗移除搜索后不会再因筛选清空目标。
      */
     @Test
-    fun addToPlaylistSearchFiltersByPlaylistName(): Unit {
-        val localPlaylistRepository: RecordingLocalPlaylistRepository = RecordingLocalPlaylistRepository(
-            playlists = mutableListOf(
-                testPlaylist(id = "playlist-road", name = "Road Trip"),
-                testPlaylist(id = "playlist-focus", name = "Work Focus"),
-            ),
-        )
-        val controller: MusicAppController = createController(
-            localPlaylistRepository = localPlaylistRepository,
-        )
-        val targetSong: Song = testSong(id = "search-song", title = "Search Song", modifiedAt = 1L)
-
-        controller.openAddToPlaylistFlow(song = targetSong)
-        controller.setAddToPlaylistSearchQuery(query = "  road  ")
-
-        assertEquals(
-            expected = listOf("Road Trip"),
-            actual = controller.uiState.addToPlaylistFlow?.availablePlaylists?.map { playlist: LocalPlaylist -> playlist.name },
-        )
-
-        controller.setAddToPlaylistSearchQuery(query = "none")
-
-        assertEquals(expected = emptyList(), actual = controller.uiState.addToPlaylistFlow?.availablePlaylists)
-
-        controller.setAddToPlaylistSearchQuery(query = "   ")
-
-        assertEquals(
-            expected = listOf("Road Trip", "Work Focus"),
-            actual = controller.uiState.addToPlaylistFlow?.availablePlaylists?.map { playlist: LocalPlaylist -> playlist.name },
-        )
-    }
-
-    /**
-     * 已有歌单一次只允许选择一个，搜索导致目标不可见时应清空选择避免误保存。
-     */
-    @Test
-    fun addToPlaylistSelectionIsSingleAndClearedWhenSearchHidesTarget(): Unit {
+    fun addToPlaylistSelectionIsSingleAndKeepsFullPlaylistList(): Unit {
         val localPlaylistRepository: RecordingLocalPlaylistRepository = RecordingLocalPlaylistRepository(
             playlists = mutableListOf(
                 testPlaylist(id = "playlist-a", name = "A List"),
@@ -1208,11 +1172,10 @@ class MusicAppControllerTest {
 
         controller.selectAddToPlaylistTarget(playlistId = "playlist-b")
         assertEquals(expected = "playlist-b", actual = controller.uiState.addToPlaylistFlow?.selectedPlaylistId)
-
-        controller.setAddToPlaylistSearchQuery(query = "A")
-
-        assertNull(actual = controller.uiState.addToPlaylistFlow?.selectedPlaylistId)
-        assertFalse(actual = controller.uiState.addToPlaylistFlow?.canCompleteExistingPlaylist ?: true)
+        assertEquals(
+            expected = listOf("A List", "B List"),
+            actual = controller.uiState.addToPlaylistFlow?.availablePlaylists?.map { playlist: LocalPlaylist -> playlist.name },
+        )
     }
 
     /**
