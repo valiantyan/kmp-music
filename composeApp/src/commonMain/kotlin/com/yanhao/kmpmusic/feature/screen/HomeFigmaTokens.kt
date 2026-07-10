@@ -24,6 +24,12 @@ internal val homeActiveBorderColor: Color = Color(0x33006A62)
 // Figma 首页专辑封面底色，来自节点 883:514。
 internal val homeAlbumCoverBackgroundColor: Color = Color(0xFFE1E3E4)
 
+// Figma 首页专辑标题色，歌单列表复用同一张卡片文字层级。
+internal val homeAlbumTitleColor: Color = Color(0xFF191C1D)
+
+// Figma 首页专辑辅助文字色，歌单列表复用同一张卡片文字层级。
+internal val homeAlbumMetaColor: Color = Color(0xFF3D4947)
+
 // Figma 首页当前专辑覆盖色，来自节点 883:514 的 10% 主色 overlay。
 internal val homeActiveAlbumOverlayColor: Color = Color(0x1A006A62)
 

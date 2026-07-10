@@ -259,6 +259,183 @@ class MusicAppControllerTest {
     }
 
     /**
+     * 没有本地自建歌单时，我的页歌单统计只能提示空态，不能跳进空列表页。
+     */
+    @Test
+    fun mePlaylistStatShowsEmptyMessageWithoutNavigatingWhenNoPlaylists(): Unit {
+        val controller: MusicAppController = createController()
+        controller.navigateToRoot(tab = RootTab.Me)
+
+        controller.openLocalPlaylists()
+
+        assertEquals(expected = 0, actual = controller.uiState.localPlaylistCount)
+        assertNull(actual = controller.uiState.navigationState.secondaryScreen)
+        assertEquals(expected = RootTab.Me, actual = controller.uiState.navigationState.rootTab)
+        assertEquals(expected = "暂无歌单", actual = controller.uiState.transientMessage)
+    }
+
+    /**
+     * 有本地自建歌单时，我的页歌单统计进入普通二级列表页并保持迷你播放器 chrome。
+     */
+    @Test
+    fun mePlaylistStatOpensMobilePlaylistListAsSecondaryPage(): Unit {
+        val playlist: LocalPlaylist = testPlaylist(id = "playlist-road", name = "Road", updatedAt = 20L)
+        val repository: RecordingLocalPlaylistRepository = RecordingLocalPlaylistRepository(
+            playlists = mutableListOf(playlist),
+        )
+        val controller: MusicAppController = createController(localPlaylistRepository = repository)
+        controller.navigateToRoot(tab = RootTab.Me)
+
+        controller.openLocalPlaylists()
+
+        assertEquals(expected = 1, actual = controller.uiState.localPlaylistCount)
+        assertEquals(expected = SecondaryScreen.LocalPlaylists, actual = controller.uiState.navigationState.secondaryScreen)
+        assertEquals(
+            expected = MobileFixedBarMode.SecondaryWithMiniPlayer,
+            actual = controller.uiState.navigationState.fixedBarMode,
+        )
+        assertFalse(actual = controller.uiState.navigationState.fixedBarMode.showsBottomNavigation)
+        assertEquals(
+            expected = MobileFixedBarPlacement.MiniPlayerOnly,
+            actual = controller.uiState.navigationState.fixedBarMode.fixedBarPlacement,
+        )
+    }
+
+    /**
+     * 移动端歌单列表卡片应展示真实名称、当前可用歌曲数量和第一首可用歌曲封面。
+     */
+    @Test
+    fun localPlaylistCardsUseAvailableSongCountAndFirstAvailableCover(): Unit {
+        val firstSong: Song = testSong(id = "song-first", title = "First", modifiedAt = 1L).copy(
+            coverArt = CoverArt.AlbumRiverYear,
+            coverImageUri = "file://first-cover.jpg",
+        )
+        val secondSong: Song = testSong(id = "song-second", title = "Second", modifiedAt = 2L).copy(
+            coverArt = CoverArt.CoverSeaDream,
+        )
+        val playlist: LocalPlaylist = testPlaylist(id = "playlist-cover", name = "封面歌单", updatedAt = 20L)
+        val repository: RecordingLocalPlaylistRepository = RecordingLocalPlaylistRepository(
+            playlists = mutableListOf(playlist),
+            playlistDetails = mutableMapOf(
+                playlist.id to LocalPlaylistDetail(
+                    playlist = playlist,
+                    relations = listOf(
+                        LocalPlaylistSong(
+                            playlistId = playlist.id,
+                            songId = firstSong.id,
+                            addedAt = 1L,
+                            sortOrder = 0,
+                        ),
+                        LocalPlaylistSong(
+                            playlistId = playlist.id,
+                            songId = secondSong.id,
+                            addedAt = 2L,
+                            sortOrder = 1,
+                        ),
+                    ),
+                    availableSongs = listOf(firstSong, secondSong),
+                ),
+            ),
+        )
+
+        val controller: MusicAppController = createController(localPlaylistRepository = repository)
+
+        val card: LocalPlaylistCardDisplayModel = controller.uiState.localPlaylists.single()
+        assertEquals(expected = playlist.id, actual = card.id)
+        assertEquals(expected = "封面歌单", actual = card.name)
+        assertEquals(expected = 2, actual = card.availableSongCount)
+        assertEquals(expected = CoverArt.AlbumRiverYear, actual = card.coverArt)
+        assertEquals(expected = "file://first-cover.jpg", actual = card.coverImageUri)
+    }
+
+    /**
+     * 歌单列表排序应按更新时间倒序，时间相同时按名称升序，并为空歌单提供默认封面。
+     */
+    @Test
+    fun localPlaylistCardsUseRepositoryOrderAndDefaultCoverForEmptyPlaylist(): Unit {
+        val oldPlaylist: LocalPlaylist = testPlaylist(id = "playlist-old", name = "旧歌单", updatedAt = 5L)
+        val betaPlaylist: LocalPlaylist = testPlaylist(id = "playlist-beta", name = "Beta", updatedAt = 20L)
+        val alphaPlaylist: LocalPlaylist = testPlaylist(id = "playlist-alpha", name = "Alpha", updatedAt = 20L)
+        val controller: MusicAppController = createController(
+            localPlaylistRepository = RecordingLocalPlaylistRepository(
+                playlists = mutableListOf(oldPlaylist, betaPlaylist, alphaPlaylist),
+            ),
+        )
+
+        assertEquals(
+            expected = listOf("Alpha", "Beta", "旧歌单"),
+            actual = controller.uiState.localPlaylists.map { card: LocalPlaylistCardDisplayModel -> card.name },
+        )
+        assertEquals(
+            expected = listOf(0, 0, 0),
+            actual = controller.uiState.localPlaylists.map { card: LocalPlaylistCardDisplayModel -> card.availableSongCount },
+        )
+        assertTrue(
+            actual = controller.uiState.localPlaylists.all { card: LocalPlaylistCardDisplayModel ->
+                card.coverArt == CoverArt.HeroLocalMusic && card.coverImageUri == null
+            },
+        )
+    }
+
+    /**
+     * 新增歌曲后应重新读取歌单事实，让我的页数量、列表排序、封面和歌曲数量即时刷新。
+     */
+    @Test
+    fun addingSongRefreshesLocalPlaylistCardsImmediately(): Unit {
+        val targetSong: Song = testSong(id = "song-refresh", title = "Refresh", modifiedAt = 1L).copy(
+            coverArt = CoverArt.CoverSummerWaltz,
+        )
+        val oldPlaylist: LocalPlaylist = testPlaylist(id = "playlist-old", name = "旧歌单", updatedAt = 10L)
+        val targetPlaylist: LocalPlaylist = testPlaylist(id = "playlist-target", name = "目标歌单", updatedAt = 5L)
+        val refreshedTarget: LocalPlaylist = targetPlaylist.copy(updatedAt = 30L)
+        val repository: RecordingLocalPlaylistRepository = RecordingLocalPlaylistRepository(
+            playlists = mutableListOf(oldPlaylist, targetPlaylist),
+            addSongResults = mutableListOf(
+                AddSongToLocalPlaylistResult.Added(
+                    relation = LocalPlaylistSong(
+                        playlistId = targetPlaylist.id,
+                        songId = targetSong.id,
+                        addedAt = 30L,
+                        sortOrder = 0,
+                    ),
+                ),
+            ),
+        )
+        repository.onAddSong = { _: String, _: String ->
+            repository.replacePlaylists(
+                nextPlaylists = listOf(oldPlaylist, refreshedTarget),
+            )
+            repository.putPlaylistDetail(
+                detail = LocalPlaylistDetail(
+                    playlist = refreshedTarget,
+                    relations = listOf(
+                        LocalPlaylistSong(
+                            playlistId = targetPlaylist.id,
+                            songId = targetSong.id,
+                            addedAt = 30L,
+                            sortOrder = 0,
+                        ),
+                    ),
+                    availableSongs = listOf(targetSong),
+                ),
+            )
+        }
+
+        val controller: MusicAppController = createController(localPlaylistRepository = repository)
+        controller.openAddToPlaylistFlow(song = targetSong)
+        controller.selectAddToPlaylistTarget(playlistId = targetPlaylist.id)
+        controller.addCurrentSongToSelectedPlaylist()
+
+        assertEquals(
+            expected = listOf("目标歌单", "旧歌单"),
+            actual = controller.uiState.localPlaylists.map { card: LocalPlaylistCardDisplayModel -> card.name },
+        )
+        val targetCard: LocalPlaylistCardDisplayModel = controller.uiState.localPlaylists.first()
+        assertEquals(expected = 1, actual = targetCard.availableSongCount)
+        assertEquals(expected = CoverArt.CoverSummerWaltz, actual = targetCard.coverArt)
+    }
+
+    /**
      * 扫描页统计必须使用完整曲库总数，不能误用首页预览列表的 6 条限制。
      */
     @Test
@@ -829,7 +1006,10 @@ class MusicAppControllerTest {
         controller.openAddToPlaylistFlow(song = targetSong)
 
         val flow: AddToPlaylistFlowState = requireNotNull(controller.uiState.addToPlaylistFlow)
-        assertEquals(expected = listOf("通勤", "夜跑"), actual = flow.availablePlaylists.map { playlist: LocalPlaylist -> playlist.name })
+        assertEquals(
+            expected = setOf("通勤", "夜跑"),
+            actual = flow.availablePlaylists.map { playlist: LocalPlaylist -> playlist.name }.toSet(),
+        )
         assertNull(actual = flow.selectedPlaylistId)
         assertFalse(actual = flow.canCompleteExistingPlaylist)
     }
@@ -2315,6 +2495,8 @@ private class RecordingLocalPlaylistRepository(
     private val createResults: MutableList<CreateLocalPlaylistWithSongResult> = mutableListOf(),
     // 测试用已有歌单集合，模拟仓库按当前任务读取弹窗候选项。
     private val playlists: MutableList<LocalPlaylist> = mutableListOf(),
+    // 测试用详情集合，模拟仓库解析歌单封面和可用歌曲数量。
+    private val playlistDetails: MutableMap<String, LocalPlaylistDetail> = mutableMapOf(),
     // 预置添加结果，用来覆盖真实新增和幂等命中两种成功路径。
     private val addSongResults: MutableList<AddSongToLocalPlaylistResult> = mutableListOf(),
 ) : LocalPlaylistRepository {
@@ -2323,6 +2505,9 @@ private class RecordingLocalPlaylistRepository(
 
     // 记录添加到已有歌单调用，确认控制器只保存用户选中的单个目标。
     val addSongCalls: MutableList<Pair<String, String>> = mutableListOf()
+
+    // 添加歌曲后的测试回调，用于模拟仓库事实即时变化。
+    var onAddSong: (playlistId: String, songId: String) -> Unit = { _: String, _: String -> }
 
     /** 当前测试不通过独立创建空歌单入口，返回最小成功值即可。 */
     override fun createPlaylist(name: String): LocalPlaylistCreateResult {
@@ -2373,7 +2558,7 @@ private class RecordingLocalPlaylistRepository(
         } else {
             addSongResults.removeAt(index = 0)
         }
-        return nextResult ?: AddSongToLocalPlaylistResult.Added(
+        val result: AddSongToLocalPlaylistResult = nextResult ?: AddSongToLocalPlaylistResult.Added(
             relation = LocalPlaylistSong(
                 playlistId = playlistId,
                 songId = songId,
@@ -2381,11 +2566,18 @@ private class RecordingLocalPlaylistRepository(
                 sortOrder = 0,
             ),
         )
+        if (result is AddSongToLocalPlaylistResult.Added) {
+            onAddSong(playlistId, songId)
+        }
+        return result
     }
 
     /** 读取已有歌单列表，供添加到已有歌单弹窗展示全部目标。 */
     override fun getPlaylists(): List<LocalPlaylist> {
-        return playlists.toList()
+        return playlists.sortedWith(
+            compareByDescending<LocalPlaylist> { playlist: LocalPlaylist -> playlist.updatedAt }
+                .thenBy { playlist: LocalPlaylist -> playlist.name },
+        )
     }
 
     /** 搜索已有歌单时只按名称做大小写不敏感包含匹配。 */
@@ -2404,9 +2596,20 @@ private class RecordingLocalPlaylistRepository(
         return defaultNames.first()
     }
 
-    /** 当前 ticket 不进入歌单详情页。 */
+    /** 读取测试预置详情，供歌单列表卡片投影使用。 */
     override fun getPlaylistDetail(playlistId: String): LocalPlaylistDetail? {
-        return null
+        return playlistDetails[playlistId]
+    }
+
+    /** 替换测试仓库中的歌单列表，模拟持久层保存后的最新排序事实。 */
+    fun replacePlaylists(nextPlaylists: List<LocalPlaylist>) {
+        playlists.clear()
+        playlists += nextPlaylists
+    }
+
+    /** 写入测试仓库中的歌单详情，模拟持久层保存后的卡片事实。 */
+    fun putPlaylistDetail(detail: LocalPlaylistDetail) {
+        playlistDetails[detail.playlist.id] = detail
     }
 }
 

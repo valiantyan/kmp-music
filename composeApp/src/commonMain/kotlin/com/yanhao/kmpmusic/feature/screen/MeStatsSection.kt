@@ -36,12 +36,16 @@ private data class MeStatItem(
  * 三列统计区按 Figma 使用白底和细分割线，并把歌曲统计作为回到首页的入口。
  *
  * @param libraryStats 当前曲库统计。
+ * @param localPlaylistCount 当前本地自建歌单数量。
  * @param onSongsClick 点击歌曲统计时回到首页歌曲分段。
+ * @param onPlaylistsClick 点击歌单统计时进入本地自建歌单列表或提示空态。
  */
 @Composable
 internal fun MeStatsSection(
     libraryStats: LibraryStats,
+    localPlaylistCount: Int,
     onSongsClick: () -> Unit,
+    onPlaylistsClick: () -> Unit,
 ) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
@@ -56,27 +60,37 @@ internal fun MeStatsSection(
             horizontalArrangement = Arrangement.spacedBy(space = 16.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            val items: List<MeStatItem> = buildMeStatItems(libraryStats = libraryStats)
+            val items: List<MeStatItem> = buildMeStatItems(
+                libraryStats = libraryStats,
+                localPlaylistCount = localPlaylistCount,
+            )
             MeStatColumn(
                 item = items[0],
                 modifier = Modifier.weight(weight = 1f),
                 onClick = onSongsClick,
+                onClickLabel = "查看首页歌曲",
             )
             MeStatsDivider()
-            MeStatColumn(item = items[1], modifier = Modifier.weight(weight = 1f))
+            MeStatColumn(
+                item = items[1],
+                modifier = Modifier.weight(weight = 1f),
+                onClick = onPlaylistsClick,
+                onClickLabel = "查看歌单",
+            )
             MeStatsDivider()
             MeStatColumn(item = items[2], modifier = Modifier.weight(weight = 1f))
         }
     }
 }
 
-// 构造统计项时只读取真实曲库歌曲数，避免把 Figma 静态数字误当真实歌单能力。
+// 构造统计项时接入真实歌曲和歌单数量，听歌时长仍保留后续能力占位。
 private fun buildMeStatItems(
     libraryStats: LibraryStats,
+    localPlaylistCount: Int,
 ): List<MeStatItem> {
     return listOf(
         MeStatItem(value = libraryStats.songCount.toString(), label = "歌曲"),
-        MeStatItem(value = "12", label = "歌单"),
+        MeStatItem(value = localPlaylistCount.toString(), label = "歌单"),
         MeStatItem(value = "365", label = "听歌时长"),
     )
 }
@@ -87,12 +101,13 @@ private fun MeStatColumn(
     item: MeStatItem,
     modifier: Modifier = Modifier,
     onClick: (() -> Unit)? = null,
+    onClickLabel: String = "",
 ) {
     val columnModifier: Modifier = if (onClick == null) {
         modifier
     } else {
         modifier.clickable(
-            onClickLabel = "查看首页歌曲",
+            onClickLabel = onClickLabel,
             role = Role.Button,
             onClick = onClick,
         )

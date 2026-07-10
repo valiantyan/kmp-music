@@ -20,7 +20,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -145,7 +144,7 @@ private fun HomeAlbumItem(
         }
         Text(
             text = album.title,
-            color = Color(0xFF191C1D),
+            color = homeAlbumTitleColor,
             fontSize = 14.sp,
             lineHeight = 16.sp,
             fontWeight = FontWeight.Medium,
@@ -157,7 +156,7 @@ private fun HomeAlbumItem(
         )
         Text(
             text = album.artist,
-            color = Color(0xFF3D4947),
+            color = homeAlbumMetaColor,
             fontSize = 12.sp,
             lineHeight = 16.sp,
             fontWeight = FontWeight.Medium,

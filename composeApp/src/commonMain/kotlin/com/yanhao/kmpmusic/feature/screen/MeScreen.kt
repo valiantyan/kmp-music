@@ -22,8 +22,10 @@ fun MeScreen(
     recentSongs: List<Song>,
     currentSongId: String?,
     libraryStats: LibraryStats,
+    localPlaylistCount: Int,
     onScanMusic: () -> Unit,
     onSongsStatClick: () -> Unit,
+    onPlaylistsStatClick: () -> Unit,
     onRecentPlayedViewAll: () -> Unit,
     onRecentSongPlay: (Song) -> Unit,
     onRecentSongMore: (Song) -> Unit,
@@ -49,7 +51,9 @@ fun MeScreen(
                 MeProfileSection()
                 MeStatsSection(
                     libraryStats = libraryStats,
+                    localPlaylistCount = localPlaylistCount,
                     onSongsClick = onSongsStatClick,
+                    onPlaylistsClick = onPlaylistsStatClick,
                 )
                 MeQuickActionsSection(onScanMusic = onScanMusic)
                 MeRecentPlayedSummarySection(

@@ -133,6 +133,7 @@ fun DesktopSecondaryScreenRoute(
             onSongPlay = controller::playRecentSong,
             onSongMore = controller::openMore,
         )
+        SecondaryScreen.LocalPlaylists -> Unit
         is SecondaryScreen.LocalMusic -> DesktopLocalMusicScreen(
             initialSection = state.navigationState.secondaryScreen.initialSection,
             songs = state.localSongs,

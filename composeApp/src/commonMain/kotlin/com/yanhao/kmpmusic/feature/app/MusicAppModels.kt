@@ -2,6 +2,7 @@ package com.yanhao.kmpmusic.feature.app
 
 import com.yanhao.kmpmusic.domain.model.Album
 import com.yanhao.kmpmusic.domain.model.Artist
+import com.yanhao.kmpmusic.domain.model.CoverArt
 import com.yanhao.kmpmusic.domain.model.LibraryStats
 import com.yanhao.kmpmusic.domain.model.LocalPlaylist
 import com.yanhao.kmpmusic.domain.model.LocalMusicDiscoveryPreferences
@@ -97,6 +98,23 @@ data class AddToPlaylistFlowState(
 }
 
 /**
+ * 移动端歌单列表卡片展示模型，把仓库详情投影为 UI 可直接渲染的稳定事实。
+ *
+ * @property id 歌单稳定标识。
+ * @property name 用户可见歌单名称。
+ * @property availableSongCount 当前仍可播放的歌曲数量。
+ * @property coverArt 没有扫描封面时使用的应用内兜底封面。
+ * @property coverImageUri 第一首可用歌曲的扫描封面，缺失时使用 [coverArt]。
+ */
+data class LocalPlaylistCardDisplayModel(
+    val id: String,
+    val name: String,
+    val availableSongCount: Int,
+    val coverArt: CoverArt,
+    val coverImageUri: String?,
+)
+
+/**
  * 手机端固定底栏的整体位置策略。
  */
 enum class MobileFixedBarPlacement {
@@ -162,6 +180,7 @@ sealed interface SecondaryScreen {
     data object Login : SecondaryScreen
     data object AudioScan : SecondaryScreen
     data object RecentPlayed : SecondaryScreen
+    data object LocalPlaylists : SecondaryScreen
     data class LocalMusic(val initialSection: LocalMusicSection = LocalMusicSection.Songs) : SecondaryScreen
 }
 
@@ -263,6 +282,7 @@ private fun mobileFixedBarModeFor(screen: SecondaryScreen?): MobileFixedBarMode 
         SecondaryScreen.Settings,
         SecondaryScreen.Login,
         SecondaryScreen.RecentPlayed,
+        SecondaryScreen.LocalPlaylists,
         is SecondaryScreen.LocalMusic,
         -> MobileFixedBarMode.SecondaryWithMiniPlayer
     }
@@ -296,6 +316,7 @@ private fun SecondaryScreen.routeName(): String {
         SecondaryScreen.Login -> "Login"
         SecondaryScreen.AudioScan -> "AudioScan"
         SecondaryScreen.RecentPlayed -> "RecentPlayed"
+        SecondaryScreen.LocalPlaylists -> "LocalPlaylists"
         is SecondaryScreen.LocalMusic -> "LocalMusic:${initialSection.name}"
     }
 }
@@ -308,6 +329,7 @@ data class MusicAppUiState(
     val localSongs: List<Song> = emptyList(),
     val localAlbums: List<Album> = emptyList(),
     val localArtists: List<Artist> = emptyList(),
+    val localPlaylists: List<LocalPlaylistCardDisplayModel> = emptyList(),
     val favoriteSongs: List<Song> = emptyList(),
     val queueSongsSnapshot: List<Song> = emptyList(),
     val likedSongIds: Set<String>,
@@ -371,6 +393,12 @@ data class MusicAppUiState(
 
     val localSongPreview: List<Song>
         get() = homeLocalSongPreview
+
+    /**
+     * 我的页歌单统计值只读取本地自建歌单真实数量。
+     */
+    val localPlaylistCount: Int
+        get() = localPlaylists.size
 
     val detailSongs: List<Song>
         get() = MusicLibraryProjector.buildDetailSongs(

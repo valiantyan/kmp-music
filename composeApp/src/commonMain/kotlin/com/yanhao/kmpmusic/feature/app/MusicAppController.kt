@@ -13,10 +13,12 @@ import com.yanhao.kmpmusic.data.InMemorySearchHistoryRepository
 import com.yanhao.kmpmusic.data.InMemoryUserPreferencesRepository
 import com.yanhao.kmpmusic.domain.model.Album
 import com.yanhao.kmpmusic.domain.model.Artist
+import com.yanhao.kmpmusic.domain.model.CoverArt
 import com.yanhao.kmpmusic.domain.model.AddSongToLocalPlaylistResult
 import com.yanhao.kmpmusic.domain.model.CreateLocalPlaylistWithSongResult
 import com.yanhao.kmpmusic.domain.model.LibrarySnapshot
 import com.yanhao.kmpmusic.domain.model.LocalPlaylist
+import com.yanhao.kmpmusic.domain.model.LocalPlaylistDetail
 import com.yanhao.kmpmusic.domain.model.LocalMusicScanRequest
 import com.yanhao.kmpmusic.domain.model.PlaybackHistory
 import com.yanhao.kmpmusic.domain.model.PlaybackState
@@ -239,6 +241,8 @@ class MusicAppController(
         uiState = initialStateBuilder.build(
             homePreview = initialHomePreview,
             initialLikedSongIds = initialLikedSongIds,
+        ).copy(
+            localPlaylists = buildLocalPlaylistCards(),
         )
         playbackCoordinator.start(scope = controllerScope) {
             syncPlaybackState(playbackState = playbackRepository.getPlaybackState())
@@ -384,6 +388,20 @@ class MusicAppController(
         applyContentNavigationResult(
             result = contentNavigationController.openRecentPlayed(state = uiState),
         )
+    }
+
+    /** 我的页歌单统计入口：无歌单只提示，有歌单进入普通二级列表页。 */
+    fun openLocalPlaylists() {
+        val playlistCards: List<LocalPlaylistCardDisplayModel> = buildLocalPlaylistCards()
+        if (playlistCards.isEmpty()) {
+            uiState = uiState.copy(
+                localPlaylists = playlistCards,
+                transientMessage = "暂无歌单",
+            )
+            return
+        }
+        uiState = uiState.copy(localPlaylists = playlistCards)
+        navigateToSecondary(screen = SecondaryScreen.LocalPlaylists)
     }
 
     /** 搜索页应按入口上下文拿到对应数据集合，避免搜索结果跨页面串联。 */
@@ -768,7 +786,7 @@ class MusicAppController(
         uiState = when (result) {
             is AddSongToLocalPlaylistResult.Added,
             is AddSongToLocalPlaylistResult.AlreadyExists,
-            -> LoginAndDialogStateController.finishAddToPlaylistFlow(
+            -> finishAddToPlaylistFlowAndRefreshPlaylists(
                 state = uiState,
                 playlistName = selectedPlaylist.name,
             )
@@ -797,11 +815,22 @@ class MusicAppController(
                 state = uiState,
                 message = "当前歌曲不可用",
             )
-            is CreateLocalPlaylistWithSongResult.Success -> LoginAndDialogStateController.finishAddToPlaylistFlow(
+            is CreateLocalPlaylistWithSongResult.Success -> finishAddToPlaylistFlowAndRefreshPlaylists(
                 state = uiState,
                 playlistName = result.playlist.name,
             )
         }
+    }
+
+    // 添加成功会改变歌单统计、排序、封面和数量；统一在成功闭环后重读仓库事实。
+    private fun finishAddToPlaylistFlowAndRefreshPlaylists(
+        state: MusicAppUiState,
+        playlistName: String,
+    ): MusicAppUiState {
+        return LoginAndDialogStateController.finishAddToPlaylistFlow(
+            state = state,
+            playlistName = playlistName,
+        ).copy(localPlaylists = buildLocalPlaylistCards())
     }
 
     // 搜索为空时回到全部歌单；非空时复用仓库的大小写不敏感匹配规则。
@@ -895,5 +924,20 @@ class MusicAppController(
             homeLocalSongPreview = uiState.homeLocalSongPreview,
             favoriteSongs = uiState.favoriteSongs,
         )
+    }
+
+    // 歌单列表卡片使用仓库排序，并从详情解析当前可用歌曲数量和第一首封面。
+    private fun buildLocalPlaylistCards(): List<LocalPlaylistCardDisplayModel> {
+        return localPlaylistRepository.getPlaylists().map { playlist: LocalPlaylist ->
+            val detail: LocalPlaylistDetail? = localPlaylistRepository.getPlaylistDetail(playlistId = playlist.id)
+            val firstAvailableSong: Song? = detail?.availableSongs?.firstOrNull()
+            LocalPlaylistCardDisplayModel(
+                id = playlist.id,
+                name = playlist.name,
+                availableSongCount = detail?.availableSongs?.size ?: 0,
+                coverArt = firstAvailableSong?.coverArt ?: CoverArt.HeroLocalMusic,
+                coverImageUri = firstAvailableSong?.coverImageUri,
+            )
+        }
     }
 }

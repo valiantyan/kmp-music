@@ -17,6 +17,7 @@ import com.yanhao.kmpmusic.feature.screen.ArtistDetailScreen
 import com.yanhao.kmpmusic.feature.screen.AudioScanScreen
 import com.yanhao.kmpmusic.feature.screen.LocalMusicScreen
 import com.yanhao.kmpmusic.feature.screen.LocalMusicDiscoveryPlatform
+import com.yanhao.kmpmusic.feature.screen.LocalPlaylistListScreen
 import com.yanhao.kmpmusic.feature.screen.LoginScreen
 import com.yanhao.kmpmusic.feature.screen.MissingLibraryItemScreen
 import com.yanhao.kmpmusic.feature.screen.PlayerScreen
@@ -210,6 +211,15 @@ fun MobileSecondaryScreenRoute(
             onBack = controller::navigateBack,
             onSongPlay = controller::playRecentSong,
             onSongMore = controller::openMore,
+        )
+        SecondaryScreen.LocalPlaylists -> LocalPlaylistListScreen(
+            playlists = state.localPlaylists,
+            onBack = controller::navigateBack,
+            modifier = modifier
+                .fillMaxSize()
+                .statusBarsPadding()
+                .navigationBarsPadding(),
+            contentPadding = contentPadding,
         )
     }
 }
