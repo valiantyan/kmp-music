@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -64,7 +63,7 @@ fun LocalPlaylistManagementScreen(
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(
                 top = 0.dp,
-                bottom = contentPadding.calculateBottomPadding() + 132.dp,
+                bottom = contentPadding.calculateBottomPadding() + 66.dp,
             ),
             verticalArrangement = Arrangement.spacedBy(space = 12.dp),
         ) {
@@ -239,7 +238,7 @@ private fun LocalPlaylistManagementSelectionMark(isSelected: Boolean) {
     }
 }
 
-// 底部删除栏固定在页面底部；未选中时通过透明度和不可点击状态表达置灰。
+// 底部删除栏固定为全宽白底条，避免管理页底部出现过厚空白区域。
 @Composable
 private fun LocalPlaylistManagementDeleteBar(
     canDelete: Boolean,
@@ -247,41 +246,35 @@ private fun LocalPlaylistManagementDeleteBar(
     modifier: Modifier = Modifier,
 ) {
     Surface(
-        modifier = modifier.fillMaxWidth(),
-        color = Color.White.copy(alpha = 0.0f),
-        border = BorderStroke(width = 1.dp, color = localPlaylistManagementLineColor),
-        shadowElevation = 4.dp,
+        modifier = modifier
+            .fillMaxWidth()
+            .height(height = 66.dp)
+            .clickable(enabled = canDelete, onClick = onDelete),
+        color = Color.White,
     ) {
-        Box(
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(height = 115.dp)
-                .padding(top = 17.dp, bottom = 32.dp),
-            contentAlignment = Alignment.Center,
+                .alpha(alpha = if (canDelete) 1f else 0.5f),
+            horizontalArrangement = Arrangement.spacedBy(
+                space = 6.dp,
+                alignment = Alignment.CenterHorizontally,
+            ),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            Column(
-                modifier = Modifier
-                    .alpha(alpha = if (canDelete) 1f else 0.5f)
-                    .clip(shape = RoundedCornerShape(size = 16.dp))
-                    .clickable(enabled = canDelete, onClick = onDelete)
-                    .padding(horizontal = 48.dp, vertical = 12.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-            ) {
-                Icon(
-                    imageVector = Icons.Rounded.Delete,
-                    contentDescription = "删除",
-                    tint = MusicColors.Danger,
-                    modifier = Modifier.size(width = 19.dp, height = 21.dp),
-                )
-                Spacer(modifier = Modifier.height(height = 4.dp))
-                Text(
-                    text = "删除",
-                    color = MusicColors.Danger,
-                    fontSize = 14.sp,
-                    lineHeight = 16.sp,
-                    fontWeight = FontWeight.Medium,
-                )
-            }
+            Icon(
+                imageVector = Icons.Rounded.Delete,
+                contentDescription = "删除",
+                tint = MusicColors.Danger,
+                modifier = Modifier.size(width = 19.dp, height = 21.dp),
+            )
+            Text(
+                text = "删除",
+                color = MusicColors.Danger,
+                fontSize = 14.sp,
+                lineHeight = 16.sp,
+                fontWeight = FontWeight.Medium,
+            )
         }
     }
 }
