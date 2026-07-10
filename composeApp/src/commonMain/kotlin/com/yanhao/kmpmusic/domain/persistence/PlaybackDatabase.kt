@@ -136,6 +136,51 @@ data class UserPreferenceEntity(
 )
 
 /**
+ * 本地自建歌单元信息。
+ *
+ * @property id App 内稳定歌单标识。
+ * @property name 用户可见名称，已裁剪首尾空格。
+ * @property createdAt 创建时间。
+ * @property updatedAt 最近真实变更时间。
+ */
+@Entity(
+    tableName = "local_playlist",
+    indices = [
+        Index(value = ["name"], unique = true),
+        Index(value = ["updatedAt", "name"]),
+    ],
+)
+data class LocalPlaylistEntity(
+    @PrimaryKey val id: String,
+    val name: String,
+    val createdAt: Long,
+    val updatedAt: Long,
+)
+
+/**
+ * 本地歌单歌曲关系，只保存当前应用内歌曲标识。
+ *
+ * @property playlistId 所属歌单标识。
+ * @property songId 当前应用内歌曲标识。
+ * @property addedAt 首次加入时间。
+ * @property sortOrder 首次加入时分配的稳定顺序。
+ */
+@Entity(
+    tableName = "local_playlist_song",
+    primaryKeys = ["playlistId", "songId"],
+    indices = [
+        Index(value = ["playlistId", "sortOrder"]),
+        Index(value = ["songId"]),
+    ],
+)
+data class LocalPlaylistSongEntity(
+    val playlistId: String,
+    val songId: String,
+    val addedAt: Long,
+    val sortOrder: Int,
+)
+
+/**
  * 播放快照读写接口。
  */
 @Dao
@@ -396,6 +441,98 @@ interface UserPreferenceDao {
 }
 
 /**
+ * 本地自建歌单元信息读写接口。
+ */
+@Dao
+interface LocalPlaylistDao {
+    /**
+     * 插入歌单元信息。
+     *
+     * @param entity 要保存的歌单。
+     */
+    @Insert(onConflict = OnConflictStrategy.ABORT)
+    suspend fun insertPlaylist(entity: LocalPlaylistEntity)
+
+    /**
+     * 按标识读取歌单。
+     *
+     * @param playlistId 歌单标识。
+     * @return 已保存歌单，没有时返回 null。
+     */
+    @Query("SELECT * FROM local_playlist WHERE id = :playlistId")
+    suspend fun getPlaylistById(playlistId: String): LocalPlaylistEntity?
+
+    /**
+     * 按完全一致名称读取歌单。
+     *
+     * @param name 已裁剪首尾空格的歌单名称。
+     * @return 名称完全一致的歌单，没有时返回 null。
+     */
+    @Query("SELECT * FROM local_playlist WHERE name = :name")
+    suspend fun getPlaylistByName(name: String): LocalPlaylistEntity?
+
+    /**
+     * 按最近更新时间读取全部歌单。
+     */
+    @Query("SELECT * FROM local_playlist ORDER BY updatedAt DESC, name ASC")
+    suspend fun getPlaylists(): List<LocalPlaylistEntity>
+
+    /**
+     * 按名称搜索歌单，查询词由仓库层提前裁剪和转小写。
+     */
+    @Query(
+        """
+        SELECT * FROM local_playlist
+        WHERE LOWER(name) LIKE '%' || :escapedQuery || '%' ESCAPE '\'
+        ORDER BY updatedAt DESC, name ASC
+        """,
+    )
+    suspend fun searchPlaylists(escapedQuery: String): List<LocalPlaylistEntity>
+
+    /**
+     * 更新目标歌单最近变更时间。
+     */
+    @Query("UPDATE local_playlist SET updatedAt = :updatedAt WHERE id = :playlistId")
+    suspend fun updatePlaylistUpdatedAt(
+        playlistId: String,
+        updatedAt: Long,
+    )
+}
+
+/**
+ * 本地自建歌单歌曲关系读写接口。
+ */
+@Dao
+interface LocalPlaylistSongDao {
+    /**
+     * 读取指定歌单歌曲关系。
+     */
+    @Query("SELECT * FROM local_playlist_song WHERE playlistId = :playlistId AND songId = :songId")
+    suspend fun getRelation(
+        playlistId: String,
+        songId: String,
+    ): LocalPlaylistSongEntity?
+
+    /**
+     * 按稳定顺序读取歌单内全部关系。
+     */
+    @Query("SELECT * FROM local_playlist_song WHERE playlistId = :playlistId ORDER BY sortOrder ASC, addedAt ASC")
+    suspend fun getRelations(playlistId: String): List<LocalPlaylistSongEntity>
+
+    /**
+     * 读取下一个稳定顺序，空歌单返回 null。
+     */
+    @Query("SELECT MAX(sortOrder) + 1 FROM local_playlist_song WHERE playlistId = :playlistId")
+    suspend fun getNextSortOrder(playlistId: String): Int?
+
+    /**
+     * 插入歌曲关系，重复关系由仓库层提前识别为幂等成功。
+     */
+    @Insert(onConflict = OnConflictStrategy.ABORT)
+    suspend fun insertRelation(entity: LocalPlaylistSongEntity)
+}
+
+/**
  * 播放相关本地数据库，统一收纳播放快照、收藏与本地歌曲元数据。
  */
 @Database(
@@ -407,8 +544,10 @@ interface UserPreferenceDao {
         LocalSongEntity::class,
         SearchHistoryEntity::class,
         UserPreferenceEntity::class,
+        LocalPlaylistEntity::class,
+        LocalPlaylistSongEntity::class,
     ],
-    version = 7,
+    version = 8,
 )
 @ConstructedBy(PlaybackDatabaseConstructor::class)
 abstract class PlaybackDatabase : RoomDatabase() {
@@ -432,6 +571,12 @@ abstract class PlaybackDatabase : RoomDatabase() {
 
     /** 暴露用户偏好 DAO。 */
     abstract fun userPreferenceDao(): UserPreferenceDao
+
+    /** 暴露本地自建歌单 DAO。 */
+    abstract fun localPlaylistDao(): LocalPlaylistDao
+
+    /** 暴露本地自建歌单歌曲关系 DAO。 */
+    abstract fun localPlaylistSongDao(): LocalPlaylistSongDao
 }
 
 /**

@@ -112,6 +112,53 @@ object PlaybackDatabaseMigrations {
             )
         }
     }
+
+    /** 从用户偏好版本升级到支持本地自建歌单。 */
+    val MIGRATION_7_8: Migration = object : Migration(startVersion = 7, endVersion = 8) {
+        /** 新增歌单元信息与歌曲关系表，不触碰既有播放、收藏、曲库、搜索和偏好数据。 */
+        override suspend fun migrate(connection: SQLiteConnection) {
+            connection.execSql(
+                """
+                CREATE TABLE IF NOT EXISTS local_playlist (
+                    id TEXT NOT NULL PRIMARY KEY,
+                    name TEXT NOT NULL,
+                    createdAt INTEGER NOT NULL,
+                    updatedAt INTEGER NOT NULL
+                )
+                """,
+            )
+            connection.execSql("CREATE UNIQUE INDEX IF NOT EXISTS index_local_playlist_name ON local_playlist(name)")
+            connection.execSql(
+                """
+                CREATE INDEX IF NOT EXISTS index_local_playlist_updatedAt_name
+                ON local_playlist(updatedAt, name)
+                """,
+            )
+            connection.execSql(
+                """
+                CREATE TABLE IF NOT EXISTS local_playlist_song (
+                    playlistId TEXT NOT NULL,
+                    songId TEXT NOT NULL,
+                    addedAt INTEGER NOT NULL,
+                    sortOrder INTEGER NOT NULL,
+                    PRIMARY KEY(playlistId, songId)
+                )
+                """,
+            )
+            connection.execSql(
+                """
+                CREATE INDEX IF NOT EXISTS index_local_playlist_song_playlistId_sortOrder
+                ON local_playlist_song(playlistId, sortOrder)
+                """,
+            )
+            connection.execSql(
+                """
+                CREATE INDEX IF NOT EXISTS index_local_playlist_song_songId
+                ON local_playlist_song(songId)
+                """,
+            )
+        }
+    }
 }
 
 /** 执行裁剪后的 SQL 文本，避免多行字符串首尾空白影响 SQLite 解析。 */
