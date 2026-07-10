@@ -5,6 +5,7 @@ import com.yanhao.kmpmusic.domain.model.AddSongToLocalPlaylistResult
 import com.yanhao.kmpmusic.domain.model.CreateLocalPlaylistWithSongResult
 import com.yanhao.kmpmusic.domain.model.LocalPlaylist
 import com.yanhao.kmpmusic.domain.model.LocalPlaylistCreateResult
+import com.yanhao.kmpmusic.domain.model.LocalPlaylistDeleteResult
 import com.yanhao.kmpmusic.domain.model.LocalPlaylistDetail
 import com.yanhao.kmpmusic.domain.model.LocalPlaylistSong
 import com.yanhao.kmpmusic.domain.model.Song
@@ -124,6 +125,20 @@ class PersistentLocalPlaylistRepository(
             )
         }
         AddSongToLocalPlaylistResult.Added(relation = relation.toDomain())
+    }
+
+    /** 批量删除歌单和关系，不触碰歌曲、收藏、历史和播放状态相关表。 */
+    override fun deletePlaylists(playlistIds: Set<String>): LocalPlaylistDeleteResult = runBlocking {
+        val normalizedIds: List<String> = playlistIds.filter { playlistId: String -> playlistId.isNotBlank() }
+        if (normalizedIds.isEmpty()) {
+            return@runBlocking LocalPlaylistDeleteResult(deletedCount = 0)
+        }
+        var deletedCount: Int = 0
+        runInWriteTransaction {
+            playlistSongDao.deleteRelationsForPlaylists(playlistIds = normalizedIds)
+            deletedCount = playlistDao.deletePlaylists(playlistIds = normalizedIds)
+        }
+        LocalPlaylistDeleteResult(deletedCount = deletedCount)
     }
 
     /** 读取歌单列表，排序由 DAO 固化。 */

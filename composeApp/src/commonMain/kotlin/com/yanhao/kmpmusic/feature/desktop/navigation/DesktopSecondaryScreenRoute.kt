@@ -16,6 +16,7 @@ import com.yanhao.kmpmusic.feature.desktop.screens.DesktopEmptyStateScreen
 import com.yanhao.kmpmusic.feature.desktop.screens.DesktopLocalMusicScreen
 import com.yanhao.kmpmusic.feature.desktop.screens.DesktopLocalPlaylistDetailScreen
 import com.yanhao.kmpmusic.feature.desktop.screens.DesktopLocalPlaylistListScreen
+import com.yanhao.kmpmusic.feature.desktop.screens.DesktopLocalPlaylistManagementScreen
 import com.yanhao.kmpmusic.feature.desktop.screens.DesktopLoginScreen
 import com.yanhao.kmpmusic.feature.desktop.screens.DesktopRecentPlayedScreen
 import com.yanhao.kmpmusic.feature.desktop.screens.DesktopSearchScreen
@@ -139,7 +140,16 @@ fun DesktopSecondaryScreenRoute(
         SecondaryScreen.LocalPlaylists -> DesktopLocalPlaylistListScreen(
             playlists = state.localPlaylists,
             onBack = controller::navigateBack,
+            onManage = controller::openLocalPlaylistManagement,
             onPlaylistOpen = controller::openLocalPlaylistDetail,
+        )
+        SecondaryScreen.LocalPlaylistManagement -> DesktopLocalPlaylistManagementScreen(
+            playlists = state.localPlaylists,
+            selectedPlaylistIds = state.selectedManagedLocalPlaylistIds,
+            canDelete = state.canDeleteManagedLocalPlaylists,
+            onBack = controller::navigateBack,
+            onPlaylistToggle = controller::toggleManagedLocalPlaylistSelection,
+            onDelete = controller::openDeleteLocalPlaylistsDialog,
         )
         SecondaryScreen.LocalPlaylistDetail -> DesktopLocalPlaylistDetailScreen(
             detail = state.selectedLocalPlaylistDetail,

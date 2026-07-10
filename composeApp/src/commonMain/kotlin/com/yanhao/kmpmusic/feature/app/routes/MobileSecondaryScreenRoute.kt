@@ -20,6 +20,7 @@ import com.yanhao.kmpmusic.feature.screen.LocalMusicScreen
 import com.yanhao.kmpmusic.feature.screen.LocalMusicDiscoveryPlatform
 import com.yanhao.kmpmusic.feature.screen.LocalPlaylistDetailScreen
 import com.yanhao.kmpmusic.feature.screen.LocalPlaylistListScreen
+import com.yanhao.kmpmusic.feature.screen.LocalPlaylistManagementScreen
 import com.yanhao.kmpmusic.feature.screen.LoginScreen
 import com.yanhao.kmpmusic.feature.screen.MissingLibraryItemScreen
 import com.yanhao.kmpmusic.feature.screen.PlayerScreen
@@ -217,7 +218,21 @@ fun MobileSecondaryScreenRoute(
         SecondaryScreen.LocalPlaylists -> LocalPlaylistListScreen(
             playlists = state.localPlaylists,
             onBack = controller::navigateBack,
+            onManage = controller::openLocalPlaylistManagement,
             onPlaylistOpen = controller::openLocalPlaylistDetail,
+            modifier = modifier
+                .fillMaxSize()
+                .statusBarsPadding()
+                .navigationBarsPadding(),
+            contentPadding = contentPadding,
+        )
+        SecondaryScreen.LocalPlaylistManagement -> LocalPlaylistManagementScreen(
+            playlists = state.localPlaylists,
+            selectedPlaylistIds = state.selectedManagedLocalPlaylistIds,
+            canDelete = state.canDeleteManagedLocalPlaylists,
+            onBack = controller::navigateBack,
+            onPlaylistToggle = controller::toggleManagedLocalPlaylistSelection,
+            onDelete = controller::openDeleteLocalPlaylistsDialog,
             modifier = modifier
                 .fillMaxSize()
                 .statusBarsPadding()

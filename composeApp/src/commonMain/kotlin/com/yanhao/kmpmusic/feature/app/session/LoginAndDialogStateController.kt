@@ -125,6 +125,7 @@ object LoginAndDialogStateController {
         return state.copy(
             addToPlaylistFlow = null,
             transientMessage = "添加到 $playlistName 歌单成功",
+            transientMessageTitle = "已添加",
         )
     }
 

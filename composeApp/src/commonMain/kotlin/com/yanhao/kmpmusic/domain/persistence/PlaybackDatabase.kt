@@ -497,6 +497,12 @@ interface LocalPlaylistDao {
         playlistId: String,
         updatedAt: Long,
     )
+
+    /**
+     * 批量删除歌单元信息；歌曲文件和其它业务表不受影响。
+     */
+    @Query("DELETE FROM local_playlist WHERE id IN (:playlistIds)")
+    suspend fun deletePlaylists(playlistIds: List<String>): Int
 }
 
 /**
@@ -530,6 +536,12 @@ interface LocalPlaylistSongDao {
      */
     @Insert(onConflict = OnConflictStrategy.ABORT)
     suspend fun insertRelation(entity: LocalPlaylistSongEntity)
+
+    /**
+     * 批量删除指定歌单下的歌曲关系，配合歌单元信息删除保持数据闭环。
+     */
+    @Query("DELETE FROM local_playlist_song WHERE playlistId IN (:playlistIds)")
+    suspend fun deleteRelationsForPlaylists(playlistIds: List<String>)
 }
 
 /**

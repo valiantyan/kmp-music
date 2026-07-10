@@ -36,6 +36,7 @@ import com.yanhao.kmpmusic.feature.components.CoverArtImage
 fun LocalPlaylistListScreen(
     playlists: List<LocalPlaylistCardDisplayModel>,
     onBack: () -> Unit,
+    onManage: () -> Unit,
     onPlaylistOpen: (String) -> Unit,
     modifier: Modifier = Modifier,
     contentPadding: PaddingValues = PaddingValues(),
@@ -55,6 +56,8 @@ fun LocalPlaylistListScreen(
                 title = "我的歌单",
                 subtitle = "按最近更新时间排序",
                 onBack = onBack,
+                actionLabel = "管理",
+                onAction = onManage,
             )
         }
         if (playlists.isEmpty()) {

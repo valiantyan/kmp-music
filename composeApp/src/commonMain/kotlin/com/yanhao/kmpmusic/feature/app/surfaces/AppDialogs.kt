@@ -36,8 +36,26 @@ fun AppDialogs(
                 }
             },
             icon = { Icon(Icons.Rounded.LibraryMusic, contentDescription = null, tint = MusicColors.Accent) },
-            title = { Text(text = "已添加") },
+            title = { Text(text = state.transientMessageTitle) },
             text = { Text(text = message) },
+        )
+    }
+    if (state.isDeleteLocalPlaylistsDialogOpen) {
+        AlertDialog(
+            onDismissRequest = controller::closeDeleteLocalPlaylistsDialog,
+            confirmButton = {
+                Button(onClick = controller::confirmDeleteLocalPlaylists) {
+                    Text(text = "删除")
+                }
+            },
+            dismissButton = {
+                Button(onClick = controller::closeDeleteLocalPlaylistsDialog) {
+                    Text(text = "取消")
+                }
+            },
+            icon = { Icon(Icons.Rounded.Delete, contentDescription = null, tint = MusicColors.Danger) },
+            title = { Text(text = "确认删除选中的 ${state.selectedManagedLocalPlaylistIds.size} 个歌单？") },
+            text = { Text(text = "歌单会被删除，歌曲文件不会被删除。") },
         )
     }
     if (state.isClearCacheDialogOpen) {

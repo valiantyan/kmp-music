@@ -30,6 +30,7 @@ import com.yanhao.kmpmusic.domain.model.MusicFileMetadata
 import com.yanhao.kmpmusic.domain.model.CreateLocalPlaylistWithSongResult
 import com.yanhao.kmpmusic.domain.model.LocalPlaylist
 import com.yanhao.kmpmusic.domain.model.LocalPlaylistCreateResult
+import com.yanhao.kmpmusic.domain.model.LocalPlaylistDeleteResult
 import com.yanhao.kmpmusic.domain.model.LocalPlaylistDetail
 import com.yanhao.kmpmusic.domain.model.LocalPlaylistSong
 import com.yanhao.kmpmusic.domain.model.SearchContext
@@ -568,6 +569,140 @@ class MusicAppControllerTest {
             expected = listOf(targetSong.id),
             actual = controller.uiState.selectedLocalPlaylistDetail?.songs.orEmpty().map { song: Song -> song.id },
         )
+    }
+
+    /**
+     * 歌单管理页从列表进入时清空旧选择，并保持二级页迷你播放器 chrome。
+     */
+    @Test
+    fun openLocalPlaylistManagementClearsSelectionAndUsesSecondaryChrome(): Unit {
+        val playlist: LocalPlaylist = testPlaylist(id = "playlist-manage", name = "管理歌单", updatedAt = 20L)
+        val controller: MusicAppController = createController(
+            localPlaylistRepository = RecordingLocalPlaylistRepository(
+                playlists = mutableListOf(playlist),
+            ),
+        )
+        controller.openLocalPlaylists()
+        controller.openLocalPlaylistManagement()
+
+        assertEquals(expected = SecondaryScreen.LocalPlaylistManagement, actual = controller.uiState.navigationState.secondaryScreen)
+        assertEquals(expected = emptySet(), actual = controller.uiState.selectedManagedLocalPlaylistIds)
+        assertFalse(actual = controller.uiState.canDeleteManagedLocalPlaylists)
+        assertEquals(
+            expected = MobileFixedBarMode.SecondaryWithMiniPlayer,
+            actual = controller.uiState.navigationState.fixedBarMode,
+        )
+    }
+
+    /**
+     * 管理页整行点击应支持单选、多选和再次点击取消。
+     */
+    @Test
+    fun toggleManagedLocalPlaylistSelectionSupportsSingleAndMultipleSelection(): Unit {
+        val firstPlaylist: LocalPlaylist = testPlaylist(id = "playlist-first", name = "第一", updatedAt = 20L)
+        val secondPlaylist: LocalPlaylist = testPlaylist(id = "playlist-second", name = "第二", updatedAt = 10L)
+        val controller: MusicAppController = createController(
+            localPlaylistRepository = RecordingLocalPlaylistRepository(
+                playlists = mutableListOf(firstPlaylist, secondPlaylist),
+            ),
+        )
+        controller.openLocalPlaylistManagement()
+
+        controller.toggleManagedLocalPlaylistSelection(playlistId = firstPlaylist.id)
+        controller.toggleManagedLocalPlaylistSelection(playlistId = secondPlaylist.id)
+        assertEquals(
+            expected = setOf(firstPlaylist.id, secondPlaylist.id),
+            actual = controller.uiState.selectedManagedLocalPlaylistIds,
+        )
+        assertTrue(actual = controller.uiState.canDeleteManagedLocalPlaylists)
+
+        controller.toggleManagedLocalPlaylistSelection(playlistId = firstPlaylist.id)
+
+        assertEquals(expected = setOf(secondPlaylist.id), actual = controller.uiState.selectedManagedLocalPlaylistIds)
+    }
+
+    /**
+     * 未选择歌单时删除确认不会打开，保证置灰按钮没有副作用。
+     */
+    @Test
+    fun deleteManagedLocalPlaylistsDialogDoesNotOpenWithoutSelection(): Unit {
+        val controller: MusicAppController = createController()
+
+        controller.openDeleteLocalPlaylistsDialog()
+
+        assertFalse(actual = controller.uiState.isDeleteLocalPlaylistsDialogOpen)
+    }
+
+    /**
+     * 确认删除后停留管理页、刷新列表、清空选择并展示删除成功提示。
+     */
+    @Test
+    fun confirmDeleteManagedLocalPlaylistsRefreshesManagementPageAndShowsMessage(): Unit {
+        val keepPlaylist: LocalPlaylist = testPlaylist(id = "playlist-keep", name = "保留", updatedAt = 20L)
+        val deletePlaylist: LocalPlaylist = testPlaylist(id = "playlist-delete", name = "删除", updatedAt = 10L)
+        val repository: RecordingLocalPlaylistRepository = RecordingLocalPlaylistRepository(
+            playlists = mutableListOf(keepPlaylist, deletePlaylist),
+        )
+        val controller: MusicAppController = createController(localPlaylistRepository = repository)
+        controller.openLocalPlaylistManagement()
+        controller.toggleManagedLocalPlaylistSelection(playlistId = deletePlaylist.id)
+
+        controller.openDeleteLocalPlaylistsDialog()
+        controller.confirmDeleteLocalPlaylists()
+
+        assertEquals(expected = SecondaryScreen.LocalPlaylistManagement, actual = controller.uiState.navigationState.secondaryScreen)
+        assertEquals(expected = listOf(keepPlaylist.id), actual = controller.uiState.localPlaylists.map { playlist -> playlist.id })
+        assertEquals(expected = emptySet(), actual = controller.uiState.selectedManagedLocalPlaylistIds)
+        assertFalse(actual = controller.uiState.isDeleteLocalPlaylistsDialogOpen)
+        assertEquals(expected = "已删除 1 个歌单", actual = controller.uiState.transientMessage)
+        assertEquals(expected = "已删除", actual = controller.uiState.transientMessageTitle)
+        assertEquals(expected = listOf(setOf(deletePlaylist.id)), actual = repository.deletePlaylistCalls)
+    }
+
+    /**
+     * 删除全部歌单后管理页保留空列表，删除按钮重新置灰。
+     */
+    @Test
+    fun deletingAllManagedLocalPlaylistsLeavesEmptyManagementPage(): Unit {
+        val playlist: LocalPlaylist = testPlaylist(id = "playlist-only", name = "唯一", updatedAt = 20L)
+        val controller: MusicAppController = createController(
+            localPlaylistRepository = RecordingLocalPlaylistRepository(
+                playlists = mutableListOf(playlist),
+            ),
+        )
+        controller.openLocalPlaylistManagement()
+        controller.toggleManagedLocalPlaylistSelection(playlistId = playlist.id)
+
+        controller.confirmDeleteLocalPlaylists()
+
+        assertTrue(actual = controller.uiState.localPlaylists.isEmpty())
+        assertFalse(actual = controller.uiState.canDeleteManagedLocalPlaylists)
+        assertEquals(expected = 0, actual = controller.uiState.localPlaylistCount)
+    }
+
+    /**
+     * 删除歌单容器不能改变当前播放队列和当前歌曲。
+     */
+    @Test
+    fun deletingLocalPlaylistDoesNotChangePlaybackQueue(): Unit {
+        val song: Song = testSong(id = "song-playing", title = "Playing", modifiedAt = 1L)
+        val playlist: LocalPlaylist = testPlaylist(id = "playlist-playing", name = "播放中", updatedAt = 20L)
+        val playbackRepository: InMemoryPlaybackRepository = InMemoryPlaybackRepository()
+        val controller: MusicAppController = createController(
+            playbackRepository = playbackRepository,
+            localPlaylistRepository = RecordingLocalPlaylistRepository(
+                playlists = mutableListOf(playlist),
+            ),
+        )
+        controller.playSong(song = song, queueSongs = listOf(song))
+        controller.openLocalPlaylistManagement()
+        controller.toggleManagedLocalPlaylistSelection(playlistId = playlist.id)
+
+        controller.confirmDeleteLocalPlaylists()
+
+        assertEquals(expected = song.id, actual = controller.uiState.currentSongId)
+        assertEquals(expected = listOf(song.id), actual = controller.uiState.queueSongIds)
+        assertEquals(expected = listOf(song.id), actual = playbackRepository.getQueueState().songIds)
     }
 
     /**
@@ -2674,6 +2809,9 @@ private class RecordingLocalPlaylistRepository(
     // 记录添加到已有歌单调用，确认控制器只保存用户选中的单个目标。
     val addSongCalls: MutableList<Pair<String, String>> = mutableListOf()
 
+    // 记录批量删除调用，确认管理页只传用户当前选择。
+    val deletePlaylistCalls: MutableList<Set<String>> = mutableListOf()
+
     // 添加歌曲后的测试回调，用于模拟仓库事实即时变化。
     var onAddSong: (playlistId: String, songId: String) -> Unit = { _: String, _: String -> }
 
@@ -2738,6 +2876,17 @@ private class RecordingLocalPlaylistRepository(
             onAddSong(playlistId, songId)
         }
         return result
+    }
+
+    /** 删除歌单时同时移除详情，模拟仓库只删除歌单容器数据。 */
+    override fun deletePlaylists(playlistIds: Set<String>): LocalPlaylistDeleteResult {
+        deletePlaylistCalls += playlistIds
+        val beforeCount: Int = playlists.size
+        playlists.removeAll { playlist: LocalPlaylist -> playlist.id in playlistIds }
+        playlistIds.forEach { playlistId: String ->
+            playlistDetails.remove(key = playlistId)
+        }
+        return LocalPlaylistDeleteResult(deletedCount = beforeCount - playlists.size)
     }
 
     /** 读取已有歌单列表，供添加到已有歌单弹窗展示全部目标。 */

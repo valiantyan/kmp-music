@@ -64,6 +64,8 @@ fun AppHeader(
     onBack: (() -> Unit)? = null,
     onSearch: (() -> Unit)? = null,
     onSettings: (() -> Unit)? = null,
+    actionLabel: String? = null,
+    onAction: (() -> Unit)? = null,
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -110,6 +112,19 @@ fun AppHeader(
                 RoundIconButton(onClick = onSearch) {
                     Icon(Icons.Rounded.Search, contentDescription = "搜索")
                 }
+            }
+            if (actionLabel != null && onAction != null) {
+                Text(
+                    text = actionLabel,
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(999.dp))
+                        .clickable(onClick = onAction)
+                        .padding(horizontal = scaledDp(12.dp), vertical = scaledDp(8.dp)),
+                    color = MusicColors.Accent,
+                    fontSize = scaledSp(15.sp),
+                    lineHeight = scaledSp(18.sp),
+                    fontWeight = FontWeight.Bold,
+                )
             }
         }
     }

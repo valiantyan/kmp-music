@@ -204,6 +204,7 @@ sealed interface SecondaryScreen {
     data object AudioScan : SecondaryScreen
     data object RecentPlayed : SecondaryScreen
     data object LocalPlaylists : SecondaryScreen
+    data object LocalPlaylistManagement : SecondaryScreen
     data object LocalPlaylistDetail : SecondaryScreen
     data class LocalMusic(val initialSection: LocalMusicSection = LocalMusicSection.Songs) : SecondaryScreen
 }
@@ -307,6 +308,7 @@ private fun mobileFixedBarModeFor(screen: SecondaryScreen?): MobileFixedBarMode 
         SecondaryScreen.Login,
         SecondaryScreen.RecentPlayed,
         SecondaryScreen.LocalPlaylists,
+        SecondaryScreen.LocalPlaylistManagement,
         SecondaryScreen.LocalPlaylistDetail,
         is SecondaryScreen.LocalMusic,
         -> MobileFixedBarMode.SecondaryWithMiniPlayer
@@ -342,6 +344,7 @@ private fun SecondaryScreen.routeName(): String {
         SecondaryScreen.AudioScan -> "AudioScan"
         SecondaryScreen.RecentPlayed -> "RecentPlayed"
         SecondaryScreen.LocalPlaylists -> "LocalPlaylists"
+        SecondaryScreen.LocalPlaylistManagement -> "LocalPlaylistManagement"
         SecondaryScreen.LocalPlaylistDetail -> "LocalPlaylistDetail"
         is SecondaryScreen.LocalMusic -> "LocalMusic:${initialSection.name}"
     }
@@ -356,6 +359,7 @@ data class MusicAppUiState(
     val localAlbums: List<Album> = emptyList(),
     val localArtists: List<Artist> = emptyList(),
     val localPlaylists: List<LocalPlaylistCardDisplayModel> = emptyList(),
+    val selectedManagedLocalPlaylistIds: Set<String> = emptySet(),
     val selectedLocalPlaylistDetail: LocalPlaylistDetailDisplayModel? = null,
     val favoriteSongs: List<Song> = emptyList(),
     val queueSongsSnapshot: List<Song> = emptyList(),
@@ -391,8 +395,10 @@ data class MusicAppUiState(
     val moreSongSourceContext: SongMoreSourceContext = SongMoreSourceContext.General,
     val addToPlaylistFlow: AddToPlaylistFlowState? = null,
     val transientMessage: String? = null,
+    val transientMessageTitle: String = "已添加",
     val isPermissionSettingsDialogOpen: Boolean = false,
     val isClearCacheDialogOpen: Boolean = false,
+    val isDeleteLocalPlaylistsDialogOpen: Boolean = false,
     val email: String = "",
     val isMailSent: Boolean = false,
 ) {
@@ -426,6 +432,12 @@ data class MusicAppUiState(
      */
     val localPlaylistCount: Int
         get() = localPlaylists.size
+
+    /**
+     * 管理歌单页只有存在已选歌单时才允许触发删除。
+     */
+    val canDeleteManagedLocalPlaylists: Boolean
+        get() = selectedManagedLocalPlaylistIds.isNotEmpty()
 
     val detailSongs: List<Song>
         get() = MusicLibraryProjector.buildDetailSongs(
@@ -515,6 +527,7 @@ data class MusicAppUiState(
     val canHandleSystemBack: Boolean =
         isPermissionSettingsDialogOpen ||
             isClearCacheDialogOpen ||
+            isDeleteLocalPlaylistsDialogOpen ||
             transientMessage != null ||
             addToPlaylistFlow != null ||
             moreSongId != null ||

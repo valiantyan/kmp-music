@@ -1,6 +1,8 @@
 package com.yanhao.kmpmusic.feature.desktop.screens
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -13,9 +15,15 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Check
+import androidx.compose.material.icons.rounded.Delete
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -36,6 +44,7 @@ import com.yanhao.kmpmusic.feature.desktop.DesktopMusicColors
 import com.yanhao.kmpmusic.feature.desktop.DesktopMusicType
 import com.yanhao.kmpmusic.feature.desktop.components.DesktopPageHeader
 import com.yanhao.kmpmusic.feature.desktop.components.DesktopPrimaryButton
+import com.yanhao.kmpmusic.feature.desktop.components.DesktopSecondaryButton
 import com.yanhao.kmpmusic.feature.desktop.components.DesktopSectionEmptyMessage
 import com.yanhao.kmpmusic.feature.desktop.components.DesktopSongTable
 
@@ -46,6 +55,7 @@ import com.yanhao.kmpmusic.feature.desktop.components.DesktopSongTable
 internal fun DesktopLocalPlaylistListScreen(
     playlists: List<LocalPlaylistCardDisplayModel>,
     onBack: () -> Unit,
+    onManage: () -> Unit,
     onPlaylistOpen: (String) -> Unit,
 ) {
     Column(
@@ -57,6 +67,7 @@ internal fun DesktopLocalPlaylistListScreen(
             title = "我的歌单",
             eyebrow = "按最近更新时间排序",
         ) {
+            DesktopSecondaryButton(text = "管理", onClick = onManage)
             DesktopPrimaryButton(text = "返回", onClick = onBack)
         }
         if (playlists.isEmpty()) {
@@ -67,6 +78,50 @@ internal fun DesktopLocalPlaylistListScreen(
             playlists = playlists,
             onPlaylistOpen = onPlaylistOpen,
         )
+    }
+}
+
+/**
+ * 桌面本地自建歌单管理页，使用右上工具栏承载批量删除。
+ */
+@Composable
+internal fun DesktopLocalPlaylistManagementScreen(
+    playlists: List<LocalPlaylistCardDisplayModel>,
+    selectedPlaylistIds: Set<String>,
+    canDelete: Boolean,
+    onBack: () -> Unit,
+    onPlaylistToggle: (String) -> Unit,
+    onDelete: () -> Unit,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState()),
+    ) {
+        DesktopPageHeader(
+            title = "管理歌单",
+            eyebrow = "选择一个或多个歌单后删除",
+        ) {
+            DesktopPrimaryButton(
+                text = "删除",
+                onClick = onDelete,
+                enabled = canDelete,
+            )
+            DesktopPrimaryButton(text = "返回", onClick = onBack)
+        }
+        if (playlists.isEmpty()) {
+            DesktopSectionEmptyMessage(message = "暂无歌单")
+            return@Column
+        }
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            playlists.forEach { playlist: LocalPlaylistCardDisplayModel ->
+                DesktopLocalPlaylistManagementRow(
+                    playlist = playlist,
+                    isSelected = playlist.id in selectedPlaylistIds,
+                    onPlaylistToggle = onPlaylistToggle,
+                )
+            }
+        }
     }
 }
 
@@ -220,6 +275,96 @@ private fun DesktopLocalPlaylistCard(
                     overflow = TextOverflow.Ellipsis,
                 )
             }
+        }
+    }
+}
+
+/**
+ * 桌面管理列表整行切换选择，避免用户必须命中小圆点。
+ */
+@Composable
+private fun DesktopLocalPlaylistManagementRow(
+    playlist: LocalPlaylistCardDisplayModel,
+    isSelected: Boolean,
+    onPlaylistToggle: (String) -> Unit,
+) {
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onPlaylistToggle(playlist.id) },
+        shape = RoundedCornerShape(18.dp),
+        color = Color.White.copy(alpha = 0.78f),
+        border = BorderStroke(width = 1.dp, color = DesktopMusicColors.Line),
+    ) {
+        Row(
+            modifier = Modifier.padding(16.dp),
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            DesktopLocalPlaylistSelectionMark(isSelected = isSelected)
+            CoverArtImage(
+                coverArt = playlist.coverArt,
+                coverImageUri = playlist.coverImageUri,
+                contentDescription = "${playlist.name} 歌单封面",
+                modifier = Modifier
+                    .size(size = 64.dp)
+                    .clip(RoundedCornerShape(12.dp)),
+                contentScale = ContentScale.Crop,
+            )
+            Column(
+                modifier = Modifier.weight(weight = 1f),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                Text(
+                    text = playlist.name,
+                    color = DesktopMusicColors.Ink,
+                    fontSize = DesktopMusicType.StatTitle,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    text = "${playlist.availableSongCount} 首歌曲",
+                    color = DesktopMusicColors.MutedStrong,
+                    fontSize = DesktopMusicType.Body,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+            Icon(
+                imageVector = Icons.Rounded.Delete,
+                contentDescription = null,
+                tint = DesktopMusicColors.Muted.copy(alpha = 0.36f),
+                modifier = Modifier.size(size = 18.dp),
+            )
+        }
+    }
+}
+
+// 桌面选择控件和移动端保持一致含义，尺寸沿用批量列表行高。
+@Composable
+private fun DesktopLocalPlaylistSelectionMark(isSelected: Boolean) {
+    Box(
+        modifier = Modifier
+            .size(size = 24.dp)
+            .background(
+                color = if (isSelected) DesktopMusicColors.AccentDeep else Color.Transparent,
+                shape = CircleShape,
+            )
+            .border(
+                width = 2.dp,
+                color = if (isSelected) DesktopMusicColors.AccentDeep else DesktopMusicColors.Muted,
+                shape = CircleShape,
+            ),
+        contentAlignment = Alignment.Center,
+    ) {
+        if (isSelected) {
+            Icon(
+                imageVector = Icons.Rounded.Check,
+                contentDescription = "已选中",
+                tint = Color.White,
+                modifier = Modifier.size(size = 16.dp),
+            )
         }
     }
 }

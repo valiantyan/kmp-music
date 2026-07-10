@@ -284,6 +284,39 @@ class PersistentLocalPlaylistRepositoryTest {
         )
     }
 
+    /**
+     * 删除歌单只移除歌单元信息和关系，不影响曲库可用歌曲事实。
+     */
+    @Test
+    fun deletePlaylistsRemovesMetadataAndRelationsOnly(): Unit = runTest {
+        val song: Song = song(id = "song-kept")
+        val fixture: LocalPlaylistRepositoryFixture = LocalPlaylistRepositoryFixture(
+            availableSongs = listOf(song),
+        )
+        val repository: LocalPlaylistRepository = fixture.createRepository()
+        val keepPlaylist: LocalPlaylist = assertIs<CreateLocalPlaylistWithSongResult.Success>(
+            value = repository.createPlaylistWithSong(
+                name = "保留",
+                songId = song.id,
+            ),
+        ).playlist
+        val deletePlaylist: LocalPlaylist = assertIs<CreateLocalPlaylistWithSongResult.Success>(
+            value = repository.createPlaylistWithSong(
+                name = "删除",
+                songId = song.id,
+            ),
+        ).playlist
+
+        val result = repository.deletePlaylists(playlistIds = setOf(deletePlaylist.id, "missing"))
+
+        assertEquals(expected = 1, actual = result.deletedCount)
+        assertEquals(expected = listOf(keepPlaylist.id), actual = repository.getPlaylists().map { playlist -> playlist.id })
+        assertNull(actual = repository.getPlaylistDetail(playlistId = deletePlaylist.id))
+        assertEquals(expected = listOf(song.id), actual = repository.getPlaylistDetail(playlistId = keepPlaylist.id)?.relations?.map { relation -> relation.songId })
+        assertEquals(expected = listOf(song.id), actual = fixture.musicLibraryRepository.availableSongs.map { availableSong -> availableSong.id })
+        assertEquals(expected = 3, actual = fixture.transactionCount)
+    }
+
     private class LocalPlaylistRepositoryFixture(
         nowValues: List<Long> = (1L..100L).toList(),
         availableSongs: List<Song> = emptyList(),
@@ -390,6 +423,17 @@ class PersistentLocalPlaylistRepositoryTest {
             }
         }
 
+        /** 删除歌单元信息并返回真实删除行数。 */
+        override suspend fun deletePlaylists(playlistIds: List<String>): Int {
+            var deletedCount: Int = 0
+            playlistIds.forEach { playlistId: String ->
+                if (rows.remove(key = playlistId) != null) {
+                    deletedCount += 1
+                }
+            }
+            return deletedCount
+        }
+
         /** 保存当前表快照，供事务失败测试回滚。 */
         fun snapshotRows(): LinkedHashMap<String, LocalPlaylistEntity> {
             return LinkedHashMap(rows)
@@ -436,6 +480,11 @@ class PersistentLocalPlaylistRepositoryTest {
                 error(message = "模拟关系写入失败")
             }
             rows[entity.playlistId to entity.songId] = entity
+        }
+
+        /** 删除多个歌单下的关系。 */
+        override suspend fun deleteRelationsForPlaylists(playlistIds: List<String>) {
+            rows.keys.removeAll { key: Pair<String, String> -> key.first in playlistIds }
         }
 
         /** 保存当前关系表快照，供事务失败测试回滚。 */

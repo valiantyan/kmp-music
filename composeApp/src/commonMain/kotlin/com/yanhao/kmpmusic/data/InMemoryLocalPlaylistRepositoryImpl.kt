@@ -4,6 +4,7 @@ import com.yanhao.kmpmusic.domain.model.AddSongToLocalPlaylistResult
 import com.yanhao.kmpmusic.domain.model.CreateLocalPlaylistWithSongResult
 import com.yanhao.kmpmusic.domain.model.LocalPlaylist
 import com.yanhao.kmpmusic.domain.model.LocalPlaylistCreateResult
+import com.yanhao.kmpmusic.domain.model.LocalPlaylistDeleteResult
 import com.yanhao.kmpmusic.domain.model.LocalPlaylistDetail
 import com.yanhao.kmpmusic.domain.model.LocalPlaylistSong
 import com.yanhao.kmpmusic.domain.model.Song
@@ -89,6 +90,15 @@ class InMemoryLocalPlaylistRepositoryImpl(
             playlists[playlistIndex] = playlist.copy(updatedAt = addedAt)
         }
         return AddSongToLocalPlaylistResult.Added(relation = relation)
+    }
+
+    /** 删除内存歌单和关系，保持演示入口与持久化仓库同一删除边界。 */
+    override fun deletePlaylists(playlistIds: Set<String>): LocalPlaylistDeleteResult {
+        val normalizedIds: Set<String> = playlistIds.filter { playlistId: String -> playlistId.isNotBlank() }.toSet()
+        val beforeCount: Int = playlists.size
+        playlists.removeAll { playlist: LocalPlaylist -> playlist.id in normalizedIds }
+        relations.removeAll { relation: LocalPlaylistSong -> relation.playlistId in normalizedIds }
+        return LocalPlaylistDeleteResult(deletedCount = beforeCount - playlists.size)
     }
 
     /** 读取全部歌单，排序规则对齐持久化仓库。 */

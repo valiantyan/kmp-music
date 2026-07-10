@@ -18,6 +18,7 @@ import com.yanhao.kmpmusic.domain.model.AddSongToLocalPlaylistResult
 import com.yanhao.kmpmusic.domain.model.CreateLocalPlaylistWithSongResult
 import com.yanhao.kmpmusic.domain.model.LibrarySnapshot
 import com.yanhao.kmpmusic.domain.model.LocalPlaylist
+import com.yanhao.kmpmusic.domain.model.LocalPlaylistDeleteResult
 import com.yanhao.kmpmusic.domain.model.LocalPlaylistDetail
 import com.yanhao.kmpmusic.domain.model.LocalMusicScanRequest
 import com.yanhao.kmpmusic.domain.model.PlaybackHistory
@@ -402,6 +403,58 @@ class MusicAppController(
         }
         uiState = uiState.copy(localPlaylists = playlistCards)
         navigateToSecondary(screen = SecondaryScreen.LocalPlaylists)
+    }
+
+    /** 从我的歌单列表进入管理页，清空上一轮批量选择避免误删。 */
+    fun openLocalPlaylistManagement() {
+        uiState = uiState.copy(
+            localPlaylists = buildLocalPlaylistCards(),
+            selectedManagedLocalPlaylistIds = emptySet(),
+            isDeleteLocalPlaylistsDialogOpen = false,
+        )
+        navigateToSecondary(screen = SecondaryScreen.LocalPlaylistManagement)
+    }
+
+    /** 管理页整行点击切换选中，支持单选和多选累积。 */
+    fun toggleManagedLocalPlaylistSelection(playlistId: String) {
+        val currentSelection: Set<String> = uiState.selectedManagedLocalPlaylistIds
+        val nextSelection: Set<String> = if (playlistId in currentSelection) {
+            currentSelection - playlistId
+        } else {
+            currentSelection + playlistId
+        }
+        uiState = uiState.copy(selectedManagedLocalPlaylistIds = nextSelection)
+    }
+
+    /** 只有存在已选歌单时才打开删除确认，置灰按钮点击不会产生状态变化。 */
+    fun openDeleteLocalPlaylistsDialog() {
+        if (!uiState.canDeleteManagedLocalPlaylists) {
+            return
+        }
+        uiState = uiState.copy(isDeleteLocalPlaylistsDialogOpen = true)
+    }
+
+    /** 取消删除确认时保留选择，方便用户继续调整批量目标。 */
+    fun closeDeleteLocalPlaylistsDialog() {
+        uiState = uiState.copy(isDeleteLocalPlaylistsDialogOpen = false)
+    }
+
+    /** 确认后删除歌单容器数据并刷新管理页列表，不影响播放队列和其它曲库事实。 */
+    fun confirmDeleteLocalPlaylists() {
+        val playlistIds: Set<String> = uiState.selectedManagedLocalPlaylistIds
+        if (playlistIds.isEmpty()) {
+            uiState = uiState.copy(isDeleteLocalPlaylistsDialogOpen = false)
+            return
+        }
+        val result: LocalPlaylistDeleteResult = localPlaylistRepository.deletePlaylists(playlistIds = playlistIds)
+        val nextState: MusicAppUiState = uiState.copy(
+            localPlaylists = buildLocalPlaylistCards(),
+            selectedManagedLocalPlaylistIds = emptySet(),
+            isDeleteLocalPlaylistsDialogOpen = false,
+            transientMessage = "已删除 ${result.deletedCount} 个歌单",
+            transientMessageTitle = "已删除",
+        )
+        uiState = refreshSelectedLocalPlaylistDetail(state = nextState)
     }
 
     /** 打开歌单详情；空歌单也进入详情，由详情页展示置灰播放入口和空态。 */

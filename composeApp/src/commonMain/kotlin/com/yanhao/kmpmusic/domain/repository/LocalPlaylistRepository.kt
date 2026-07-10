@@ -4,6 +4,7 @@ import com.yanhao.kmpmusic.domain.model.AddSongToLocalPlaylistResult
 import com.yanhao.kmpmusic.domain.model.CreateLocalPlaylistWithSongResult
 import com.yanhao.kmpmusic.domain.model.LocalPlaylist
 import com.yanhao.kmpmusic.domain.model.LocalPlaylistCreateResult
+import com.yanhao.kmpmusic.domain.model.LocalPlaylistDeleteResult
 import com.yanhao.kmpmusic.domain.model.LocalPlaylistDetail
 
 /**
@@ -30,6 +31,11 @@ interface LocalPlaylistRepository {
         playlistId: String,
         songId: String,
     ): AddSongToLocalPlaylistResult
+
+    /**
+     * 批量删除歌单元信息和歌单歌曲关系，不影响歌曲文件、曲库、收藏、历史和播放队列。
+     */
+    fun deletePlaylists(playlistIds: Set<String>): LocalPlaylistDeleteResult
 
     /**
      * 按最近更新时间倒序读取歌单元信息。

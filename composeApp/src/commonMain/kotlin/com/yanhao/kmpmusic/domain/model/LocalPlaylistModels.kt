@@ -87,6 +87,15 @@ sealed class AddSongToLocalPlaylistResult {
 }
 
 /**
+ * 批量删除本地自建歌单的结果。
+ *
+ * @property deletedCount 实际删除的歌单数量；不存在的标识不会计入。
+ */
+data class LocalPlaylistDeleteResult(
+    val deletedCount: Int,
+)
+
+/**
  * 新建歌单并加入当前歌曲的原子流程结果。
  */
 sealed class CreateLocalPlaylistWithSongResult {
