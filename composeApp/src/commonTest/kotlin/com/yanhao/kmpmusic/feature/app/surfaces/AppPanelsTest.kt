@@ -19,12 +19,13 @@ import kotlin.test.assertTrue
  */
 class AppPanelsTest {
     /**
-     * 添加到歌单弹窗的关键视觉约束来自 Figma 节点 982:881，集中测试避免后续改动漂移。
+     * 添加到歌单弹窗的横向与内部元素沿用 Figma，纵向高度按 Android 对话框规范收敛。
      */
     @Test
-    fun addToPlaylistDialogDesignSpecMatchesFigmaNode(): Unit {
+    fun addToPlaylistDialogDesignSpecMatchesAndroidDialogGuidance(): Unit {
         assertEquals(expected = 358.dp, actual = AddToPlaylistDialogDesignSpec.width)
-        assertEquals(expected = 652.dp, actual = AddToPlaylistDialogDesignSpec.height)
+        assertEquals(expected = 560.dp, actual = AddToPlaylistDialogDesignSpec.height)
+        assertEquals(expected = 560.dp, actual = AddToPlaylistDialogDesignSpec.maxHeight)
         assertEquals(expected = 24.dp, actual = AddToPlaylistDialogDesignSpec.cornerRadius)
         assertEquals(expected = 68.dp, actual = AddToPlaylistDialogDesignSpec.headerHeight)
         assertEquals(expected = 40.dp, actual = AddToPlaylistDialogDesignSpec.playlistCoverSize)
@@ -32,16 +33,16 @@ class AppPanelsTest {
     }
 
     /**
-     * 小窗口下添加到歌单弹窗必须按窗口高度收敛，完整窗口下不超过设计稿高度。
+     * 小窗口下添加到歌单弹窗必须按窗口高度收敛，完整窗口下不超过 Android 标准最大高度。
      */
     @Test
     fun addToPlaylistDialogHeightRespectsViewportLimit(): Unit {
         assertEquals(
-            expected = 540.dp,
-            actual = AddToPlaylistDialogDesignSpec.resolveHeight(maxHeight = 600.dp),
+            expected = 480.dp,
+            actual = AddToPlaylistDialogDesignSpec.resolveHeight(maxHeight = 480.dp),
         )
         assertEquals(
-            expected = 652.dp,
+            expected = 560.dp,
             actual = AddToPlaylistDialogDesignSpec.resolveHeight(maxHeight = 1200.dp),
         )
         assertTrue(actual = AddToPlaylistDialogDesignSpec.footerHeight > AddToPlaylistDialogDesignSpec.footerActionHeight)

@@ -11,8 +11,10 @@ import com.yanhao.kmpmusic.core.theme.MusicColors
 internal object AddToPlaylistDialogDesignSpec {
     // 弹窗基准宽度，对应节点 982:882 的 358px 容器。
     val width: Dp = 358.dp
-    // 弹窗基准高度，对应节点 982:882 的 651.94px 容器。
-    val height: Dp = 652.dp
+    // 弹窗默认高度，按 Android 标准对话框上限收敛，列表内容在内部滚动。
+    val height: Dp = 560.dp
+    // 弹窗最大高度，避免自定义容器超过 Android 标准对话框高度。
+    val maxHeight: Dp = 560.dp
     // 主容器圆角，对应节点 982:882 的 24px 圆角。
     val cornerRadius: Dp = 24.dp
     // 头部高度，对齐标题所在 68px 区域。
@@ -49,8 +51,6 @@ internal object AddToPlaylistDialogDesignSpec {
     val footerTopPadding: Dp = 7.dp
     // 底部分栏竖线高度，对齐 32px 分隔线。
     val footerDividerHeight: Dp = 32.dp
-    // 小窗口下保留 90% 高度，避免设计稿被系统 Dialog 约束裁掉。
-    val maxHeightFraction: Float = 0.9f
     // 弹窗白色底色，集中避免页面内散落硬编码颜色。
     val containerColor: Color = Color.White
     // 设计稿背景浅灰，复用在占位封面和新建图标块中。
@@ -67,9 +67,9 @@ internal object AddToPlaylistDialogDesignSpec {
     val actionColor: Color = MusicColors.DialogAction
 
     /**
-     * 根据窗口高度解析实际弹窗高度，保证小窗口中不会被系统 Dialog 裁切。
+     * 根据窗口高度解析实际弹窗高度，保证默认高度和最大高度都遵守 Android 对话框规范。
      */
     fun resolveHeight(maxHeight: Dp): Dp {
-        return minOf(a = height, b = maxHeight * maxHeightFraction)
+        return minOf(a = height, b = this.maxHeight, c = maxHeight)
     }
 }
