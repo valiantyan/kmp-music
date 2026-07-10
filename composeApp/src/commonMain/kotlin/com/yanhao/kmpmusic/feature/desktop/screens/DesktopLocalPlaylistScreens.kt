@@ -47,6 +47,7 @@ import com.yanhao.kmpmusic.feature.desktop.components.DesktopPrimaryButton
 import com.yanhao.kmpmusic.feature.desktop.components.DesktopSecondaryButton
 import com.yanhao.kmpmusic.feature.desktop.components.DesktopSectionEmptyMessage
 import com.yanhao.kmpmusic.feature.desktop.components.DesktopSongTable
+import com.yanhao.kmpmusic.feature.screen.buildLocalPlaylistCountSummary
 
 /**
  * 桌面本地自建歌单列表页，复用 workspace 二级页面语义展示已有歌单。
@@ -65,7 +66,7 @@ internal fun DesktopLocalPlaylistListScreen(
     ) {
         DesktopPageHeader(
             title = "我的歌单",
-            eyebrow = "按最近更新时间排序",
+            eyebrow = buildLocalPlaylistCountSummary(playlists = playlists),
         ) {
             DesktopSecondaryButton(text = "管理", onClick = onManage)
             DesktopPrimaryButton(text = "返回", onClick = onBack)

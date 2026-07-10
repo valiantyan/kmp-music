@@ -16,6 +16,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.PlaylistAddCheck
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -54,9 +56,10 @@ fun LocalPlaylistListScreen(
         item(key = "local-playlist-list-header", contentType = "local-playlist-header") {
             AppHeader(
                 title = "我的歌单",
-                subtitle = "按最近更新时间排序",
+                subtitle = buildLocalPlaylistCountSummary(playlists = playlists),
                 onBack = onBack,
-                actionLabel = "管理",
+                actionIcon = Icons.AutoMirrored.Rounded.PlaylistAddCheck,
+                actionContentDescription = "管理歌单",
                 onAction = onManage,
             )
         }
@@ -79,6 +82,13 @@ fun LocalPlaylistListScreen(
             )
         }
     }
+}
+
+/**
+ * 歌单列表页顶部摘要只描述当前可见事实，不暴露未提供交互的排序能力。
+ */
+internal fun buildLocalPlaylistCountSummary(playlists: List<LocalPlaylistCardDisplayModel>): String {
+    return "共 ${playlists.size} 个歌单"
 }
 
 // 空态只作为防御兜底；正常入口会在 0 歌单时停留我的页并提示。

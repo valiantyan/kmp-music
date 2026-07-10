@@ -37,6 +37,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.LastBaseline
 import androidx.compose.ui.text.font.FontWeight
@@ -65,6 +66,8 @@ fun AppHeader(
     onSearch: (() -> Unit)? = null,
     onSettings: (() -> Unit)? = null,
     actionLabel: String? = null,
+    actionIcon: ImageVector? = null,
+    actionContentDescription: String = actionLabel ?: "执行操作",
     onAction: (() -> Unit)? = null,
 ) {
     Row(
@@ -125,6 +128,11 @@ fun AppHeader(
                     lineHeight = scaledSp(18.sp),
                     fontWeight = FontWeight.Bold,
                 )
+            }
+            if (actionLabel == null && actionIcon != null && onAction != null) {
+                RoundIconButton(onClick = onAction) {
+                    Icon(actionIcon, contentDescription = actionContentDescription)
+                }
             }
         }
     }
