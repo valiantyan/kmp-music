@@ -60,6 +60,10 @@ Status: ready-for-human
 - `./gradlew :composeApp:desktopTest --tests com.yanhao.kmpmusic.feature.app.navigation.MusicAppNavigationControllerTest --tests com.yanhao.kmpmusic.feature.app.layout.MobilePlayerOverlayGestureTest`：通过。
 - `./gradlew :composeApp:compileDebugKotlinAndroid :composeApp:desktopTest`：通过。
 
+### 提交记录
+
+- 修复提交：`f9265f32`
+
 ### Code Review 结论
 
 - 改动集中在导航 chrome 归类与覆盖层渲染策略，没有在 `LocalPlaylistManagementScreen` 写页面级补丁。
