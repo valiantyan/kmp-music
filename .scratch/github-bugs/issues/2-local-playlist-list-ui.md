@@ -45,17 +45,18 @@ Status: ready-for-human
 ## 修复计划
 
 1. 用当前歌单列表数量生成“共 n 个歌单”摘要，移除未提供交互的排序文案。
-2. 让移动端通用头部支持图标动作，并在“我的歌单”列表页用管理图标替代文字按钮。
-3. 桌面端同名二级页复用同一数量摘要，避免跨端口径不一致。
-4. 增加共享回归测试，锁定数量摘要规则。
+2. 移动端“我的歌单”列表页不复用大标题 `AppHeader`，改为按 Figma `Header - Top App Bar` 实现标准 toolbar。
+3. 按 Figma `Subheading` 节点还原“共 n 个歌单”文本、透明度、尺寸和右侧管理图标。
+4. 桌面端同名二级页复用同一数量摘要，避免跨端口径不一致。
+5. 增加共享回归测试，锁定数量摘要规则。
 
 ## Comments
 
 ### 实现摘要
 
 - `LocalPlaylistListScreen` 顶部副标题改为 `buildLocalPlaylistCountSummary`，展示真实歌单数量。
-- `AppHeader` 增加可选 `actionIcon` 和 `actionContentDescription`，保留原有文字动作兼容。
-- 移动端“我的歌单”管理入口改用 `Icons.AutoMirrored.Rounded.PlaylistAddCheck` 图标，语义描述为“管理歌单”。
+- 移动端“我的歌单”顶部改为独立 Figma toolbar：64dp 高、40dp 返回按钮、16dp 返回图标、24sp 标题。
+- 副标题行按 Figma 节点还原：16sp/24 行高、`#3D4947` 叠加 70% 透明度、右侧管理图标使用 Figma SVG 路径和 `16.667dp x 12.563dp` 尺寸。
 - 桌面端“我的歌单”列表页复用同一个数量摘要，去掉旧排序提示。
 - 新增 `LocalPlaylistListScreenTest` 覆盖非空和空列表数量摘要。
 
@@ -71,14 +72,21 @@ Status: ready-for-human
 
 ### Code Review 结论
 
-未发现阻塞问题。改动范围集中在“我的歌单”列表头部展示和一个向后兼容的通用头部扩展；没有改变歌单仓库、排序、删除、详情、播放队列或导航状态。
+未发现阻塞问题。改动范围集中在“我的歌单”列表头部展示，并撤回了上次不必要的通用 `AppHeader` 扩展；没有改变歌单仓库、排序、删除、详情、播放队列或导航状态。
 
 ### 对抗式审查
 
-- 可能翻车点一：通用 `AppHeader` 改动影响其它页面。复核结果：新增参数都有默认值，旧的 `actionLabel` 分支保持优先，既有调用不需要改。
-- 可能翻车点二：管理图标在 Android 或 Desktop 不可用。复核结果：`desktopTest` 与 `compileDebugKotlinAndroid` 均通过，并已改用非弃用的 AutoMirrored 图标。
+- 可能翻车点一：独立 toolbar 可能偏离 Figma 标准尺寸。复核结果：已按节点 `983:985` 和 `983:986` 固化 64dp toolbar、40dp 返回按钮、16dp 图标、16dp 标题间距和 24sp 标题。
+- 可能翻车点二：管理图标形状可能和 Figma 不一致。复核结果：已用节点 `983:998` 的 SVG path 构造自定义 `ImageVector`，并按 `16.667dp x 12.563dp` 渲染。
 - 可能翻车点三：数量来源和“我的”页统计不一致。复核结果：列表页显示传入的 `playlists.size`，该列表由控制器从本地歌单仓库构建，和已有 `localPlaylistCount` 口径同源。
 - 可能翻车点四：空列表时显示“共 0 个歌单”是否不合理。复核结果：正常入口无歌单时会停留在“我的”页提示，空态只作为防御兜底；测试仍覆盖该路径，避免未来入口策略变化时头部失真。
+
+### 二次修正记录
+
+- 用户复核指出第一次修复仍不符合标准 toolbar，原因是仍复用了旧 `AppHeader` 的大标题结构。
+- 已按 Figma 节点 `983:985`、`983:986`、`983:987`、`983:995` 重新读取规格并修正：toolbar 高度 64dp、返回按钮 40dp、返回图标 16dp、标题 24sp/32 行高、subheading 位于 toolbar 下方 16dp、管理图标使用 Figma 原始路径。
+- 已撤回上次给 `AppHeader` 增加的 `actionIcon` 和 `actionContentDescription`，避免影响其它页面。
+- 二次验证：`./gradlew :composeApp:desktopTest` 通过；`./gradlew :composeApp:compileDebugKotlinAndroid` 通过。
 
 ### 剩余风险
 
