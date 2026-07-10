@@ -214,6 +214,11 @@ fun MobileSecondaryScreenRoute(
             onBack = controller::navigateBack,
             onSongPlay = controller::playRecentSong,
             onSongMore = controller::openMore,
+            modifier = modifier
+                .fillMaxSize()
+                .statusBarsPadding()
+                .navigationBarsPadding(),
+            contentPadding = contentPadding,
         )
         SecondaryScreen.LocalPlaylists -> LocalPlaylistListScreen(
             playlists = state.localPlaylists,

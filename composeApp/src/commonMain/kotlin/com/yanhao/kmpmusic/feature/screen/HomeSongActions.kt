@@ -22,37 +22,41 @@ import com.yanhao.kmpmusic.domain.model.Song
 internal fun HomeSongActions(
     song: Song,
     isCurrentSong: Boolean,
-    onMore: (Song) -> Unit,
-    onLike: (String) -> Unit,
+    onMore: ((Song) -> Unit)?,
+    onLike: ((String) -> Unit)?,
 ) {
     Row(
         horizontalArrangement = Arrangement.spacedBy(space = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        IconButton(
-            modifier = Modifier.size(size = favoritesSongActionSize),
-            onClick = { onLike(song.id) },
-        ) {
-            Icon(
-                imageVector = if (song.isLiked) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder,
-                contentDescription = if (song.isLiked) "取消收藏 ${song.title}" else "收藏 ${song.title}",
-                modifier = Modifier.size(width = 20.dp, height = 20.dp),
-                tint = resolveHomeFavoriteIconTint(
-                    song = song,
-                    isCurrentSong = isCurrentSong,
-                ),
-            )
+        if (onLike != null) {
+            IconButton(
+                modifier = Modifier.size(size = favoritesSongActionSize),
+                onClick = { onLike(song.id) },
+            ) {
+                Icon(
+                    imageVector = if (song.isLiked) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder,
+                    contentDescription = if (song.isLiked) "取消收藏 ${song.title}" else "收藏 ${song.title}",
+                    modifier = Modifier.size(width = 20.dp, height = 20.dp),
+                    tint = resolveHomeFavoriteIconTint(
+                        song = song,
+                        isCurrentSong = isCurrentSong,
+                    ),
+                )
+            }
         }
-        IconButton(
-            modifier = Modifier.size(size = favoritesSongActionSize),
-            onClick = { onMore(song) },
-        ) {
-            Icon(
-                imageVector = Icons.Rounded.MoreVert,
-                contentDescription = "${song.title} 更多操作",
-                modifier = Modifier.size(width = 20.dp, height = 20.dp),
-                tint = favoritesMutedIconColor,
-            )
+        if (onMore != null) {
+            IconButton(
+                modifier = Modifier.size(size = favoritesSongActionSize),
+                onClick = { onMore(song) },
+            ) {
+                Icon(
+                    imageVector = Icons.Rounded.MoreVert,
+                    contentDescription = "${song.title} 更多操作",
+                    modifier = Modifier.size(width = 20.dp, height = 20.dp),
+                    tint = favoritesMutedIconColor,
+                )
+            }
         }
     }
 }

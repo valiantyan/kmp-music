@@ -36,10 +36,11 @@ internal fun HomeSongRow(
     isCurrentSong: Boolean,
     queueSongs: List<Song>,
     currentPlaybackStatus: PlaybackStatus? = null,
+    metaText: String? = null,
     onSongPlay: (Song, List<Song>) -> Unit,
     onCurrentSongToggle: (() -> Unit)? = null,
-    onMore: (Song) -> Unit,
-    onLike: (String) -> Unit,
+    onMore: ((Song) -> Unit)? = null,
+    onLike: ((String) -> Unit)? = null,
 ) {
     val rowStyle: HomeSongRowStyle = resolveHomeSongRowStyle(
         isCurrentSong = isCurrentSong,
@@ -75,6 +76,7 @@ internal fun HomeSongRow(
             )
             HomeSongText(
                 song = song,
+                metaText = metaText ?: song.artist,
                 textColor = rowStyle.textColor,
                 metaColor = rowStyle.metaColor,
                 modifier = Modifier.weight(weight = 1f),
@@ -122,6 +124,7 @@ private fun HomeSongCover(
 @Composable
 private fun HomeSongText(
     song: Song,
+    metaText: String,
     textColor: Color,
     metaColor: Color,
     modifier: Modifier = Modifier,
@@ -140,7 +143,7 @@ private fun HomeSongText(
             overflow = TextOverflow.Ellipsis,
         )
         Text(
-            text = song.artist,
+            text = metaText,
             color = metaColor,
             fontSize = 14.sp,
             lineHeight = 20.sp,
