@@ -1,5 +1,6 @@
 package com.yanhao.kmpmusic.feature.app.surfaces
 
+import androidx.compose.ui.unit.dp
 import com.yanhao.kmpmusic.domain.model.CoverArt
 import com.yanhao.kmpmusic.feature.app.AddToPlaylistFlowState
 import com.yanhao.kmpmusic.feature.app.LocalPlaylistDetailDisplayModel
@@ -11,11 +12,55 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 /**
  * 全局面板测试，确保各列表入口都复用同一个单曲更多面板解析逻辑。
  */
 class AppPanelsTest {
+    /**
+     * 添加到歌单弹窗的关键视觉约束来自 Figma 节点 974:690，集中测试避免后续改动漂移。
+     */
+    @Test
+    fun addToPlaylistDialogDesignSpecMatchesFigmaNode(): Unit {
+        assertEquals(expected = 440.dp, actual = AddToPlaylistDialogDesignSpec.width)
+        assertEquals(expected = 679.dp, actual = AddToPlaylistDialogDesignSpec.height)
+        assertEquals(expected = 24.dp, actual = AddToPlaylistDialogDesignSpec.cornerRadius)
+        assertEquals(expected = 24.dp, actual = AddToPlaylistDialogDesignSpec.contentPadding)
+        assertEquals(expected = 62.dp, actual = AddToPlaylistDialogDesignSpec.searchHeight)
+        assertEquals(expected = 56.dp, actual = AddToPlaylistDialogDesignSpec.playlistCoverSize)
+        assertEquals(expected = 86.dp, actual = AddToPlaylistDialogDesignSpec.scrollBottomPadding)
+    }
+
+    /**
+     * 小窗口下添加到歌单弹窗必须按窗口高度三分之二收敛，完整窗口下不超过设计稿高度。
+     */
+    @Test
+    fun addToPlaylistDialogHeightRespectsTwoThirdsViewportLimit(): Unit {
+        assertEquals(
+            expected = 400.dp,
+            actual = AddToPlaylistDialogDesignSpec.resolveHeight(maxHeight = 600.dp),
+        )
+        assertEquals(
+            expected = 679.dp,
+            actual = AddToPlaylistDialogDesignSpec.resolveHeight(maxHeight = 1200.dp),
+        )
+        assertTrue(actual = AddToPlaylistDialogDesignSpec.scrollBottomPadding > AddToPlaylistDialogDesignSpec.footerHeight)
+    }
+
+    /**
+     * 新建歌单弹窗的关键视觉约束来自 Figma 节点 974:672。
+     */
+    @Test
+    fun createPlaylistDialogDesignSpecMatchesFigmaNode(): Unit {
+        assertEquals(expected = 358.dp, actual = CreatePlaylistDialogDesignSpec.maxWidth)
+        assertEquals(expected = 32.dp, actual = CreatePlaylistDialogDesignSpec.cornerRadius)
+        assertEquals(expected = 33.dp, actual = CreatePlaylistDialogDesignSpec.contentPadding)
+        assertEquals(expected = 56.dp, actual = CreatePlaylistDialogDesignSpec.inputHeight)
+        assertEquals(expected = 56.dp, actual = CreatePlaylistDialogDesignSpec.buttonHeight)
+        assertEquals(expected = 0.85f, actual = CreatePlaylistDialogDesignSpec.backgroundAlpha)
+    }
+
     /**
      * 添加到歌单弹窗需要区分数据库为空和搜索无结果，避免空库时误导用户。
      */

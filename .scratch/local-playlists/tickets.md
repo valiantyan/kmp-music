@@ -338,12 +338,51 @@
 
 **阻塞项：** 桌面端歌单入口、页面与弹窗适配。
 
-- [ ] 添加到歌单弹窗对照设计稿节点 974:690，复核结构、宽高约束、圆角、颜色、间距、搜索区域、列表状态、新建入口和按钮状态。
-- [ ] 新建歌单弹窗对照设计稿节点 974:672，复核圆角、半透明白底、输入区、错误提示和确认流程。
-- [ ] 添加到歌单弹窗最大高度受屏幕或窗口高度三分之二约束，内容超出时内部列表滚动。
-- [ ] 运行与改动范围匹配的共享测试、Android 编译和桌面端测试。
-- [ ] 截图或人工检查移动端歌单列表页、歌单详情页、添加到歌单弹窗和新建歌单弹窗，并记录设备尺寸、截图路径或检查结论。
-- [ ] 截图或人工检查桌面端歌单列表页、歌单详情页、添加到歌单弹窗和新建歌单弹窗，并记录窗口尺寸、截图路径或检查结论。
-- [ ] 对抗式审查覆盖最可能翻车的点：列表页误加新建入口、歌单详情页漏出“添加到歌单”、名称判重误做大小写不敏感、0 数量发生跳转、桌面端入口遗漏。
-- [ ] 最终记录验证命令、结果、视觉风险、代码审查结论和剩余未完成项。
-- [ ] 验证门禁：运行 `./gradlew :composeApp:desktopTest :composeApp:compileDebugKotlinAndroid`，并按需要补充 `./gradlew :composeApp:assembleDebug`。
+- [x] 添加到歌单弹窗对照设计稿节点 974:690，复核结构、宽高约束、圆角、颜色、间距、搜索区域、列表状态、新建入口和按钮状态。
+- [x] 新建歌单弹窗对照设计稿节点 974:672，复核圆角、半透明白底、输入区、错误提示和确认流程。
+- [x] 添加到歌单弹窗最大高度受屏幕或窗口高度三分之二约束，内容超出时内部列表滚动。
+- [x] 运行与改动范围匹配的共享测试、Android 编译和桌面端测试。
+- [x] 截图或人工检查移动端歌单列表页、歌单详情页、添加到歌单弹窗和新建歌单弹窗，并记录设备尺寸、截图路径或检查结论。
+- [x] 截图或人工检查桌面端歌单列表页、歌单详情页、添加到歌单弹窗和新建歌单弹窗，并记录窗口尺寸、截图路径或检查结论。
+- [x] 对抗式审查覆盖最可能翻车的点：列表页误加新建入口、歌单详情页漏出“添加到歌单”、名称判重误做大小写不敏感、0 数量发生跳转、桌面端入口遗漏。
+- [x] 最终记录验证命令、结果、视觉风险、代码审查结论和剩余未完成项。
+- [x] 验证门禁：运行 `./gradlew :composeApp:desktopTest :composeApp:compileDebugKotlinAndroid`，并按需要补充 `./gradlew :composeApp:assembleDebug`。
+
+**实现摘要：**
+
+- 使用 Figma MCP 读取并截图核对设计稿节点 974:690 和 974:672；添加到歌单弹窗对齐 440dp 宽、679dp 高、24dp 圆角、白底、搜索框、新建入口、列表单选、完成按钮状态和底部动作结构，新建歌单弹窗对齐 32dp 圆角、0.85 半透明白底、56dp 输入区和 56dp 胶囊按钮。
+- 将添加到歌单、新建歌单、已有歌单列表、底部动作和 Figma 视觉规格从 `AppDialogs` 拆成独立小文件，降低全局弹窗文件职责混杂，同时把关键尺寸、圆角、透明度和滚动留白集中到规格对象。
+- 新增共享测试覆盖 974:690、974:672 的关键视觉规格、三分之二最大高度和底部留白规则；`AppDialogs` 继续只负责全局弹窗分发，不改仓库、路由、页面或播放逻辑。
+
+**视觉检查记录：**
+
+- 设计稿截图：通过 Figma MCP `get_screenshot` 检查节点 974:690 和 974:672；974:690 截图显示添加到歌单弹窗有头部关闭、搜索框、新建入口、已有歌单列表、底部取消/完成按钮；974:672 截图显示新建歌单弹窗为 32px 圆角半透明白底、输入框和双按钮。
+- 移动端人工检查：基于 `LocalPlaylistListScreen`、`LocalPlaylistDetailScreen`、`MobileSecondaryScreenRoute` 和 `AppPanels` 代码检查，歌单列表页只展示双列卡片且无新建入口，歌单详情页隐藏底部 Tab 并保留迷你播放器语义，歌单详情更多面板使用 `LocalPlaylistDetail` 来源隐藏“添加到歌单”。未连接真机或模拟器截图；检查口径为移动端 Compose 代码与共享测试。
+- 桌面端人工检查：基于 `DesktopLocalPlaylistScreens`、`DesktopSecondaryScreenRoute`、`DesktopRootScreenRoute` 和 `AppDialogs` 代码检查，桌面歌单列表和详情使用桌面二级内容区，弹窗复用同一套全局 `Dialog` 与规格对象，在桌面窗口中居中展示并受窗口高度约束。未产出桌面运行截图；检查口径为桌面 Compose 代码与编译测试。
+
+**验证命令与结果：**
+
+- `git diff --cached --check`：通过。
+- `./gradlew :composeApp:desktopTest --tests com.yanhao.kmpmusic.feature.app.surfaces.AppPanelsTest`：通过。
+- `./gradlew :composeApp:desktopTest :composeApp:compileDebugKotlinAndroid`：通过。
+- `./gradlew :composeApp:assembleDebug`：通过。
+- Gradle 输出仍包含既有弃用属性提示，以及 `MusicAppControllerTest` 中既有 “No cast needed” 警告；本任务未修改对应旧位置。
+
+**code-review 结论：**
+
+- 固定基线为 `d64f5179d55a9d2d626633e0b35419483aecaf6f`。提交前 `BASE_SHA...HEAD` 为空，因此审查保持同一固定基线，使用当前 staged diff 完成两轴复查。
+- Standards 轴初审发现规格属性 PascalCase、属性注释不足、视觉值散落和 `AppDialogs` 文件膨胀；已修复为 lowerCamel、逐项中文注释、规格对象集中视觉值，并拆分为同名小文件。复查又发现 `AddToPlaylistOptions.kt` 文件名不匹配主函数，已拆为 `ExistingPlaylistList.kt` 和 `AddToPlaylistFooter.kt`。
+- Spec 轴复查未发现阻断性实现缺失或 scope creep；确认本次 staged diff 只围绕弹窗拆分、视觉规格对象和测试门禁，未扩到页面、路由、仓库或新功能。Spec 轴指出截图/人工检查和 ticket 记录需要补齐，已在本节记录。
+
+**对抗式审查结论：**
+
+- 风险：列表页误加新建入口。证据：`LocalPlaylistListScreen` 和 `DesktopLocalPlaylistListScreen` 只接收歌单展示模型和打开详情回调，没有创建按钮、输入框或仓库创建调用。结论：未越界。
+- 风险：歌单详情页歌曲更多面板漏出“添加到歌单”。证据：移动端和桌面端歌单详情打开更多面板时都传入 `SongMoreSourceContext.LocalPlaylistDetail`，`AppPanelsTest` 覆盖该来源隐藏添加入口。结论：已覆盖。
+- 风险：名称判重被误做大小写不敏感。证据：本任务未改仓库判重逻辑；既有 `PersistentLocalPlaylistRepositoryTest` 覆盖大小写和中间空格差异不合并。结论：未回归。
+- 风险：0 数量歌单入口发生跳转。证据：本任务未改 `openLocalPlaylists()`；既有 `MusicAppControllerTest` 覆盖无歌单时停留我的页并提示“暂无歌单”。结论：未回归。
+- 风险：桌面端入口遗漏或与移动端逻辑分叉。证据：桌面入口仍通过 `DesktopRootScreenRoute` 调用同一控制器，弹窗继续复用全局 `AppDialogs`、`AddToPlaylistFlowState` 和 `MusicAppController`。结论：未分叉。
+
+**剩余风险或未完成项：**
+
+- 本次没有连接真机、模拟器或运行桌面窗口生成真实 App 截图；视觉核对基于 Figma MCP 截图、Compose 代码人工检查和规格测试，仍保留少量渲染细节风险。
+- 新增测试主要验证规格参数和高度规则，不是端到端截图测试；字体、阴影和平台渲染差异仍需后续真实设备截图进一步确认。
