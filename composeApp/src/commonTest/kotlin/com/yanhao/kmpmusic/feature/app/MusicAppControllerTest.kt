@@ -1152,6 +1152,21 @@ class MusicAppControllerTest {
     }
 
     /**
+     * 更多面板中的收藏是一次性操作，成功切换后应自动关闭面板。
+     */
+    @Test
+    fun toggleFavoriteFromMorePanelClosesMorePanel(): Unit {
+        val controller: MusicAppController = createController()
+        val targetSong: Song = testSong(id = "song-more-favorite", title = "Song More Favorite", modifiedAt = 1L)
+
+        controller.openMore(song = targetSong)
+        controller.toggleFavoriteFromMorePanel(songId = targetSong.id)
+
+        assertNull(actual = controller.uiState.moreSongId)
+        assertTrue(actual = controller.uiState.likedSongIds.contains(element = targetSong.id))
+    }
+
+    /**
      * 更多面板来源需要区分歌单详情页，避免当前切片误扩大成歌单内继续添加。
      */
     @Test

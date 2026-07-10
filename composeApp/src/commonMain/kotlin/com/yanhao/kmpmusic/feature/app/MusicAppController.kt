@@ -610,6 +610,12 @@ class MusicAppController(
         publishPlaybackUiState()
     }
 
+    /** 从更多面板切换收藏后立即关闭面板，符合单次操作完成即退出的交互。 */
+    fun toggleFavoriteFromMorePanel(songId: String) {
+        toggleFavorite(songId = songId)
+        closeMore()
+    }
+
     /** 切换当前播放歌曲收藏，避免平台宿主直接探查 [uiState] 细节。 */
     fun toggleCurrentSongFavorite() {
         val currentSongId: String = uiState.currentSongId ?: return
