@@ -25,7 +25,13 @@ import com.yanhao.kmpmusic.domain.model.LocalMusicScanState
 import com.yanhao.kmpmusic.domain.model.LocalMusicLastScanSummary
 import com.yanhao.kmpmusic.domain.model.LocalMusicDiscoveryPreferences
 import com.yanhao.kmpmusic.domain.model.LocalMusicSourceKind
+import com.yanhao.kmpmusic.domain.model.AddSongToLocalPlaylistResult
 import com.yanhao.kmpmusic.domain.model.MusicFileMetadata
+import com.yanhao.kmpmusic.domain.model.CreateLocalPlaylistWithSongResult
+import com.yanhao.kmpmusic.domain.model.LocalPlaylist
+import com.yanhao.kmpmusic.domain.model.LocalPlaylistCreateResult
+import com.yanhao.kmpmusic.domain.model.LocalPlaylistDetail
+import com.yanhao.kmpmusic.domain.model.LocalPlaylistSong
 import com.yanhao.kmpmusic.domain.model.SearchContext
 import com.yanhao.kmpmusic.domain.model.SearchScope
 import com.yanhao.kmpmusic.domain.model.Song
@@ -33,6 +39,7 @@ import com.yanhao.kmpmusic.domain.usecase.SearchResult
 import com.yanhao.kmpmusic.domain.persistence.InMemoryPlaybackSnapshotStore
 import com.yanhao.kmpmusic.domain.persistence.PlaybackSnapshotStore
 import com.yanhao.kmpmusic.domain.repository.FavoritesRepository
+import com.yanhao.kmpmusic.domain.repository.LocalPlaylistRepository
 import com.yanhao.kmpmusic.domain.repository.LocalMusicScanner
 import com.yanhao.kmpmusic.domain.repository.MusicLibraryRepository
 import com.yanhao.kmpmusic.domain.repository.SearchHistoryRepository
@@ -675,6 +682,132 @@ class MusicAppControllerTest {
         assertTrue(controller.uiState.canHandleSystemBack)
         assertTrue(controller.handleSystemBack())
         assertFalse(controller.uiState.isPermissionSettingsDialogOpen)
+    }
+
+    /**
+     * 非歌单详情的更多面板应能进入添加到歌单流程，并关闭来源更多面板。
+     */
+    @Test
+    fun openAddToPlaylistFlowClosesMorePanelAndKeepsTargetSong(): Unit {
+        val controller: MusicAppController = createController()
+        val targetSong: Song = testSong(id = "song-more-1", title = "Song More 1", modifiedAt = 1L)
+
+        controller.openMore(song = targetSong)
+        controller.openAddToPlaylistFlow(song = targetSong)
+
+        assertNull(actual = controller.uiState.moreSongId)
+        assertEquals(expected = targetSong.id, actual = controller.uiState.addToPlaylistFlow?.songId)
+        assertFalse(actual = controller.uiState.addToPlaylistFlow?.isCreateDialogOpen ?: true)
+    }
+
+    /**
+     * 更多面板来源需要区分歌单详情页，避免当前切片误扩大成歌单内继续添加。
+     */
+    @Test
+    fun localPlaylistDetailMorePanelDoesNotOpenAddToPlaylistFlow(): Unit {
+        val controller: MusicAppController = createController()
+        val targetSong: Song = testSong(id = "playlist-detail-song", title = "Playlist Detail Song", modifiedAt = 1L)
+
+        controller.openMore(
+            song = targetSong,
+            sourceContext = SongMoreSourceContext.LocalPlaylistDetail,
+        )
+        controller.openAddToPlaylistFlow(song = targetSong)
+
+        assertEquals(expected = targetSong.id, actual = controller.uiState.moreSongId)
+        assertNull(actual = controller.uiState.addToPlaylistFlow)
+    }
+
+    /**
+     * 新建歌单弹窗打开时必须使用仓库生成的可用默认名。
+     */
+    @Test
+    fun createPlaylistDialogUsesNextDefaultPlaylistName(): Unit {
+        val localPlaylistRepository: RecordingLocalPlaylistRepository = RecordingLocalPlaylistRepository(
+            defaultNames = listOf("默认歌单 1", "默认歌单 2"),
+        )
+        val controller: MusicAppController = createController(
+            localPlaylistRepository = localPlaylistRepository,
+        )
+        val targetSong: Song = testSong(id = "default-name-song", title = "Default Name Song", modifiedAt = 1L)
+
+        controller.openAddToPlaylistFlow(song = targetSong)
+        controller.openCreatePlaylistDialog()
+
+        assertTrue(actual = controller.uiState.addToPlaylistFlow?.isCreateDialogOpen ?: false)
+        assertEquals(expected = "默认歌单 1", actual = controller.uiState.addToPlaylistFlow?.newPlaylistName)
+    }
+
+    /**
+     * 名称校验失败时弹窗不能关闭，并映射为用户可见错误。
+     */
+    @Test
+    fun createPlaylistValidationErrorsKeepDialogOpen(): Unit {
+        val localPlaylistRepository: RecordingLocalPlaylistRepository = RecordingLocalPlaylistRepository(
+            defaultNames = listOf("默认歌单 1"),
+            createResults = mutableListOf(
+                CreateLocalPlaylistWithSongResult.BlankName,
+                CreateLocalPlaylistWithSongResult.DuplicateName,
+            ),
+        )
+        val controller: MusicAppController = createController(
+            localPlaylistRepository = localPlaylistRepository,
+        )
+        val targetSong: Song = testSong(id = "validation-song", title = "Validation Song", modifiedAt = 1L)
+
+        controller.openAddToPlaylistFlow(song = targetSong)
+        controller.openCreatePlaylistDialog()
+        controller.setNewPlaylistName(name = "   ")
+        controller.createPlaylistWithCurrentSong()
+
+        assertTrue(actual = controller.uiState.addToPlaylistFlow?.isCreateDialogOpen ?: false)
+        assertEquals(expected = "歌单名称不能为空", actual = controller.uiState.addToPlaylistFlow?.newPlaylistNameError)
+
+        controller.setNewPlaylistName(name = "默认歌单 1")
+        controller.createPlaylistWithCurrentSong()
+
+        assertTrue(actual = controller.uiState.addToPlaylistFlow?.isCreateDialogOpen ?: false)
+        assertEquals(expected = "歌单名称已存在", actual = controller.uiState.addToPlaylistFlow?.newPlaylistNameError)
+    }
+
+    /**
+     * 新建成功后必须自动加入当前歌曲、关闭两层弹窗，并保留最终歌单名的大小写和中间空格。
+     */
+    @Test
+    fun createPlaylistWithCurrentSongClosesFlowAndShowsSuccessMessage(): Unit {
+        val playlist: LocalPlaylist = LocalPlaylist(
+            id = "playlist-1",
+            name = "Road  Trip",
+            createdAt = 10L,
+            updatedAt = 10L,
+        )
+        val localPlaylistRepository: RecordingLocalPlaylistRepository = RecordingLocalPlaylistRepository(
+            defaultNames = listOf("默认歌单 1"),
+            createResults = mutableListOf(
+                CreateLocalPlaylistWithSongResult.Success(
+                    playlist = playlist,
+                    relation = LocalPlaylistSong(
+                        playlistId = playlist.id,
+                        songId = "success-song",
+                        addedAt = 10L,
+                        sortOrder = 0,
+                    ),
+                ),
+            ),
+        )
+        val controller: MusicAppController = createController(
+            localPlaylistRepository = localPlaylistRepository,
+        )
+        val targetSong: Song = testSong(id = "success-song", title = "Success Song", modifiedAt = 1L)
+
+        controller.openAddToPlaylistFlow(song = targetSong)
+        controller.openCreatePlaylistDialog()
+        controller.setNewPlaylistName(name = " Road  Trip ")
+        controller.createPlaylistWithCurrentSong()
+
+        assertNull(actual = controller.uiState.addToPlaylistFlow)
+        assertEquals(expected = listOf(" Road  Trip " to targetSong.id), actual = localPlaylistRepository.createWithSongCalls)
+        assertEquals(expected = "添加到 Road  Trip 歌单成功", actual = controller.uiState.transientMessage)
     }
 
     /**
@@ -1998,6 +2131,7 @@ private fun createController(
     audioPlayerEngine: AudioPlayerEngine = FakeAudioPlayerEngine(),
     playbackSnapshotStore: PlaybackSnapshotStore = InMemoryPlaybackSnapshotStore(),
     favoritesRepository: FavoritesRepository? = null,
+    localPlaylistRepository: LocalPlaylistRepository = RecordingLocalPlaylistRepository(),
     userPreferencesRepository: UserPreferencesRepository = InMemoryUserPreferencesRepository(),
     searchHistoryRepository: SearchHistoryRepository = FakeSearchHistoryRepository(),
     permissionSettingsOpener: PermissionSettingsOpener = PermissionSettingsOpener {},
@@ -2011,12 +2145,87 @@ private fun createController(
         audioPlayerEngine = audioPlayerEngine,
         playbackSnapshotStore = playbackSnapshotStore,
         injectedFavoritesRepository = favoritesRepository,
+        localPlaylistRepository = localPlaylistRepository,
         userPreferencesRepository = userPreferencesRepository,
         searchHistoryRepository = searchHistoryRepository,
         permissionSettingsOpener = permissionSettingsOpener,
         controllerScope = controllerScope,
         searchQueryDebounceMillis = searchQueryDebounceMillis,
     )
+}
+
+private class RecordingLocalPlaylistRepository(
+    private val defaultNames: List<String> = listOf("默认歌单 1"),
+    private val createResults: MutableList<CreateLocalPlaylistWithSongResult> = mutableListOf(),
+) : LocalPlaylistRepository {
+    // 记录新建并加入调用，确认控制器传入的是当前歌曲。
+    val createWithSongCalls: MutableList<Pair<String, String>> = mutableListOf()
+
+    /** 当前测试不通过独立创建空歌单入口，返回最小成功值即可。 */
+    override fun createPlaylist(name: String): LocalPlaylistCreateResult {
+        val playlist: LocalPlaylist = LocalPlaylist(
+            id = "created:$name",
+            name = name.trim(),
+            createdAt = 1L,
+            updatedAt = 1L,
+        )
+        return LocalPlaylistCreateResult.Success(playlist = playlist)
+    }
+
+    /** 记录原子流程调用，并按测试预置结果返回。 */
+    override fun createPlaylistWithSong(
+        name: String,
+        songId: String,
+    ): CreateLocalPlaylistWithSongResult {
+        createWithSongCalls += name to songId
+        val nextResult: CreateLocalPlaylistWithSongResult? = if (createResults.isEmpty()) {
+            null
+        } else {
+            createResults.removeAt(index = 0)
+        }
+        return nextResult ?: CreateLocalPlaylistWithSongResult.Success(
+            playlist = LocalPlaylist(
+                id = "created:${name.trim()}",
+                name = name.trim(),
+                createdAt = 1L,
+                updatedAt = 1L,
+            ),
+            relation = LocalPlaylistSong(
+                playlistId = "created:${name.trim()}",
+                songId = songId,
+                addedAt = 1L,
+                sortOrder = 0,
+            ),
+        )
+    }
+
+    /** 当前 ticket 不覆盖添加到已有歌单。 */
+    override fun addSongToPlaylist(
+        playlistId: String,
+        songId: String,
+    ): AddSongToLocalPlaylistResult {
+        return AddSongToLocalPlaylistResult.PlaylistNotFound
+    }
+
+    /** 当前 ticket 不读取已有歌单列表。 */
+    override fun getPlaylists(): List<LocalPlaylist> {
+        return emptyList()
+    }
+
+    /** 当前 ticket 不覆盖已有歌单搜索。 */
+    override fun searchPlaylists(query: String): List<LocalPlaylist> {
+        return emptyList()
+    }
+
+    /** 依次返回预置默认名，用来验证控制器确实读取仓库规则。 */
+    override fun getNextDefaultPlaylistName(): String {
+        return defaultNames.first()
+    }
+
+    /** 当前 ticket 不进入歌单详情页。 */
+    override fun getPlaylistDetail(playlistId: String): LocalPlaylistDetail? {
+        return null
+    }
 }
 
 private fun assertPlaybackQueueInvariant(

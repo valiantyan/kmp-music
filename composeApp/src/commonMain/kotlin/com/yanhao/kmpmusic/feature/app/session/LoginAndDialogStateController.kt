@@ -1,6 +1,8 @@
 package com.yanhao.kmpmusic.feature.app.session
 
 import com.yanhao.kmpmusic.feature.app.MusicAppUiState
+import com.yanhao.kmpmusic.feature.app.AddToPlaylistFlowState
+import com.yanhao.kmpmusic.feature.app.SongMoreSourceContext
 
 /**
  * 统一承接轻量会话弹层与登录输入态 reducer，避免 [MusicAppController] 混入简单 UI 状态细节。
@@ -17,13 +19,96 @@ object LoginAndDialogStateController {
     }
 
     /** 打开歌曲更多操作弹层，并记录目标歌曲 id。 */
-    fun openMore(state: MusicAppUiState, songId: String): MusicAppUiState {
-        return state.copy(moreSongId = songId)
+    fun openMore(
+        state: MusicAppUiState,
+        songId: String,
+        sourceContext: SongMoreSourceContext = SongMoreSourceContext.General,
+    ): MusicAppUiState {
+        return state.copy(
+            moreSongId = songId,
+            moreSongSourceContext = sourceContext,
+        )
     }
 
     /** 关闭歌曲更多操作弹层。 */
     fun closeMore(state: MusicAppUiState): MusicAppUiState {
-        return state.copy(moreSongId = null)
+        return state.copy(
+            moreSongId = null,
+            moreSongSourceContext = SongMoreSourceContext.General,
+        )
+    }
+
+    /** 从更多面板进入添加到歌单流程，同时关闭来源更多面板。 */
+    fun openAddToPlaylistFlow(state: MusicAppUiState, songId: String): MusicAppUiState {
+        return state.copy(
+            moreSongId = null,
+            moreSongSourceContext = SongMoreSourceContext.General,
+            addToPlaylistFlow = AddToPlaylistFlowState(songId = songId),
+        )
+    }
+
+    /** 关闭添加到歌单流程产生的所有临时弹窗。 */
+    fun closeAddToPlaylistFlow(state: MusicAppUiState): MusicAppUiState {
+        return state.copy(addToPlaylistFlow = null)
+    }
+
+    /** 打开新建歌单弹窗时填入仓库给出的可用默认名。 */
+    fun openCreatePlaylistDialog(
+        state: MusicAppUiState,
+        defaultName: String,
+    ): MusicAppUiState {
+        val flow: AddToPlaylistFlowState = state.addToPlaylistFlow ?: return state
+        return state.copy(
+            addToPlaylistFlow = flow.copy(
+                isCreateDialogOpen = true,
+                newPlaylistName = defaultName,
+                newPlaylistNameError = null,
+            ),
+        )
+    }
+
+    /** 更新新建歌单名称，并清理上一轮校验错误。 */
+    fun setNewPlaylistName(
+        state: MusicAppUiState,
+        name: String,
+    ): MusicAppUiState {
+        val flow: AddToPlaylistFlowState = state.addToPlaylistFlow ?: return state
+        return state.copy(
+            addToPlaylistFlow = flow.copy(
+                newPlaylistName = name,
+                newPlaylistNameError = null,
+            ),
+        )
+    }
+
+    /** 新建歌单校验失败时保持弹窗打开，方便用户直接修正输入。 */
+    fun showCreatePlaylistError(
+        state: MusicAppUiState,
+        message: String,
+    ): MusicAppUiState {
+        val flow: AddToPlaylistFlowState = state.addToPlaylistFlow ?: return state
+        return state.copy(
+            addToPlaylistFlow = flow.copy(
+                isCreateDialogOpen = true,
+                newPlaylistNameError = message,
+            ),
+        )
+    }
+
+    /** 新建并加入成功后关闭整条流程，并留下全局轻提示文案。 */
+    fun finishAddToPlaylistFlow(
+        state: MusicAppUiState,
+        playlistName: String,
+    ): MusicAppUiState {
+        return state.copy(
+            addToPlaylistFlow = null,
+            transientMessage = "添加到 $playlistName 歌单成功",
+        )
+    }
+
+    /** 清除一次性轻提示，避免返回当前页面时重复展示旧结果。 */
+    fun clearTransientMessage(state: MusicAppUiState): MusicAppUiState {
+        return state.copy(transientMessage = null)
     }
 
     /** 打开清理缓存确认框。 */

@@ -32,6 +32,7 @@ import com.yanhao.kmpmusic.core.theme.MusicColors
 import com.yanhao.kmpmusic.domain.model.Song
 import com.yanhao.kmpmusic.feature.app.MusicAppController
 import com.yanhao.kmpmusic.feature.app.MusicAppUiState
+import com.yanhao.kmpmusic.feature.app.SongMoreSourceContext
 import com.yanhao.kmpmusic.feature.components.SongRow
 
 /**
@@ -95,12 +96,26 @@ fun AppPanels(
                         overflow = TextOverflow.Ellipsis,
                     )
                     BottomSheetAction("加入收藏", Icons.Rounded.Favorite) { controller.toggleFavorite(song.id) }
+                    if (canShowAddToPlaylistAction(state = state)) {
+                        BottomSheetAction(
+                            label = "添加到歌单",
+                            icon = Icons.Rounded.LibraryMusic,
+                            onClick = { controller.openAddToPlaylistFlow(song = song) },
+                        )
+                    }
                     BottomSheetAction("查看专辑", Icons.Rounded.LibraryMusic) { controller.openAlbumFromSong(song) }
                     BottomSheetAction("查看歌手", Icons.Rounded.Person) { controller.openArtistFromSong(song) }
                 }
             }
         }
     }
+}
+
+/**
+ * 只有非歌单详情来源能看到添加入口，避免本次切片扩大成歌单内管理流程。
+ */
+internal fun canShowAddToPlaylistAction(state: MusicAppUiState): Boolean {
+    return state.moreSongSourceContext != SongMoreSourceContext.LocalPlaylistDetail
 }
 
 /**

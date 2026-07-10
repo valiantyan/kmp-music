@@ -59,6 +59,29 @@ enum class LocalMusicSection {
 }
 
 /**
+ * 单曲更多面板来源，用来限制歌单详情页不要再次分发“添加到歌单”。
+ */
+enum class SongMoreSourceContext {
+    General,
+    LocalPlaylistDetail,
+}
+
+/**
+ * 添加到歌单流程的临时弹窗状态。
+ *
+ * @property songId 本次要加入歌单的歌曲标识。
+ * @property isCreateDialogOpen 是否已经进入新建歌单弹窗。
+ * @property newPlaylistName 新建歌单输入框当前名称。
+ * @property newPlaylistNameError 新建名称校验失败时展示的错误文案。
+ */
+data class AddToPlaylistFlowState(
+    val songId: String,
+    val isCreateDialogOpen: Boolean = false,
+    val newPlaylistName: String = "",
+    val newPlaylistNameError: String? = null,
+)
+
+/**
  * 手机端固定底栏的整体位置策略。
  */
 enum class MobileFixedBarPlacement {
@@ -301,6 +324,9 @@ data class MusicAppUiState(
     val localMusicDiscoveryPreferences: LocalMusicDiscoveryPreferences = LocalMusicDiscoveryPreferences(),
     val isQueueOpen: Boolean = false,
     val moreSongId: String? = null,
+    val moreSongSourceContext: SongMoreSourceContext = SongMoreSourceContext.General,
+    val addToPlaylistFlow: AddToPlaylistFlowState? = null,
+    val transientMessage: String? = null,
     val isPermissionSettingsDialogOpen: Boolean = false,
     val isClearCacheDialogOpen: Boolean = false,
     val email: String = "",
@@ -413,6 +439,8 @@ data class MusicAppUiState(
     val canHandleSystemBack: Boolean =
         isPermissionSettingsDialogOpen ||
             isClearCacheDialogOpen ||
+            transientMessage != null ||
+            addToPlaylistFlow != null ||
             moreSongId != null ||
             isQueueOpen ||
             !navigationState.isTopLevel

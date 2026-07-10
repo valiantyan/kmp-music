@@ -6,12 +6,14 @@ import androidx.compose.runtime.setValue
 import com.yanhao.kmpmusic.data.FakeAudioPlayerEngine
 import com.yanhao.kmpmusic.data.FakeLocalMusicScanner
 import com.yanhao.kmpmusic.data.InMemoryFavoritesRepository
+import com.yanhao.kmpmusic.data.InMemoryLocalPlaylistRepositoryImpl
 import com.yanhao.kmpmusic.data.InMemoryMusicLibraryRepository
 import com.yanhao.kmpmusic.data.InMemoryPlaybackRepository
 import com.yanhao.kmpmusic.data.InMemorySearchHistoryRepository
 import com.yanhao.kmpmusic.data.InMemoryUserPreferencesRepository
 import com.yanhao.kmpmusic.domain.model.Album
 import com.yanhao.kmpmusic.domain.model.Artist
+import com.yanhao.kmpmusic.domain.model.CreateLocalPlaylistWithSongResult
 import com.yanhao.kmpmusic.domain.model.LibrarySnapshot
 import com.yanhao.kmpmusic.domain.model.LocalMusicScanRequest
 import com.yanhao.kmpmusic.domain.model.PlaybackHistory
@@ -26,6 +28,7 @@ import com.yanhao.kmpmusic.domain.persistence.PlaybackSnapshotStore
 import com.yanhao.kmpmusic.domain.playback.AudioPlayerEngine
 import com.yanhao.kmpmusic.domain.playback.PlaybackCoordinator
 import com.yanhao.kmpmusic.domain.repository.FavoritesRepository
+import com.yanhao.kmpmusic.domain.repository.LocalPlaylistRepository
 import com.yanhao.kmpmusic.domain.repository.LocalMusicScanner
 import com.yanhao.kmpmusic.domain.repository.MusicLibraryRepository
 import com.yanhao.kmpmusic.domain.repository.PlaybackRepository
@@ -65,6 +68,9 @@ class MusicAppController(
     private val audioPlayerEngine: AudioPlayerEngine = FakeAudioPlayerEngine(),
     private val playbackSnapshotStore: PlaybackSnapshotStore = InMemoryPlaybackSnapshotStore(),
     private val injectedFavoritesRepository: FavoritesRepository? = null,
+    private val localPlaylistRepository: LocalPlaylistRepository = InMemoryLocalPlaylistRepositoryImpl(
+        musicLibraryRepository = musicLibraryRepository,
+    ),
     private val userPreferencesRepository: UserPreferencesRepository = InMemoryUserPreferencesRepository(),
     private val searchHistoryRepository: SearchHistoryRepository = InMemorySearchHistoryRepository(),
     private val permissionSettingsOpener: PermissionSettingsOpener = PermissionSettingsOpener {},
@@ -679,16 +685,84 @@ class MusicAppController(
     }
 
     /** 打开更多操作弹层。 */
-    fun openMore(song: Song) {
+    fun openMore(
+        song: Song,
+        sourceContext: SongMoreSourceContext = SongMoreSourceContext.General,
+    ) {
         uiState = LoginAndDialogStateController.openMore(
             state = uiState,
             songId = song.id,
+            sourceContext = sourceContext,
         )
     }
 
     /** 关闭更多操作弹层。 */
     fun closeMore() {
         uiState = LoginAndDialogStateController.closeMore(state = uiState)
+    }
+
+    /** 从非歌单详情更多面板进入添加到歌单流程。 */
+    fun openAddToPlaylistFlow(song: Song) {
+        if (uiState.moreSongSourceContext == SongMoreSourceContext.LocalPlaylistDetail) {
+            return
+        }
+        uiState = LoginAndDialogStateController.openAddToPlaylistFlow(
+            state = uiState,
+            songId = song.id,
+        )
+    }
+
+    /** 关闭添加到歌单流程，覆盖添加弹窗和新建弹窗。 */
+    fun closeAddToPlaylistFlow() {
+        uiState = LoginAndDialogStateController.closeAddToPlaylistFlow(state = uiState)
+    }
+
+    /** 打开新建歌单弹窗，并读取仓库生成的可用默认名称。 */
+    fun openCreatePlaylistDialog() {
+        uiState = LoginAndDialogStateController.openCreatePlaylistDialog(
+            state = uiState,
+            defaultName = localPlaylistRepository.getNextDefaultPlaylistName(),
+        )
+    }
+
+    /** 更新新建歌单名称。 */
+    fun setNewPlaylistName(name: String) {
+        uiState = LoginAndDialogStateController.setNewPlaylistName(
+            state = uiState,
+            name = name,
+        )
+    }
+
+    /** 创建歌单并自动加入当前歌曲，失败时保持新建弹窗打开。 */
+    fun createPlaylistWithCurrentSong() {
+        val flow: AddToPlaylistFlowState = uiState.addToPlaylistFlow ?: return
+        val result: CreateLocalPlaylistWithSongResult = localPlaylistRepository.createPlaylistWithSong(
+            name = flow.newPlaylistName,
+            songId = flow.songId,
+        )
+        uiState = when (result) {
+            CreateLocalPlaylistWithSongResult.BlankName -> LoginAndDialogStateController.showCreatePlaylistError(
+                state = uiState,
+                message = "歌单名称不能为空",
+            )
+            CreateLocalPlaylistWithSongResult.DuplicateName -> LoginAndDialogStateController.showCreatePlaylistError(
+                state = uiState,
+                message = "歌单名称已存在",
+            )
+            CreateLocalPlaylistWithSongResult.SongUnavailable -> LoginAndDialogStateController.showCreatePlaylistError(
+                state = uiState,
+                message = "当前歌曲不可用",
+            )
+            is CreateLocalPlaylistWithSongResult.Success -> LoginAndDialogStateController.finishAddToPlaylistFlow(
+                state = uiState,
+                playlistName = result.playlist.name,
+            )
+        }
+    }
+
+    /** 清除一次性轻提示。 */
+    fun clearTransientMessage() {
+        uiState = LoginAndDialogStateController.clearTransientMessage(state = uiState)
     }
 
     /** 打开清理缓存确认。 */
