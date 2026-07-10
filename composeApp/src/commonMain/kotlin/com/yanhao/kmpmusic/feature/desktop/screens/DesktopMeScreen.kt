@@ -40,11 +40,6 @@ import kmpmusic.composeapp.generated.resources.Res
 import org.jetbrains.compose.resources.ExperimentalResourceApi
 
 /**
- * 桌面“我的”页暂不实现真实歌单能力，统计只按 PRD 固定展示。
- */
-private const val STATIC_PLAYLIST_COUNT = 12
-
-/**
  * 桌面“我的”页暂不实现真实听歌时长统计，数值只作为静态展示。
  */
 private const val STATIC_LISTENING_HOURS = 365
@@ -56,8 +51,10 @@ private const val STATIC_LISTENING_HOURS = 365
 fun DesktopMeRootScreen(
     recentSongs: List<Song>,
     libraryStats: LibraryStats,
+    localPlaylistCount: Int,
     currentSongId: String?,
     onScanMusic: () -> Unit,
+    onLocalPlaylistsOpen: () -> Unit,
     onRecentPlayedViewAll: () -> Unit,
     onRecentSongPlay: (Song) -> Unit,
     onRecentSongMore: (Song) -> Unit,
@@ -73,7 +70,11 @@ fun DesktopMeRootScreen(
         )
         DesktopProfileHeader()
         Spacer(modifier = Modifier.height(20.dp))
-        DesktopMeStatsRow(libraryStats = libraryStats)
+        DesktopMeStatsRow(
+            libraryStats = libraryStats,
+            localPlaylistCount = localPlaylistCount,
+            onLocalPlaylistsOpen = onLocalPlaylistsOpen,
+        )
         Spacer(modifier = Modifier.height(20.dp))
         DesktopSectionHeader(title = "快速功能")
         Spacer(modifier = Modifier.height(14.dp))
@@ -92,17 +93,26 @@ fun DesktopMeRootScreen(
 }
 
 /**
- * 桌面“我的”页统计展示模型，隔离真实歌曲数和静态占位数值的边界。
+ * 桌面“我的”页统计展示模型，隔离真实统计和可点击入口的边界。
  *
  * @property icon 统计卡片图标。
  * @property title 统计卡片标题。
  * @property value 统计卡片展示值。
+ * @property action 统计卡片的可选动作；为空时只做展示。
  */
 internal data class DesktopMeStatDisplayModel(
     val icon: String,
     val title: String,
     val value: String,
+    val action: DesktopMeStatAction? = null,
 )
+
+/**
+ * 桌面“我的”页统计卡动作，当前只有歌单统计具备真实导航能力。
+ */
+internal enum class DesktopMeStatAction {
+    OpenLocalPlaylists,
+}
 
 /**
  * 桌面“我的”页快速功能动作，避免入口文案和点击行为在后续扩展时混淆。
@@ -127,10 +137,11 @@ internal data class DesktopMeQuickActionDisplayModel(
 )
 
 /**
- * 构造桌面“我的”页三项统计；歌曲数必须来自真实曲库统计，另外两项保持静态展示。
+ * 构造桌面“我的”页三项统计；歌曲和歌单来自真实状态，听歌时长保持静态展示。
  */
 internal fun buildDesktopMeStatDisplayModels(
     libraryStats: LibraryStats,
+    localPlaylistCount: Int,
 ): List<DesktopMeStatDisplayModel> {
     return listOf(
         DesktopMeStatDisplayModel(
@@ -141,7 +152,8 @@ internal fun buildDesktopMeStatDisplayModels(
         DesktopMeStatDisplayModel(
             icon = "●",
             title = "歌单",
-            value = STATIC_PLAYLIST_COUNT.toString(),
+            value = localPlaylistCount.toString(),
+            action = DesktopMeStatAction.OpenLocalPlaylists,
         ),
         DesktopMeStatDisplayModel(
             icon = "◷",
@@ -171,17 +183,26 @@ internal fun buildDesktopMeQuickActionDisplayModels(): List<DesktopMeQuickAction
 @Composable
 private fun DesktopMeStatsRow(
     libraryStats: LibraryStats,
+    localPlaylistCount: Int,
+    onLocalPlaylistsOpen: () -> Unit,
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(18.dp),
     ) {
-        buildDesktopMeStatDisplayModels(libraryStats = libraryStats).forEach { item: DesktopMeStatDisplayModel ->
+        buildDesktopMeStatDisplayModels(
+            libraryStats = libraryStats,
+            localPlaylistCount = localPlaylistCount,
+        ).forEach { item: DesktopMeStatDisplayModel ->
             DesktopStatCard(
                 icon = item.icon,
                 title = item.title,
                 value = item.value,
                 modifier = Modifier.weight(1f),
+                onClick = when (item.action) {
+                    DesktopMeStatAction.OpenLocalPlaylists -> onLocalPlaylistsOpen
+                    null -> null
+                },
             )
         }
     }

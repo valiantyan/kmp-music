@@ -9,10 +9,13 @@ import com.yanhao.kmpmusic.feature.app.LocalMusicSection
 import com.yanhao.kmpmusic.feature.app.MusicAppController
 import com.yanhao.kmpmusic.feature.app.MusicAppUiState
 import com.yanhao.kmpmusic.feature.app.SecondaryScreen
+import com.yanhao.kmpmusic.feature.app.SongMoreSourceContext
 import com.yanhao.kmpmusic.feature.desktop.screens.DesktopAlbumDetailScreen
 import com.yanhao.kmpmusic.feature.desktop.screens.DesktopArtistDetailScreen
 import com.yanhao.kmpmusic.feature.desktop.screens.DesktopEmptyStateScreen
 import com.yanhao.kmpmusic.feature.desktop.screens.DesktopLocalMusicScreen
+import com.yanhao.kmpmusic.feature.desktop.screens.DesktopLocalPlaylistDetailScreen
+import com.yanhao.kmpmusic.feature.desktop.screens.DesktopLocalPlaylistListScreen
 import com.yanhao.kmpmusic.feature.desktop.screens.DesktopLoginScreen
 import com.yanhao.kmpmusic.feature.desktop.screens.DesktopRecentPlayedScreen
 import com.yanhao.kmpmusic.feature.desktop.screens.DesktopSearchScreen
@@ -133,8 +136,28 @@ fun DesktopSecondaryScreenRoute(
             onSongPlay = controller::playRecentSong,
             onSongMore = controller::openMore,
         )
-        SecondaryScreen.LocalPlaylists -> Unit
-        SecondaryScreen.LocalPlaylistDetail -> Unit
+        SecondaryScreen.LocalPlaylists -> DesktopLocalPlaylistListScreen(
+            playlists = state.localPlaylists,
+            onBack = controller::navigateBack,
+            onPlaylistOpen = controller::openLocalPlaylistDetail,
+        )
+        SecondaryScreen.LocalPlaylistDetail -> DesktopLocalPlaylistDetailScreen(
+            detail = state.selectedLocalPlaylistDetail,
+            currentSongId = state.currentSongId,
+            currentPlaybackStatus = state.playbackStatus,
+            onBack = controller::navigateBack,
+            onPlayAll = controller::playSelectedLocalPlaylistAll,
+            onSongPlay = { song: Song, _: List<Song> ->
+                controller.playSelectedLocalPlaylistSong(song = song)
+            },
+            onCurrentSongToggle = controller::togglePlayback,
+            onMore = { song: Song ->
+                controller.openMore(
+                    song = song,
+                    sourceContext = SongMoreSourceContext.LocalPlaylistDetail,
+                )
+            },
+        )
         is SecondaryScreen.LocalMusic -> DesktopLocalMusicScreen(
             initialSection = state.navigationState.secondaryScreen.initialSection,
             songs = state.localSongs,

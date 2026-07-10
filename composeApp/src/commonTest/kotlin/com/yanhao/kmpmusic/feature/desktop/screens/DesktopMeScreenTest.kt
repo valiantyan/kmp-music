@@ -178,6 +178,7 @@ class DesktopMeScreenTest {
 
         val models: List<DesktopMeStatDisplayModel> = buildDesktopMeStatDisplayModels(
             libraryStats = stats,
+            localPlaylistCount = 0,
         )
 
         assertEquals(
@@ -188,10 +189,10 @@ class DesktopMeScreenTest {
     }
 
     /**
-     * 歌曲数必须跟随曲库统计变化，歌单和听歌时长保持当前 PRD 要求的静态展示。
+     * 歌曲数和歌单数必须跟随真实状态变化，只有听歌时长继续保持静态展示。
      */
     @Test
-    fun desktopMeStatsUseRealSongCountAndStaticPlaceholderValues(): Unit {
+    fun desktopMeStatsUseRealSongAndPlaylistCounts(): Unit {
         val stats: LibraryStats = LibraryStats(
             songCount = 128,
             albumCount = 9,
@@ -200,11 +201,30 @@ class DesktopMeScreenTest {
 
         val values: List<String> = buildDesktopMeStatDisplayModels(
             libraryStats = stats,
+            localPlaylistCount = 3,
         ).map { model: DesktopMeStatDisplayModel -> model.value }
 
         assertEquals(
-            expected = listOf("128", "12", "365"),
+            expected = listOf("128", "3", "365"),
             actual = values,
+        )
+    }
+
+    /**
+     * 只有歌单统计卡具备点击入口，避免歌曲或听歌时长误导航。
+     */
+    @Test
+    fun desktopMeStatsExposePlaylistNavigationActionOnly(): Unit {
+        val stats: LibraryStats = LibraryStats(songCount = 7)
+
+        val actions: List<DesktopMeStatAction?> = buildDesktopMeStatDisplayModels(
+            libraryStats = stats,
+            localPlaylistCount = 2,
+        ).map { model: DesktopMeStatDisplayModel -> model.action }
+
+        assertEquals(
+            expected = listOf(null, DesktopMeStatAction.OpenLocalPlaylists, null),
+            actual = actions,
         )
     }
 

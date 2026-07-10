@@ -68,8 +68,10 @@ fun DesktopRootScreenRoute(
         RootTab.Me -> DesktopMeRootScreen(
             recentSongs = state.recentSongs,
             libraryStats = state.libraryStats,
+            localPlaylistCount = state.localPlaylistCount,
             currentSongId = state.currentSongId,
             onScanMusic = onScanLocalMusic,
+            onLocalPlaylistsOpen = controller::openLocalPlaylists,
             onRecentPlayedViewAll = controller::openRecentPlayed,
             onRecentSongPlay = controller::playRecentSong,
             onRecentSongMore = controller::openMore,

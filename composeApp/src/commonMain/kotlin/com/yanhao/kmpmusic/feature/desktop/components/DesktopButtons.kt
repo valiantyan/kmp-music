@@ -33,34 +33,62 @@ fun DesktopPrimaryButton(
     text: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    enabled: Boolean = true,
 ) {
-    Surface(
-        modifier = modifier.height(DesktopMusicDimens.PrimaryButtonHeight),
-        shape = RoundedCornerShape(14.dp),
-        color = Color.Transparent,
-        onClick = onClick,
-    ) {
+    val content: @Composable () -> Unit = {
         Box(
             modifier = Modifier
                 .background(
-                    Brush.verticalGradient(
-                        listOf(
-                            Color(0xFF1AC0A8),
-                            DesktopMusicColors.AccentDeep,
-                        ),
-                    ),
+                    brush = resolveDesktopPrimaryButtonBrush(enabled = enabled),
+                    shape = RoundedCornerShape(14.dp),
                 )
                 .padding(horizontal = 20.dp),
             contentAlignment = Alignment.Center,
         ) {
             Text(
                 text = text,
-                color = Color.White,
+                color = if (enabled) Color.White else DesktopMusicColors.MutedStrong,
                 fontSize = DesktopMusicType.Eyebrow,
                 fontWeight = FontWeight.Bold,
             )
         }
     }
+    if (enabled) {
+        Surface(
+            modifier = modifier.height(DesktopMusicDimens.PrimaryButtonHeight),
+            shape = RoundedCornerShape(14.dp),
+            color = Color.Transparent,
+            onClick = onClick,
+        ) {
+            content()
+        }
+        return
+    }
+    Surface(
+        modifier = modifier.height(DesktopMusicDimens.PrimaryButtonHeight),
+        shape = RoundedCornerShape(14.dp),
+        color = Color.Transparent,
+    ) {
+        content()
+    }
+}
+
+// 主按钮置灰仍保留同样形状，避免空歌单详情页工具栏布局跳动。
+private fun resolveDesktopPrimaryButtonBrush(enabled: Boolean): Brush {
+    if (!enabled) {
+        return Brush.verticalGradient(
+            listOf(
+                DesktopMusicColors.Muted.copy(alpha = 0.38f),
+                DesktopMusicColors.Muted.copy(alpha = 0.32f),
+            ),
+        )
+    }
+    return Brush.verticalGradient(
+        listOf(
+            Color(0xFF1AC0A8),
+            DesktopMusicColors.AccentDeep,
+        ),
+    )
 }
 
 @Composable

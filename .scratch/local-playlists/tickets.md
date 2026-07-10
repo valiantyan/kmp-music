@@ -284,16 +284,53 @@
 
 **阻塞项：** 添加到已有歌单的选择、搜索与幂等保存；移动端歌单详情页与歌单播放队列。
 
-- [ ] 桌面端我的页“歌单”统计项显示真实数量。
-- [ ] 桌面端歌单数量为 0 时点击不跳转，并提示“暂无歌单”。
-- [ ] 桌面端歌单数量大于 0 时可以进入歌单列表，并继续进入歌单详情。
-- [ ] 桌面端歌单列表和歌单详情使用桌面端既有二级内容区域语义，优先复用或对齐既有桌面二级页面布局。
-- [ ] 桌面端可以从非歌单详情页歌曲更多面板打开添加到歌单流程。
-- [ ] 桌面端歌单详情页歌曲更多面板也不显示“添加到歌单”，并保留原有歌曲操作。
-- [ ] 桌面端共用移动端的添加到歌单和新建歌单逻辑，只做窗口尺寸适配。
-- [ ] 桌面端弹窗居中展示，小窗口下受最大高度约束并使用内部滚动。
-- [ ] 桌面端测试覆盖真实统计、0 数量不跳转、空歌单详情、添加到已有歌单和新建歌单流程。
-- [ ] 验证门禁：新增或更新桌面端统计入口、歌单列表、歌单详情、弹窗适配和更多面板上下文测试，并运行 `./gradlew :composeApp:desktopTest :composeApp:compileDebugKotlinAndroid`。
+- [x] 桌面端我的页“歌单”统计项显示真实数量。
+- [x] 桌面端歌单数量为 0 时点击不跳转，并提示“暂无歌单”。
+- [x] 桌面端歌单数量大于 0 时可以进入歌单列表，并继续进入歌单详情。
+- [x] 桌面端歌单列表和歌单详情使用桌面端既有二级内容区域语义，优先复用或对齐既有桌面二级页面布局。
+- [x] 桌面端可以从非歌单详情页歌曲更多面板打开添加到歌单流程。
+- [x] 桌面端歌单详情页歌曲更多面板也不显示“添加到歌单”，并保留原有歌曲操作。
+- [x] 桌面端共用移动端的添加到歌单和新建歌单逻辑，只做窗口尺寸适配。
+- [x] 桌面端弹窗居中展示，小窗口下受最大高度约束并使用内部滚动。
+- [x] 桌面端测试覆盖真实统计、0 数量不跳转、空歌单详情、添加到已有歌单和新建歌单流程。
+- [x] 验证门禁：新增或更新桌面端统计入口、歌单列表、歌单详情、弹窗适配和更多面板上下文测试，并运行 `./gradlew :composeApp:desktopTest :composeApp:compileDebugKotlinAndroid`。
+
+**实现摘要：**
+
+- 桌面“我的”页歌单统计从旧静态占位改为读取 `localPlaylistCount`，并只给“歌单”统计卡绑定进入歌单列表的真实入口；歌曲和听歌时长统计仍保持展示语义，不误触发导航。
+- 新增桌面本地自建歌单列表和详情页面，接入 `SecondaryScreen.LocalPlaylists` 与 `SecondaryScreen.LocalPlaylistDetail`，使用桌面 workspace 二级页面、桌面网格卡片、桌面表格和桌面页头承载歌单浏览。
+- 歌单详情页展示封面、名称、当前可播放歌曲数量、置灰/可用的“播放全部”按钮和按加入顺序的歌曲表格；空歌单仍可进入详情并显示“暂无可播放歌曲”。
+- 桌面歌单详情页打开歌曲更多面板时显式传入 `LocalPlaylistDetail` 来源，继续隐藏“添加到歌单”，并保留原有歌曲操作。
+- 添加到歌单和新建歌单弹窗继续复用全局 `AppDialogs` 和控制器逻辑；桌面端未新增独立弹窗流程，只通过窗口内居中的 Compose `Dialog` 使用既有最大高度和内部滚动约束。
+- 桌面主按钮新增 `enabled` 参数，专用于空歌单详情页“播放全部”置灰，默认值保持现有调用行为不变；桌面统计卡新增可选点击参数，未传入时仍是普通展示卡。
+
+**验证命令与结果：**
+
+- `./gradlew :composeApp:desktopTest --tests com.yanhao.kmpmusic.feature.desktop.screens.DesktopMeScreenTest --tests com.yanhao.kmpmusic.feature.app.MusicAppControllerTest --tests com.yanhao.kmpmusic.feature.app.surfaces.AppPanelsTest`：通过。
+- `git diff --check`：通过。
+- `./gradlew :composeApp:desktopTest :composeApp:compileDebugKotlinAndroid`：通过。
+- Gradle 输出仍包含既有弃用属性提示，以及 `MusicAppControllerTest` 中既有 “No cast needed” 警告；本任务未修改对应旧位置。
+
+**code-review 结论：**
+
+- Standards 轴初审发现两个硬问题：`DesktopMeStatDisplayModel` 的 KDoc 漏写新增 `action` 属性，且 `buildDesktopMeStatDisplayModels()` 注释仍说“另外两项保持静态展示”。已修复为真实统计和可点击入口边界说明。
+- Standards 轴还指出新增桌面歌单文件中 Grid、Row、Card、Summary 等复杂私有 Composable 只用单行注释。已改为 KDoc，保持布局边界说明可维护。
+- Standards 轴剩余判断型气味：`DesktopPrimaryButton.enabled` 和 `DesktopStatCard.onClick` 都用可选分支包装 `Surface`，存在轻度重复。当前只服务本 ticket 的置灰按钮和可点击统计卡，未抽象；若后续更多桌面组件复用同类状态，再收敛为 helper。
+- Spec 轴未发现功能缺失或 scope creep；指出 code-review 占位需要补齐，已在本节替换为最终结论。
+- Spec 轴指出测试口径略薄：桌面专属测试覆盖真实统计与动作模型，其余 0 数量不跳转、空歌单详情、添加已有和新建流程依赖共享 `MusicAppControllerTest` 与 `AppPanelsTest`。本切片接受该口径，因为桌面端复用同一控制器和全局弹窗逻辑，没有新增桌面专属流程。
+
+**对抗式审查结论：**
+
+- 风险：桌面“我的”页仍显示旧静态歌单数量。证据：`DesktopMeRootScreen` 接收 `localPlaylistCount`，`DesktopRootScreenRoute` 传入 `state.localPlaylistCount`，`DesktopMeScreenTest` 覆盖真实歌单数量展示。结论：已覆盖。
+- 风险：0 个歌单时桌面端误进入空列表。证据：桌面入口复用控制器 `openLocalPlaylists()`，既有控制器测试覆盖 0 歌单只提示“暂无歌单”且不导航。结论：已覆盖。
+- 风险：桌面歌单详情页歌曲更多面板漏出“添加到歌单”。证据：桌面详情路由调用 `openMore(song, sourceContext = LocalPlaylistDetail)`，`AppPanelsTest` 覆盖该来源隐藏添加入口。结论：已覆盖。
+- 风险：桌面端另起一套添加/新建歌单逻辑导致跨端分叉。证据：本次未新增桌面专属弹窗控制器或仓库调用，仍复用全局 `AppDialogs`、`AddToPlaylistFlowState` 和 `MusicAppController`。结论：未分叉。
+- 风险：空歌单详情页播放全部按钮仍可点击。证据：`DesktopPrimaryButton` 新增 `enabled`，桌面详情页以 `detail?.canPlayAll == true` 控制，空详情或不可用详情按钮置灰且不绑定点击。结论：已处理。
+
+**剩余风险或未完成项：**
+
+- 本 ticket 未做桌面真机窗口截图或设计稿节点逐像素对照；最终视觉截图与跨端对照留给后续“跨端视觉对照与回归门禁”ticket。
+- 桌面歌单列表和详情已对齐既有桌面二级页语义，但没有新增 Compose UI 截图测试；当前以展示模型测试、控制器行为测试、弹窗逻辑测试和编译门禁覆盖。
 
 ## 跨端视觉对照与回归门禁
 

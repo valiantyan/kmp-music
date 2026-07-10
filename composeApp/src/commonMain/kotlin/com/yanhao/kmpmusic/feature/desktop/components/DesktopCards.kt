@@ -39,13 +39,9 @@ fun DesktopStatCard(
     title: String,
     value: String,
     modifier: Modifier = Modifier,
+    onClick: (() -> Unit)? = null,
 ) {
-    Surface(
-        modifier = modifier.height(DesktopMusicDimens.StatCardMinHeight),
-        shape = RoundedCornerShape(14.dp),
-        color = Color.White.copy(alpha = 0.64f),
-        border = BorderStroke(width = 1.dp, color = DesktopMusicColors.Line),
-    ) {
+    val content: @Composable () -> Unit = {
         Row(
             modifier = Modifier.padding(horizontal = 22.dp, vertical = 18.dp),
             horizontalArrangement = Arrangement.spacedBy(18.dp),
@@ -82,6 +78,26 @@ fun DesktopStatCard(
                 )
             }
         }
+    }
+    if (onClick != null) {
+        Surface(
+            modifier = modifier.height(DesktopMusicDimens.StatCardMinHeight),
+            shape = RoundedCornerShape(14.dp),
+            color = Color.White.copy(alpha = 0.64f),
+            border = BorderStroke(width = 1.dp, color = DesktopMusicColors.Line),
+            onClick = onClick,
+        ) {
+            content()
+        }
+        return
+    }
+    Surface(
+        modifier = modifier.height(DesktopMusicDimens.StatCardMinHeight),
+        shape = RoundedCornerShape(14.dp),
+        color = Color.White.copy(alpha = 0.64f),
+        border = BorderStroke(width = 1.dp, color = DesktopMusicColors.Line),
+    ) {
+        content()
     }
 }
 
