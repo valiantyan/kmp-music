@@ -3,6 +3,7 @@ package com.yanhao.kmpmusic.feature.app
 import com.yanhao.kmpmusic.domain.model.Album
 import com.yanhao.kmpmusic.domain.model.Artist
 import com.yanhao.kmpmusic.domain.model.LibraryStats
+import com.yanhao.kmpmusic.domain.model.LocalPlaylist
 import com.yanhao.kmpmusic.domain.model.LocalMusicDiscoveryPreferences
 import com.yanhao.kmpmusic.domain.model.LocalMusicProblem
 import com.yanhao.kmpmusic.domain.model.LocalMusicScanState
@@ -70,16 +71,30 @@ enum class SongMoreSourceContext {
  * 添加到歌单流程的临时弹窗状态。
  *
  * @property songId 本次要加入歌单的歌曲标识。
+ * @property availablePlaylists 当前搜索条件下可选的已有歌单。
+ * @property hasAnyPlaylist 本地数据库是否已有任意歌单，用于区分无歌单和搜索无结果。
+ * @property playlistSearchQuery 已有歌单搜索框当前输入。
+ * @property selectedPlaylistId 当前选中的已有歌单；为空时不能完成保存。
  * @property isCreateDialogOpen 是否已经进入新建歌单弹窗。
  * @property newPlaylistName 新建歌单输入框当前名称。
  * @property newPlaylistNameError 新建名称校验失败时展示的错误文案。
  */
 data class AddToPlaylistFlowState(
     val songId: String,
+    val availablePlaylists: List<LocalPlaylist> = emptyList(),
+    val hasAnyPlaylist: Boolean = false,
+    val playlistSearchQuery: String = "",
+    val selectedPlaylistId: String? = null,
     val isCreateDialogOpen: Boolean = false,
     val newPlaylistName: String = "",
     val newPlaylistNameError: String? = null,
-)
+) {
+    /**
+     * 已有歌单完成按钮只在用户明确选择一个目标后启用。
+     */
+    val canCompleteExistingPlaylist: Boolean
+        get() = selectedPlaylistId != null
+}
 
 /**
  * 手机端固定底栏的整体位置策略。

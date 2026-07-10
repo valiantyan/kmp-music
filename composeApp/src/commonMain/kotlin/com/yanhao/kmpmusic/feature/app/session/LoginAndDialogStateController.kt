@@ -3,6 +3,7 @@ package com.yanhao.kmpmusic.feature.app.session
 import com.yanhao.kmpmusic.feature.app.MusicAppUiState
 import com.yanhao.kmpmusic.feature.app.AddToPlaylistFlowState
 import com.yanhao.kmpmusic.feature.app.SongMoreSourceContext
+import com.yanhao.kmpmusic.domain.model.LocalPlaylist
 
 /**
  * 统一承接轻量会话弹层与登录输入态 reducer，避免 [MusicAppController] 混入简单 UI 状态细节。
@@ -39,11 +40,19 @@ object LoginAndDialogStateController {
     }
 
     /** 从更多面板进入添加到歌单流程，同时关闭来源更多面板。 */
-    fun openAddToPlaylistFlow(state: MusicAppUiState, songId: String): MusicAppUiState {
+    fun openAddToPlaylistFlow(
+        state: MusicAppUiState,
+        songId: String,
+        playlists: List<LocalPlaylist>,
+    ): MusicAppUiState {
         return state.copy(
             moreSongId = null,
             moreSongSourceContext = SongMoreSourceContext.General,
-            addToPlaylistFlow = AddToPlaylistFlowState(songId = songId),
+            addToPlaylistFlow = AddToPlaylistFlowState(
+                songId = songId,
+                availablePlaylists = playlists,
+                hasAnyPlaylist = playlists.isNotEmpty(),
+            ),
         )
     }
 
@@ -78,6 +87,40 @@ object LoginAndDialogStateController {
                 newPlaylistName = name,
                 newPlaylistNameError = null,
             ),
+        )
+    }
+
+    /** 搜索已有歌单后刷新可见目标，并在选中项不可见时清空选择。 */
+    fun setAddToPlaylistSearchResults(
+        state: MusicAppUiState,
+        query: String,
+        playlists: List<LocalPlaylist>,
+    ): MusicAppUiState {
+        val flow: AddToPlaylistFlowState = state.addToPlaylistFlow ?: return state
+        val selectedPlaylistId: String? = flow.selectedPlaylistId?.takeIf { selectedId: String ->
+            playlists.any { playlist: LocalPlaylist -> playlist.id == selectedId }
+        }
+        return state.copy(
+            addToPlaylistFlow = flow.copy(
+                playlistSearchQuery = query,
+                availablePlaylists = playlists,
+                hasAnyPlaylist = flow.hasAnyPlaylist || playlists.isNotEmpty(),
+                selectedPlaylistId = selectedPlaylistId,
+            ),
+        )
+    }
+
+    /** 选择已有歌单时只保留一个当前可见目标，避免完成按钮保存到隐藏或不存在的歌单。 */
+    fun selectAddToPlaylistTarget(
+        state: MusicAppUiState,
+        playlistId: String,
+    ): MusicAppUiState {
+        val flow: AddToPlaylistFlowState = state.addToPlaylistFlow ?: return state
+        val selectedPlaylistId: String? = playlistId.takeIf {
+            flow.availablePlaylists.any { playlist: LocalPlaylist -> playlist.id == playlistId }
+        }
+        return state.copy(
+            addToPlaylistFlow = flow.copy(selectedPlaylistId = selectedPlaylistId),
         )
     }
 

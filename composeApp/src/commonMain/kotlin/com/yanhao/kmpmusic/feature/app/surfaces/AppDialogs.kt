@@ -3,12 +3,15 @@ package com.yanhao.kmpmusic.feature.app.surfaces
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Delete
@@ -17,15 +20,18 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import com.yanhao.kmpmusic.core.theme.MusicColors
+import com.yanhao.kmpmusic.domain.model.LocalPlaylist
 import com.yanhao.kmpmusic.feature.app.AddToPlaylistFlowState
 import com.yanhao.kmpmusic.feature.app.MusicAppController
 import com.yanhao.kmpmusic.feature.app.MusicAppUiState
@@ -96,7 +102,7 @@ fun AppDialogs(
 }
 
 /**
- * 添加到歌单流程弹窗，本切片只承载“新建歌单”入口，已有歌单选择留给后续任务。
+ * 添加到歌单流程弹窗，承载已有歌单搜索单选和“新建歌单”入口。
  */
 @Composable
 private fun AddToPlaylistDialog(
@@ -120,13 +126,31 @@ private fun AddToPlaylistDialog(
                     verticalArrangement = Arrangement.spacedBy(16.dp),
                 ) {
                     Text(text = "添加到歌单")
+                    OutlinedTextField(
+                        modifier = Modifier.fillMaxWidth(),
+                        value = flow.playlistSearchQuery,
+                        onValueChange = controller::setAddToPlaylistSearchQuery,
+                        singleLine = true,
+                        label = { Text(text = "搜索歌单") },
+                    )
                     TextButton(
                         modifier = Modifier.fillMaxWidth(),
                         onClick = controller::openCreatePlaylistDialog,
                     ) {
                         Text(text = "新建歌单")
                     }
-                    Text(text = "暂无歌单")
+                    ExistingPlaylistList(
+                        flow = flow,
+                        controller = controller,
+                        modifier = Modifier.weight(weight = 1f),
+                    )
+                    Button(
+                        modifier = Modifier.fillMaxWidth(),
+                        enabled = flow.canCompleteExistingPlaylist,
+                        onClick = controller::addCurrentSongToSelectedPlaylist,
+                    ) {
+                        Text(text = "完成")
+                    }
                 }
             }
         }
@@ -136,6 +160,85 @@ private fun AddToPlaylistDialog(
             flow = flow,
             controller = controller,
         )
+    }
+}
+
+/**
+ * 已有歌单列表在弹窗内部滚动，避免超过规格要求的最大弹窗高度。
+ */
+@Composable
+private fun ExistingPlaylistList(
+    flow: AddToPlaylistFlowState,
+    controller: MusicAppController,
+    modifier: Modifier = Modifier,
+) {
+    if (flow.availablePlaylists.isEmpty()) {
+        Text(
+            modifier = modifier.fillMaxWidth(),
+            text = resolveAddToPlaylistEmptyStateText(flow = flow),
+        )
+        return
+    }
+    LazyColumn(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(space = 8.dp),
+    ) {
+        items(
+            items = flow.availablePlaylists,
+            key = { playlist: LocalPlaylist -> playlist.id },
+            contentType = { "local-playlist-option" },
+        ) { playlist: LocalPlaylist ->
+            ExistingPlaylistRow(
+                playlist = playlist,
+                isSelected = playlist.id == flow.selectedPlaylistId,
+                onSelect = { controller.selectAddToPlaylistTarget(playlistId = playlist.id) },
+            )
+        }
+    }
+}
+
+/**
+ * 空搜索和无歌单空态文案不同，帮助用户区分“还没创建”和“当前关键词无匹配”。
+ */
+internal fun resolveAddToPlaylistEmptyStateText(flow: AddToPlaylistFlowState): String {
+    return if (!flow.hasAnyPlaylist || flow.playlistSearchQuery.trim().isEmpty()) {
+        "暂无歌单"
+    } else {
+        "未找到相关歌单"
+    }
+}
+
+/**
+ * 单个已有歌单选项，使用熟悉的单选控件表达“一次只能选一个”。
+ */
+@Composable
+private fun ExistingPlaylistRow(
+    playlist: LocalPlaylist,
+    isSelected: Boolean,
+    onSelect: () -> Unit,
+) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(size = 16.dp),
+        color = MusicColors.Soft,
+        onClick = onSelect,
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp, vertical = 10.dp),
+            horizontalArrangement = Arrangement.spacedBy(space = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            RadioButton(
+                selected = isSelected,
+                onClick = onSelect,
+            )
+            Text(
+                modifier = Modifier.weight(weight = 1f),
+                text = playlist.name,
+            )
+        }
     }
 }
 

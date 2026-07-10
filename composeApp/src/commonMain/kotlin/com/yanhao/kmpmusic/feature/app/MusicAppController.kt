@@ -13,8 +13,10 @@ import com.yanhao.kmpmusic.data.InMemorySearchHistoryRepository
 import com.yanhao.kmpmusic.data.InMemoryUserPreferencesRepository
 import com.yanhao.kmpmusic.domain.model.Album
 import com.yanhao.kmpmusic.domain.model.Artist
+import com.yanhao.kmpmusic.domain.model.AddSongToLocalPlaylistResult
 import com.yanhao.kmpmusic.domain.model.CreateLocalPlaylistWithSongResult
 import com.yanhao.kmpmusic.domain.model.LibrarySnapshot
+import com.yanhao.kmpmusic.domain.model.LocalPlaylist
 import com.yanhao.kmpmusic.domain.model.LocalMusicScanRequest
 import com.yanhao.kmpmusic.domain.model.PlaybackHistory
 import com.yanhao.kmpmusic.domain.model.PlaybackState
@@ -709,6 +711,7 @@ class MusicAppController(
         uiState = LoginAndDialogStateController.openAddToPlaylistFlow(
             state = uiState,
             songId = song.id,
+            playlists = localPlaylistRepository.getPlaylists(),
         )
     }
 
@@ -731,6 +734,47 @@ class MusicAppController(
             state = uiState,
             name = name,
         )
+    }
+
+    /** 更新已有歌单搜索词，并按仓库搜索规则刷新可选列表。 */
+    fun setAddToPlaylistSearchQuery(query: String) {
+        val playlists: List<LocalPlaylist> = findPlaylistsForAddToPlaylistQuery(query = query)
+        uiState = LoginAndDialogStateController.setAddToPlaylistSearchResults(
+            state = uiState,
+            query = query,
+            playlists = playlists,
+        )
+    }
+
+    /** 单选已有歌单目标，完成按钮由 [AddToPlaylistFlowState.canCompleteExistingPlaylist] 控制。 */
+    fun selectAddToPlaylistTarget(playlistId: String) {
+        uiState = LoginAndDialogStateController.selectAddToPlaylistTarget(
+            state = uiState,
+            playlistId = playlistId,
+        )
+    }
+
+    /** 保存到已选已有歌单；重复添加同样按成功闭环处理。 */
+    fun addCurrentSongToSelectedPlaylist() {
+        val flow: AddToPlaylistFlowState = uiState.addToPlaylistFlow ?: return
+        val selectedPlaylistId: String = flow.selectedPlaylistId ?: return
+        val selectedPlaylist: LocalPlaylist = flow.availablePlaylists.firstOrNull { playlist: LocalPlaylist ->
+            playlist.id == selectedPlaylistId
+        } ?: return
+        val result: AddSongToLocalPlaylistResult = localPlaylistRepository.addSongToPlaylist(
+            playlistId = selectedPlaylistId,
+            songId = flow.songId,
+        )
+        uiState = when (result) {
+            is AddSongToLocalPlaylistResult.Added,
+            is AddSongToLocalPlaylistResult.AlreadyExists,
+            -> LoginAndDialogStateController.finishAddToPlaylistFlow(
+                state = uiState,
+                playlistName = selectedPlaylist.name,
+            )
+            AddSongToLocalPlaylistResult.PlaylistNotFound -> uiState
+            AddSongToLocalPlaylistResult.SongUnavailable -> uiState
+        }
     }
 
     /** 创建歌单并自动加入当前歌曲，失败时保持新建弹窗打开。 */
@@ -757,6 +801,15 @@ class MusicAppController(
                 state = uiState,
                 playlistName = result.playlist.name,
             )
+        }
+    }
+
+    // 搜索为空时回到全部歌单；非空时复用仓库的大小写不敏感匹配规则。
+    private fun findPlaylistsForAddToPlaylistQuery(query: String): List<LocalPlaylist> {
+        return if (query.trim().isEmpty()) {
+            localPlaylistRepository.getPlaylists()
+        } else {
+            localPlaylistRepository.searchPlaylists(query = query)
         }
     }
 

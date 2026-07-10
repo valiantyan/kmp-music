@@ -811,6 +811,162 @@ class MusicAppControllerTest {
     }
 
     /**
+     * 打开添加到歌单弹窗时应展示全部已有歌单，但不默认选中任何目标。
+     */
+    @Test
+    fun addToPlaylistFlowStartsWithAllPlaylistsAndNoSelection(): Unit {
+        val localPlaylistRepository: RecordingLocalPlaylistRepository = RecordingLocalPlaylistRepository(
+            playlists = mutableListOf(
+                testPlaylist(id = "playlist-1", name = "通勤"),
+                testPlaylist(id = "playlist-2", name = "夜跑"),
+            ),
+        )
+        val controller: MusicAppController = createController(
+            localPlaylistRepository = localPlaylistRepository,
+        )
+        val targetSong: Song = testSong(id = "select-song", title = "Select Song", modifiedAt = 1L)
+
+        controller.openAddToPlaylistFlow(song = targetSong)
+
+        val flow: AddToPlaylistFlowState = requireNotNull(controller.uiState.addToPlaylistFlow)
+        assertEquals(expected = listOf("通勤", "夜跑"), actual = flow.availablePlaylists.map { playlist: LocalPlaylist -> playlist.name })
+        assertNull(actual = flow.selectedPlaylistId)
+        assertFalse(actual = flow.canCompleteExistingPlaylist)
+    }
+
+    /**
+     * 搜索已有歌单只匹配名称，空搜索回到全部，且无结果时保留空列表供 UI 展示空态。
+     */
+    @Test
+    fun addToPlaylistSearchFiltersByPlaylistName(): Unit {
+        val localPlaylistRepository: RecordingLocalPlaylistRepository = RecordingLocalPlaylistRepository(
+            playlists = mutableListOf(
+                testPlaylist(id = "playlist-road", name = "Road Trip"),
+                testPlaylist(id = "playlist-focus", name = "Work Focus"),
+            ),
+        )
+        val controller: MusicAppController = createController(
+            localPlaylistRepository = localPlaylistRepository,
+        )
+        val targetSong: Song = testSong(id = "search-song", title = "Search Song", modifiedAt = 1L)
+
+        controller.openAddToPlaylistFlow(song = targetSong)
+        controller.setAddToPlaylistSearchQuery(query = "  road  ")
+
+        assertEquals(
+            expected = listOf("Road Trip"),
+            actual = controller.uiState.addToPlaylistFlow?.availablePlaylists?.map { playlist: LocalPlaylist -> playlist.name },
+        )
+
+        controller.setAddToPlaylistSearchQuery(query = "none")
+
+        assertEquals(expected = emptyList(), actual = controller.uiState.addToPlaylistFlow?.availablePlaylists)
+
+        controller.setAddToPlaylistSearchQuery(query = "   ")
+
+        assertEquals(
+            expected = listOf("Road Trip", "Work Focus"),
+            actual = controller.uiState.addToPlaylistFlow?.availablePlaylists?.map { playlist: LocalPlaylist -> playlist.name },
+        )
+    }
+
+    /**
+     * 已有歌单一次只允许选择一个，搜索导致目标不可见时应清空选择避免误保存。
+     */
+    @Test
+    fun addToPlaylistSelectionIsSingleAndClearedWhenSearchHidesTarget(): Unit {
+        val localPlaylistRepository: RecordingLocalPlaylistRepository = RecordingLocalPlaylistRepository(
+            playlists = mutableListOf(
+                testPlaylist(id = "playlist-a", name = "A List"),
+                testPlaylist(id = "playlist-b", name = "B List"),
+            ),
+        )
+        val controller: MusicAppController = createController(
+            localPlaylistRepository = localPlaylistRepository,
+        )
+        val targetSong: Song = testSong(id = "single-select-song", title = "Single Select Song", modifiedAt = 1L)
+
+        controller.openAddToPlaylistFlow(song = targetSong)
+        controller.selectAddToPlaylistTarget(playlistId = "playlist-a")
+        assertEquals(expected = "playlist-a", actual = controller.uiState.addToPlaylistFlow?.selectedPlaylistId)
+        assertTrue(actual = controller.uiState.addToPlaylistFlow?.canCompleteExistingPlaylist ?: false)
+
+        controller.selectAddToPlaylistTarget(playlistId = "playlist-b")
+        assertEquals(expected = "playlist-b", actual = controller.uiState.addToPlaylistFlow?.selectedPlaylistId)
+
+        controller.setAddToPlaylistSearchQuery(query = "A")
+
+        assertNull(actual = controller.uiState.addToPlaylistFlow?.selectedPlaylistId)
+        assertFalse(actual = controller.uiState.addToPlaylistFlow?.canCompleteExistingPlaylist ?: true)
+    }
+
+    /**
+     * 选择已有歌单后点击完成应保存当前歌曲、关闭流程，并显示目标歌单成功提示。
+     */
+    @Test
+    fun addCurrentSongToSelectedPlaylistClosesFlowAndShowsSuccessMessage(): Unit {
+        val playlist: LocalPlaylist = testPlaylist(id = "playlist-road", name = "Road  Trip")
+        val localPlaylistRepository: RecordingLocalPlaylistRepository = RecordingLocalPlaylistRepository(
+            playlists = mutableListOf(playlist),
+            addSongResults = mutableListOf(
+                AddSongToLocalPlaylistResult.Added(
+                    relation = LocalPlaylistSong(
+                        playlistId = playlist.id,
+                        songId = "existing-add-song",
+                        addedAt = 10L,
+                        sortOrder = 0,
+                    ),
+                ),
+            ),
+        )
+        val controller: MusicAppController = createController(
+            localPlaylistRepository = localPlaylistRepository,
+        )
+        val targetSong: Song = testSong(id = "existing-add-song", title = "Existing Add Song", modifiedAt = 1L)
+
+        controller.openAddToPlaylistFlow(song = targetSong)
+        controller.selectAddToPlaylistTarget(playlistId = playlist.id)
+        controller.addCurrentSongToSelectedPlaylist()
+
+        assertNull(actual = controller.uiState.addToPlaylistFlow)
+        assertEquals(expected = listOf(playlist.id to targetSong.id), actual = localPlaylistRepository.addSongCalls)
+        assertEquals(expected = "添加到 Road  Trip 歌单成功", actual = controller.uiState.transientMessage)
+    }
+
+    /**
+     * 重复添加已有关系仍按成功结束，且控制器不能额外触发第二次保存。
+     */
+    @Test
+    fun addCurrentSongToSelectedPlaylistTreatsDuplicateAsSuccess(): Unit {
+        val playlist: LocalPlaylist = testPlaylist(id = "playlist-night", name = "夜跑")
+        val localPlaylistRepository: RecordingLocalPlaylistRepository = RecordingLocalPlaylistRepository(
+            playlists = mutableListOf(playlist),
+            addSongResults = mutableListOf(
+                AddSongToLocalPlaylistResult.AlreadyExists(
+                    relation = LocalPlaylistSong(
+                        playlistId = playlist.id,
+                        songId = "duplicate-song",
+                        addedAt = 10L,
+                        sortOrder = 0,
+                    ),
+                ),
+            ),
+        )
+        val controller: MusicAppController = createController(
+            localPlaylistRepository = localPlaylistRepository,
+        )
+        val targetSong: Song = testSong(id = "duplicate-song", title = "Duplicate Song", modifiedAt = 1L)
+
+        controller.openAddToPlaylistFlow(song = targetSong)
+        controller.selectAddToPlaylistTarget(playlistId = playlist.id)
+        controller.addCurrentSongToSelectedPlaylist()
+
+        assertNull(actual = controller.uiState.addToPlaylistFlow)
+        assertEquals(expected = listOf(playlist.id to targetSong.id), actual = localPlaylistRepository.addSongCalls)
+        assertEquals(expected = "添加到 夜跑 歌单成功", actual = controller.uiState.transientMessage)
+    }
+
+    /**
      * 控制器必须消费注入的 scanner，避免 Android 入口无意落回 common fake 数据。
      */
     @Test
@@ -2157,9 +2313,16 @@ private fun createController(
 private class RecordingLocalPlaylistRepository(
     private val defaultNames: List<String> = listOf("默认歌单 1"),
     private val createResults: MutableList<CreateLocalPlaylistWithSongResult> = mutableListOf(),
+    // 测试用已有歌单集合，模拟仓库按当前任务读取弹窗候选项。
+    private val playlists: MutableList<LocalPlaylist> = mutableListOf(),
+    // 预置添加结果，用来覆盖真实新增和幂等命中两种成功路径。
+    private val addSongResults: MutableList<AddSongToLocalPlaylistResult> = mutableListOf(),
 ) : LocalPlaylistRepository {
     // 记录新建并加入调用，确认控制器传入的是当前歌曲。
     val createWithSongCalls: MutableList<Pair<String, String>> = mutableListOf()
+
+    // 记录添加到已有歌单调用，确认控制器只保存用户选中的单个目标。
+    val addSongCalls: MutableList<Pair<String, String>> = mutableListOf()
 
     /** 当前测试不通过独立创建空歌单入口，返回最小成功值即可。 */
     override fun createPlaylist(name: String): LocalPlaylistCreateResult {
@@ -2199,22 +2362,41 @@ private class RecordingLocalPlaylistRepository(
         )
     }
 
-    /** 当前 ticket 不覆盖添加到已有歌单。 */
+    /** 添加到已有歌单时记录调用，并按预置结果模拟仓库返回。 */
     override fun addSongToPlaylist(
         playlistId: String,
         songId: String,
     ): AddSongToLocalPlaylistResult {
-        return AddSongToLocalPlaylistResult.PlaylistNotFound
+        addSongCalls += playlistId to songId
+        val nextResult: AddSongToLocalPlaylistResult? = if (addSongResults.isEmpty()) {
+            null
+        } else {
+            addSongResults.removeAt(index = 0)
+        }
+        return nextResult ?: AddSongToLocalPlaylistResult.Added(
+            relation = LocalPlaylistSong(
+                playlistId = playlistId,
+                songId = songId,
+                addedAt = 1L,
+                sortOrder = 0,
+            ),
+        )
     }
 
-    /** 当前 ticket 不读取已有歌单列表。 */
+    /** 读取已有歌单列表，供添加到已有歌单弹窗展示全部目标。 */
     override fun getPlaylists(): List<LocalPlaylist> {
-        return emptyList()
+        return playlists.toList()
     }
 
-    /** 当前 ticket 不覆盖已有歌单搜索。 */
+    /** 搜索已有歌单时只按名称做大小写不敏感包含匹配。 */
     override fun searchPlaylists(query: String): List<LocalPlaylist> {
-        return emptyList()
+        val normalizedQuery: String = query.trim().lowercase()
+        if (normalizedQuery.isEmpty()) {
+            return getPlaylists()
+        }
+        return playlists.filter { playlist: LocalPlaylist ->
+            playlist.name.lowercase().contains(other = normalizedQuery)
+        }
     }
 
     /** 依次返回预置默认名，用来验证控制器确实读取仓库规则。 */
@@ -2239,6 +2421,20 @@ private fun assertPlaybackQueueInvariant(
     assertEquals(
         expected = controller.uiState.currentSongId,
         actual = controller.uiState.currentSong?.id,
+    )
+}
+
+// 构造本地自建歌单元信息，避免控制器测试依赖持久化实现。
+private fun testPlaylist(
+    id: String,
+    name: String,
+    updatedAt: Long = 1L,
+): LocalPlaylist {
+    return LocalPlaylist(
+        id = id,
+        name = name,
+        createdAt = 1L,
+        updatedAt = updatedAt,
     )
 }
 

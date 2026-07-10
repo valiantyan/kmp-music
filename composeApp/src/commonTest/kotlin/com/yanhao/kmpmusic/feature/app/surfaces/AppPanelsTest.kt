@@ -1,6 +1,7 @@
 package com.yanhao.kmpmusic.feature.app.surfaces
 
 import com.yanhao.kmpmusic.domain.model.CoverArt
+import com.yanhao.kmpmusic.feature.app.AddToPlaylistFlowState
 import com.yanhao.kmpmusic.domain.model.PlaybackStatus
 import com.yanhao.kmpmusic.domain.model.Song
 import com.yanhao.kmpmusic.feature.app.MusicAppUiState
@@ -12,6 +13,33 @@ import kotlin.test.assertNull
  * 全局面板测试，确保各列表入口都复用同一个单曲更多面板解析逻辑。
  */
 class AppPanelsTest {
+    /**
+     * 添加到歌单弹窗需要区分数据库为空和搜索无结果，避免空库时误导用户。
+     */
+    @Test
+    fun addToPlaylistEmptyStateDistinguishesEmptyDatabaseFromNoSearchResult(): Unit {
+        assertEquals(
+            expected = "暂无歌单",
+            actual = resolveAddToPlaylistEmptyStateText(
+                flow = AddToPlaylistFlowState(
+                    songId = "song-1",
+                    hasAnyPlaylist = false,
+                    playlistSearchQuery = "road",
+                ),
+            ),
+        )
+        assertEquals(
+            expected = "未找到相关歌单",
+            actual = resolveAddToPlaylistEmptyStateText(
+                flow = AddToPlaylistFlowState(
+                    songId = "song-1",
+                    hasAnyPlaylist = true,
+                    playlistSearchQuery = "road",
+                ),
+            ),
+        )
+    }
+
     /**
      * 最近播放歌曲即使不在当前队列或完整曲库缓存中，也要能打开既有更多面板。
      */
