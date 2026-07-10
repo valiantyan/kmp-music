@@ -404,6 +404,13 @@ class MusicAppController(
         navigateToSecondary(screen = SecondaryScreen.LocalPlaylists)
     }
 
+    /** 打开歌单详情；空歌单也进入详情，由详情页展示置灰播放入口和空态。 */
+    fun openLocalPlaylistDetail(playlistId: String) {
+        val detail: LocalPlaylistDetailDisplayModel = buildLocalPlaylistDetail(playlistId = playlistId) ?: return
+        uiState = uiState.copy(selectedLocalPlaylistDetail = detail)
+        navigateToSecondary(screen = SecondaryScreen.LocalPlaylistDetail)
+    }
+
     /** 搜索页应按入口上下文拿到对应数据集合，避免搜索结果跨页面串联。 */
     fun openSearch(context: SearchContext = SearchContext.LocalLibrary) {
         if (context == SearchContext.LocalLibrary) {
@@ -441,6 +448,25 @@ class MusicAppController(
             uiState = action.state
             playbackActionController.startPlayback(action = action)
         }
+    }
+
+    /** 歌单详情播放全部按当前可用歌曲加入顺序建队列，从第一首开始播放。 */
+    fun playSelectedLocalPlaylistAll() {
+        val detail: LocalPlaylistDetailDisplayModel = uiState.selectedLocalPlaylistDetail ?: return
+        val firstSong: Song = detail.songs.firstOrNull() ?: return
+        playSelectedLocalPlaylistSong(song = firstSong)
+    }
+
+    /** 歌单详情点击歌曲时使用整张歌单当前可用列表建队列。 */
+    fun playSelectedLocalPlaylistSong(song: Song) {
+        val detail: LocalPlaylistDetailDisplayModel = uiState.selectedLocalPlaylistDetail ?: return
+        if (detail.songs.none { candidate: Song -> candidate.id == song.id }) {
+            return
+        }
+        playSong(
+            song = song,
+            queueSongs = detail.songs,
+        )
     }
 
     /** 打开当前播放页，供迷你播放器和 Android 通知正文复用同一路由入口。 */
@@ -827,10 +853,11 @@ class MusicAppController(
         state: MusicAppUiState,
         playlistName: String,
     ): MusicAppUiState {
-        return LoginAndDialogStateController.finishAddToPlaylistFlow(
+        val nextState: MusicAppUiState = LoginAndDialogStateController.finishAddToPlaylistFlow(
             state = state,
             playlistName = playlistName,
         ).copy(localPlaylists = buildLocalPlaylistCards())
+        return refreshSelectedLocalPlaylistDetail(state = nextState)
     }
 
     // 搜索为空时回到全部歌单；非空时复用仓库的大小写不敏感匹配规则。
@@ -939,5 +966,28 @@ class MusicAppController(
                 coverImageUri = firstAvailableSong?.coverImageUri,
             )
         }
+    }
+
+    // 当前详情若已打开，添加成功后要重读仓库事实，保持列表和详情同源刷新。
+    private fun refreshSelectedLocalPlaylistDetail(state: MusicAppUiState): MusicAppUiState {
+        val selectedDetail: LocalPlaylistDetailDisplayModel = state.selectedLocalPlaylistDetail ?: return state
+        val refreshedDetail: LocalPlaylistDetailDisplayModel = buildLocalPlaylistDetail(
+            playlistId = selectedDetail.id,
+        ) ?: return state.copy(selectedLocalPlaylistDetail = null)
+        return state.copy(selectedLocalPlaylistDetail = refreshedDetail)
+    }
+
+    // 歌单详情只投影当前可用歌曲；不可用关系保留在仓库详情中但不进入 UI。
+    private fun buildLocalPlaylistDetail(playlistId: String): LocalPlaylistDetailDisplayModel? {
+        val detail: LocalPlaylistDetail = localPlaylistRepository.getPlaylistDetail(playlistId = playlistId) ?: return null
+        val firstAvailableSong: Song? = detail.availableSongs.firstOrNull()
+        return LocalPlaylistDetailDisplayModel(
+            id = detail.playlist.id,
+            name = detail.playlist.name,
+            availableSongCount = detail.availableSongs.size,
+            coverArt = firstAvailableSong?.coverArt ?: CoverArt.HeroLocalMusic,
+            coverImageUri = firstAvailableSong?.coverImageUri,
+            songs = detail.availableSongs,
+        )
     }
 }

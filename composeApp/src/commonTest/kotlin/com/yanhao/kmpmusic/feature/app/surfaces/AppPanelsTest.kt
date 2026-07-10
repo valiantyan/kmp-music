@@ -2,11 +2,14 @@ package com.yanhao.kmpmusic.feature.app.surfaces
 
 import com.yanhao.kmpmusic.domain.model.CoverArt
 import com.yanhao.kmpmusic.feature.app.AddToPlaylistFlowState
+import com.yanhao.kmpmusic.feature.app.LocalPlaylistDetailDisplayModel
 import com.yanhao.kmpmusic.domain.model.PlaybackStatus
 import com.yanhao.kmpmusic.domain.model.Song
 import com.yanhao.kmpmusic.feature.app.MusicAppUiState
+import com.yanhao.kmpmusic.feature.app.SongMoreSourceContext
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNull
 
 /**
@@ -59,6 +62,46 @@ class AppPanelsTest {
         )
 
         assertEquals(expected = recentSong, actual = resolvedSong)
+    }
+
+    /**
+     * 歌单详情页歌曲即使尚未进入全量曲库缓存，也要能打开原有更多操作面板。
+     */
+    @Test
+    fun resolveMorePanelSongFindsLocalPlaylistDetailSong(): Unit {
+        val playlistSong: Song = testSong(
+            id = "playlist-song",
+            title = "Playlist Song",
+        )
+        val state: MusicAppUiState = testState().copy(
+            selectedLocalPlaylistDetail = LocalPlaylistDetailDisplayModel(
+                id = "playlist",
+                name = "歌单",
+                availableSongCount = 1,
+                coverArt = CoverArt.HeroLocalMusic,
+                coverImageUri = null,
+                songs = listOf(playlistSong),
+            ),
+        )
+
+        val resolvedSong: Song? = resolveMorePanelSong(
+            state = state,
+            songId = playlistSong.id,
+        )
+
+        assertEquals(expected = playlistSong, actual = resolvedSong)
+    }
+
+    /**
+     * 歌单详情页更多面板保留原有歌曲操作，但不显示“添加到歌单”入口。
+     */
+    @Test
+    fun localPlaylistDetailMorePanelHidesAddToPlaylistAction(): Unit {
+        val state: MusicAppUiState = testState().copy(
+            moreSongSourceContext = SongMoreSourceContext.LocalPlaylistDetail,
+        )
+
+        assertFalse(actual = canShowAddToPlaylistAction(state = state))
     }
 
     /**

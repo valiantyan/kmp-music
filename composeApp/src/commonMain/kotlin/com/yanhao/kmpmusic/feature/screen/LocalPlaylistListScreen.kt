@@ -1,6 +1,7 @@
 package com.yanhao.kmpmusic.feature.screen
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -35,6 +36,7 @@ import com.yanhao.kmpmusic.feature.components.CoverArtImage
 fun LocalPlaylistListScreen(
     playlists: List<LocalPlaylistCardDisplayModel>,
     onBack: () -> Unit,
+    onPlaylistOpen: (String) -> Unit,
     modifier: Modifier = Modifier,
     contentPadding: PaddingValues = PaddingValues(),
 ) {
@@ -68,7 +70,10 @@ fun LocalPlaylistListScreen(
             },
             contentType = { "local-playlist-row" },
         ) { rowPlaylists: List<LocalPlaylistCardDisplayModel> ->
-            LocalPlaylistRow(rowPlaylists = rowPlaylists)
+            LocalPlaylistRow(
+                rowPlaylists = rowPlaylists,
+                onPlaylistOpen = onPlaylistOpen,
+            )
         }
     }
 }
@@ -88,7 +93,10 @@ private fun LocalPlaylistListEmptyState() {
 
 // 双列行沿用首页专辑网格列距，末行单项补空列避免卡片变宽。
 @Composable
-private fun LocalPlaylistRow(rowPlaylists: List<LocalPlaylistCardDisplayModel>) {
+private fun LocalPlaylistRow(
+    rowPlaylists: List<LocalPlaylistCardDisplayModel>,
+    onPlaylistOpen: (String) -> Unit,
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -98,6 +106,7 @@ private fun LocalPlaylistRow(rowPlaylists: List<LocalPlaylistCardDisplayModel>) 
         rowPlaylists.forEach { playlist: LocalPlaylistCardDisplayModel ->
             LocalPlaylistCard(
                 playlist = playlist,
+                onPlaylistOpen = onPlaylistOpen,
                 modifier = Modifier.weight(weight = 1f),
             )
         }
@@ -107,14 +116,17 @@ private fun LocalPlaylistRow(rowPlaylists: List<LocalPlaylistCardDisplayModel>) 
     }
 }
 
-// 卡片只展示本 ticket 要求的信息，不提前加入详情页或新建入口。
+// 卡片只打开浏览详情，不提供新建或空歌单创建入口。
 @Composable
 private fun LocalPlaylistCard(
     playlist: LocalPlaylistCardDisplayModel,
+    onPlaylistOpen: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val coverShape: RoundedCornerShape = RoundedCornerShape(size = homeAlbumCoverRadius)
-    Column(modifier = modifier) {
+    Column(
+        modifier = modifier.clickable { onPlaylistOpen(playlist.id) },
+    ) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()

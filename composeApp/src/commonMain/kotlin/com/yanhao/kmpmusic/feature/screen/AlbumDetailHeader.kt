@@ -35,11 +35,35 @@ import androidx.compose.ui.unit.sp
 import com.yanhao.kmpmusic.domain.model.Album
 import com.yanhao.kmpmusic.feature.components.CoverArtImage
 
-// Figma 专辑详情页封面尺寸。
-private val albumDetailCoverSize: Dp = 256.dp
+// Figma 详情页封面尺寸，专辑和歌单详情共用同一视觉规格。
+internal val detailHeroCoverSize: Dp = 256.dp
 
-// Figma 专辑详情页封面圆角。
-private val albumDetailCoverShape: RoundedCornerShape = RoundedCornerShape(size = 32.dp)
+// Figma 详情页封面圆角，避免不同详情页产生视觉分叉。
+internal val detailHeroCoverShape: RoundedCornerShape = RoundedCornerShape(size = 32.dp)
+
+// Figma 详情页封面内层圆角。
+internal val detailHeroCoverInnerShape: RoundedCornerShape = RoundedCornerShape(size = 30.dp)
+
+// Figma 详情页封面环境光宽度。
+internal val detailHeroCoverGlowWidth: Dp = 244.dp
+
+// Figma 详情页封面环境光高度。
+internal val detailHeroCoverGlowHeight: Dp = 214.dp
+
+// Figma 详情页封面环境光下移距离。
+internal val detailHeroCoverGlowOffsetY: Dp = 18.dp
+
+// Figma 详情页封面环境光模糊半径。
+internal val detailHeroCoverGlowBlurRadius: Dp = 20.dp
+
+// Figma 详情页封面边框宽度。
+internal val detailHeroCoverBorderWidth: Dp = 2.dp
+
+// Figma 详情页封面内边距。
+internal val detailHeroCoverPadding: Dp = 2.dp
+
+// Figma 详情页封面白色描边透明度。
+internal const val DETAIL_HERO_COVER_BORDER_ALPHA = 0.30f
 
 /**
  * 专辑详情页顶部栏，在展开态只显示返回入口。
@@ -112,32 +136,32 @@ internal fun AlbumDetailHeader(album: Album) {
 @Composable
 private fun AlbumDetailCover(album: Album) {
     Box(
-        modifier = Modifier.size(size = albumDetailCoverSize),
+        modifier = Modifier.size(size = detailHeroCoverSize),
         contentAlignment = Alignment.Center,
     ) {
         Box(
             modifier = Modifier
                 .align(alignment = Alignment.BottomCenter)
-                .offset(y = 18.dp)
-                .size(width = 244.dp, height = 214.dp)
-                .blur(radius = 20.dp)
+                .offset(y = detailHeroCoverGlowOffsetY)
+                .size(width = detailHeroCoverGlowWidth, height = detailHeroCoverGlowHeight)
+                .blur(radius = detailHeroCoverGlowBlurRadius)
                 .background(
                     color = albumDetailActionColor.copy(alpha = 0.20f),
-                    shape = albumDetailCoverShape,
+                    shape = detailHeroCoverShape,
                 ),
         )
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .clip(shape = albumDetailCoverShape)
+                .clip(shape = detailHeroCoverShape)
                 .border(
                     border = BorderStroke(
-                        width = 2.dp,
-                        color = Color.White.copy(alpha = 0.30f),
+                        width = detailHeroCoverBorderWidth,
+                        color = Color.White.copy(alpha = DETAIL_HERO_COVER_BORDER_ALPHA),
                     ),
-                    shape = albumDetailCoverShape,
+                    shape = detailHeroCoverShape,
                 )
-                .padding(all = 2.dp),
+                .padding(all = detailHeroCoverPadding),
         ) {
             CoverArtImage(
                 coverArt = album.coverArt,
@@ -145,7 +169,7 @@ private fun AlbumDetailCover(album: Album) {
                 contentDescription = "${album.title} 专辑封面",
                 modifier = Modifier
                     .fillMaxSize()
-                    .clip(shape = RoundedCornerShape(size = 30.dp)),
+                    .clip(shape = detailHeroCoverInnerShape),
                 contentScale = ContentScale.Crop,
             )
         }

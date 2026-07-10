@@ -436,6 +436,141 @@ class MusicAppControllerTest {
     }
 
     /**
+     * 歌单卡片无论是否有可播放歌曲，都应能进入详情页，空歌单由详情页展示空态。
+     */
+    @Test
+    fun openLocalPlaylistDetailAllowsEmptyPlaylist(): Unit {
+        val playlist: LocalPlaylist = testPlaylist(id = "playlist-empty", name = "空歌单", updatedAt = 20L)
+        val repository: RecordingLocalPlaylistRepository = RecordingLocalPlaylistRepository(
+            playlists = mutableListOf(playlist),
+            playlistDetails = mutableMapOf(
+                playlist.id to LocalPlaylistDetail(
+                    playlist = playlist,
+                    relations = emptyList(),
+                    availableSongs = emptyList(),
+                ),
+            ),
+        )
+        val controller: MusicAppController = createController(localPlaylistRepository = repository)
+
+        controller.openLocalPlaylistDetail(playlistId = playlist.id)
+
+        assertEquals(
+            expected = SecondaryScreen.LocalPlaylistDetail,
+            actual = controller.uiState.navigationState.secondaryScreen,
+        )
+        assertEquals(expected = playlist.id, actual = controller.uiState.selectedLocalPlaylistDetail?.id)
+        assertEquals(expected = "暂无可播放歌曲", actual = controller.uiState.selectedLocalPlaylistDetail?.emptyText)
+        assertFalse(actual = controller.uiState.selectedLocalPlaylistDetail?.canPlayAll ?: true)
+        assertEquals(
+            expected = MobileFixedBarMode.SecondaryWithMiniPlayer,
+            actual = controller.uiState.navigationState.fixedBarMode,
+        )
+        assertFalse(actual = controller.uiState.navigationState.fixedBarMode.showsBottomNavigation)
+    }
+
+    /**
+     * 歌单详情只展示当前仍可用歌曲，并按仓库关系稳定顺序形成页面列表。
+     */
+    @Test
+    fun localPlaylistDetailUsesAvailableSongsInJoinOrder(): Unit {
+        val firstSong: Song = testSong(id = "song-first", title = "First", modifiedAt = 1L).copy(
+            coverArt = CoverArt.AlbumRiverYear,
+            coverImageUri = "file://first.jpg",
+        )
+        val secondSong: Song = testSong(id = "song-second", title = "Second", modifiedAt = 2L)
+        val playlist: LocalPlaylist = testPlaylist(id = "playlist-detail", name = "详情歌单", updatedAt = 20L)
+        val repository: RecordingLocalPlaylistRepository = RecordingLocalPlaylistRepository(
+            playlists = mutableListOf(playlist),
+            playlistDetails = mutableMapOf(
+                playlist.id to LocalPlaylistDetail(
+                    playlist = playlist,
+                    relations = listOf(
+                        LocalPlaylistSong(
+                            playlistId = playlist.id,
+                            songId = "missing-song",
+                            addedAt = 1L,
+                            sortOrder = 0,
+                        ),
+                        LocalPlaylistSong(
+                            playlistId = playlist.id,
+                            songId = firstSong.id,
+                            addedAt = 2L,
+                            sortOrder = 1,
+                        ),
+                        LocalPlaylistSong(
+                            playlistId = playlist.id,
+                            songId = secondSong.id,
+                            addedAt = 3L,
+                            sortOrder = 2,
+                        ),
+                    ),
+                    availableSongs = listOf(firstSong, secondSong),
+                ),
+            ),
+        )
+        val controller: MusicAppController = createController(localPlaylistRepository = repository)
+
+        controller.openLocalPlaylistDetail(playlistId = playlist.id)
+
+        val detail: LocalPlaylistDetailDisplayModel = requireNotNull(controller.uiState.selectedLocalPlaylistDetail)
+        assertEquals(expected = playlist.name, actual = detail.name)
+        assertEquals(expected = 2, actual = detail.availableSongCount)
+        assertEquals(expected = listOf(firstSong.id, secondSong.id), actual = detail.songs.map { song: Song -> song.id })
+        assertEquals(expected = CoverArt.AlbumRiverYear, actual = detail.coverArt)
+        assertEquals(expected = "file://first.jpg", actual = detail.coverImageUri)
+        assertTrue(actual = detail.canPlayAll)
+    }
+
+    /**
+     * 添加歌曲后若目标详情页已打开，应立即重读仓库事实刷新详情歌曲列表。
+     */
+    @Test
+    fun addingSongRefreshesOpenLocalPlaylistDetailImmediately(): Unit {
+        val targetSong: Song = testSong(id = "song-new-detail", title = "New Detail", modifiedAt = 1L)
+        val playlist: LocalPlaylist = testPlaylist(id = "playlist-open", name = "打开的歌单", updatedAt = 20L)
+        val repository: RecordingLocalPlaylistRepository = RecordingLocalPlaylistRepository(
+            playlists = mutableListOf(playlist),
+            playlistDetails = mutableMapOf(
+                playlist.id to LocalPlaylistDetail(
+                    playlist = playlist,
+                    relations = emptyList(),
+                    availableSongs = emptyList(),
+                ),
+            ),
+        )
+        repository.onAddSong = { playlistId: String, songId: String ->
+            repository.putPlaylistDetail(
+                detail = LocalPlaylistDetail(
+                    playlist = playlist.copy(updatedAt = 30L),
+                    relations = listOf(
+                        LocalPlaylistSong(
+                            playlistId = playlistId,
+                            songId = songId,
+                            addedAt = 30L,
+                            sortOrder = 0,
+                        ),
+                    ),
+                    availableSongs = listOf(targetSong),
+                ),
+            )
+        }
+        val controller: MusicAppController = createController(localPlaylistRepository = repository)
+        controller.openLocalPlaylistDetail(playlistId = playlist.id)
+        assertTrue(actual = controller.uiState.selectedLocalPlaylistDetail?.songs.orEmpty().isEmpty())
+
+        controller.openAddToPlaylistFlow(song = targetSong)
+        controller.selectAddToPlaylistTarget(playlistId = playlist.id)
+        controller.addCurrentSongToSelectedPlaylist()
+
+        assertEquals(expected = playlist.id, actual = controller.uiState.selectedLocalPlaylistDetail?.id)
+        assertEquals(
+            expected = listOf(targetSong.id),
+            actual = controller.uiState.selectedLocalPlaylistDetail?.songs.orEmpty().map { song: Song -> song.id },
+        )
+    }
+
+    /**
      * 扫描页统计必须使用完整曲库总数，不能误用首页预览列表的 6 条限制。
      */
     @Test
@@ -1271,6 +1406,76 @@ class MusicAppControllerTest {
         assertEquals(expected = recentSongIds, actual = controller.uiState.queueSongIds)
         assertEquals(expected = clickedSong.id, actual = controller.uiState.currentSongId)
         assertEquals(expected = 3, actual = playbackRepository.getQueueState().currentIndex)
+    }
+
+    /**
+     * 歌单详情播放全部应按加入顺序建立整个歌单队列，并从第一首开始播放。
+     */
+    @Test
+    fun playLocalPlaylistAllUsesAvailableSongsInJoinOrder(): Unit = runTest {
+        val playbackRepository: InMemoryPlaybackRepository = InMemoryPlaybackRepository()
+        val songs: List<Song> = listOf(
+            testSong(id = "playlist-song-1", title = "Playlist One", modifiedAt = 1L),
+            testSong(id = "playlist-song-2", title = "Playlist Two", modifiedAt = 2L),
+            testSong(id = "playlist-song-3", title = "Playlist Three", modifiedAt = 3L),
+        )
+        val playlist: LocalPlaylist = testPlaylist(id = "playlist-queue", name = "队列歌单", updatedAt = 20L)
+        val controller: MusicAppController = createController(
+            playbackRepository = playbackRepository,
+            localPlaylistRepository = RecordingLocalPlaylistRepository(
+                playlists = mutableListOf(playlist),
+                playlistDetails = mutableMapOf(
+                    playlist.id to LocalPlaylistDetail(
+                        playlist = playlist,
+                        relations = emptyList(),
+                        availableSongs = songs,
+                    ),
+                ),
+            ),
+            controllerScope = backgroundScope,
+        )
+        controller.openLocalPlaylistDetail(playlistId = playlist.id)
+
+        controller.playSelectedLocalPlaylistAll()
+
+        assertEquals(expected = songs.map { song: Song -> song.id }, actual = controller.uiState.queueSongIds)
+        assertEquals(expected = songs.first().id, actual = controller.uiState.currentSongId)
+        assertEquals(expected = 0, actual = playbackRepository.getQueueState().currentIndex)
+    }
+
+    /**
+     * 歌单详情点击任意歌曲时，应保留整张歌单队列并从被点歌曲开始。
+     */
+    @Test
+    fun playLocalPlaylistSongUsesWholePlaylistQueueWithClickedStart(): Unit = runTest {
+        val playbackRepository: InMemoryPlaybackRepository = InMemoryPlaybackRepository()
+        val songs: List<Song> = listOf(
+            testSong(id = "playlist-click-1", title = "Click One", modifiedAt = 1L),
+            testSong(id = "playlist-click-2", title = "Click Two", modifiedAt = 2L),
+            testSong(id = "playlist-click-3", title = "Click Three", modifiedAt = 3L),
+        )
+        val playlist: LocalPlaylist = testPlaylist(id = "playlist-click", name = "点击歌单", updatedAt = 20L)
+        val controller: MusicAppController = createController(
+            playbackRepository = playbackRepository,
+            localPlaylistRepository = RecordingLocalPlaylistRepository(
+                playlists = mutableListOf(playlist),
+                playlistDetails = mutableMapOf(
+                    playlist.id to LocalPlaylistDetail(
+                        playlist = playlist,
+                        relations = emptyList(),
+                        availableSongs = songs,
+                    ),
+                ),
+            ),
+            controllerScope = backgroundScope,
+        )
+        controller.openLocalPlaylistDetail(playlistId = playlist.id)
+
+        controller.playSelectedLocalPlaylistSong(song = songs[2])
+
+        assertEquals(expected = songs.map { song: Song -> song.id }, actual = controller.uiState.queueSongIds)
+        assertEquals(expected = songs[2].id, actual = controller.uiState.currentSongId)
+        assertEquals(expected = 2, actual = playbackRepository.getQueueState().currentIndex)
     }
 
     /**

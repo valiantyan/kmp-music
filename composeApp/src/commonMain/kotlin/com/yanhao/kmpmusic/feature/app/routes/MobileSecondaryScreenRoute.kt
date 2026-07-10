@@ -11,12 +11,14 @@ import com.yanhao.kmpmusic.feature.app.LocalMusicSection
 import com.yanhao.kmpmusic.feature.app.MusicAppController
 import com.yanhao.kmpmusic.feature.app.MusicAppUiState
 import com.yanhao.kmpmusic.feature.app.SecondaryScreen
+import com.yanhao.kmpmusic.feature.app.SongMoreSourceContext
 import com.yanhao.kmpmusic.feature.screen.AlbumDetailScreen
 import com.yanhao.kmpmusic.feature.screen.AboutScreen
 import com.yanhao.kmpmusic.feature.screen.ArtistDetailScreen
 import com.yanhao.kmpmusic.feature.screen.AudioScanScreen
 import com.yanhao.kmpmusic.feature.screen.LocalMusicScreen
 import com.yanhao.kmpmusic.feature.screen.LocalMusicDiscoveryPlatform
+import com.yanhao.kmpmusic.feature.screen.LocalPlaylistDetailScreen
 import com.yanhao.kmpmusic.feature.screen.LocalPlaylistListScreen
 import com.yanhao.kmpmusic.feature.screen.LoginScreen
 import com.yanhao.kmpmusic.feature.screen.MissingLibraryItemScreen
@@ -215,11 +217,37 @@ fun MobileSecondaryScreenRoute(
         SecondaryScreen.LocalPlaylists -> LocalPlaylistListScreen(
             playlists = state.localPlaylists,
             onBack = controller::navigateBack,
+            onPlaylistOpen = controller::openLocalPlaylistDetail,
             modifier = modifier
                 .fillMaxSize()
                 .statusBarsPadding()
                 .navigationBarsPadding(),
             contentPadding = contentPadding,
+        )
+        SecondaryScreen.LocalPlaylistDetail -> state.selectedLocalPlaylistDetail?.let { detail ->
+            LocalPlaylistDetailScreen(
+                detail = detail,
+                currentSongId = state.currentSongId,
+                currentPlaybackStatus = state.playbackStatus,
+                onBack = controller::navigateBack,
+                onPlayAll = controller::playSelectedLocalPlaylistAll,
+                onSongPlay = controller::playSelectedLocalPlaylistSong,
+                onCurrentSongToggle = controller::togglePlayback,
+                onMore = { song: Song ->
+                    controller.openMore(
+                        song = song,
+                        sourceContext = SongMoreSourceContext.LocalPlaylistDetail,
+                    )
+                },
+                modifier = modifier
+                    .fillMaxSize()
+                    .statusBarsPadding()
+                    .navigationBarsPadding(),
+                contentPadding = contentPadding,
+            )
+        } ?: MissingLibraryItemScreen(
+            title = "歌单不可用",
+            onBack = controller::navigateBack,
         )
     }
 }

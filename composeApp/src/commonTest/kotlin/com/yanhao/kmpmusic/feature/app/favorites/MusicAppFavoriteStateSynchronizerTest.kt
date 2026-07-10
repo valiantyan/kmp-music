@@ -7,6 +7,7 @@ import com.yanhao.kmpmusic.domain.model.PlaybackHistory
 import com.yanhao.kmpmusic.domain.model.PlaybackStatus
 import com.yanhao.kmpmusic.domain.model.Song
 import com.yanhao.kmpmusic.domain.usecase.ToggleFavoriteUseCaseImpl
+import com.yanhao.kmpmusic.feature.app.LocalPlaylistDetailDisplayModel
 import com.yanhao.kmpmusic.feature.app.MusicAppUiState
 import com.yanhao.kmpmusic.feature.app.library.MusicLibraryProjector
 import kotlin.test.Test
@@ -90,6 +91,42 @@ class MusicAppFavoriteStateSynchronizerTest {
             expected = listOf("artist:artist"),
             actual = MusicLibraryProjector.buildArtists(nextState.favoriteSongs).map { artist -> artist.id },
         )
+    }
+
+    @Test
+    fun toggleFavoriteSyncsLocalPlaylistDetailSongs(): Unit {
+        val favoritesRepository = InMemoryFavoritesRepository(initialLikedSongIds = emptySet())
+        val synchronizer = FavoriteStateSynchronizer(
+            toggleFavoriteUseCase = ToggleFavoriteUseCaseImpl(favoritesRepository = favoritesRepository),
+            favoriteSongsResolver = { likedSongIds: Set<String>, preferredSongs: List<Song> ->
+                preferredSongs.filter { song: Song -> likedSongIds.contains(element = song.id) }
+                    .distinctBy { song -> song.id }
+                    .map { song: Song -> song.copy(isLiked = true) }
+            },
+            recentSongsBuilder = { _: MusicAppUiState, _: List<Song> -> emptyList() },
+        )
+        val playlistSong: Song = testSong(id = "playlist-song")
+        val state: MusicAppUiState = testState().copy(
+            selectedLocalPlaylistDetail = LocalPlaylistDetailDisplayModel(
+                id = "playlist",
+                name = "歌单",
+                availableSongCount = 1,
+                coverArt = CoverArt.HeroLocalMusic,
+                coverImageUri = null,
+                songs = listOf(playlistSong),
+            ),
+            currentSongId = playlistSong.id,
+            queueSongIds = listOf(playlistSong.id),
+        )
+
+        val nextState: MusicAppUiState = synchronizer.toggleFavorite(
+            state = state,
+            songId = playlistSong.id,
+        )
+
+        assertTrue(actual = nextState.selectedLocalPlaylistDetail?.songs?.single()?.isLiked == true)
+        assertTrue(actual = nextState.favoriteSongs.single().isLiked)
+        assertTrue(actual = nextState.currentSong?.isLiked == true)
     }
 
     private fun testState(): MusicAppUiState {

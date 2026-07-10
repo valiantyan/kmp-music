@@ -126,12 +126,7 @@ internal fun resolveMorePanelSong(
     state: MusicAppUiState,
     songId: String,
 ): Song? {
-    return state.currentSong?.takeIf { item -> item.id == songId }
-        ?: state.queueSongs.firstOrNull { item -> item.id == songId }
-        ?: state.localSongs.firstOrNull { item -> item.id == songId }
-        ?: state.homeLocalSongPreview.firstOrNull { item -> item.id == songId }
-        ?: state.recentSongs.firstOrNull { item -> item.id == songId }
-        ?: state.favoriteSongs.firstOrNull { item -> item.id == songId }
+    return state.findKnownSong(songId = songId)
 }
 
 /**

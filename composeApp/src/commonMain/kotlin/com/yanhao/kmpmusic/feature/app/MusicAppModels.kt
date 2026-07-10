@@ -115,6 +115,33 @@ data class LocalPlaylistCardDisplayModel(
 )
 
 /**
+ * 移动端歌单详情展示模型，保证详情页、播放队列和更多面板读取同一份可用歌曲列表。
+ *
+ * @property id 歌单稳定标识。
+ * @property name 用户可见歌单名称。
+ * @property availableSongCount 当前仍可播放歌曲数量。
+ * @property coverArt 没有扫描封面时使用的应用内兜底封面。
+ * @property coverImageUri 第一首可用歌曲的扫描封面，缺失时使用 [coverArt]。
+ * @property songs 当前仍可播放歌曲，按首次加入歌单顺序排列。
+ * @property emptyText 空歌单详情页解释文案。
+ */
+data class LocalPlaylistDetailDisplayModel(
+    val id: String,
+    val name: String,
+    val availableSongCount: Int,
+    val coverArt: CoverArt,
+    val coverImageUri: String?,
+    val songs: List<Song>,
+    val emptyText: String = "暂无可播放歌曲",
+) {
+    /**
+     * 播放全部只在存在当前可用歌曲时启用。
+     */
+    val canPlayAll: Boolean
+        get() = songs.isNotEmpty()
+}
+
+/**
  * 手机端固定底栏的整体位置策略。
  */
 enum class MobileFixedBarPlacement {
@@ -181,6 +208,7 @@ sealed interface SecondaryScreen {
     data object AudioScan : SecondaryScreen
     data object RecentPlayed : SecondaryScreen
     data object LocalPlaylists : SecondaryScreen
+    data object LocalPlaylistDetail : SecondaryScreen
     data class LocalMusic(val initialSection: LocalMusicSection = LocalMusicSection.Songs) : SecondaryScreen
 }
 
@@ -283,6 +311,7 @@ private fun mobileFixedBarModeFor(screen: SecondaryScreen?): MobileFixedBarMode 
         SecondaryScreen.Login,
         SecondaryScreen.RecentPlayed,
         SecondaryScreen.LocalPlaylists,
+        SecondaryScreen.LocalPlaylistDetail,
         is SecondaryScreen.LocalMusic,
         -> MobileFixedBarMode.SecondaryWithMiniPlayer
     }
@@ -317,6 +346,7 @@ private fun SecondaryScreen.routeName(): String {
         SecondaryScreen.AudioScan -> "AudioScan"
         SecondaryScreen.RecentPlayed -> "RecentPlayed"
         SecondaryScreen.LocalPlaylists -> "LocalPlaylists"
+        SecondaryScreen.LocalPlaylistDetail -> "LocalPlaylistDetail"
         is SecondaryScreen.LocalMusic -> "LocalMusic:${initialSection.name}"
     }
 }
@@ -330,6 +360,7 @@ data class MusicAppUiState(
     val localAlbums: List<Album> = emptyList(),
     val localArtists: List<Artist> = emptyList(),
     val localPlaylists: List<LocalPlaylistCardDisplayModel> = emptyList(),
+    val selectedLocalPlaylistDetail: LocalPlaylistDetailDisplayModel? = null,
     val favoriteSongs: List<Song> = emptyList(),
     val queueSongsSnapshot: List<Song> = emptyList(),
     val likedSongIds: Set<String>,
@@ -404,7 +435,7 @@ data class MusicAppUiState(
         get() = MusicLibraryProjector.buildDetailSongs(
             queueSongsSnapshot = queueSongsSnapshot,
             localSongs = localSongs,
-            homeLocalSongPreview = homeLocalSongPreview,
+            homeLocalSongPreview = homeLocalSongPreview + selectedLocalPlaylistDetail.orEmptySongs(),
             favoriteSongs = favoriteSongs,
         )
 
@@ -448,19 +479,25 @@ data class MusicAppUiState(
      * 当前播放歌曲，没有真实播放时不显示迷你播放器。
      */
     val currentSong: Song? = currentSongId?.let { songId ->
-        queueSongsSnapshot.firstOrNull { song -> song.id == songId }
-            ?: localSongs.firstOrNull { song -> song.id == songId }
-            ?: homeLocalSongPreview.firstOrNull { song -> song.id == songId }
-            ?: favoriteSongs.firstOrNull { song -> song.id == songId }
+        findKnownSong(songId = songId)
     }
 
     /**
      * 当前播放队列歌曲。
      */
     val queueSongs: List<Song> = queueSongIds.mapNotNull { songId ->
-        queueSongsSnapshot.firstOrNull { song -> song.id == songId }
+        findKnownSong(songId = songId)
+    }
+
+    /**
+     * 在所有当前 UI 已知歌曲来源中按 id 找歌，供播放、队列和全局面板复用同一解析顺序。
+     */
+    fun findKnownSong(songId: String): Song? {
+        return queueSongsSnapshot.firstOrNull { song -> song.id == songId }
             ?: localSongs.firstOrNull { song -> song.id == songId }
             ?: homeLocalSongPreview.firstOrNull { song -> song.id == songId }
+            ?: selectedLocalPlaylistDetail?.songs?.firstOrNull { song -> song.id == songId }
+            ?: recentSongs.firstOrNull { song -> song.id == songId }
             ?: favoriteSongs.firstOrNull { song -> song.id == songId }
     }
 
@@ -497,4 +534,9 @@ data class MusicAppUiState(
      * 当前歌手详情对象，曲库为空或歌手缺失时为 null。
      */
     val selectedArtist: Artist? = detailArtists.firstOrNull { artist -> artist.id == selectedArtistId }
+}
+
+// 未打开歌单详情时，详情歌曲来源为空列表，保持既有专辑/歌手投影口径。
+private fun LocalPlaylistDetailDisplayModel?.orEmptySongs(): List<Song> {
+    return this?.songs.orEmpty()
 }

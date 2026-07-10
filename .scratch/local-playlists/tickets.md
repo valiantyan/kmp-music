@@ -227,19 +227,56 @@
 
 **阻塞项：** 我的页真实歌单入口与移动端歌单列表页；添加到已有歌单的选择、搜索与幂等保存。
 
-- [ ] 歌单卡片无论当前可用歌曲数量是否为 0 都可以进入详情页。
-- [ ] 歌单详情页视觉对齐专辑详情页形态，优先复用或对齐既有专辑详情页组件结构。
-- [ ] 歌单详情页展示歌单封面、名称、当前可用歌曲数量、播放全部按钮和歌单歌曲列表。
-- [ ] 歌单详情页只展示当前仍可用歌曲，不可用歌曲关系保留在数据库中。
-- [ ] 歌单歌曲列表按首次加入顺序升序展示。
-- [ ] 播放全部按当前可用歌曲的加入顺序建立歌单播放队列。
-- [ ] 点击任意歌曲时使用整个歌单当前可用歌曲列表建队列，并从被点击歌曲开始播放。
-- [ ] 空歌单详情页显示“暂无可播放歌曲”，播放全部按钮保留但置灰不可点击。
-- [ ] 歌单详情页歌曲更多面板保留原有歌曲操作，但不显示“添加到歌单”。
-- [ ] 移动端 chrome 测试覆盖歌单列表页和歌单详情页隐藏底部 Tab、保留全局迷你播放器且内容不被遮挡。
-- [ ] 控制器测试覆盖添加歌曲后目标歌单详情页歌曲列表即时刷新。
-- [ ] 播放行为测试覆盖播放全部和点击任意歌曲时的歌单播放队列。
-- [ ] 验证门禁：新增或更新歌单详情内容、播放队列、空态、更多面板上下文和移动端 chrome 测试，并运行 `./gradlew :composeApp:desktopTest :composeApp:compileDebugKotlinAndroid`。
+- [x] 歌单卡片无论当前可用歌曲数量是否为 0 都可以进入详情页。
+- [x] 歌单详情页视觉对齐专辑详情页形态，优先复用或对齐既有专辑详情页组件结构。
+- [x] 歌单详情页展示歌单封面、名称、当前可用歌曲数量、播放全部按钮和歌单歌曲列表。
+- [x] 歌单详情页只展示当前仍可用歌曲，不可用歌曲关系保留在数据库中。
+- [x] 歌单歌曲列表按首次加入顺序升序展示。
+- [x] 播放全部按当前可用歌曲的加入顺序建立歌单播放队列。
+- [x] 点击任意歌曲时使用整个歌单当前可用歌曲列表建队列，并从被点击歌曲开始播放。
+- [x] 空歌单详情页显示“暂无可播放歌曲”，播放全部按钮保留但置灰不可点击。
+- [x] 歌单详情页歌曲更多面板保留原有歌曲操作，但不显示“添加到歌单”。
+- [x] 移动端 chrome 测试覆盖歌单列表页和歌单详情页隐藏底部 Tab、保留全局迷你播放器且内容不被遮挡。
+- [x] 控制器测试覆盖添加歌曲后目标歌单详情页歌曲列表即时刷新。
+- [x] 播放行为测试覆盖播放全部和点击任意歌曲时的歌单播放队列。
+- [x] 验证门禁：新增或更新歌单详情内容、播放队列、空态、更多面板上下文和移动端 chrome 测试，并运行 `./gradlew :composeApp:desktopTest :composeApp:compileDebugKotlinAndroid`。
+
+**实现摘要：**
+
+- 新增移动端歌单详情路由和 `LocalPlaylistDetailScreen`，歌单列表卡片可进入详情；空歌单和无可用歌曲歌单也能进入详情。
+- 新增 `LocalPlaylistDetailDisplayModel`，详情页只消费仓库的当前可用歌曲列表，按首次加入顺序展示；不可用歌曲关系继续由仓库保留，不进入 UI 展示、数量或播放队列口径。
+- 歌单详情页复用专辑详情工具栏、播放全部按钮、歌曲行和封面视觉 token，展示封面、名称、当前可用歌曲数量、播放全部按钮和歌曲列表；空态显示“暂无可播放歌曲”，播放全部按钮保留但置灰。
+- 新增歌单播放入口：播放全部从第一首可用歌曲开始，点击任意歌曲时使用整张歌单当前可用歌曲列表建队列，并从被点击歌曲开始播放。
+- 歌单详情页歌曲更多面板使用 `SongMoreSourceContext.LocalPlaylistDetail`，保留收藏、查看专辑和查看歌手等原有操作，但隐藏“添加到歌单”；收藏切换会同步刷新歌单详情中的歌曲收藏态。
+- 为保持当前 ticket 范围，桌面端只补齐 sealed 路由空分支以保证编译完整，不实现桌面入口、桌面列表或桌面详情页面。
+
+**验证命令与结果：**
+
+- `./gradlew :composeApp:desktopTest --tests com.yanhao.kmpmusic.feature.app.MusicAppControllerTest --tests com.yanhao.kmpmusic.feature.app.favorites.MusicAppFavoriteStateSynchronizerTest --tests com.yanhao.kmpmusic.feature.app.surfaces.AppPanelsTest --tests com.yanhao.kmpmusic.feature.screen.AlbumDetailContentTest`：通过。
+- `./gradlew :composeApp:desktopTest --tests com.yanhao.kmpmusic.feature.app.MusicAppControllerTest --tests com.yanhao.kmpmusic.feature.app.favorites.MusicAppFavoriteStateSynchronizerTest --tests com.yanhao.kmpmusic.feature.app.surfaces.AppPanelsTest`：通过。
+- `git diff --check --cached`：通过。
+- `./gradlew :composeApp:desktopTest :composeApp:compileDebugKotlinAndroid`：通过。
+- Gradle 输出仍包含既有弃用属性提示，以及 `MusicAppControllerTest` 中既有 “No cast needed” 警告；本任务未修改对应旧位置。
+
+**code-review 结论：**
+
+- 固定基线为 `b9a82611db8eb50507e59426440239b0f3fcaf71`。提交前 `BASE_SHA...HEAD` 为空，审查使用同一固定基线下的 staged diff，并保持基线不变。
+- Standards 轴初审发现 `LocalPlaylistDetailScreen` 复制专辑详情封面尺寸、圆角和描边视觉 token，违反项目“设计 token 优先共享”的要求；已把详情封面规格提升为 `detailHeroCover*` 共享 internal token，并让专辑详情和歌单详情共同复用。最终复查未发现硬性违规。
+- Standards 轴剩余判断型气味：新增二级路由仍需同步多个 sealed 分支，这是当前导航模型的既有扩展方式；`findKnownSong()` 仍以歌曲 id 在多个 UI 已知来源中解析歌曲，但已从更多面板和队列解析链中收敛为单一入口。
+- Spec 轴初审发现未跟踪的新详情页未进入 diff，以及歌单详情收藏态未同步的风险。已暂存新文件并补充 `FavoriteStateSynchronizer` 对 `selectedLocalPlaylistDetail.songs` 的同步；最终复查未发现当前 ticket 范围内缺失、错误或 scope creep。
+
+**对抗式审查结论：**
+
+- 风险：误实现后续桌面端歌单页面。证据：桌面端只在 `DesktopSecondaryScreenRoute` 为 `SecondaryScreen.LocalPlaylistDetail` 补 `Unit` 分支，未新增桌面歌单入口、桌面列表或桌面详情 UI。结论：未越界。
+- 风险：空歌单或无可用歌曲歌单无法进入详情。证据：`openLocalPlaylistDetailAllowsEmptyPlaylist` 覆盖 0 可用歌曲仍进入 `SecondaryScreen.LocalPlaylistDetail`，详情模型 `canPlayAll` 为 false 且空态文案为“暂无可播放歌曲”。结论：已覆盖。
+- 风险：播放队列只播放单曲或从错误位置开始。证据：`playLocalPlaylistAllUsesAvailableSongsInJoinOrder` 和 `playLocalPlaylistSongUsesWholePlaylistQueueWithClickedStart` 分别验证播放全部与点击第三首时的队列 id 和 `currentIndex`。结论：已覆盖。
+- 风险：歌单详情歌曲更多面板漏出“添加到歌单”或找不到详情歌曲。证据：移动端路由用 `SongMoreSourceContext.LocalPlaylistDetail` 打开更多面板，`AppPanelsTest` 覆盖隐藏添加入口和详情歌曲解析。结论：已覆盖。
+- 风险：详情页展示不可用歌曲或添加歌曲后旧详情不刷新。证据：详情模型只使用 `LocalPlaylistDetail.availableSongs`；控制器测试覆盖不可用关系不进入详情歌曲列表，并覆盖添加歌曲后已打开详情列表即时刷新。结论：已覆盖。
+
+**剩余风险或未完成项：**
+
+- 未做真机、模拟器或截图对照；歌单详情已复用专辑详情组件和视觉 token，但仍保留少量视觉还原风险。
+- 本 ticket 不包含桌面端歌单入口、桌面歌单列表、桌面歌单详情或桌面端弹窗适配，这些仍由后续 ticket 实现。
 
 ## 桌面端歌单入口、页面与弹窗适配
 

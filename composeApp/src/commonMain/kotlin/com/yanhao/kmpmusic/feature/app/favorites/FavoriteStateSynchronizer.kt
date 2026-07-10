@@ -2,6 +2,7 @@ package com.yanhao.kmpmusic.feature.app.favorites
 
 import com.yanhao.kmpmusic.domain.model.Song
 import com.yanhao.kmpmusic.domain.usecase.ToggleFavoriteUseCase
+import com.yanhao.kmpmusic.feature.app.LocalPlaylistDetailDisplayModel
 import com.yanhao.kmpmusic.feature.app.MusicAppUiState
 
 /**
@@ -33,7 +34,18 @@ class FavoriteStateSynchronizer(
             songId = songId,
             isLiked = isLiked,
         )
-        val preferredSongs: List<Song> = homePreview + localSongs + queueSnapshot + state.favoriteSongs
+        val selectedLocalPlaylistDetail: LocalPlaylistDetailDisplayModel? = state.selectedLocalPlaylistDetail
+        val updatedLocalPlaylistDetail: LocalPlaylistDetailDisplayModel? = selectedLocalPlaylistDetail?.copy(
+            songs = selectedLocalPlaylistDetail.songs.updateFavoriteFlag(
+                songId = songId,
+                isLiked = isLiked,
+            ),
+        )
+        val preferredSongs: List<Song> = homePreview +
+            localSongs +
+            queueSnapshot +
+            updatedLocalPlaylistDetail.orEmptySongs() +
+            state.favoriteSongs
         val favoriteSongs: List<Song> = resolveFavoriteSongs(
             likedSongIds = likedSongIds,
             songId = songId,
@@ -47,6 +59,7 @@ class FavoriteStateSynchronizer(
             localSongs = localSongs,
             favoriteSongs = favoriteSongs,
             queueSongsSnapshot = queueSnapshot,
+            selectedLocalPlaylistDetail = updatedLocalPlaylistDetail,
         )
         return stateWithUpdatedCollections.copy(
             recentSongs = recentSongsBuilder(
@@ -102,5 +115,10 @@ class FavoriteStateSynchronizer(
         val updatedSongs: MutableList<Song> = toMutableList()
         updatedSongs[songIndex] = this[songIndex].copy(isLiked = isLiked)
         return updatedSongs
+    }
+
+    // 歌单详情未打开时不额外扩展收藏候选。
+    private fun LocalPlaylistDetailDisplayModel?.orEmptySongs(): List<Song> {
+        return this?.songs.orEmpty()
     }
 }

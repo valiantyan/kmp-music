@@ -84,6 +84,7 @@ fun MobileContentLayout(
             secondaryScreen == SecondaryScreen.AlbumDetail ||
             secondaryScreen == SecondaryScreen.ArtistDetail ||
             secondaryScreen == SecondaryScreen.LocalPlaylists ||
+            secondaryScreen == SecondaryScreen.LocalPlaylistDetail ||
             secondaryScreen == SecondaryScreen.Player
         ) {
             MobileSecondaryScreenRoute(
