@@ -86,4 +86,4 @@ Status: ready-for-human
 
 ### 提交
 
-- 待提交后补充 commit hash。
+- 修复提交：`432fa94a`
