@@ -249,6 +249,23 @@ class MusicAppNavigationControllerTest {
             expected = MobileFixedBarPlacement.Hidden,
             actual = aboutState.fixedBarMode.fixedBarPlacement,
         )
+
+        val localPlaylistManagementState: NavigationState = NavigationState(
+            secondaryScreen = SecondaryScreen.LocalPlaylistManagement,
+        )
+        assertEquals(
+            expected = MobileFixedBarMode.SecondaryWithoutChrome,
+            actual = localPlaylistManagementState.fixedBarMode,
+        )
+        assertFalse(actual = localPlaylistManagementState.fixedBarMode.showsBottomNavigation)
+        assertEquals(
+            expected = MobileFixedBarPlacement.Hidden,
+            actual = localPlaylistManagementState.fixedBarMode.fixedBarPlacement,
+        )
+        assertEquals(
+            expected = SecondaryScreen.LocalPlaylistManagement,
+            actual = localPlaylistManagementState.chromeOverlayScreen,
+        )
     }
 
     /** 构造只包含导航测试所需最小字段的 [MusicAppUiState]。 */

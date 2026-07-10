@@ -572,10 +572,10 @@ class MusicAppControllerTest {
     }
 
     /**
-     * 歌单管理页从列表进入时清空旧选择，并保持二级页迷你播放器 chrome。
+     * 歌单管理页从列表进入时清空旧选择，并作为覆盖页隐藏迷你播放器 chrome。
      */
     @Test
-    fun openLocalPlaylistManagementClearsSelectionAndUsesSecondaryChrome(): Unit {
+    fun openLocalPlaylistManagementClearsSelectionAndUsesOverlayChrome(): Unit {
         val playlist: LocalPlaylist = testPlaylist(id = "playlist-manage", name = "管理歌单", updatedAt = 20L)
         val controller: MusicAppController = createController(
             localPlaylistRepository = RecordingLocalPlaylistRepository(
@@ -589,8 +589,12 @@ class MusicAppControllerTest {
         assertEquals(expected = emptySet(), actual = controller.uiState.selectedManagedLocalPlaylistIds)
         assertFalse(actual = controller.uiState.canDeleteManagedLocalPlaylists)
         assertEquals(
-            expected = MobileFixedBarMode.SecondaryWithMiniPlayer,
+            expected = MobileFixedBarMode.SecondaryWithoutChrome,
             actual = controller.uiState.navigationState.fixedBarMode,
+        )
+        assertEquals(
+            expected = SecondaryScreen.LocalPlaylistManagement,
+            actual = controller.uiState.navigationState.chromeOverlayScreen,
         )
     }
 

@@ -300,6 +300,7 @@ private fun mobileFixedBarModeFor(screen: SecondaryScreen?): MobileFixedBarMode 
         SecondaryScreen.Player -> MobileFixedBarMode.Player
         SecondaryScreen.About,
         SecondaryScreen.AudioScan,
+        SecondaryScreen.LocalPlaylistManagement,
         -> MobileFixedBarMode.SecondaryWithoutChrome
         is SecondaryScreen.Search,
         SecondaryScreen.AlbumDetail,
@@ -308,7 +309,6 @@ private fun mobileFixedBarModeFor(screen: SecondaryScreen?): MobileFixedBarMode 
         SecondaryScreen.Login,
         SecondaryScreen.RecentPlayed,
         SecondaryScreen.LocalPlaylists,
-        SecondaryScreen.LocalPlaylistManagement,
         SecondaryScreen.LocalPlaylistDetail,
         is SecondaryScreen.LocalMusic,
         -> MobileFixedBarMode.SecondaryWithMiniPlayer

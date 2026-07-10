@@ -341,7 +341,8 @@ private fun MobileOverlayScreenRoute(
  * 自带懒列表滚动的覆盖页不能再包一层纵向滚动容器，否则会触发无限高度测量。
  */
 internal fun shouldRenderOverlayScreenDirectly(overlayScreen: SecondaryScreen): Boolean {
-    return overlayScreen == SecondaryScreen.AudioScan
+    return overlayScreen == SecondaryScreen.AudioScan ||
+        overlayScreen == SecondaryScreen.LocalPlaylistManagement
 }
 
 /**

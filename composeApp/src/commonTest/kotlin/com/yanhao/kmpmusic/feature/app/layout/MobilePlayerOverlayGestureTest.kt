@@ -178,12 +178,15 @@ class MobilePlayerOverlayGestureTest {
     }
 
     /**
-     * 扫描页自带懒列表滚动，应在覆盖层中直接渲染，避免被普通覆盖页滚动容器二次包裹。
+     * 自带懒列表滚动的覆盖页应直接渲染，避免被普通覆盖页滚动容器二次包裹。
      */
     @Test
     fun shouldRenderOverlayScreenDirectlyOnlyForLazyOverlayPages(): Unit {
         assertTrue(
             actual = shouldRenderOverlayScreenDirectly(overlayScreen = SecondaryScreen.AudioScan),
+        )
+        assertTrue(
+            actual = shouldRenderOverlayScreenDirectly(overlayScreen = SecondaryScreen.LocalPlaylistManagement),
         )
         assertFalse(
             actual = shouldRenderOverlayScreenDirectly(overlayScreen = SecondaryScreen.About),
