@@ -1,13 +1,15 @@
 package com.yanhao.kmpmusic.feature.screen
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
@@ -30,6 +32,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusState
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -53,21 +58,15 @@ internal fun SearchTopBar(
             .fillMaxWidth()
             .height(height = searchTopBarHeight)
             .background(color = searchTopBarColor)
-            .padding(horizontal = searchHorizontalPadding),
-        horizontalArrangement = Arrangement.spacedBy(space = 16.dp),
+            .padding(
+                start = searchTopBarStartPadding,
+                end = searchTopBarEndPadding,
+            ),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        SearchRoundIconButton(
-            contentDescription = "返回",
+        SearchToolbarBackButton(
             onClick = onBack,
-        ) {
-            Icon(
-                imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
-                contentDescription = null,
-                modifier = Modifier.size(size = 20.dp),
-                tint = searchAccentColor,
-            )
-        }
+        )
         SearchInputPill(
             query = query,
             onQuery = onQuery,
@@ -78,7 +77,32 @@ internal fun SearchTopBar(
     }
 }
 
-// 搜索输入框直接接控制器 query，清空按钮复用同一条搜索状态链路。
+// 返回槽使用 Figma 48dp 稳定宽度，避免输入框宽度随图标状态跳动。
+@Composable
+private fun SearchToolbarBackButton(
+    onClick: () -> Unit,
+) {
+    Box(
+        modifier = Modifier
+            .width(width = searchTopBarBackSlotWidth)
+            .height(height = searchTopBarHeight)
+            .semantics { this.contentDescription = "返回" }
+            .clickable(
+                role = Role.Button,
+                onClick = onClick,
+            ),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
+            contentDescription = null,
+            modifier = Modifier.size(size = 24.dp),
+            tint = searchToolbarContentColor,
+        )
+    }
+}
+
+// 搜索输入框直接接控制器 query，框内提交按钮复用同一条搜索状态链路。
 @Composable
 private fun SearchInputPill(
     query: String,
@@ -90,6 +114,7 @@ private fun SearchInputPill(
     var textFieldValue: TextFieldValue by remember {
         mutableStateOf(value = TextFieldValue(text = query))
     }
+    var isInputFocused: Boolean by remember { mutableStateOf(value = false) }
     LaunchedEffect(query, textFieldValue.text) {
         if (textFieldValue.text != query) {
             textFieldValue = TextFieldValue(
@@ -103,16 +128,13 @@ private fun SearchInputPill(
             .height(height = searchInputHeight)
             .clip(shape = CircleShape)
             .background(color = searchInputColor)
-            .padding(start = 18.dp, end = 12.dp),
-        horizontalArrangement = Arrangement.spacedBy(space = 12.dp),
+            .padding(
+                horizontal = searchInputHorizontalPadding,
+                vertical = searchInputVerticalPadding,
+            ),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Icon(
-            imageVector = Icons.Rounded.Search,
-            contentDescription = null,
-            modifier = Modifier.size(size = 18.dp),
-            tint = searchPlaceholderTextColor,
-        )
+        SearchInputLeadingIcon()
         BasicTextField(
             value = textFieldValue,
             onValueChange = { nextValue: TextFieldValue ->
@@ -122,27 +144,31 @@ private fun SearchInputPill(
             modifier = Modifier
                 .weight(weight = 1f)
                 .onFocusChanged { focusState: FocusState ->
+                    isInputFocused = focusState.isFocused
                     onInputFocusChanged(focusState.isFocused)
                 },
             textStyle = TextStyle(
                 color = searchPrimaryTextColor,
-                fontSize = 14.sp,
-                lineHeight = 20.sp,
-                fontWeight = FontWeight.Medium,
+                fontSize = 16.sp,
+                lineHeight = 22.sp,
+                fontWeight = FontWeight.Normal,
             ),
-            cursorBrush = SolidColor(value = searchAccentColor),
+            cursorBrush = SolidColor(value = searchToolbarAccentColor),
             singleLine = true,
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
             keyboardActions = KeyboardActions(onSearch = { onCommitSearch() }),
             decorationBox = { innerTextField ->
                 Box(contentAlignment = Alignment.CenterStart) {
-                    if (query.isEmpty()) {
+                    if (textFieldValue.text.isEmpty()) {
                         Text(
-                            text = "搜索歌曲、专辑或艺人",
+                            text = "搜索...",
+                            modifier = Modifier.padding(
+                                start = if (isInputFocused) 3.dp else 0.dp,
+                            ),
                             color = searchPlaceholderTextColor,
-                            fontSize = 14.sp,
-                            lineHeight = 20.sp,
-                            fontWeight = FontWeight.Medium,
+                            fontSize = 16.sp,
+                            lineHeight = 22.sp,
+                            fontWeight = FontWeight.Normal,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                         )
@@ -151,17 +177,112 @@ private fun SearchInputPill(
                 }
             },
         )
-        SearchRoundIconButton(
-            contentDescription = "清空搜索",
-            onClick = { onQuery("") },
-            size = 24.dp,
+        SearchInputTrailingAction(
+            hasQuery = textFieldValue.text.isNotEmpty(),
+            onClear = {
+                textFieldValue = TextFieldValue(text = "")
+                onQuery("")
+            },
+        )
+        SearchInputDivider()
+        SearchSubmitButton(onClick = onCommitSearch)
+    }
+}
+
+// 搜索图标槽按 Figma 保留 36dp 点击前导空间，图标本身保持 20dp。
+@Composable
+private fun SearchInputLeadingIcon() {
+    Box(
+        modifier = Modifier.size(size = searchInputIconSlotSize),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            imageVector = Icons.Rounded.Search,
+            contentDescription = null,
+            modifier = Modifier.size(size = searchInputIconSize),
+            tint = searchPlaceholderTextColor,
+        )
+    }
+}
+
+// 有输入内容时显示清除按钮；空输入保留同宽槽位，避免右侧搜索按钮跳动。
+@Composable
+private fun SearchInputTrailingAction(
+    hasQuery: Boolean,
+    onClear: () -> Unit,
+) {
+    if (!hasQuery) {
+        Spacer(modifier = Modifier.size(size = searchInputMicSlotSize))
+        return
+    }
+    Box(
+        modifier = Modifier.size(size = searchInputMicSlotSize),
+        contentAlignment = Alignment.Center,
+    ) {
+        Box(
+            modifier = Modifier
+                .size(size = searchClearButtonSize)
+                .clip(shape = CircleShape)
+                .background(color = searchClearButtonColor)
+                .semantics { this.contentDescription = "清除输入内容" }
+                .clickable(
+                    role = Role.Button,
+                    onClick = onClear,
+                ),
+            contentAlignment = Alignment.Center,
         ) {
             Icon(
                 imageVector = Icons.Rounded.Close,
                 contentDescription = null,
-                modifier = Modifier.size(size = 14.dp),
-                tint = searchSecondaryTextColor,
+                modifier = Modifier.size(size = searchClearIconSize),
+                tint = searchClearIconColor,
             )
         }
+    }
+}
+
+// 搜索框内分隔线保留 4dp 左右呼吸空间，匹配 COUI 搜索框结构。
+@Composable
+private fun SearchInputDivider() {
+    Box(
+        modifier = Modifier
+            .width(width = searchInputDividerSlotWidth)
+            .height(height = searchInputIconSlotSize),
+        contentAlignment = Alignment.Center,
+    ) {
+        Box(
+            modifier = Modifier
+                .width(width = 1.dp)
+                .height(height = searchInputDividerHeight)
+                .background(color = searchToolbarDividerColor),
+        )
+    }
+}
+
+// 提交按钮对应 Figma 右侧“搜索”文字按钮，颜色按用户要求切换为 App 绿色。
+@Composable
+private fun SearchSubmitButton(
+    onClick: () -> Unit,
+) {
+    Box(
+        modifier = Modifier
+            .width(width = searchSubmitButtonWidth)
+            .height(height = searchSubmitButtonHeight)
+            .clip(shape = CircleShape)
+            .clickable(
+                role = Role.Button,
+                onClick = onClick,
+            ),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = "搜索",
+            color = searchToolbarAccentColor,
+            fontSize = 14.sp,
+            lineHeight = 20.sp,
+            fontWeight = FontWeight.Medium,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
     }
 }
