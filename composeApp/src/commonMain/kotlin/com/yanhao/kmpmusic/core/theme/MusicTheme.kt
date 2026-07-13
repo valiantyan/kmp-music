@@ -40,6 +40,8 @@ object MusicColors {
     val MutedLight: Color = Color(0xFFA7ADB5)
     val Line: Color = Color(0xFFE5EAED)
     val Paper: Color = Color(0xFFFBFCFD)
+    /** 移动端普通页面统一使用的纯白背景。 */
+    val PageBackground: Color = Color(0xFFFFFFFF)
     val Soft: Color = Color(0xFFF1F4F5)
     val SoftAlt: Color = Color(0xFFF7F9FA)
     val PlayingRed: Color = Color(0xFFE84848)
@@ -175,15 +177,15 @@ fun KmpMusicTheme(
     val colors = if (useDarkTheme) {
         darkColorScheme(
             primary = MusicColors.Accent,
-            background = MusicColors.DarkPaper,
+            background = MusicColors.PageBackground,
             surface = MusicColors.DarkPaper,
-            onBackground = Color.White,
+            onBackground = MusicColors.Ink,
             onSurface = Color.White,
         )
     } else {
         lightColorScheme(
             primary = MusicColors.Accent,
-            background = MusicColors.Paper,
+            background = MusicColors.PageBackground,
             surface = MusicColors.Paper,
             onBackground = MusicColors.Ink,
             onSurface = MusicColors.Ink,

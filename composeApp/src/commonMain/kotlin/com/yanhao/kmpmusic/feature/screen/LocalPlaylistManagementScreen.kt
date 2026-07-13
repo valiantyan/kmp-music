@@ -242,7 +242,7 @@ private fun LocalPlaylistManagementDeleteBar(
     }
 }
 
-private val localPlaylistManagementBackgroundColor: Color = Color(0xFFF8FAFB)
+private val localPlaylistManagementBackgroundColor: Color = MusicColors.PageBackground
 private val localPlaylistManagementAccentColor: Color = Color(0xFF006A62)
 private val localPlaylistManagementLineColor: Color = Color(0xFFECEEEF)
 private val localPlaylistManagementSelectionColor: Color = Color(0xFF6D7A77)

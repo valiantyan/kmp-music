@@ -47,7 +47,9 @@ import com.yanhao.kmpmusic.domain.model.LocalMusicScanState
 import com.yanhao.kmpmusic.domain.model.LocalMusicSourceSummary
 import com.yanhao.kmpmusic.feature.components.MobileSecondaryPage
 
-private val scanPageBackground = Color(0xFFF8FAFB)
+private val scanPageBackground: Color = MusicColors.PageBackground
+// 扫描目录行保留原有弱化底色，避免页面背景调整改变组件层级。
+private val scanDirectoryRowBackground: Color = Color(0xFFF8FAFB)
 private val scanPageInk = Color(0xFF191C1D)
 private val scanPageMuted = Color(0xFF3D4947)
 private val scanPageAccent = Color(0xFF26A69A)
@@ -420,7 +422,7 @@ private fun ScanDirectoryRow(source: LocalMusicSourceSummary) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .background(color = scanPageBackground, shape = RoundedCornerShape(size = scaledDp(12.dp)))
+            .background(color = scanDirectoryRowBackground, shape = RoundedCornerShape(size = scaledDp(12.dp)))
             .border(
                 width = scaledDp(1.dp),
                 color = MusicColors.Line.copy(alpha = 0.30f),

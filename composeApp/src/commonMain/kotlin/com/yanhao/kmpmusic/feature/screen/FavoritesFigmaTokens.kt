@@ -3,9 +3,10 @@ package com.yanhao.kmpmusic.feature.screen
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.yanhao.kmpmusic.core.theme.MusicColors
 
-// Figma 收藏页背景色，来自节点 899:1147。
-internal val favoritesBackgroundColor: Color = Color(0xFFF8FAFB)
+// 收藏页跟随统一的移动端页面纯白背景。
+internal val favoritesBackgroundColor: Color = MusicColors.PageBackground
 
 // Figma 收藏页主操作色，来自播放全部按钮。
 internal val favoritesActionColor: Color = Color(0xFF26A69A)

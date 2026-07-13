@@ -11,9 +11,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.unit.Density
@@ -43,14 +40,7 @@ fun MobileAppLayout(
     BoxWithConstraints(
         modifier = modifier
             .fillMaxSize()
-            .background(Color(0xFFEFF3F5))
-            .background(
-                brush = Brush.radialGradient(
-                    colors = listOf(MusicColors.Accent.copy(alpha = 0.10f), Color.Transparent),
-                    center = Offset(x = 120f, y = 110f),
-                    radius = 520f,
-                ),
-            ),
+            .background(color = MusicColors.PageBackground),
         contentAlignment = Alignment.TopCenter,
     ) {
         val appWidth: Dp = if (maxWidth < MusicDimens.AppMaxWidth) {
@@ -71,14 +61,7 @@ fun MobileAppLayout(
                 modifier = Modifier
                     .width(appWidth)
                     .fillMaxHeight()
-                    .background(
-                        brush = Brush.radialGradient(
-                            colors = listOf(MusicColors.Accent.copy(alpha = 0.16f), Color.Transparent),
-                            center = Offset(x = 135f * visualScale, y = 130f * visualScale),
-                            radius = 420f * visualScale,
-                        ),
-                    )
-                    .background(MaterialTheme.colorScheme.background.copy(alpha = 0.96f)),
+                    .background(color = MaterialTheme.colorScheme.background),
             ) {
                 val fixedBarMode: MobileFixedBarMode = state.navigationState.chromeUnderlayFixedBarMode
                 val hasChromeOverlay: Boolean = state.navigationState.chromeOverlayScreen != null

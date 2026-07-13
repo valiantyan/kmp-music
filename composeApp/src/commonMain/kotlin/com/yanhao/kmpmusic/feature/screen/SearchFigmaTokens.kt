@@ -3,12 +3,13 @@ package com.yanhao.kmpmusic.feature.screen
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.yanhao.kmpmusic.core.theme.MusicColors
 
-// Figma 搜索页背景色，来自节点 964:482。
-internal val searchBackgroundColor: Color = Color(0xFFF8FAFB)
+// 搜索页跟随统一的移动端页面纯白背景。
+internal val searchBackgroundColor: Color = MusicColors.PageBackground
 
-// Figma 搜索页顶栏半透明底色。
-internal val searchTopBarColor: Color = Color(0xCCF8FAFB)
+// 搜索页顶栏与页面背景保持纯白一致。
+internal val searchTopBarColor: Color = MusicColors.PageBackground
 
 // Figma 搜索页输入框底色。
 internal val searchInputColor: Color = Color(0xFFF2F4F5)

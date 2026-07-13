@@ -34,6 +34,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.yanhao.kmpmusic.core.theme.MusicColors
 import com.yanhao.kmpmusic.feature.app.LocalPlaylistCardDisplayModel
 import com.yanhao.kmpmusic.feature.components.CoverArtImage
 import com.yanhao.kmpmusic.feature.components.MobileSecondaryPage
@@ -232,7 +233,7 @@ private fun LocalPlaylistCard(
     }
 }
 
-private val localPlaylistListBackgroundColor: Color = Color(0xFFF8FAFB)
+private val localPlaylistListBackgroundColor: Color = MusicColors.PageBackground
 private val localPlaylistAccentColor: Color = Color(0xFF006A62)
 private val localPlaylistSubheadingColor: Color = Color(0xFF3D4947)
 
