@@ -10,6 +10,7 @@ import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -32,8 +33,8 @@ import com.yanhao.kmpmusic.domain.model.PlaybackStatus
 import com.yanhao.kmpmusic.domain.model.Song
 import com.yanhao.kmpmusic.feature.app.LocalMusicSection
 import com.yanhao.kmpmusic.feature.components.AlbumCard
-import com.yanhao.kmpmusic.feature.components.AppHeader
 import com.yanhao.kmpmusic.feature.components.ArtistRow
+import com.yanhao.kmpmusic.feature.components.MobileSecondaryPage
 import com.yanhao.kmpmusic.feature.components.SongRow
 
 /**
@@ -67,48 +68,58 @@ fun LocalMusicScreen(
         playableSongCount = songs.size,
         scanState = scanState,
     )
-    LazyColumn(
-        modifier = modifier.fillMaxSize(),
-        contentPadding = contentPadding,
-        verticalArrangement = Arrangement.spacedBy(scaledDp(18.dp)),
+    MobileSecondaryPage(
+        title = "本地音乐",
+        onBack = onBack,
+        backgroundColor = MaterialTheme.colorScheme.background,
+        modifier = modifier,
     ) {
-        item(key = "header") {
-            AppHeader(
-                title = "本地音乐",
-                subtitle = scanSummaryDisplayModel.headerSubtitle,
-                onBack = onBack,
-            )
-        }
-        item(key = "tabs") {
-            LocalMusicSectionTabs(
-                selectedSection = section,
-                onSection = { nextSection: LocalMusicSection -> section = nextSection },
-            )
-        }
-        when (section) {
-            LocalMusicSection.Songs -> songSectionItems(
-                songs = songs,
-                currentSongId = currentSongId,
-                currentPlaybackStatus = currentPlaybackStatus,
-                onSongPlay = onSongPlay,
-                onCurrentSongToggle = onCurrentSongToggle,
-                onMore = onMore,
-            )
-            LocalMusicSection.Albums -> albumSectionItems(
-                albums = albums,
-                onAlbumOpen = onAlbumOpen,
-            )
-            LocalMusicSection.Artists -> artistSectionItems(
-                artists = artists,
-                onArtistOpen = onArtistOpen,
-            )
-            LocalMusicSection.Sources -> item(key = "sources") {
-                SourceSection(
-                    sources = sources,
-                    problems = problems,
-                    scanState = scanState,
-                    discoveryPlatform = discoveryPlatform,
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .weight(weight = 1f),
+            contentPadding = contentPadding,
+            verticalArrangement = Arrangement.spacedBy(scaledDp(18.dp)),
+        ) {
+            item(key = "local-music-subtitle") {
+                Text(
+                    text = scanSummaryDisplayModel.headerSubtitle,
+                    color = MusicColors.Muted,
+                    fontSize = scaledSp(value = 16.sp),
+                    fontWeight = FontWeight.Medium,
                 )
+            }
+            item(key = "tabs") {
+                LocalMusicSectionTabs(
+                    selectedSection = section,
+                    onSection = { nextSection: LocalMusicSection -> section = nextSection },
+                )
+            }
+            when (section) {
+                LocalMusicSection.Songs -> songSectionItems(
+                    songs = songs,
+                    currentSongId = currentSongId,
+                    currentPlaybackStatus = currentPlaybackStatus,
+                    onSongPlay = onSongPlay,
+                    onCurrentSongToggle = onCurrentSongToggle,
+                    onMore = onMore,
+                )
+                LocalMusicSection.Albums -> albumSectionItems(
+                    albums = albums,
+                    onAlbumOpen = onAlbumOpen,
+                )
+                LocalMusicSection.Artists -> artistSectionItems(
+                    artists = artists,
+                    onArtistOpen = onArtistOpen,
+                )
+                LocalMusicSection.Sources -> item(key = "sources") {
+                    SourceSection(
+                        sources = sources,
+                        problems = problems,
+                        scanState = scanState,
+                        discoveryPlatform = discoveryPlatform,
+                    )
+                }
             }
         }
     }

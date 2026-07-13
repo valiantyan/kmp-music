@@ -32,6 +32,7 @@ import com.yanhao.kmpmusic.domain.model.PlaybackStatus
 import com.yanhao.kmpmusic.domain.model.Song
 import com.yanhao.kmpmusic.feature.app.LocalPlaylistDetailDisplayModel
 import com.yanhao.kmpmusic.feature.components.CoverArtImage
+import com.yanhao.kmpmusic.feature.components.MobileSecondaryPage
 
 /**
  * 移动端本地自建歌单详情页，按专辑详情页形态展示当前仍可播放歌曲。
@@ -49,17 +50,20 @@ fun LocalPlaylistDetailScreen(
     modifier: Modifier = Modifier,
     contentPadding: PaddingValues = PaddingValues(),
 ) {
-    LazyColumn(
-        modifier = modifier
-            .fillMaxSize()
-            .background(color = albumDetailBackgroundColor),
-        contentPadding = PaddingValues(
-            bottom = contentPadding.calculateBottomPadding() + 40.dp,
-        ),
+    MobileSecondaryPage(
+        title = detail.name,
+        onBack = onBack,
+        backgroundColor = albumDetailBackgroundColor,
+        modifier = modifier,
     ) {
-        item(key = "local-playlist-toolbar", contentType = "local-playlist-toolbar") {
-            AlbumDetailToolbar(onBack = onBack)
-        }
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .weight(weight = 1f),
+            contentPadding = PaddingValues(
+                bottom = contentPadding.calculateBottomPadding() + 40.dp,
+            ),
+        ) {
         item(key = "local-playlist-header", contentType = "local-playlist-header") {
             LocalPlaylistDetailHeader(detail = detail)
         }
@@ -98,6 +102,7 @@ fun LocalPlaylistDetailScreen(
                 onCurrentSongToggle = onCurrentSongToggle,
                 onMore = onMore,
             )
+        }
         }
     }
 }

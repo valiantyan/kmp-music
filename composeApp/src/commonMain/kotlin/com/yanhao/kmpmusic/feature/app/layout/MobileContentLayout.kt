@@ -40,7 +40,6 @@ import com.yanhao.kmpmusic.feature.app.ContentBottomSpace
 import com.yanhao.kmpmusic.feature.app.MobileFixedBarMode
 import com.yanhao.kmpmusic.feature.app.MusicAppController
 import com.yanhao.kmpmusic.feature.app.MusicAppUiState
-import com.yanhao.kmpmusic.feature.app.RootTab
 import com.yanhao.kmpmusic.feature.app.SecondaryScreen
 import com.yanhao.kmpmusic.feature.app.routes.MobileRootScreenRoute
 import com.yanhao.kmpmusic.feature.app.routes.MobileSecondaryScreenRoute
@@ -52,7 +51,7 @@ import com.yanhao.kmpmusic.feature.screen.LocalMusicDiscoveryPlatform
 private const val MOBILE_PLAYER_OVERLAY_TRANSITION_MILLIS = 320
 
 /**
- * 根据导航状态渲染手机端页面内容，并为固定底栏预留共享底部空间。
+ * 根据导航状态渲染手机端页面内容，页面自行拥有滚动容器并共享底部避让空间。
  */
 @Composable
 fun MobileContentLayout(
@@ -73,21 +72,7 @@ fun MobileContentLayout(
     val saveableStateHolder = rememberSaveableStateHolder()
     saveableStateHolder.SaveableStateProvider(key = state.navigationState.chromeUnderlayScrollStateKey) {
         val secondaryScreen: SecondaryScreen? = state.navigationState.chromeUnderlaySecondaryScreen
-        val isFigmaFullBleedRoot: Boolean = secondaryScreen == null &&
-            (state.navigationState.rootTab == RootTab.Home ||
-                state.navigationState.rootTab == RootTab.Favorites ||
-                state.navigationState.rootTab == RootTab.Me)
-        if (
-            secondaryScreen is SecondaryScreen.LocalMusic ||
-            secondaryScreen is SecondaryScreen.Search ||
-            secondaryScreen == SecondaryScreen.AudioScan ||
-            secondaryScreen == SecondaryScreen.AlbumDetail ||
-            secondaryScreen == SecondaryScreen.ArtistDetail ||
-            secondaryScreen == SecondaryScreen.LocalPlaylists ||
-            secondaryScreen == SecondaryScreen.LocalPlaylistManagement ||
-            secondaryScreen == SecondaryScreen.LocalPlaylistDetail ||
-            secondaryScreen == SecondaryScreen.Player
-        ) {
+        if (secondaryScreen != null) {
             MobileSecondaryScreenRoute(
                 secondaryScreen = secondaryScreen,
                 state = state,
@@ -97,7 +82,7 @@ fun MobileContentLayout(
                 modifier = modifier.fillMaxSize(),
                 contentPadding = pagePadding,
             )
-        } else if (isFigmaFullBleedRoot) {
+        } else {
             MobileRootScreenRoute(
                 state = state,
                 controller = controller,
@@ -108,32 +93,6 @@ fun MobileContentLayout(
                     .navigationBarsPadding(),
                 contentPadding = PaddingValues(bottom = bottomPadding),
             )
-        } else {
-            Column(
-                modifier = modifier
-                    .fillMaxSize()
-                    .statusBarsPadding()
-                    .navigationBarsPadding()
-                    .verticalScroll(rememberScrollState())
-                    .padding(pagePadding),
-            ) {
-                if (secondaryScreen == null) {
-                    MobileRootScreenRoute(
-                        state = state,
-                        controller = controller,
-                        discoveryPlatform = discoveryPlatform,
-                    )
-                } else {
-                    MobileSecondaryScreenRoute(
-                        secondaryScreen = secondaryScreen,
-                        state = state,
-                        controller = controller,
-                        discoveryPlatform = discoveryPlatform,
-                        onScanLocalMusic = onScanLocalMusic,
-                        contentPadding = pagePadding,
-                    )
-                }
-            }
         }
     }
 }
@@ -338,10 +297,11 @@ private fun MobileOverlayScreenRoute(
 }
 
 /**
- * 自带懒列表滚动的覆盖页不能再包一层纵向滚动容器，否则会触发无限高度测量。
+ * 已自行管理 Toolbar 和正文滚动的覆盖页不能再由外层重复包裹滚动容器。
  */
 internal fun shouldRenderOverlayScreenDirectly(overlayScreen: SecondaryScreen): Boolean {
-    return overlayScreen == SecondaryScreen.AudioScan ||
+    return overlayScreen == SecondaryScreen.About ||
+        overlayScreen == SecondaryScreen.AudioScan ||
         overlayScreen == SecondaryScreen.LocalPlaylistManagement
 }
 

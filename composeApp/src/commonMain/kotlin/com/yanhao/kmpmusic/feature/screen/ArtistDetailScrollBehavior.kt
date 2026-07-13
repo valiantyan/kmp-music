@@ -2,6 +2,7 @@ package com.yanhao.kmpmusic.feature.screen
 
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.yanhao.kmpmusic.core.theme.MusicDimens
 
 // 展开头图占视口高度的比例，保证首屏视觉接近半屏歌手图。
 private const val ARTIST_DETAIL_EXPANDED_HEADER_VIEWPORT_FRACTION = 0.50f
@@ -10,7 +11,10 @@ private const val ARTIST_DETAIL_EXPANDED_HEADER_VIEWPORT_FRACTION = 0.50f
 private const val ARTIST_DETAIL_CONTENT_GROUP_HEADER_FRACTION = 0.58f
 
 // Toolbar 内容高度，不包含状态栏安全区。
-internal val artistDetailToolbarContentHeight: Dp = 56.dp
+internal val artistDetailToolbarContentHeight: Dp = MusicDimens.MobileToolbarHeight
+
+// 渐显距离保留原 56dp 基准，避免视觉校准连带改变既有折叠插值。
+private val artistDetailToolbarRevealContentHeight: Dp = 56.dp
 
 // 顶部下拉放大最大高度，避免头图无限拉伸。
 internal val artistDetailMaxPullStretchHeight: Dp = 96.dp
@@ -34,12 +38,14 @@ internal val artistDetailSongRowScrollHeight: Dp = 76.dp
  * @property toolbarContentHeight 不含状态栏的 Toolbar 内容高度。
  * @property statusBarInset 当前平台状态栏安全区高度。
  * @property maxPullStretchHeight 顶部下拉放大的最大高度。
+ * @property toolbarRevealContentHeight 保留既有渐显起止位置的 Toolbar 计算高度。
  */
 internal data class ArtistDetailScrollSpec(
     val expandedHeaderHeight: Dp,
     val toolbarContentHeight: Dp,
     val statusBarInset: Dp,
     val maxPullStretchHeight: Dp,
+    val toolbarRevealContentHeight: Dp = artistDetailToolbarRevealContentHeight,
 )
 
 /**
@@ -104,6 +110,7 @@ internal fun createArtistDetailScrollSpec(
         toolbarContentHeight = artistDetailToolbarContentHeight,
         statusBarInset = statusBarInset,
         maxPullStretchHeight = artistDetailMaxPullStretchHeight,
+        toolbarRevealContentHeight = artistDetailToolbarRevealContentHeight,
     )
 }
 
@@ -125,7 +132,7 @@ internal fun calculateArtistDetailScrollState(
     )
     val toolbarRevealDistance: Dp = calculateArtistDetailToolbarRevealDistance(
         expandedHeaderHeight = spec.expandedHeaderHeight,
-        collapsedToolbarHeight = layoutState.collapsedToolbarHeight,
+        collapsedToolbarHeight = spec.statusBarInset + spec.toolbarRevealContentHeight,
     )
     val safeScrollOffset: Dp = scrollOffset.coerceAtLeast(minimumValue = 0.dp)
     val collapseProgress: Float = (safeScrollOffset.value / toolbarRevealDistance.value).coerceIn(
@@ -221,7 +228,7 @@ internal fun calculateArtistDetailScrollOffsetFromListPosition(
     firstVisibleItemScrollOffset: Dp,
     scrollSpec: ArtistDetailScrollSpec,
 ): Dp {
-    val collapsedToolbarHeight: Dp = scrollSpec.statusBarInset + scrollSpec.toolbarContentHeight
+    val collapsedToolbarHeight: Dp = scrollSpec.statusBarInset + scrollSpec.toolbarRevealContentHeight
     val contentSpacerHeight: Dp = calculateArtistDetailToolbarRevealDistance(
         expandedHeaderHeight = scrollSpec.expandedHeaderHeight,
         collapsedToolbarHeight = collapsedToolbarHeight,

@@ -21,13 +21,11 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.AddCircleOutline
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.Folder
 import androidx.compose.material.icons.rounded.LibraryMusic
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -47,6 +45,7 @@ import com.yanhao.kmpmusic.core.theme.scaledSp
 import com.yanhao.kmpmusic.domain.model.LocalMusicDiscoveryPreferences
 import com.yanhao.kmpmusic.domain.model.LocalMusicScanState
 import com.yanhao.kmpmusic.domain.model.LocalMusicSourceSummary
+import com.yanhao.kmpmusic.feature.components.MobileSecondaryPage
 
 private val scanPageBackground = Color(0xFFF8FAFB)
 private val scanPageInk = Color(0xFF191C1D)
@@ -75,16 +74,22 @@ fun AudioScanScreen(
         playableSongCount = playableSongCount,
         scanState = scanState,
     )
-    LazyColumn(
-        modifier = modifier
-            .fillMaxSize()
-            .background(scanPageBackground),
-        contentPadding = PaddingValues(bottom = contentPadding.calculateBottomPadding() + scaledDp(24.dp)),
-        verticalArrangement = Arrangement.spacedBy(scaledDp(28.dp)),
+    MobileSecondaryPage(
+        title = "扫描音频文件",
+        onBack = onBack,
+        backgroundColor = scanPageBackground,
+        modifier = modifier,
     ) {
-        item(key = "scan-header") {
-            AudioScanHeader(onBack = onBack)
-        }
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .weight(weight = 1f),
+            contentPadding = PaddingValues(
+                top = scaledDp(28.dp),
+                bottom = contentPadding.calculateBottomPadding() + scaledDp(24.dp),
+            ),
+            verticalArrangement = Arrangement.spacedBy(scaledDp(28.dp)),
+        ) {
         item(key = "scan-action") {
             ScanActionSection(
                 scanState = scanState,
@@ -126,36 +131,7 @@ fun AudioScanScreen(
                 )
             }
         }
-    }
-}
-
-// 顶部栏复刻 Figma 的简单返回和居中标题，避免复用大页头造成首屏错位。
-@Composable
-private fun AudioScanHeader(onBack: () -> Unit) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(scaledDp(64.dp))
-            .padding(horizontal = scaledDp(8.dp)),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        IconButton(onClick = onBack) {
-            Icon(
-                imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
-                contentDescription = "返回",
-                tint = scanPageInk,
-            )
         }
-        Text(
-            text = "扫描音频文件",
-            modifier = Modifier.weight(weight = 1f),
-            color = scanPageInk,
-            fontSize = scaledSp(16.sp),
-            lineHeight = scaledSp(24.sp),
-            fontWeight = FontWeight.Medium,
-            textAlign = TextAlign.Center,
-        )
-        Spacer(modifier = Modifier.width(scaledDp(48.dp)))
     }
 }
 

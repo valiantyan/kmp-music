@@ -22,15 +22,6 @@ internal val favoritesMetaColor: Color = Color(0xFF3D4947)
 // Figma 收藏页弱化操作色，来自更多按钮和分段切换图标。
 internal val favoritesMutedIconColor: Color = Color(0xFFB8C7C4)
 
-// Figma 收藏页顶栏分隔线色。
-internal val favoritesDividerColor: Color = Color(0xFFECEEEF)
-
-// Figma 收藏页顶栏高度。
-internal val favoritesTopBarHeight: Dp = 64.dp
-
-// Figma 收藏页内容顶部留白。
-internal val favoritesContentTopPadding: Dp = 80.dp
-
 // Figma 收藏页水平页边距。
 internal val favoritesHorizontalPadding: Dp = 20.dp
 

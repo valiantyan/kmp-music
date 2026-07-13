@@ -27,10 +27,7 @@ import com.yanhao.kmpmusic.domain.model.Artist
 import com.yanhao.kmpmusic.feature.components.CoverArtImage
 
 // 折叠 Toolbar 使用浅色背景贴合当前 App 视觉体系。
-internal val artistDetailToolbarColor: Color = MusicColors.Paper
-
-// 浅色 Toolbar 上的按钮和标题使用深色前景，保证状态栏区域可读。
-internal val artistDetailToolbarContentColor: Color = MusicColors.Ink
+internal val artistDetailToolbarColor: Color = MusicColors.MobileToolbarBackground
 
 // 头图顶部使用浅色遮罩承接深色返回按钮。
 private val artistDetailHeroTopScrimColor: Color = MusicColors.Paper

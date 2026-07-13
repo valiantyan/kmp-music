@@ -6,12 +6,16 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.background
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -40,7 +44,8 @@ import com.yanhao.kmpmusic.core.theme.scaledDp
 import com.yanhao.kmpmusic.core.theme.scaledSp
 import com.yanhao.kmpmusic.domain.model.LocalMusicScanState
 import com.yanhao.kmpmusic.domain.model.ThemeMode
-import com.yanhao.kmpmusic.feature.components.AppHeader
+import com.yanhao.kmpmusic.feature.components.MobileSecondaryPage
+import com.yanhao.kmpmusic.feature.components.MobileSecondaryPageSubtitle
 import com.yanhao.kmpmusic.feature.components.PrimaryPill
 import com.yanhao.kmpmusic.feature.components.SectionTitle
 
@@ -58,43 +63,63 @@ fun SettingsScreen(
     onLocalMusicSources: () -> Unit,
     onClearCache: () -> Unit,
     onAbout: () -> Unit,
+    modifier: Modifier = Modifier,
+    contentPadding: PaddingValues = PaddingValues(),
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(scaledDp(18.dp))) {
-        AppHeader(title = "设置", subtitle = "播放、扫描与外观", onBack = onBack)
-        SectionTitle(title = "外观")
-        Row(horizontalArrangement = Arrangement.spacedBy(scaledDp(8.dp))) {
-            ThemeMode.entries.forEach { item ->
-                FilterChip(selected = themeMode == item, onClick = { onThemeMode(item) }, label = { Text(text = item.label()) })
+    MobileSecondaryPage(
+        title = "设置",
+        onBack = onBack,
+        backgroundColor = MaterialTheme.colorScheme.background,
+        modifier = modifier,
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .weight(weight = 1f)
+                .verticalScroll(state = rememberScrollState())
+                .padding(contentPadding),
+            verticalArrangement = Arrangement.spacedBy(scaledDp(18.dp)),
+        ) {
+            MobileSecondaryPageSubtitle(text = "播放、扫描与外观")
+            SectionTitle(title = "外观")
+            Row(horizontalArrangement = Arrangement.spacedBy(scaledDp(8.dp))) {
+                ThemeMode.entries.forEach { item ->
+                    FilterChip(
+                        selected = themeMode == item,
+                        onClick = { onThemeMode(item) },
+                        label = { Text(text = item.label()) },
+                    )
+                }
             }
-        }
-        SectionTitle(title = "音乐库")
-        SettingsGroup {
-            SettingsListRow(
-                localMusicScanActionLabel(
-                    scanState = scanState,
-                    platform = discoveryPlatform,
-                ),
-                "查看本地音频发现状态",
-                onScan,
-            )
-            SettingsDivider()
-            SettingsListRow("本地来源", "查看扫描来源和问题", onLocalMusicSources)
-            SettingsDivider()
-            SettingsListRow("清理缓存", "可释放 428 MB", onClearCache)
-        }
-        SectionTitle(title = "播放")
-        SettingsGroup {
-            SettingsListRow("无损优先", "可用时优先播放 FLAC / ALAC", {})
-            SettingsDivider()
-            SettingsListRow("睡眠定时", "30 分钟后停止播放", {})
-            SettingsDivider()
-            SettingsListRow("设备同步", "手机、桌面端同步播放记录", {})
-        }
-        SectionTitle(title = "账号与安全")
-        SettingsGroup {
-            SettingsListRow("隐私保护", "本地音乐不会上传到云端", {})
-            SettingsDivider()
-            SettingsListRow("关于 KMP Music", "版本 1.0 · 本地优先", onAbout)
+            SectionTitle(title = "音乐库")
+            SettingsGroup {
+                SettingsListRow(
+                    localMusicScanActionLabel(
+                        scanState = scanState,
+                        platform = discoveryPlatform,
+                    ),
+                    "查看本地音频发现状态",
+                    onScan,
+                )
+                SettingsDivider()
+                SettingsListRow("本地来源", "查看扫描来源和问题", onLocalMusicSources)
+                SettingsDivider()
+                SettingsListRow("清理缓存", "可释放 428 MB", onClearCache)
+            }
+            SectionTitle(title = "播放")
+            SettingsGroup {
+                SettingsListRow("无损优先", "可用时优先播放 FLAC / ALAC", {})
+                SettingsDivider()
+                SettingsListRow("睡眠定时", "30 分钟后停止播放", {})
+                SettingsDivider()
+                SettingsListRow("设备同步", "手机、桌面端同步播放记录", {})
+            }
+            SectionTitle(title = "账号与安全")
+            SettingsGroup {
+                SettingsListRow("隐私保护", "本地音乐不会上传到云端", {})
+                SettingsDivider()
+                SettingsListRow("关于 KMP Music", "版本 1.0 · 本地优先", onAbout)
+            }
         }
     }
 }
@@ -105,23 +130,39 @@ fun SettingsScreen(
 @Composable
 fun AboutScreen(
     onBack: () -> Unit,
+    modifier: Modifier = Modifier,
+    contentPadding: PaddingValues = PaddingValues(),
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(scaledDp(18.dp))) {
-        AppHeader(title = "关于", subtitle = "KMP Music", onBack = onBack)
-        SettingsGroup {
-            AboutInfoRow(title = "产品", detail = "KMP Music")
-            SettingsDivider()
-            AboutInfoRow(title = "版本", detail = "1.0")
-            SettingsDivider()
-            AboutInfoRow(title = "模式", detail = "本地音乐优先")
+    MobileSecondaryPage(
+        title = "关于",
+        onBack = onBack,
+        backgroundColor = MaterialTheme.colorScheme.background,
+        modifier = modifier,
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .weight(weight = 1f)
+                .verticalScroll(state = rememberScrollState())
+                .padding(contentPadding),
+            verticalArrangement = Arrangement.spacedBy(scaledDp(18.dp)),
+        ) {
+            MobileSecondaryPageSubtitle(text = "KMP Music")
+            SettingsGroup {
+                AboutInfoRow(title = "产品", detail = "KMP Music")
+                SettingsDivider()
+                AboutInfoRow(title = "版本", detail = "1.0")
+                SettingsDivider()
+                AboutInfoRow(title = "模式", detail = "本地音乐优先")
+            }
+            Text(
+                text = "KMP Music 使用 Kotlin Multiplatform 构建，当前版本聚焦本地曲库、播放控制和跨端一致体验。",
+                color = MusicColors.Muted,
+                fontSize = scaledSp(15.sp),
+                lineHeight = scaledSp(22.sp),
+                fontWeight = FontWeight.SemiBold,
+            )
         }
-        Text(
-            text = "KMP Music 使用 Kotlin Multiplatform 构建，当前版本聚焦本地曲库、播放控制和跨端一致体验。",
-            color = MusicColors.Muted,
-            fontSize = scaledSp(15.sp),
-            lineHeight = scaledSp(22.sp),
-            fontWeight = FontWeight.SemiBold,
-        )
     }
 }
 
@@ -135,15 +176,31 @@ fun LoginScreen(
     onEmail: (String) -> Unit,
     onSend: () -> Unit,
     onBack: () -> Unit,
+    modifier: Modifier = Modifier,
+    contentPadding: PaddingValues = PaddingValues(),
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(scaledDp(22.dp))) {
-        AppHeader(title = "登录", subtitle = "使用邮箱接收魔法链接", onBack = onBack)
-        LoginCard(
-            email = email,
-            isMailSent = isMailSent,
-            onEmail = onEmail,
-            onSend = onSend,
-        )
+    MobileSecondaryPage(
+        title = "登录",
+        onBack = onBack,
+        backgroundColor = MaterialTheme.colorScheme.background,
+        modifier = modifier,
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .weight(weight = 1f)
+                .verticalScroll(state = rememberScrollState())
+                .padding(contentPadding),
+            verticalArrangement = Arrangement.spacedBy(scaledDp(22.dp)),
+        ) {
+            MobileSecondaryPageSubtitle(text = "使用邮箱接收魔法链接")
+            LoginCard(
+                email = email,
+                isMailSent = isMailSent,
+                onEmail = onEmail,
+                onSend = onSend,
+            )
+        }
     }
 }
 

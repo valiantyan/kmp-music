@@ -27,9 +27,10 @@ import com.yanhao.kmpmusic.feature.screen.PlayerScreen
 import com.yanhao.kmpmusic.feature.screen.RecentPlayedScreen
 import com.yanhao.kmpmusic.feature.screen.SearchScreen
 import com.yanhao.kmpmusic.feature.screen.SettingsScreen
+import com.yanhao.kmpmusic.feature.screen.StandardMissingLibraryItemScreen
 
 /**
- * 渲染手机端二级页面路由，保留 [LocalMusicScreen] 独立于纵向滚动容器的列表行为。
+ * 渲染手机端二级页面路由，各页面自行管理固定 Toolbar 与正文滚动。
  */
 @Composable
 fun MobileSecondaryScreenRoute(
@@ -61,10 +62,7 @@ fun MobileSecondaryScreenRoute(
             onMore = controller::openMore,
             onAlbumOpen = controller::openAlbum,
             onArtistOpen = controller::openArtist,
-            modifier = modifier
-                .fillMaxSize()
-                .statusBarsPadding()
-                .navigationBarsPadding(),
+            modifier = modifier.fillMaxSize(),
             contentPadding = contentPadding,
         )
         is SecondaryScreen.Search -> SearchScreen(
@@ -136,15 +134,14 @@ fun MobileSecondaryScreenRoute(
                 },
                 onCurrentSongToggle = controller::togglePlayback,
                 onMore = controller::openMore,
-                modifier = modifier
-                    .fillMaxSize()
-                    .statusBarsPadding()
-                    .navigationBarsPadding(),
+                modifier = modifier.fillMaxSize(),
                 contentPadding = contentPadding,
             )
-        } ?: MissingLibraryItemScreen(
+        } ?: StandardMissingLibraryItemScreen(
             title = "专辑不可用",
             onBack = controller::navigateBack,
+            modifier = modifier.fillMaxSize(),
+            contentPadding = contentPadding,
         )
         SecondaryScreen.ArtistDetail -> state.selectedArtist?.let { artist ->
             ArtistDetailScreen(
@@ -164,9 +161,11 @@ fun MobileSecondaryScreenRoute(
                     .navigationBarsPadding(),
                 contentPadding = contentPadding,
             )
-        } ?: MissingLibraryItemScreen(
+        } ?: StandardMissingLibraryItemScreen(
             title = "歌手不可用",
             onBack = controller::navigateBack,
+            modifier = modifier.fillMaxSize(),
+            contentPadding = contentPadding,
         )
         SecondaryScreen.Settings -> SettingsScreen(
             themeMode = state.themeMode,
@@ -180,9 +179,13 @@ fun MobileSecondaryScreenRoute(
             },
             onClearCache = controller::openClearCacheDialog,
             onAbout = { controller.navigateToSecondary(screen = SecondaryScreen.About) },
+            modifier = modifier.fillMaxSize(),
+            contentPadding = contentPadding,
         )
         SecondaryScreen.About -> AboutScreen(
             onBack = controller::navigateBack,
+            modifier = modifier.fillMaxSize(),
+            contentPadding = contentPadding,
         )
         SecondaryScreen.Login -> LoginScreen(
             email = state.email,
@@ -190,6 +193,8 @@ fun MobileSecondaryScreenRoute(
             onEmail = controller::setEmail,
             onSend = controller::sendLoginMail,
             onBack = controller::navigateBack,
+            modifier = modifier.fillMaxSize(),
+            contentPadding = contentPadding,
         )
         SecondaryScreen.AudioScan -> AudioScanScreen(
             playableSongCount = state.audioScanPlayableSongCount,
@@ -202,10 +207,7 @@ fun MobileSecondaryScreenRoute(
             onAutoScanOnLaunchChange = controller::setLocalMusicAutoScanOnLaunchEnabled,
             onShortAudioIgnoredChange = controller::setLocalMusicShortAudioIgnored,
             onSystemFoldersExcludedChange = controller::setLocalMusicSystemFoldersExcluded,
-            modifier = modifier
-                .fillMaxSize()
-                .statusBarsPadding()
-                .navigationBarsPadding(),
+            modifier = modifier.fillMaxSize(),
             contentPadding = contentPadding,
         )
         SecondaryScreen.RecentPlayed -> RecentPlayedScreen(
@@ -214,10 +216,7 @@ fun MobileSecondaryScreenRoute(
             onBack = controller::navigateBack,
             onSongPlay = controller::playRecentSong,
             onSongMore = controller::openMore,
-            modifier = modifier
-                .fillMaxSize()
-                .statusBarsPadding()
-                .navigationBarsPadding(),
+            modifier = modifier.fillMaxSize(),
             contentPadding = contentPadding,
         )
         SecondaryScreen.LocalPlaylists -> LocalPlaylistListScreen(
@@ -225,10 +224,7 @@ fun MobileSecondaryScreenRoute(
             onBack = controller::navigateBack,
             onManage = controller::openLocalPlaylistManagement,
             onPlaylistOpen = controller::openLocalPlaylistDetail,
-            modifier = modifier
-                .fillMaxSize()
-                .statusBarsPadding()
-                .navigationBarsPadding(),
+            modifier = modifier.fillMaxSize(),
             contentPadding = contentPadding,
         )
         SecondaryScreen.LocalPlaylistManagement -> LocalPlaylistManagementScreen(
@@ -238,10 +234,7 @@ fun MobileSecondaryScreenRoute(
             onBack = controller::navigateBack,
             onPlaylistToggle = controller::toggleManagedLocalPlaylistSelection,
             onDelete = controller::openDeleteLocalPlaylistsDialog,
-            modifier = modifier
-                .fillMaxSize()
-                .statusBarsPadding()
-                .navigationBarsPadding(),
+            modifier = modifier.fillMaxSize(),
             contentPadding = contentPadding,
         )
         SecondaryScreen.LocalPlaylistDetail -> state.selectedLocalPlaylistDetail?.let { detail ->
@@ -259,15 +252,14 @@ fun MobileSecondaryScreenRoute(
                         sourceContext = SongMoreSourceContext.LocalPlaylistDetail,
                     )
                 },
-                modifier = modifier
-                    .fillMaxSize()
-                    .statusBarsPadding()
-                    .navigationBarsPadding(),
+                modifier = modifier.fillMaxSize(),
                 contentPadding = contentPadding,
             )
-        } ?: MissingLibraryItemScreen(
+        } ?: StandardMissingLibraryItemScreen(
             title = "歌单不可用",
             onBack = controller::navigateBack,
+            modifier = modifier.fillMaxSize(),
+            contentPadding = contentPadding,
         )
     }
 }

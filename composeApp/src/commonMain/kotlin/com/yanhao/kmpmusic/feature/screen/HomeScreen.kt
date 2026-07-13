@@ -14,12 +14,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import com.yanhao.kmpmusic.core.theme.MusicDimens
 import com.yanhao.kmpmusic.domain.model.Album
 import com.yanhao.kmpmusic.domain.model.Artist
 import com.yanhao.kmpmusic.domain.model.LibraryStats
 import com.yanhao.kmpmusic.domain.model.LocalMusicScanState
 import com.yanhao.kmpmusic.domain.model.Song
 import com.yanhao.kmpmusic.feature.app.HomeContentSection
+import com.yanhao.kmpmusic.feature.components.MobilePrimaryToolbar
 
 /**
  * 手机首页，歌曲、专辑和歌手内容页签分别按 Figma 节点渲染。
@@ -53,7 +55,7 @@ fun HomeScreen(
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(
-                top = 80.dp,
+                top = MusicDimens.MobileToolbarHeight + MusicDimens.MobileToolbarBodySpacing,
                 bottom = contentPadding.calculateBottomPadding(),
             ),
         ) {
@@ -93,10 +95,10 @@ fun HomeScreen(
                 )
             }
         }
-        HomeTopAppBar(
+        MobilePrimaryToolbar(
             title = selectedSection.title(),
             onSearch = onSearch,
-            modifier = Modifier.align(Alignment.TopCenter),
+            modifier = Modifier.align(alignment = Alignment.TopCenter),
         )
     }
 }

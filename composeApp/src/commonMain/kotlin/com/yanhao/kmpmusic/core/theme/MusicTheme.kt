@@ -53,6 +53,10 @@ object MusicColors {
     val DialogControlBorder: Color = Color(0xFFBCC9C6)
     val DialogSoft: Color = Color(0xFFECEEEF)
     val DialogDivider: Color = Color(0xFFF2F4F5)
+    /** 用户确认的移动端 Toolbar 统一白色背景。 */
+    val MobileToolbarBackground: Color = Color(0xFFFFFFFF)
+    /** Figma 节点 994:1813 的 90% 黑色标题与图标色。 */
+    val MobileToolbarContent: Color = Color(0xE6000000)
 }
 
 /**
@@ -110,6 +114,22 @@ object MusicDimens {
     val SearchFieldIconSize: Dp = 24.dp
     val SearchFieldContentGap: Dp = 12.dp
     val SearchChipGap: Dp = 10.dp
+    /** 移动端 Toolbar 内容高度，不包含系统状态栏。 */
+    val MobileToolbarHeight: Dp = 52.dp
+    /** Toolbar 与正文之间的固定视觉间距。 */
+    val MobileToolbarBodySpacing: Dp = 16.dp
+    /** Figma Toolbar 两侧最外层留白。 */
+    val MobileToolbarOuterPadding: Dp = 4.dp
+    /** Figma Toolbar 导航、标题与操作区之间的间距。 */
+    val MobileToolbarContentGap: Dp = 4.dp
+    /** 返回与右侧操作的稳定槽位宽度。 */
+    val MobileToolbarActionSlotWidth: Dp = 48.dp
+    /** 操作槽内部状态层尺寸。 */
+    val MobileToolbarStateLayerSize: Dp = 40.dp
+    /** Toolbar 图标标准尺寸。 */
+    val MobileToolbarIconSize: Dp = 24.dp
+    /** 一级页移除导航槽后的标题左边距。 */
+    val MobilePrimaryToolbarTitleStart: Dp = 16.dp
 }
 
 /**
@@ -241,4 +261,14 @@ val MusicTypography: Typography = Typography(
         fontSize = 14.sp,
         lineHeight = 20.sp,
     ),
+)
+
+/**
+ * Figma 节点 994:1813 的移动端 Toolbar 单行标题样式。
+ */
+val MobileToolbarTitleStyle: TextStyle = TextStyle(
+    fontFamily = FontFamily.SansSerif,
+    fontWeight = FontWeight.Medium,
+    fontSize = 18.sp,
+    lineHeight = 26.sp,
 )

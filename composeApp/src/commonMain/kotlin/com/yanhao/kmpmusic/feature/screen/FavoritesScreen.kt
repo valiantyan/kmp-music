@@ -16,11 +16,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.yanhao.kmpmusic.core.theme.MusicDimens
 import com.yanhao.kmpmusic.domain.model.Album
 import com.yanhao.kmpmusic.domain.model.Artist
 import com.yanhao.kmpmusic.domain.model.Song
 import com.yanhao.kmpmusic.feature.app.FavoriteSection
 import com.yanhao.kmpmusic.feature.app.library.MusicLibraryProjector
+import com.yanhao.kmpmusic.feature.components.MobilePrimaryToolbar
 
 /**
  * 收藏页，按 Figma 节点 899:1147 还原一级页面视觉。
@@ -65,7 +67,7 @@ fun FavoritesScreen(
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(
-                top = favoritesContentTopPadding,
+                top = MusicDimens.MobileToolbarHeight + MusicDimens.MobileToolbarBodySpacing,
                 bottom = contentPadding.calculateBottomPadding() + 40.dp,
             ),
         ) {
@@ -105,7 +107,7 @@ fun FavoritesScreen(
                 )
             }
         }
-        HomeTopAppBar(
+        MobilePrimaryToolbar(
             title = "收藏",
             onSearch = onSearch,
             modifier = Modifier.align(alignment = Alignment.TopCenter),

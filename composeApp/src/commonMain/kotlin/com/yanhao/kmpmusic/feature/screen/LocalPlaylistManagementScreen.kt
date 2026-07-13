@@ -39,6 +39,7 @@ import androidx.compose.ui.unit.sp
 import com.yanhao.kmpmusic.core.theme.MusicColors
 import com.yanhao.kmpmusic.feature.app.LocalPlaylistCardDisplayModel
 import com.yanhao.kmpmusic.feature.components.CoverArtImage
+import com.yanhao.kmpmusic.feature.components.MobileSecondaryPage
 
 /**
  * 移动端歌单管理页，按 Figma 批量删除稿承载单选和多选。
@@ -54,83 +55,45 @@ fun LocalPlaylistManagementScreen(
     modifier: Modifier = Modifier,
     contentPadding: PaddingValues = PaddingValues(),
 ) {
-    Box(
-        modifier = modifier
-            .fillMaxSize()
-            .background(color = localPlaylistManagementBackgroundColor),
+    MobileSecondaryPage(
+        title = "管理歌单",
+        onBack = onBack,
+        backgroundColor = localPlaylistManagementBackgroundColor,
+        modifier = modifier,
     ) {
-        LazyColumn(
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(
-                top = 0.dp,
-                bottom = contentPadding.calculateBottomPadding() + 66.dp,
-            ),
-            verticalArrangement = Arrangement.spacedBy(space = 12.dp),
-        ) {
-            item(key = "local-playlist-management-header", contentType = "management-header") {
-                LocalPlaylistManagementHeader(onBack = onBack)
-            }
-            if (playlists.isEmpty()) {
-                item(key = "local-playlist-management-empty", contentType = "management-empty") {
-                    LocalPlaylistManagementEmptyState()
+        Box(modifier = Modifier.weight(weight = 1f)) {
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(
+                    top = 12.dp,
+                    bottom = contentPadding.calculateBottomPadding() + 66.dp,
+                ),
+                verticalArrangement = Arrangement.spacedBy(space = 12.dp),
+            ) {
+                if (playlists.isEmpty()) {
+                    item(key = "local-playlist-management-empty", contentType = "management-empty") {
+                        LocalPlaylistManagementEmptyState()
+                    }
+                    return@LazyColumn
                 }
-                return@LazyColumn
+                items(
+                    items = playlists,
+                    key = { playlist: LocalPlaylistCardDisplayModel -> playlist.id },
+                    contentType = { "management-playlist-row" },
+                ) { playlist: LocalPlaylistCardDisplayModel ->
+                    LocalPlaylistManagementItem(
+                        playlist = playlist,
+                        isSelected = playlist.id in selectedPlaylistIds,
+                        onToggle = onPlaylistToggle,
+                    )
+                }
             }
-            items(
-                items = playlists,
-                key = { playlist: LocalPlaylistCardDisplayModel -> playlist.id },
-                contentType = { "management-playlist-row" },
-            ) { playlist: LocalPlaylistCardDisplayModel ->
-                LocalPlaylistManagementItem(
-                    playlist = playlist,
-                    isSelected = playlist.id in selectedPlaylistIds,
-                    onToggle = onPlaylistToggle,
-                )
-            }
+            LocalPlaylistManagementDeleteBar(
+                canDelete = canDelete,
+                onDelete = onDelete,
+                modifier = Modifier.align(alignment = Alignment.BottomCenter),
+            )
         }
-        LocalPlaylistManagementDeleteBar(
-            canDelete = canDelete,
-            onDelete = onDelete,
-            modifier = Modifier.align(alignment = Alignment.BottomCenter),
-        )
-    }
-}
-
-// 顶部栏按设计稿使用紧凑标题，区别于普通浏览列表的大标题。
-@Composable
-private fun LocalPlaylistManagementHeader(onBack: () -> Unit) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(height = 64.dp)
-            .padding(horizontal = 20.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(space = 16.dp),
-    ) {
-        Surface(
-            modifier = Modifier.size(size = 32.dp),
-            shape = CircleShape,
-            color = Color.Transparent,
-            onClick = onBack,
-        ) {
-            Box(contentAlignment = Alignment.Center) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
-                    contentDescription = "返回",
-                    tint = localPlaylistManagementAccentColor,
-                    modifier = Modifier.size(size = 22.dp),
-                )
-            }
-        }
-        Text(
-            text = "管理歌单",
-            color = localPlaylistManagementAccentColor,
-            fontSize = 16.sp,
-            lineHeight = 24.sp,
-            fontWeight = FontWeight.Medium,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-        )
     }
 }
 

@@ -1,6 +1,5 @@
 package com.yanhao.kmpmusic.feature.screen
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -14,6 +13,7 @@ import androidx.compose.ui.unit.dp
 import com.yanhao.kmpmusic.domain.model.Album
 import com.yanhao.kmpmusic.domain.model.PlaybackStatus
 import com.yanhao.kmpmusic.domain.model.Song
+import com.yanhao.kmpmusic.feature.components.MobileSecondaryPage
 
 /**
  * 移动端专辑详情页，按 Figma 展示专辑封面、播放全部入口和专辑歌曲列表。
@@ -51,17 +51,20 @@ fun AlbumDetailScreen(
     ) {
         { song: Song -> onSongPlay(song, albumSongs) }
     }
-    LazyColumn(
-        modifier = modifier
-            .fillMaxSize()
-            .background(color = albumDetailBackgroundColor),
-        contentPadding = PaddingValues(
-            bottom = contentPadding.calculateBottomPadding() + 40.dp,
-        ),
+    MobileSecondaryPage(
+        title = album.title,
+        onBack = onBack,
+        backgroundColor = albumDetailBackgroundColor,
+        modifier = modifier,
     ) {
-        item(key = "album-toolbar", contentType = "album-toolbar") {
-            AlbumDetailToolbar(onBack = onBack)
-        }
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .weight(weight = 1f),
+            contentPadding = PaddingValues(
+                bottom = contentPadding.calculateBottomPadding() + 40.dp,
+            ),
+        ) {
         item(key = "album-header", contentType = "album-header") {
             AlbumDetailHeader(album = album)
         }
@@ -98,6 +101,7 @@ fun AlbumDetailScreen(
                 onCurrentSongToggle = onCurrentSongToggle,
                 onMore = onMore,
             )
+        }
         }
     }
 }

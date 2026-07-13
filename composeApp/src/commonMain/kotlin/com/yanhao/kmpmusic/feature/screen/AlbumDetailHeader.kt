@@ -3,21 +3,14 @@ package com.yanhao.kmpmusic.feature.screen
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.ArrowBack
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -64,32 +57,6 @@ internal val detailHeroCoverPadding: Dp = 2.dp
 
 // Figma 详情页封面白色描边透明度。
 internal const val DETAIL_HERO_COVER_BORDER_ALPHA = 0.30f
-
-/**
- * 专辑详情页顶部栏，在展开态只显示返回入口。
- */
-@Composable
-internal fun AlbumDetailToolbar(onBack: () -> Unit) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(start = 8.dp, top = 12.dp, end = 8.dp, bottom = 12.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        IconButton(
-            modifier = Modifier.size(size = 40.dp),
-            onClick = onBack,
-        ) {
-            Icon(
-                imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
-                contentDescription = "返回",
-                tint = albumDetailTextColor,
-            )
-        }
-        Spacer(modifier = Modifier.size(size = 40.dp))
-    }
-}
 
 /**
  * 专辑详情页头部使用居中大封面和两行文字，避免复用旧横向详情样式。

@@ -3,22 +3,24 @@
 Updated: 2026-07-13
 Status: ready
 Basis: uncommitted
-Verification: partial
+Verification: passed
 Updated by: agent
 
 ## Current objective
 
-- 已完成基于 `CONTEXT.md` 的长期记忆整理，用户已决定提交并推送 4 条 active Knowledge；等待处理一项领域文档冲突。
+- 移动端通用 Toolbar 优化已经实现并通过验证，等待人工查看最终视觉效果。
 
 ## Completed
 
-- Codex Project Memory v1 已安装，四事件端到端运行时验收已通过。
-- 已将失效的 STATE Basis 修复到本轮初始 HEAD，并恢复初始 doctor 通过。
-- 已有限审核 `CONTEXT.md`、`AGENTS.md`、`docs/PRD.md`、三个 Memory 核心文件及候选规则直接相关的代码与测试。
-- 已提升 `DEC-0001`、`DEC-0002`、`DEC-0003`、`DEC-0004` 为 active Knowledge，统一使用 2026-07-13 核验日期与 2027-01-09 复核日期。
-- 未发现可证明真实失败、返工或用户纠正的直接证据，因此 `LEARNINGS_NOT_PROMOTED`，`LEARNINGS.md` 保持不变。
-- 已完成 Knowledge 写入后的 doctor 与 context 预验证，全部预期 DEC 均成功注入。
-- 用户已决定提交并推送本次 Memory 长期记忆整理结果。
+- 用户最终确认移动端通用 Toolbar 背景统一改为 `#FFFFFF`，其余已确认的 Figma 节点 `994:1813` 尺寸和页面映射保持不变。
+- 新增共享的一级 Toolbar、二级 Toolbar 和二级页面壳层，统一 `52dp` 高度、`4dp` 外边距与间距、左右 `48dp` 槽位、`40dp` 状态层、`24dp` 图标及 `18sp/26sp` 单行标题。
+- 首页与收藏页保留固定 Toolbar；首页标题随歌曲、专辑、歌手分段变化，两个页面均保留搜索入口；“我的”页面不新增 Toolbar。
+- 专辑、歌单详情使用动态名称固定栏；设置、关于、登录、扫描、最近播放、本地歌单、本地音乐和缺失态统一使用固定二级栏，原副标题迁入可滚动正文。
+- 歌手详情保留透明展开态和原 `56dp` 渐显计算基准，只把最终收起态绘制规格校准为共享 `52dp` Toolbar。
+- 搜索页、播放页和 Desktop 页面未纳入本轮 Toolbar 改造。
+- code review 的 Standards 与 Spec 两轴最初各发现 2 项 P2，修正后复核均无剩余 P1/P2。
+- `./gradlew :composeApp:compileDebugKotlinAndroid :composeApp:desktopTest` 与 `./gradlew :composeApp:installDebug` 均通过，最新 debug APK 已完成真机核对。
+- 仓库未提供 `spotlessKotlinCheck` 任务；改用编译器与 `git diff --check` 门禁，后者通过。
 
 ## In progress
 
@@ -26,23 +28,26 @@ Updated by: agent
 
 ## Next actions
 
-1. 用户决定歌手详情是否应提供专辑浏览入口，并统一 `CONTEXT.md` 与 `docs/PRD.md`。
+1. 人工查看真机页面；搜索页和播放页继续作为后续独立设计任务。
 
 ## Blockers and open questions
 
-- `NEEDS_USER_DECISION`：`CONTEXT.md` 规定歌手详情当前不承担专辑浏览入口，`docs/PRD.md` 则要求歌手页展示专辑列表并可进入专辑页。
-- implementation gap：`CONTEXT.md` 定义 iOS 系统音乐资料库来源，当前审核范围内只发现对应领域枚举与 UI 标签，未发现实际 scanner 接入。
+- None.
 
 ## Verification status
 
-- 本轮初始 doctor 因旧 STATE Basis 与 HEAD 不匹配而失败；用户授权修复后，Basis 更新到初始 HEAD `0322ff45b0238fa370e7ffad2768a0cbc4b2c837`，doctor 通过且为 `0 warning(s)`。
-- Knowledge 预验证 doctor 通过且为 `0 warning(s)`；context 为 3930 个字符，注入 `DEC-0001` 至 `DEC-0004`，validated LRN 为空。
-- context 未出现 Knowledge 预算省略、非法状态条目注入或敏感信息模式。
-- 在实际审核范围内，扫描覆盖、歌单顺序与队列、详情完整列表、移动端导航栈和播放页半屏关闭规则有当前代码或测试呼应；iOS 系统音乐资料库 scanner 未发现实现。
-- `LEARNINGS.md` 摘要与初始基线一致，未新增 candidate 或 validated Learning。
-- 长期记忆整理阶段未运行完整项目测试、未联网、未安装依赖或启动服务；提交与推送由用户在后续明确授权。
+- repo:composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/components/MobileToolbar.kt
+- repo:composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/components/MobileSecondaryPage.kt
+- repo:composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/screen/ArtistDetailScrollBehavior.kt
+- test:composeApp/src/commonTest/kotlin/com/yanhao/kmpmusic/feature/app/layout/MobilePlayerOverlayGestureTest.kt::shouldRenderOverlayScreenDirectlyForSelfManagedPages
 
 ## Relevant changed files
 
-- .memory/KNOWLEDGE.md
+- composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/core/theme/MusicTheme.kt
+- composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/components/MobileToolbar.kt
+- composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/components/MobileSecondaryPage.kt
+- composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/app/layout/MobileContentLayout.kt
+- composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/app/routes/MobileSecondaryScreenRoute.kt
+- composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/screen
+- composeApp/src/commonTest/kotlin/com/yanhao/kmpmusic/feature/app/layout/MobilePlayerOverlayGestureTest.kt
 - .memory/STATE.md

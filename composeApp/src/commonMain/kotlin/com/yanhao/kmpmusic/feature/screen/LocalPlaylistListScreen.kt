@@ -17,7 +17,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
@@ -37,6 +36,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.yanhao.kmpmusic.feature.app.LocalPlaylistCardDisplayModel
 import com.yanhao.kmpmusic.feature.components.CoverArtImage
+import com.yanhao.kmpmusic.feature.components.MobileSecondaryPage
 
 /**
  * 移动端本地自建歌单列表页，按 Figma 二级页工具栏和双列网格渲染。
@@ -50,22 +50,28 @@ fun LocalPlaylistListScreen(
     modifier: Modifier = Modifier,
     contentPadding: PaddingValues = PaddingValues(),
 ) {
-    LazyColumn(
-        modifier = modifier
-            .fillMaxSize()
-            .background(color = localPlaylistListBackgroundColor),
-        contentPadding = PaddingValues(
-            bottom = contentPadding.calculateBottomPadding() + 40.dp,
-        ),
-        verticalArrangement = Arrangement.spacedBy(space = 24.dp),
+    MobileSecondaryPage(
+        title = "我的歌单",
+        onBack = onBack,
+        backgroundColor = localPlaylistListBackgroundColor,
+        modifier = modifier,
     ) {
-        item(key = "local-playlist-list-header", contentType = "local-playlist-header") {
-            LocalPlaylistListHeader(
-                playlistCountSummary = buildLocalPlaylistCountSummary(playlists = playlists),
-                onBack = onBack,
-                onManage = onManage,
-            )
-        }
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .weight(weight = 1f),
+            contentPadding = PaddingValues(
+                top = 16.dp,
+                bottom = contentPadding.calculateBottomPadding() + 40.dp,
+            ),
+            verticalArrangement = Arrangement.spacedBy(space = 24.dp),
+        ) {
+            item(key = "local-playlist-list-header", contentType = "local-playlist-header") {
+                LocalPlaylistSubheading(
+                    playlistCountSummary = buildLocalPlaylistCountSummary(playlists = playlists),
+                    onManage = onManage,
+                )
+            }
         if (playlists.isEmpty()) {
             item(key = "local-playlist-list-empty", contentType = "local-playlist-empty") {
                 LocalPlaylistListEmptyState()
@@ -84,63 +90,7 @@ fun LocalPlaylistListScreen(
                 onPlaylistOpen = onPlaylistOpen,
             )
         }
-    }
-}
-
-/**
- * 顶部区域严格对应 Figma 的 Top App Bar 与 Subheading 两段结构。
- */
-@Composable
-private fun LocalPlaylistListHeader(
-    playlistCountSummary: String,
-    onBack: () -> Unit,
-    onManage: () -> Unit,
-) {
-    Column(modifier = Modifier.fillMaxWidth()) {
-        LocalPlaylistTopAppBar(onBack = onBack)
-        Spacer(modifier = Modifier.height(height = 16.dp))
-        LocalPlaylistSubheading(
-            playlistCountSummary = playlistCountSummary,
-            onManage = onManage,
-        )
-    }
-}
-
-// 标准二级页 toolbar：40dp 返回按钮、16dp 图标、24sp 标题。
-@Composable
-private fun LocalPlaylistTopAppBar(onBack: () -> Unit) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(height = 64.dp)
-            .padding(horizontal = 16.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Surface(
-            modifier = Modifier.size(size = 40.dp),
-            shape = CircleShape,
-            color = localPlaylistToolbarButtonColor,
-            onClick = onBack,
-        ) {
-            Box(contentAlignment = Alignment.Center) {
-                Icon(
-                    imageVector = localPlaylistBackIcon,
-                    contentDescription = "返回",
-                    tint = localPlaylistAccentColor,
-                    modifier = Modifier.size(size = 16.dp),
-                )
-            }
         }
-        Spacer(modifier = Modifier.width(width = 16.dp))
-        Text(
-            text = "我的歌单",
-            color = localPlaylistAccentColor,
-            fontSize = 24.sp,
-            lineHeight = 32.sp,
-            fontWeight = FontWeight.Medium,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-        )
     }
 }
 
@@ -283,31 +233,8 @@ private fun LocalPlaylistCard(
 }
 
 private val localPlaylistListBackgroundColor: Color = Color(0xFFF8FAFB)
-private val localPlaylistToolbarButtonColor: Color = Color(0xFFECEEEF)
 private val localPlaylistAccentColor: Color = Color(0xFF006A62)
 private val localPlaylistSubheadingColor: Color = Color(0xFF3D4947)
-
-private val localPlaylistBackIcon: ImageVector = ImageVector.Builder(
-    name = "LocalPlaylistBackIcon",
-    defaultWidth = 16.dp,
-    defaultHeight = 16.dp,
-    viewportWidth = 16f,
-    viewportHeight = 16f,
-).apply {
-    path(fill = SolidColor(Color.Black)) {
-        moveTo(x = 3.825f, y = 9f)
-        lineTo(x = 9.425f, y = 14.6f)
-        lineTo(x = 8f, y = 16f)
-        lineTo(x = 0f, y = 8f)
-        lineTo(x = 8f, y = 0f)
-        lineTo(x = 9.425f, y = 1.4f)
-        lineTo(x = 3.825f, y = 7f)
-        lineTo(x = 16f, y = 7f)
-        verticalLineTo(y = 9f)
-        lineTo(x = 3.825f, y = 9f)
-        close()
-    }
-}.build()
 
 private val localPlaylistManageIcon: ImageVector = ImageVector.Builder(
     name = "LocalPlaylistManageIcon",
