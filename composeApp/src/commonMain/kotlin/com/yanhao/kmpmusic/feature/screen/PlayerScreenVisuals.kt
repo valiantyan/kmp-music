@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -86,11 +87,14 @@ internal fun PlayerTopBar(onBack: () -> Unit) {
     ) {
         IconButton(
             onClick = onBack,
-            modifier = Modifier.size(size = scaledDp(44.dp)),
+            modifier = Modifier
+                .offset(x = -scaledDp(28.dp))
+                .size(size = scaledDp(40.dp)),
         ) {
             Icon(
                 imageVector = Icons.Rounded.ExpandMore,
                 contentDescription = "返回",
+                modifier = Modifier.size(size = scaledDp(40.dp)),
                 tint = MusicColors.AccentDeep,
             )
         }
