@@ -2,26 +2,23 @@
 
 Updated: 2026-07-13
 Status: ready
-Basis: git:e351e3f8a66a4d29db0ff14e80fdc638b2eebd5b
+Basis: uncommitted
 Verification: partial
 Updated by: agent
 
 ## Current objective
 
-- Codex Project Memory v1 已完成端到端运行时验收并由用户决定提交，等待用户决定是否推送 Memory 相关变更。
+- 已完成基于 `CONTEXT.md` 的长期记忆整理，用户已决定提交并推送 4 条 active Knowledge；等待处理一项领域文档冲突。
 
 ## Completed
 
-- 已完成安装前安全审计，并在项目外备份所有被修改或删除的既有文件。
-- 已合并新版项目规则，安装 `.memory` 核心文件和冻结版 `memory_hook.py`，并用新版四事件 handler 替换旧配置。
-- 已彻底删除旧 Memory OS 的活动规则、hook 脚本、字节码缓存、安装脚本及专用设计和实施文档。
-- 已完成 doctor、context、独立配置检查、Android 离线编译、两轴 code review 和对抗式审查。
-- 已在新会话确认 SessionStart 注入项目记忆，validated Learning 与 active Knowledge 数量均为 0。
-- 已确认 UserPromptSubmit 建立运行态基线，PostToolUse 仅记录最小化遥测且能检测受控探针变更。
-- 已确认首次 Stop 因工作区在最后一次有效 STATE 内容变化后发生变更而阻止结束，并自动继续当前会话。
-- 已删除受控探针 `memory-hook-e2e-probe.txt`，未修改业务文件。
-- 已确认 Stop 在 schema-valid STATE 更新后正常放行，四事件端到端运行时验收通过。
-- 用户已决定提交本次 Memory 端到端验收状态。
+- Codex Project Memory v1 已安装，四事件端到端运行时验收已通过。
+- 已将失效的 STATE Basis 修复到本轮初始 HEAD，并恢复初始 doctor 通过。
+- 已有限审核 `CONTEXT.md`、`AGENTS.md`、`docs/PRD.md`、三个 Memory 核心文件及候选规则直接相关的代码与测试。
+- 已提升 `DEC-0001`、`DEC-0002`、`DEC-0003`、`DEC-0004` 为 active Knowledge，统一使用 2026-07-13 核验日期与 2027-01-09 复核日期。
+- 未发现可证明真实失败、返工或用户纠正的直接证据，因此 `LEARNINGS_NOT_PROMOTED`，`LEARNINGS.md` 保持不变。
+- 已完成 Knowledge 写入后的 doctor 与 context 预验证，全部预期 DEC 均成功注入。
+- 用户已决定提交并推送本次 Memory 长期记忆整理结果。
 
 ## In progress
 
@@ -29,33 +26,23 @@ Updated by: agent
 
 ## Next actions
 
-1. 用户审阅本次提交。
-2. 用户决定是否推送 Memory 相关变更。
+1. 用户决定歌手详情是否应提供专辑浏览入口，并统一 `CONTEXT.md` 与 `docs/PRD.md`。
 
 ## Blockers and open questions
 
-- None.
+- `NEEDS_USER_DECISION`：`CONTEXT.md` 规定歌手详情当前不承担专辑浏览入口，`docs/PRD.md` 则要求歌手页展示专辑列表并可进入专辑页。
+- implementation gap：`CONTEXT.md` 定义 iOS 系统音乐资料库来源，当前审核范围内只发现对应领域枚举与 UI 标签，未发现实际 scanner 接入。
 
 ## Verification status
 
-- doctor 退出码为 0，输出包含 `Memory doctor passed`、0 个错误和 `0 warning(s)`。
-- context 输出为 2592 个字符，STATE 有效，validated ID 与 active ID 均为空，未注入非法状态条目或命中敏感字段模式。
-- 冻结脚本 SHA-256 为 `d3f87d4b7d22662d5f9bc1ce794262e28f7b7be45ad3a2cf22f68e115fafb019`。
-- 独立 JSON 检查确认无重复 key，四个事件各有一个 command handler，timeout 均为 30，POSIX 与 Windows 命令齐全，8 个摘要 pin 全部匹配当前脚本 SHA，且不存在 `.codex/config.toml` 双重注册冲突。
-- SessionStart：PASS；新会话已注入 schema-valid 项目记忆，validated Learning 与 active Knowledge 数量均为 0。
-- UserPromptSubmit：PASS；已建立包含要求字段和合法类型的工作区运行态基线。
-- PostToolUse：PASS；已检测受控探针变更，遥测仅含允许字段且未记录探针内容、完整路径或敏感数据。
-- Stop 首次阻止：PASS；探针变化后真实返回预期 continuation。
-- Stop 在有效 STATE 更新后放行：PASS；最终 `MEMORY_E2E_PASS` 回复成功送达且未出现第二次 continuation。
-- 探针清理：PASS；`memory-hook-e2e-probe.txt` 已删除。
-- memory tests：NOT_INSTALLED；`tests/test_memory_hook.py` 未安装，因此保持 `Verification: partial`，不影响本次运行时端到端验收结论。
+- 本轮初始 doctor 因旧 STATE Basis 与 HEAD 不匹配而失败；用户授权修复后，Basis 更新到初始 HEAD `0322ff45b0238fa370e7ffad2768a0cbc4b2c837`，doctor 通过且为 `0 warning(s)`。
+- Knowledge 预验证 doctor 通过且为 `0 warning(s)`；context 为 3930 个字符，注入 `DEC-0001` 至 `DEC-0004`，validated LRN 为空。
+- context 未出现 Knowledge 预算省略、非法状态条目注入或敏感信息模式。
+- 在实际审核范围内，扫描覆盖、歌单顺序与队列、详情完整列表、移动端导航栈和播放页半屏关闭规则有当前代码或测试呼应；iOS 系统音乐资料库 scanner 未发现实现。
+- `LEARNINGS.md` 摘要与初始基线一致，未新增 candidate 或 validated Learning。
+- 长期记忆整理阶段未运行完整项目测试、未联网、未安装依赖或启动服务；提交与推送由用户在后续明确授权。
 
 ## Relevant changed files
 
-- AGENTS.md
-- .codex/hooks.json
-- .codex/hooks/memory_hook.py
-- .memory/.gitignore
-- .memory/STATE.md
-- .memory/LEARNINGS.md
 - .memory/KNOWLEDGE.md
+- .memory/STATE.md
