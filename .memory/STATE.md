@@ -2,7 +2,7 @@
 
 Updated: 2026-07-13
 Status: ready
-Basis: uncommitted
+Basis: git:940f522c
 Verification: passed
 Updated by: agent
 
@@ -23,6 +23,7 @@ Updated by: agent
 - `./gradlew :composeApp:compileDebugKotlinAndroid` 通过。
 - `./gradlew :composeApp:desktopTest` 通过。
 - `git diff --check` 通过。
+- 代码提交为 `940f522c`。
 
 ## In progress
 
