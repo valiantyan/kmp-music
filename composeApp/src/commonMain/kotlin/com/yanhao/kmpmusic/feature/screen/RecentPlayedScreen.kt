@@ -52,6 +52,7 @@ fun RecentPlayedScreen(
                 .fillMaxSize()
                 .weight(weight = 1f),
             contentPadding = PaddingValues(
+                top = 12.dp,
                 bottom = contentPadding.calculateBottomPadding() + 40.dp,
             ),
         ) {
