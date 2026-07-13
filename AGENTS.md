@@ -168,7 +168,23 @@ This repo uses a single-context domain docs layout. See `docs/agents/domain.md`.
 
 ### 验证
 
-- 修改记忆系统后必须运行 `python3 .codex/hooks/memory_hook.py doctor --root <项目绝对路径>`；只有实际安装 `tests/test_memory_hook.py` 时才要求运行对应 memory 测试。
-- doctor 不能替代对 `AGENTS.md` 合并结果、原有 hook 保留情况、handler 重复、`timeout=30`、8 个摘要 pin 和 `.codex/config.toml` 冲突的独立检查。
-- hook 运行异常必须 fail-open：可以告警，但不能损坏记忆或把 Codex 困在续跑循环；该系统是连续性辅助层，不是安全、合规或审计强制边界。
-- 初次安装只有在用户通过 `/hooks` 审查并接受四个事件定义、关闭当前会话且新开会话完成运行时验收后，才能报告完整启用。
+- 仅修改 `.memory/STATE.md`、`.memory/LEARNINGS.md` 或 `.memory/KNOWLEDGE.md` 后，必须运行：
+
+  `python3 .codex/hooks/memory_hook.py doctor --root <项目绝对路径>`
+
+- 修改 `AGENTS.md` 中的记忆协议后，必须人工核对规则语义没有缺失、冲突或降低既有约束，并运行 memory doctor。
+
+- 修改 `.codex/hooks.json`、`.codex/hooks/memory_hook.py`、记忆 schema、parser 或升级记忆系统后，必须：
+    1. 运行 memory doctor；
+    2. 实际安装 `tests/test_memory_hook.py` 时运行定向 memory 测试；
+    3. 独立确认原有 hooks 均被保留；
+    4. 确认每个事件只有一个当前 memory handler；
+    5. 检查 matcher、`type=command`、POSIX/Windows 命令和 `timeout=30`；
+    6. 检查脚本 SHA-256 与8个摘要 pin；
+    7. 检查 `.codex/config.toml` 不存在禁用、重复或 inline hooks 冲突。
+
+- 新增或修改 Hook definition 后，必须由用户通过 `/hooks` 审查并接受当前定义；在新会话完成运行时烟测前，不得报告新定义已经生效。
+
+- 如果 memory 测试文件未安装，必须报告 `NOT_INSTALLED`，不得把未执行的测试写成通过。
+
+- Hook 运行异常必须 fail-open：可以告警，但不能损坏记忆或把 Codex 困在无限续跑中。该系统是连续性辅助层，不是安全、合规或审计强制边界。
