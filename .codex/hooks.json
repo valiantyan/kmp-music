@@ -6,38 +6,37 @@
         "hooks": [
           {
             "type": "command",
-            "command": "sh -lc 'export PYTHONDONTWRITEBYTECODE=1; ROOT=\"$(git rev-parse --show-toplevel 2>/dev/null || pwd)\"; while [ ! -d \"$ROOT/.codex/hooks\" ] && [ \"$ROOT\" != \"/\" ]; do ROOT=\"$(dirname \"$ROOT\")\"; done; exec python3 \"$ROOT/.codex/hooks/session_start.py\"'",
-            "commandWindows": "powershell -NoProfile -ExecutionPolicy Bypass -Command \"$env:PYTHONDONTWRITEBYTECODE='1'; $root=(git rev-parse --show-toplevel 2>$null); if(-not $root){$root=(Get-Location).Path; while($root -and -not (Test-Path (Join-Path $root '.codex\\hooks'))){$parent=Split-Path $root -Parent; if($parent -eq $root){break}; $root=$parent}}; py -3 (Join-Path $root '.codex\\hooks\\session_start.py')\"",
+            "command": "root=\"$PWD\"; while [ \"$root\" != \"/\" ] && [ ! -f \"$root/.codex/hooks/memory_hook.py\" ]; do root=\"$(dirname \"$root\")\"; done; script=\"$root/.codex/hooks/memory_hook.py\"; python3 -c 'import hashlib,os,sys;p=sys.argv[1];e=sys.argv[2];d=hashlib.sha256(open(p,chr(114)+chr(98)).read()).hexdigest();d==e or sys.exit(3);os.execv(sys.executable,[sys.executable,p])' \"$script\" \"d3f87d4b7d22662d5f9bc1ce794262e28f7b7be45ad3a2cf22f68e115fafb019\"",
+            "commandWindows": "powershell -NoProfile -Command \"$root=(Get-Location).Path; while ($root -and -not (Test-Path (Join-Path $root '.codex/hooks/memory_hook.py'))) { $parent=Split-Path $root -Parent; if ($parent -eq $root) { break }; $root=$parent }; $script=Join-Path $root '.codex/hooks/memory_hook.py'; py -3 -c 'import hashlib,os,sys;p=sys.argv[1];e=sys.argv[2];d=hashlib.sha256(open(p,chr(114)+chr(98)).read()).hexdigest();d==e or sys.exit(3);os.execv(sys.executable,[sys.executable,p])' $script 'd3f87d4b7d22662d5f9bc1ce794262e28f7b7be45ad3a2cf22f68e115fafb019'\"",
             "timeout": 30,
-            "statusMessage": "Compiling Memory OS context"
+            "statusMessage": "Loading schema-validated project memory"
           }
         ]
       }
     ],
     "UserPromptSubmit": [
       {
-        "matcher": "*",
         "hooks": [
           {
             "type": "command",
-            "command": "sh -lc 'export PYTHONDONTWRITEBYTECODE=1; ROOT=\"$(git rev-parse --show-toplevel 2>/dev/null || pwd)\"; while [ ! -d \"$ROOT/.codex/hooks\" ] && [ \"$ROOT\" != \"/\" ]; do ROOT=\"$(dirname \"$ROOT\")\"; done; exec python3 \"$ROOT/.codex/hooks/user_prompt_submit.py\"'",
-            "commandWindows": "powershell -NoProfile -ExecutionPolicy Bypass -Command \"$env:PYTHONDONTWRITEBYTECODE='1'; $root=(git rev-parse --show-toplevel 2>$null); if(-not $root){$root=(Get-Location).Path; while($root -and -not (Test-Path (Join-Path $root '.codex\\hooks'))){$parent=Split-Path $root -Parent; if($parent -eq $root){break}; $root=$parent}}; py -3 (Join-Path $root '.codex\\hooks\\user_prompt_submit.py')\"",
+            "command": "root=\"$PWD\"; while [ \"$root\" != \"/\" ] && [ ! -f \"$root/.codex/hooks/memory_hook.py\" ]; do root=\"$(dirname \"$root\")\"; done; script=\"$root/.codex/hooks/memory_hook.py\"; python3 -c 'import hashlib,os,sys;p=sys.argv[1];e=sys.argv[2];d=hashlib.sha256(open(p,chr(114)+chr(98)).read()).hexdigest();d==e or sys.exit(3);os.execv(sys.executable,[sys.executable,p])' \"$script\" \"d3f87d4b7d22662d5f9bc1ce794262e28f7b7be45ad3a2cf22f68e115fafb019\"",
+            "commandWindows": "powershell -NoProfile -Command \"$root=(Get-Location).Path; while ($root -and -not (Test-Path (Join-Path $root '.codex/hooks/memory_hook.py'))) { $parent=Split-Path $root -Parent; if ($parent -eq $root) { break }; $root=$parent }; $script=Join-Path $root '.codex/hooks/memory_hook.py'; py -3 -c 'import hashlib,os,sys;p=sys.argv[1];e=sys.argv[2];d=hashlib.sha256(open(p,chr(114)+chr(98)).read()).hexdigest();d==e or sys.exit(3);os.execv(sys.executable,[sys.executable,p])' $script 'd3f87d4b7d22662d5f9bc1ce794262e28f7b7be45ad3a2cf22f68e115fafb019'\"",
             "timeout": 30,
-            "statusMessage": "Screening user prompt for durable memory"
+            "statusMessage": "Capturing a workspace baseline"
           }
         ]
       }
     ],
     "PostToolUse": [
       {
-        "matcher": "*",
+        "matcher": "^(Bash|apply_patch|Edit|Write|mcp__.*)$",
         "hooks": [
           {
             "type": "command",
-            "command": "sh -lc 'export PYTHONDONTWRITEBYTECODE=1; ROOT=\"$(git rev-parse --show-toplevel 2>/dev/null || pwd)\"; while [ ! -d \"$ROOT/.codex/hooks\" ] && [ \"$ROOT\" != \"/\" ]; do ROOT=\"$(dirname \"$ROOT\")\"; done; exec python3 \"$ROOT/.codex/hooks/post_tool_use.py\"'",
-            "commandWindows": "powershell -NoProfile -ExecutionPolicy Bypass -Command \"$env:PYTHONDONTWRITEBYTECODE='1'; $root=(git rev-parse --show-toplevel 2>$null); if(-not $root){$root=(Get-Location).Path; while($root -and -not (Test-Path (Join-Path $root '.codex\\hooks'))){$parent=Split-Path $root -Parent; if($parent -eq $root){break}; $root=$parent}}; py -3 (Join-Path $root '.codex\\hooks\\post_tool_use.py')\"",
+            "command": "root=\"$PWD\"; while [ \"$root\" != \"/\" ] && [ ! -f \"$root/.codex/hooks/memory_hook.py\" ]; do root=\"$(dirname \"$root\")\"; done; script=\"$root/.codex/hooks/memory_hook.py\"; python3 -c 'import hashlib,os,sys;p=sys.argv[1];e=sys.argv[2];d=hashlib.sha256(open(p,chr(114)+chr(98)).read()).hexdigest();d==e or sys.exit(3);os.execv(sys.executable,[sys.executable,p])' \"$script\" \"d3f87d4b7d22662d5f9bc1ce794262e28f7b7be45ad3a2cf22f68e115fafb019\"",
+            "commandWindows": "powershell -NoProfile -Command \"$root=(Get-Location).Path; while ($root -and -not (Test-Path (Join-Path $root '.codex/hooks/memory_hook.py'))) { $parent=Split-Path $root -Parent; if ($parent -eq $root) { break }; $root=$parent }; $script=Join-Path $root '.codex/hooks/memory_hook.py'; py -3 -c 'import hashlib,os,sys;p=sys.argv[1];e=sys.argv[2];d=hashlib.sha256(open(p,chr(114)+chr(98)).read()).hexdigest();d==e or sys.exit(3);os.execv(sys.executable,[sys.executable,p])' $script 'd3f87d4b7d22662d5f9bc1ce794262e28f7b7be45ad3a2cf22f68e115fafb019'\"",
             "timeout": 30,
-            "statusMessage": "Governing tool-output memory"
+            "statusMessage": "Recording minimized tool telemetry"
           }
         ]
       }
@@ -47,10 +46,10 @@
         "hooks": [
           {
             "type": "command",
-            "command": "sh -lc 'export PYTHONDONTWRITEBYTECODE=1; ROOT=\"$(git rev-parse --show-toplevel 2>/dev/null || pwd)\"; while [ ! -d \"$ROOT/.codex/hooks\" ] && [ \"$ROOT\" != \"/\" ]; do ROOT=\"$(dirname \"$ROOT\")\"; done; exec python3 \"$ROOT/.codex/hooks/stop.py\"'",
-            "commandWindows": "powershell -NoProfile -ExecutionPolicy Bypass -Command \"$env:PYTHONDONTWRITEBYTECODE='1'; $root=(git rev-parse --show-toplevel 2>$null); if(-not $root){$root=(Get-Location).Path; while($root -and -not (Test-Path (Join-Path $root '.codex\\hooks'))){$parent=Split-Path $root -Parent; if($parent -eq $root){break}; $root=$parent}}; py -3 (Join-Path $root '.codex\\hooks\\stop.py')\"",
+            "command": "root=\"$PWD\"; while [ \"$root\" != \"/\" ] && [ ! -f \"$root/.codex/hooks/memory_hook.py\" ]; do root=\"$(dirname \"$root\")\"; done; script=\"$root/.codex/hooks/memory_hook.py\"; python3 -c 'import hashlib,os,sys;p=sys.argv[1];e=sys.argv[2];d=hashlib.sha256(open(p,chr(114)+chr(98)).read()).hexdigest();d==e or sys.exit(3);os.execv(sys.executable,[sys.executable,p])' \"$script\" \"d3f87d4b7d22662d5f9bc1ce794262e28f7b7be45ad3a2cf22f68e115fafb019\"",
+            "commandWindows": "powershell -NoProfile -Command \"$root=(Get-Location).Path; while ($root -and -not (Test-Path (Join-Path $root '.codex/hooks/memory_hook.py'))) { $parent=Split-Path $root -Parent; if ($parent -eq $root) { break }; $root=$parent }; $script=Join-Path $root '.codex/hooks/memory_hook.py'; py -3 -c 'import hashlib,os,sys;p=sys.argv[1];e=sys.argv[2];d=hashlib.sha256(open(p,chr(114)+chr(98)).read()).hexdigest();d==e or sys.exit(3);os.execv(sys.executable,[sys.executable,p])' $script 'd3f87d4b7d22662d5f9bc1ce794262e28f7b7be45ad3a2cf22f68e115fafb019'\"",
             "timeout": 30,
-            "statusMessage": "Healing and checkpointing memory"
+            "statusMessage": "Checking the final handoff order"
           }
         ]
       }
