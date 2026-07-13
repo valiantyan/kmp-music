@@ -9,7 +9,9 @@ import androidx.compose.foundation.gestures.rememberDraggableState
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.offset
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -49,7 +51,12 @@ internal fun MobilePlayerOverlayGesture(
     BoxWithConstraints(modifier = modifier.fillMaxSize()) {
         val interactionSource: MutableInteractionSource = remember { MutableInteractionSource() }
         val density = LocalDensity.current
-        val screenHeightPx: Float = with(density) { maxHeight.toPx() }
+        val contentHeightPx: Float = with(density) { maxHeight.toPx() }
+        val navigationBarBottomPx: Float = WindowInsets.navigationBars.getBottom(density = density).toFloat()
+        val dismissDistancePx: Float = calculatePlayerDismissDistance(
+            contentHeightPx = contentHeightPx,
+            navigationBarBottomPx = navigationBarBottomPx,
+        )
         var dragOffsetPx: Float by remember { mutableFloatStateOf(value = 0f) }
         val dragState = rememberDraggableState { dragDeltaPx: Float ->
             dragOffsetPx = calculatePlayerDragOffset(
@@ -76,12 +83,12 @@ internal fun MobilePlayerOverlayGesture(
                     onDragStopped = {
                         if (isPlayerOverlayDismissDrag(
                                 dragOffsetPx = dragOffsetPx,
-                                screenHeightPx = screenHeightPx,
+                                screenHeightPx = dismissDistancePx,
                             )
                         ) {
                             animatePlayerDragOffsetToDismiss(
                                 currentOffsetPx = dragOffsetPx,
-                                screenHeightPx = screenHeightPx,
+                                screenHeightPx = dismissDistancePx,
                                 updateOffsetPx = { nextOffsetPx: Float -> dragOffsetPx = nextOffsetPx },
                             )
                             onDismiss()
@@ -95,6 +102,19 @@ internal fun MobilePlayerOverlayGesture(
                 ),
         )
     }
+}
+
+/**
+ * 播放页关闭距离包含系统导航栏底部区域，保证整页从屏幕物理底边退出。
+ */
+internal fun calculatePlayerDismissDistance(
+    contentHeightPx: Float,
+    navigationBarBottomPx: Float,
+): Float {
+    if (contentHeightPx <= 0f) {
+        return 0f
+    }
+    return contentHeightPx + navigationBarBottomPx.coerceAtLeast(minimumValue = 0f)
 }
 
 /**

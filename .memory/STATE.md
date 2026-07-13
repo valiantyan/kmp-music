@@ -1,24 +1,23 @@
 # Current State
 
 Updated: 2026-07-13
-Status: ready
+Status: complete
 Basis: uncommitted
 Verification: passed
 Updated by: agent
 
 ## Current objective
 
-- 播放页顶部关闭 icon 已按用户明确数值要求完成最小修改：左侧距离 24dp、点击区域 40dp x 40dp、图标大小 40dp x 40dp。
+- 修复 Android 播放页点击顶部关闭时先白闪、且关闭动画从系统导航栏上方结束的问题；目标效果参考 `/Users/yanhao/Desktop/20260713-194837.mp4`。
 
 ## Completed
 
-- 用户明确指定播放页关闭 icon 的布局约束：距离左边屏幕 24dp、icon 区域 40dp x 40dp、icon 大小 40dp x 40dp。
-- 仅修改 [PlayerTopBar] 中关闭按钮自身布局；未改播放页背景、状态栏、封面、进度、控制区或其它功能入口。
-- 在当前父级 `32dp` 页面内边距下，将关闭按钮区域向左偏移 `28dp`，使按钮区域左边界落到屏幕左侧 24dp。
-- 将关闭按钮点击区域由 44dp 改为 40dp x 40dp。
-- 为关闭 icon 显式设置 40dp x 40dp。
-- `git diff --check` 通过。
-- `./gradlew :composeApp:compileDebugKotlinAndroid` 通过。
+- 已逐帧确认 `/Users/yanhao/Desktop/20260713-194559.mp4` 中两个问题都存在：关闭前播放页背景回到白色默认态，退出层从系统导航栏上方结束。
+- 已修复播放页 overlay 退出时的保存 key，避免 outgoing 播放页重组后 palette 回到白色默认值。
+- 已把点击关闭和下滑关闭的退出距离统一扩展到系统导航栏底部 inset，保证整页从屏幕物理底边退出。
+- 已让 Android 系统导航栏保持透明，由 Compose 全屏内容绘制底部背景，避免静态系统栏色块盖住播放页动画。
+- 已补充 `MobilePlayerOverlayGestureTest` 覆盖 overlay key、点击退出距离和手势退出距离规则。
+- 已完成对抗式审查，修正未使用 import 和过期注释。
 
 ## In progress
 
@@ -26,18 +25,27 @@ Updated by: agent
 
 ## Next actions
 
-1. 用户在目标设备上目测确认播放页关闭 icon 的位置与触控区域是否符合预期。
+1. 如需进一步确认视觉效果，可安装 debug 包到真机或模拟器后录屏对比目标视频。
 
 ## Blockers and open questions
 
-- 当前无阻塞；本轮未做真机截图复核。
+- 没有技术阻塞；本轮未执行真机录屏验证。
 
 ## Verification status
 
-- repo:composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/screen/PlayerScreenVisuals.kt
+- test:composeApp/src/commonTest/kotlin/com/yanhao/kmpmusic/feature/app/layout/MobilePlayerOverlayGestureTest.kt::MobilePlayerOverlayGestureTest
+- test:composeApp/src/commonTest/kotlin/com/yanhao/kmpmusic/feature/app/layout/MobilePlayerOverlayGestureTest.kt::calculatePlayerOverlayExitOffsetYIncludesNavigationBarArea
+- test:composeApp/src/commonTest/kotlin/com/yanhao/kmpmusic/feature/app/layout/MobilePlayerOverlayGestureTest.kt::resolveOverlaySaveableStateKeyKeepsRetainedKeyForOutgoingOverlay
+- docs:CONTEXT.md
+- repo:composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/app/layout/MobileContentLayout.kt
+- repo:composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/app/layout/MobilePlayerOverlayGesture.kt
+- repo:composeApp/src/androidMain/kotlin/com/yanhao/kmpmusic/MainActivity.kt
 - repo:.memory/STATE.md
 
 ## Relevant changed files
 
-- composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/screen/PlayerScreenVisuals.kt
+- composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/app/layout/MobileContentLayout.kt
+- composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/app/layout/MobilePlayerOverlayGesture.kt
+- composeApp/src/androidMain/kotlin/com/yanhao/kmpmusic/MainActivity.kt
+- composeApp/src/commonTest/kotlin/com/yanhao/kmpmusic/feature/app/layout/MobilePlayerOverlayGestureTest.kt
 - .memory/STATE.md

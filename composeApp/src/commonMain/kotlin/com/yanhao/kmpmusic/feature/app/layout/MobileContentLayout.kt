@@ -18,10 +18,12 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
@@ -33,6 +35,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
 import com.yanhao.kmpmusic.core.theme.MusicDimens
 import com.yanhao.kmpmusic.core.theme.scaledDp
@@ -116,16 +119,28 @@ fun MobileChromeOverlay(
     )
     val saveableStateHolder = rememberSaveableStateHolder()
     var wasPlayerDismissedByDrag: Boolean by remember { mutableStateOf(value = false) }
+    var retainedOverlayScrollStateKey: String? by remember { mutableStateOf(value = null) }
+    val targetOverlayScreen: SecondaryScreen? = state.navigationState.chromeOverlayScreen
+    val targetOverlayScrollStateKey: String? = targetOverlayScreen?.let { state.navigationState.scrollStateKey }
+    val navigationBarBottomPx: Int = WindowInsets.navigationBars.getBottom(density = LocalDensity.current)
     LaunchedEffect(state.navigationState.chromeOverlayScreen) {
         if (state.navigationState.chromeOverlayScreen == SecondaryScreen.Player) {
             wasPlayerDismissedByDrag = false
         }
     }
+    LaunchedEffect(targetOverlayScrollStateKey) {
+        if (targetOverlayScrollStateKey != null) {
+            retainedOverlayScrollStateKey = targetOverlayScrollStateKey
+        }
+    }
     AnimatedContent(
-        targetState = state.navigationState.chromeOverlayScreen,
+        targetState = targetOverlayScreen,
         modifier = modifier,
         transitionSpec = {
-            buildChromeOverlayTransition(wasPlayerDismissedByDrag = wasPlayerDismissedByDrag)
+            buildChromeOverlayTransition(
+                wasPlayerDismissedByDrag = wasPlayerDismissedByDrag,
+                navigationBarBottomPx = navigationBarBottomPx,
+            )
         },
         label = "MobileChromeOverlay",
     ) { overlayScreen: SecondaryScreen? ->
@@ -135,14 +150,20 @@ fun MobileChromeOverlay(
         }
         if (shouldHidePlayerOverlayContentAfterDrag(
                 overlayScreen = overlayScreen,
-                targetOverlayScreen = state.navigationState.chromeOverlayScreen,
+                targetOverlayScreen = targetOverlayScreen,
                 wasDismissedByDrag = wasPlayerDismissedByDrag,
             )
         ) {
             Box(modifier = Modifier.fillMaxSize())
             return@AnimatedContent
         }
-        saveableStateHolder.SaveableStateProvider(key = state.navigationState.scrollStateKey) {
+        val overlaySaveableStateKey: String = resolveOverlaySaveableStateKey(
+            overlayScreen = overlayScreen,
+            targetOverlayScreen = targetOverlayScreen,
+            targetScrollStateKey = state.navigationState.scrollStateKey,
+            retainedOverlayScrollStateKey = retainedOverlayScrollStateKey,
+        )
+        saveableStateHolder.SaveableStateProvider(key = overlaySaveableStateKey) {
             MobileOverlayScreenRoute(
                 overlayScreen = overlayScreen,
                 state = state,
@@ -165,11 +186,17 @@ fun MobileChromeOverlay(
  */
 private fun AnimatedContentTransitionScope<SecondaryScreen?>.buildChromeOverlayTransition(
     wasPlayerDismissedByDrag: Boolean,
+    navigationBarBottomPx: Int,
 ): ContentTransform {
     val enterTransition: EnterTransition = if (targetState == SecondaryScreen.Player) {
         slideInVertically(
             animationSpec = tween(durationMillis = MOBILE_PLAYER_OVERLAY_TRANSITION_MILLIS),
-            initialOffsetY = { fullHeight: Int -> fullHeight },
+            initialOffsetY = { fullHeight: Int ->
+                calculatePlayerOverlayExitOffsetY(
+                    fullHeight = fullHeight,
+                    navigationBarBottomPx = navigationBarBottomPx,
+                )
+            },
         )
     } else {
         fadeIn(animationSpec = tween(durationMillis = 0))
@@ -184,13 +211,43 @@ private fun AnimatedContentTransitionScope<SecondaryScreen?>.buildChromeOverlayT
         } else {
             slideOutVertically(
                 animationSpec = tween(durationMillis = MOBILE_PLAYER_OVERLAY_TRANSITION_MILLIS),
-                targetOffsetY = { fullHeight: Int -> fullHeight },
+                targetOffsetY = { fullHeight: Int ->
+                    calculatePlayerOverlayExitOffsetY(
+                        fullHeight = fullHeight,
+                        navigationBarBottomPx = navigationBarBottomPx,
+                    )
+                },
             )
         }
     } else {
         fadeOut(animationSpec = tween(durationMillis = 0))
     }
     return (enterTransition togetherWith exitTransition).using(SizeTransform(clip = false))
+}
+
+/**
+ * 播放页进出场目标必须越过系统导航栏区域，否则视觉上会从导航栏上方被截走。
+ */
+internal fun calculatePlayerOverlayExitOffsetY(
+    fullHeight: Int,
+    navigationBarBottomPx: Int,
+): Int {
+    return fullHeight + navigationBarBottomPx.coerceAtLeast(minimumValue = 0)
+}
+
+/**
+ * outgoing 覆盖页仍在转场时继续使用进入时的 key，避免播放页重组后 palette 回到白色默认值。
+ */
+internal fun resolveOverlaySaveableStateKey(
+    overlayScreen: SecondaryScreen,
+    targetOverlayScreen: SecondaryScreen?,
+    targetScrollStateKey: String,
+    retainedOverlayScrollStateKey: String?,
+): String {
+    if (overlayScreen == targetOverlayScreen) {
+        return targetScrollStateKey
+    }
+    return retainedOverlayScrollStateKey ?: targetScrollStateKey
 }
 
 /**
