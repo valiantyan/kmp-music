@@ -15,6 +15,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.yanhao.kmpmusic.core.theme.MusicDimens
 import com.yanhao.kmpmusic.domain.model.Album
@@ -42,6 +43,7 @@ fun FavoritesScreen(
     modifier: Modifier = Modifier,
     contentPadding: PaddingValues = PaddingValues(0.dp),
 ) {
+    val topPadding: Dp = contentPadding.calculateTopPadding()
     val likedSongs: List<Song> = remember(songs) {
         songs.filter { song: Song -> song.isLiked }
     }
@@ -67,7 +69,7 @@ fun FavoritesScreen(
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(
-                top = MusicDimens.MobileToolbarHeight + MusicDimens.MobileToolbarBodySpacing,
+                top = topPadding + MusicDimens.MobileToolbarHeight + MusicDimens.MobileToolbarBodySpacing,
                 bottom = contentPadding.calculateBottomPadding() + 40.dp,
             ),
         ) {
@@ -110,7 +112,9 @@ fun FavoritesScreen(
         MobilePrimaryToolbar(
             title = "收藏",
             onSearch = onSearch,
-            modifier = Modifier.align(alignment = Alignment.TopCenter),
+            modifier = Modifier
+                .align(alignment = Alignment.TopCenter)
+                .padding(top = topPadding),
         )
     }
 }

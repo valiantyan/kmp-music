@@ -40,7 +40,7 @@ internal val meOutlineColor: Color = Color(0xFFBCC9C6)
 // Figma “我的”页扫描按钮浅绿色底色。
 internal val meQuickActionColor: Color = Color(0x4D8DF5E4)
 
-// Figma “我的”页内容顶部留白；外层已叠加状态栏避让，合计接近节点 959:383 的 82px 起点。
+// Figma “我的”页内容顶部留白；页面会额外叠加状态栏避让，合计接近节点 959:383 的 82px 起点。
 internal val meContentTopPadding: Dp = 58.dp
 
 // Figma “我的”页水平页边距。

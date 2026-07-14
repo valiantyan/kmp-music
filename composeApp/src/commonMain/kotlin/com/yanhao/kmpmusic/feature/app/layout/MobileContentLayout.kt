@@ -22,8 +22,9 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
@@ -66,6 +67,9 @@ fun MobileContentLayout(
     modifier: Modifier = Modifier,
 ) {
     val bottomPadding: Dp = getContentBottomPadding(contentBottomSpace = fixedBarMode.contentBottomSpace)
+    val statusBarTopPadding: Dp = with(receiver = LocalDensity.current) {
+        WindowInsets.statusBars.getTop(density = this).toDp()
+    }
     val pagePadding: PaddingValues = PaddingValues(
         start = scaledDp(MusicDimens.PagePaddingHorizontal),
         top = scaledDp(MusicDimens.PagePaddingTop),
@@ -92,9 +96,11 @@ fun MobileContentLayout(
                 discoveryPlatform = discoveryPlatform,
                 modifier = modifier
                     .fillMaxSize()
-                    .statusBarsPadding()
                     .navigationBarsPadding(),
-                contentPadding = PaddingValues(bottom = bottomPadding),
+                contentPadding = PaddingValues(
+                    top = statusBarTopPadding,
+                    bottom = bottomPadding,
+                ),
             )
         }
     }

@@ -37,7 +37,7 @@ fun MeScreen(
             .fillMaxSize()
             .background(color = meBackgroundColor),
         contentPadding = PaddingValues(
-            top = meContentTopPadding,
+            top = contentPadding.calculateTopPadding() + meContentTopPadding,
             bottom = contentPadding.calculateBottomPadding() + 40.dp,
         ),
     ) {
