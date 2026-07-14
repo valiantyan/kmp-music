@@ -40,11 +40,11 @@ internal class PlaybackSnapshotWriter(
         val job: Deferred<Unit> = snapshotWriteScope.async(start = CoroutineStart.UNDISPATCHED) {
             saveCurrentSnapshot()
         }
-        synchronized(lock = pendingWritesLock) {
+        runSynchronizedBlock(lock = pendingWritesLock) {
             pendingWrites += job
         }
         job.invokeOnCompletion {
-            synchronized(lock = pendingWritesLock) {
+            runSynchronizedBlock(lock = pendingWritesLock) {
                 pendingWrites.remove(element = job)
             }
         }
@@ -78,7 +78,7 @@ internal class PlaybackSnapshotWriter(
      */
     internal suspend fun awaitPendingWrites() {
         while (true) {
-            val pendingJobs: List<Deferred<Unit>> = synchronized(lock = pendingWritesLock) {
+            val pendingJobs: List<Deferred<Unit>> = runSynchronizedBlock(lock = pendingWritesLock) {
                 pendingWrites.toList()
             }
             if (pendingJobs.isEmpty()) {

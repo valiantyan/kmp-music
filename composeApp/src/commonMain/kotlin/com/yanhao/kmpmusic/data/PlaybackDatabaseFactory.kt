@@ -4,7 +4,6 @@ import androidx.room3.RoomDatabase
 import androidx.sqlite.driver.bundled.BundledSQLiteDriver
 import com.yanhao.kmpmusic.domain.persistence.PlaybackDatabase
 import com.yanhao.kmpmusic.domain.persistence.PlaybackDatabaseMigrations
-import kotlinx.coroutines.Dispatchers
 
 /**
  * 复用 Room builder 的基础配置，避免多平台入口各自复制 driver、迁移和查询线程设置。
@@ -22,6 +21,6 @@ fun createPlaybackDatabase(builder: RoomDatabase.Builder<PlaybackDatabase>): Pla
         .addMigrations(PlaybackDatabaseMigrations.MIGRATION_5_6)
         .addMigrations(PlaybackDatabaseMigrations.MIGRATION_6_7)
         .addMigrations(PlaybackDatabaseMigrations.MIGRATION_7_8)
-        .setQueryCoroutineContext(Dispatchers.IO)
+        .setQueryCoroutineContext(providePlaybackDatabaseQueryCoroutineContext())
         .build()
 }
