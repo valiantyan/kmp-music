@@ -6,6 +6,7 @@ import com.yanhao.kmpmusic.domain.model.PlaybackError
 import com.yanhao.kmpmusic.domain.model.PlaybackErrorType
 import com.yanhao.kmpmusic.domain.model.PlaybackStatus
 import com.yanhao.kmpmusic.domain.playback.PlaybackEngineEvent
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.launch
@@ -287,6 +288,34 @@ class DesktopAppleAudioPlayerEngineTest {
         assertEquals(
             expected = 1,
             actual = bridge.commands.count { command: String -> command.startsWith(prefix = "prepare:") },
+        )
+        engine.release()
+        advanceUntilIdle()
+        collectJob.cancel()
+        advanceUntilIdle()
+    }
+
+    /** 验证 stop 只停止当前 generation，并回传 idle 状态给 common 协调器。 */
+    @Test
+    fun stopSendsBridgeCommandAndEmitsIdle(): Unit = runTest {
+        val bridge: FakeApplePlaybackBridge = FakeApplePlaybackBridge()
+        val engine: DesktopAppleAudioPlayerEngine = testEngine(bridge = bridge)
+        val events: MutableList<PlaybackEngineEvent> = mutableListOf()
+        val collectJob: Job = launch {
+            engine.events.toList(destination = events)
+        }
+        engine.setQueue(items = mediaItems(), startIndex = 0, startPositionMs = 0L)
+        bridge.emitPrepared(generation = 1L, durationMs = 180_000L)
+        engine.stop()
+        runCurrent()
+        assertEquals(expected = "stop:1", actual = bridge.commands.last())
+        assertEquals(
+            expected = PlaybackEngineEvent.StatusChanged(
+                status = PlaybackStatus.Idle,
+                positionMs = 0L,
+                durationMs = null,
+            ),
+            actual = events.filterIsInstance<PlaybackEngineEvent.StatusChanged>().last(),
         )
         engine.release()
         advanceUntilIdle()

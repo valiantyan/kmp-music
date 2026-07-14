@@ -115,14 +115,14 @@ object MacosAvFoundationBridgeSmoke {
     }
 
     /** 解析 smoke 工作目录，命令行参数优先于系统属性。 */
-    private fun smokeWorkDir(args: Array<String>): Path {
+    internal fun smokeWorkDir(args: Array<String>): Path {
         val configured: String? = args.firstOrNull()
             ?: System.getProperty(MACOS_AVFOUNDATION_BRIDGE_SMOKE_DIR_PROPERTY)
         return Paths.get(configured ?: "build/macos-avfoundation-bridge/smoke").toAbsolutePath()
     }
 
     /** 生成短 M4A 样本，避免依赖用户本机媒体文件。 */
-    private fun prepareSmokeM4a(workDir: Path): Path {
+    internal fun prepareSmokeM4a(workDir: Path): Path {
         Files.createDirectories(workDir)
         val wavPath: Path = workDir.resolve("macos-avfoundation-smoke.wav")
         val m4aPath: Path = workDir.resolve("macos-avfoundation-smoke.m4a")

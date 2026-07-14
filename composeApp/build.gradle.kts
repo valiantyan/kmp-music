@@ -231,6 +231,26 @@ tasks.register<JavaExec>("macosAvFoundationBridgeSmoke") {
     )
 }
 
+tasks.register<JavaExec>("macosAvFoundationDefaultRuntimeSmoke") {
+    description = "Runs a real local M4A playback smoke through the default macOS desktop runtime."
+    group = "verification"
+    onlyIf { isMacosHost }
+    dependsOn("compileMacosAvFoundationBridge", "desktopJar")
+    mainClass.set("com.yanhao.kmpmusic.MacosAvFoundationDefaultRuntimeSmoke")
+    classpath(
+        tasks.named("desktopJar"),
+        configurations.named("desktopRuntimeClasspath"),
+    )
+    systemProperty(
+        "kmp.music.macos.avfoundation.bridge.path",
+        macosAvFoundationBridgeLibrary.get().asFile.absolutePath,
+    )
+    systemProperty(
+        "kmp.music.macos.avfoundation.smoke.dir",
+        macosAvFoundationBridgeSmokeDir.get().asFile.absolutePath,
+    )
+}
+
 val macosLibVlcDownloadDir = layout.dir(
     providers
         .gradleProperty("kmp.music.libvlc.download.dir")
