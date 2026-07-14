@@ -1,4 +1,3 @@
-import org.gradle.api.tasks.Copy
 import org.gradle.api.tasks.Exec
 import org.gradle.api.tasks.JavaExec
 import org.gradle.api.tasks.testing.Test
@@ -91,7 +90,6 @@ kotlin {
             implementation(libs.kotlinx.serialization.core)
             implementation(libs.ktor.client.java)
             implementation(libs.jaudiotagger)
-            implementation(libs.vlcj)
         }
         iosArm64Main.dependencies {
             implementation(libs.ktor.client.darwin)
@@ -154,7 +152,7 @@ compose.desktop {
             isEnabled.set(false)
         }
         nativeDistributions {
-            targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
+            targetFormats(TargetFormat.Dmg)
             packageName = "KMP Music"
             packageVersion = "1.0.0"
         }
@@ -249,104 +247,4 @@ tasks.register<JavaExec>("macosAvFoundationDefaultRuntimeSmoke") {
         "kmp.music.macos.avfoundation.smoke.dir",
         macosAvFoundationBridgeSmokeDir.get().asFile.absolutePath,
     )
-}
-
-val macosLibVlcDownloadDir = layout.dir(
-    providers
-        .gradleProperty("kmp.music.libvlc.download.dir")
-        .map { path: String -> file(path) }
-        .orElse(
-            providers.provider {
-                gradle.gradleUserHomeDir.resolve("caches/kmp-music/macos-libvlc/download")
-            },
-        ),
-)
-val legacyMacosLibVlcDownloadDir = layout.buildDirectory.dir("macos-libvlc/download")
-val macosLibVlcRuntimeDir = layout.buildDirectory.dir("macos-libvlc/runtime/LibVLC")
-val releaseAppName = "KMP Music.app"
-val mainAppDir = layout.buildDirectory.dir("compose/binaries/main/app/$releaseAppName")
-val releaseAppDir = layout.buildDirectory.dir("compose/binaries/main-release/app/$releaseAppName")
-val macosLibVlcDownloadUrl: String = providers
-    .gradleProperty("kmp.music.libvlc.download.url")
-    .getOrElse("https://download.videolan.org/pub/videolan/vlc/last/macosx/vlc-3.0.23-arm64.dmg")
-
-tasks.register<Exec>("downloadMacosArm64LibVlc") {
-    workingDir = projectDir
-    commandLine(
-        "bash",
-        "$projectDir/src/desktopMain/packaging/macos-libvlc/download-macos-arm64-libvlc.sh",
-        macosLibVlcDownloadDir.get().asFile.absolutePath,
-        legacyMacosLibVlcDownloadDir.get().asFile.absolutePath,
-        macosLibVlcDownloadUrl,
-    )
-}
-
-tasks.register<Exec>("extractMacosArm64LibVlc") {
-    dependsOn("downloadMacosArm64LibVlc")
-    workingDir = projectDir
-    commandLine(
-        "bash",
-        "$projectDir/src/desktopMain/packaging/macos-libvlc/extract-macos-arm64-libvlc.sh",
-        macosLibVlcDownloadDir.get().file("vlc-3.0.23-arm64.dmg").asFile.absolutePath,
-        macosLibVlcRuntimeDir.get().asFile.absolutePath,
-    )
-}
-
-tasks.register("prepareMacosArm64LibVlc") {
-    dependsOn("extractMacosArm64LibVlc")
-    description = "Downloads, verifies, and extracts the macOS arm64 LibVLC runtime for local playback."
-    group = "distribution"
-}
-
-// Desktop 开发运行只复用已准备好的项目内 LibVLC；发布打包任务才强制准备并内置运行时。
-fun JavaExec.configureDesktopDevelopmentRun(): Unit {
-    systemProperty(
-        "kmp.music.libvlc.runtime.dir",
-        macosLibVlcRuntimeDir.get().asFile.absolutePath,
-    )
-}
-
-tasks.matching { task -> task.name == "run" || task.name == "desktopRun" }.configureEach {
-    (this as? JavaExec)?.configureDesktopDevelopmentRun()
-}
-
-// 常规 macOS 打包也必须内置 LibVLC；否则人工验收的 DMG/App 会落到不可用播放器。
-tasks.register<Copy>("stageMacosArm64LibVlcIntoMainApp") {
-    dependsOn("extractMacosArm64LibVlc", "createDistributable")
-    doFirst {
-        delete(mainAppDir.get().dir("Contents/Frameworks/LibVLC"))
-        delete(mainAppDir.get().dir("Contents/Resources/LibVLC"))
-    }
-    from(macosLibVlcRuntimeDir)
-    into(mainAppDir.map { directory -> directory.dir("Contents/Resources/LibVLC") })
-}
-
-// The release signing/notarization pipeline must sign nested LibVLC code after this task and
-// sign the outer app last. Running packageReleaseDmg before nested signing invalidates release acceptance.
-tasks.register<Copy>("stageMacosArm64LibVlcIntoReleaseApp") {
-    dependsOn("extractMacosArm64LibVlc", "createReleaseDistributable")
-    doFirst {
-        delete(releaseAppDir.get().dir("Contents/Frameworks/LibVLC"))
-        delete(releaseAppDir.get().dir("Contents/Resources/LibVLC"))
-    }
-    from(macosLibVlcRuntimeDir)
-    into(releaseAppDir.map { directory -> directory.dir("Contents/Resources/LibVLC") })
-}
-
-tasks.register<Exec>("verifyMacosArm64ReleaseApp") {
-    dependsOn("stageMacosArm64LibVlcIntoReleaseApp")
-    workingDir = projectDir
-    commandLine(
-        "bash",
-        "$projectDir/src/desktopMain/packaging/macos-libvlc/verify-macos-app-libvlc.sh",
-        releaseAppDir.get().asFile.absolutePath,
-    )
-}
-
-tasks.matching { task -> task.name == "packageReleaseDmg" }.configureEach {
-    dependsOn("stageMacosArm64LibVlcIntoReleaseApp")
-}
-
-tasks.matching { task -> task.name == "packageDmg" || task.name == "packageDistributionForCurrentOS" }.configureEach {
-    dependsOn("stageMacosArm64LibVlcIntoMainApp")
 }

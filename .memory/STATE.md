@@ -2,7 +2,7 @@
 
 ## 当前目标
 
-苹果平台统一播放迁移实现批次推进到 Ticket 14：Apple 格式矩阵、扫描入口过滤和播放错误自救文案已完成实现、验证、票据更新和交付前审查。
+苹果平台统一播放迁移实现批次推进到 Ticket 15：vlcj / LibVLC 生产链路下线已完成实现、验证、票据更新和交付前审查。
 
 ## 当前进度
 
@@ -12,6 +12,7 @@
 - 12 macOS AVFoundation bridge 最小真实播放已完成，状态为 `ready-for-human`。
 - 13 桌面默认 AVFoundation engine 已完成，状态为 `ready-for-human`。
 - 14 Apple 格式矩阵和播放错误自救文案已完成，状态为 `ready-for-human`。
+- 15 下线 vlcj / LibVLC 生产链路已完成，状态为 `ready-for-human`。
 - 11 新增 iOS 进程级 `IosPlaybackSession` / `IosPlaybackSessionRuntime`，由会话持有 `MusicAppController`、`IosAvFoundationAudioPlayerEngine` 和 `IosAvAudioSessionController`，`IosEntry` 只复用会话并请求一次播放快照恢复。
 - 11 新增 iOS AVFoundation 播放链路：`IosPlaybackBridge`、`IosAvFoundationPlaybackBridge`、`IosAvFoundationAudioPlayerEngine`、`IosAudioSessionController` 和 `IosPlaybackHostConfiguration`。
 - 11 真实 bridge 使用单个 `AVPlayer`，不引入 `AVQueuePlayer`；队列、播放模式、自然结束推进和失败策略仍由 common `PlaybackCoordinator` 拥有。
@@ -20,16 +21,19 @@
 - 12 新增 Gradle `compileMacosAvFoundationBridge` 编译 dylib，`desktopTest` 显式加载该 dylib；新增 `macosAvFoundationBridgeSmoke` 生成本机 M4A/AAC 样本并验证真实 AVFoundation 事件回流。
 - 13 已将 `DesktopAudioRuntimeFactory` 默认装配切到 `DesktopAppleAudioPlayerEngine + MacosAvFoundationPlaybackBridge`，bridge 不可用时映射为统一 `EngineUnavailable` 事件，不回退 vlcj。
 - 13 新增 `macosAvFoundationDefaultRuntimeSmoke`，通过默认桌面运行时、`MusicAppController` 和真实 AVFoundation bridge 验证 current media、playing、progress、seek、pause/resume、next、previous 和 stop。
-- 13 未删除 vlcj / LibVLC 依赖、打包任务、旧 engine 或旧测试资产；这些仍属于 15 号下线票范围，不作为 13 的 runtime fallback。
 - 14 新增 `AppleAudioFormatSupportMatrix` 和 `docs/APPLE_PLATFORM_FORMAT_SUPPORT_MATRIX.md`。矩阵覆盖 MP3、M4A/AAC、WAV、FLAC、AIFF/ALAC、OGG/OPUS 和 AMR；OGG/OPUS/AMR 为待验证，不进入桌面或 iOS 扫描入口。
 - 14 扩展 `macosAvFoundationBridgeSmoke`，真实 M4A/AAC 播放 smoke 继续验证 prepared、playing、progress、ended 和 MissingFile；格式矩阵样本用 AVFoundation 可播放性检查输出 MP3、M4A/AAC、WAV、FLAC、AIFF/ALAC 支持证据。
 - 14 更新共享错误文案，覆盖缺文件、权限拒绝、不支持格式或受保护资源、Apple 播放组件不可用和未知错误；全部错误类型的用户文案都不出现旧运行时提示。
 - 14 iOS 真实格式样本播放未形成可靠自动化证据；矩阵和文档明确 iOS 导入扫描按 Apple P0 allowlist 放行，但真机真实样本播放仍需 17 号 gate 或人工验收记录。
+- 15 已删除 `libs.vlcj` 依赖、旧 macOS LibVLC 下载/提取/准备/打包/验收任务、开发运行时参数注入和 `composeApp/src/desktopMain/packaging/macos-libvlc/` 生产脚本资源。
+- 15 已删除旧 `DesktopVlcjAudioPlayerEngine`、`MacosLibVlcRuntime`、`VlcjMediaPlayerAdapter`、`DesktopMediaPlayerAdapter` 旧适配边界及其 LibVLC / vlcj 细节测试。
+- 15 桌面 native distribution 已收窄为 macOS `Dmg`，不再生成 Windows / Linux 桌面真实播放分发暗示。
+- 15 新增 `VlcjDecommissionGateTest`，扫描生产代码、Gradle 依赖、打包脚本、运行参数、Markdown / shell / Kotlin / native 文本文件，证明生产树不再出现旧播放路径关键词。
 
 ## 下一步
 
-- 当前可继续推进 `15-decommission-vlcj-libvlc-production-path.md`；15 依赖 13，前置已满足。
-- 后续阻塞链保持不变：16 依赖 14/15；17 依赖 11/14/15/16。
+- 当前可继续推进 `16-apple-playback-adr-docs.md`；16 依赖 14/15，前置已满足。
+- 后续阻塞链保持不变：17 依赖 11/14/15/16。
 - 若继续 iOS 方向，真机人工验收需由宿主工程确认 `UIBackgroundModes = audio`、后台继续播放、锁屏后继续播放、回前台状态同步，以及 MP3、M4A/AAC、WAV、FLAC、AIFF/ALAC 样本真实播放。
 
 ## 阻塞
@@ -58,6 +62,12 @@
 - 14 已运行 `git diff --check`，结果通过。
 - 14 TDD 红灯证据：新增格式矩阵测试后，首次 targeted desktopTest 因缺少 `AppleAudioFormatSupport`、`AppleAudioFormatSupportMatrix`、`AppleAudioFormatSupportStatus` 编译失败；smoke 扩展过程中还暴露 MP3 样本编码和短样本 ended 判据不稳定，已改为 AVFoundation 可播放性检查。
 - 14 交付前已执行 Standards + Spec 两维 code review；Standards 指出的显式类型问题已修复，Spec 指出的 iOS 证据边界和禁词覆盖不足已修复为显式边界记录与全部错误类型禁词测试。
+- 15 TDD 红灯证据：先新增 `VlcjDecommissionGateTest.productionTreeHasNoVlcjRuntimeReferences`，首次运行 `./gradlew :composeApp:desktopTest --tests com.yanhao.kmpmusic.playback.VlcjDecommissionGateTest` 失败，暴露 `libs.vlcj`、LibVLC 打包任务、运行参数、旧 engine/runtime/adapter 和脚本资源残留；删除旧生产路径后同一测试转绿。
+- 15 已运行 `./gradlew :composeApp:desktopTest --tests com.yanhao.kmpmusic.playback.VlcjDecommissionGateTest`，结果通过。
+- 15 已运行 `./gradlew :composeApp:desktopTest :composeApp:macosAvFoundationBridgeSmoke :composeApp:macosAvFoundationDefaultRuntimeSmoke :composeApp:compileDebugKotlinAndroid`，结果通过；bridge smoke 输出包含 `prepared`、`playing`、多次 `progress`、`ended`、`failed(type=MissingFile)` 和格式矩阵；默认 runtime smoke 输出包含 `current-media`、`playing`、`progress`、`seek`、`paused`、`resume`、`next`、`previous` 和 `stop`。
+- 15 已运行 `git diff --check`，结果通过。
+- 15 已运行生产树无旧引用证明 `rg -n "vlcj|LibVLC|libvlc|VLC_PLUGIN_PATH|kmp\\.music\\.libvlc|macos-libvlc|TargetFormat\\.(Msi|Deb)|downloadMacosArm64LibVlc|extractMacosArm64LibVlc|prepareMacosArm64LibVlc|stageMacosArm64LibVlc" composeApp/build.gradle.kts gradle/libs.versions.toml composeApp/src/commonMain composeApp/src/desktopMain`，结果无命中。
+- 15 交付前已执行 Standards + Spec 两维 code review；Standards 无发现，Spec 初审指出无引用门禁漏扫 `.mm` native 文件，已补充 native 扩展名扫描并重跑精准测试与完整验证。
 - 本轮已尝试运行 `python3 .codex/hooks/memory_hook.py doctor --root /Users/yanhao/Desktop/demo/kmp-music`，结果失败；原因是 `.codex/hooks/memory_hook.py` 不存在。
 
 ## 相关文件
@@ -69,8 +79,10 @@
 - `.scratch/apple-platform-playback-wayfinder/issues/12-macos-avfoundation-bridge-smoke.md`
 - `.scratch/apple-platform-playback-wayfinder/issues/13-desktop-default-avfoundation-engine.md`
 - `.scratch/apple-platform-playback-wayfinder/issues/14-apple-format-matrix-error-copy.md`
+- `.scratch/apple-platform-playback-wayfinder/issues/15-decommission-vlcj-libvlc-production-path.md`
 - `docs/APPLE_PLATFORM_FORMAT_SUPPORT_MATRIX.md`
 - `composeApp/build.gradle.kts`
+- `gradle/libs.versions.toml`
 - `composeApp/src/desktopMain/kotlin/com/yanhao/kmpmusic/DesktopAudioRuntimeFactory.kt`
 - `composeApp/src/desktopMain/kotlin/com/yanhao/kmpmusic/MacosAvFoundationDefaultRuntimeSmoke.kt`
 - `composeApp/src/desktopMain/kotlin/com/yanhao/kmpmusic/DesktopMain.kt`
@@ -89,6 +101,7 @@
 - `composeApp/src/desktopTest/kotlin/com/yanhao/kmpmusic/DesktopAudioRuntimeFactoryTest.kt`
 - `composeApp/src/desktopTest/kotlin/com/yanhao/kmpmusic/playback/DesktopAppleAudioPlayerEngineTest.kt`
 - `composeApp/src/desktopTest/kotlin/com/yanhao/kmpmusic/playback/MacosAvFoundationPlaybackBridgeTest.kt`
+- `composeApp/src/desktopTest/kotlin/com/yanhao/kmpmusic/playback/VlcjDecommissionGateTest.kt`
 - `composeApp/src/desktopTest/kotlin/com/yanhao/kmpmusic/playback/FakeMacosAvFoundationNativeBridgeSession.kt`
 - `composeApp/src/iosMain/kotlin/com/yanhao/kmpmusic/IosEntry.kt`
 - `composeApp/src/iosMain/kotlin/com/yanhao/kmpmusic/IosPlaybackSession.kt`
