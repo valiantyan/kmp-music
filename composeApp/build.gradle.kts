@@ -1,6 +1,7 @@
 import org.gradle.api.tasks.Copy
 import org.gradle.api.tasks.Exec
 import org.gradle.api.tasks.JavaExec
+import org.gradle.api.tasks.testing.Test
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
@@ -158,6 +159,76 @@ compose.desktop {
             packageVersion = "1.0.0"
         }
     }
+}
+
+val macosAvFoundationBridgeSource = layout.projectDirectory.file(
+    "src/desktopMain/native/macos-avfoundation/KmpMacosAvFoundationBridge.mm",
+)
+val macosAvFoundationBridgeOutputDir = layout.buildDirectory.dir("macos-avfoundation-bridge/native")
+val macosAvFoundationBridgeLibrary = macosAvFoundationBridgeOutputDir.map { directory ->
+    directory.file("libkmp_music_macos_avfoundation_bridge.dylib")
+}
+val macosAvFoundationBridgeSmokeDir = layout.buildDirectory.dir("macos-avfoundation-bridge/smoke")
+val isMacosHost: Boolean = System.getProperty("os.name").contains(other = "mac", ignoreCase = true)
+
+tasks.register<Exec>("compileMacosAvFoundationBridge") {
+    description = "Compiles the in-process macOS AVFoundation JNI bridge."
+    group = "build"
+    onlyIf { isMacosHost }
+    inputs.file(macosAvFoundationBridgeSource)
+    outputs.file(macosAvFoundationBridgeLibrary)
+    doFirst {
+        macosAvFoundationBridgeOutputDir.get().asFile.mkdirs()
+    }
+    val javaHome: String = System.getProperty("java.home")
+    commandLine(
+        "clang++",
+        "-dynamiclib",
+        "-std=c++17",
+        "-fobjc-arc",
+        "-mmacosx-version-min=12.0",
+        "-framework",
+        "Foundation",
+        "-framework",
+        "AVFoundation",
+        "-framework",
+        "CoreMedia",
+        "-I",
+        "$javaHome/include",
+        "-I",
+        "$javaHome/include/darwin",
+        macosAvFoundationBridgeSource.asFile.absolutePath,
+        "-o",
+        macosAvFoundationBridgeLibrary.get().asFile.absolutePath,
+    )
+}
+
+tasks.named<Test>("desktopTest") {
+    dependsOn("compileMacosAvFoundationBridge")
+    systemProperty(
+        "kmp.music.macos.avfoundation.bridge.path",
+        macosAvFoundationBridgeLibrary.get().asFile.absolutePath,
+    )
+}
+
+tasks.register<JavaExec>("macosAvFoundationBridgeSmoke") {
+    description = "Runs a real local M4A playback smoke through the macOS AVFoundation bridge."
+    group = "verification"
+    onlyIf { isMacosHost }
+    dependsOn("compileMacosAvFoundationBridge", "desktopJar")
+    mainClass.set("com.yanhao.kmpmusic.playback.MacosAvFoundationBridgeSmoke")
+    classpath(
+        tasks.named("desktopJar"),
+        configurations.named("desktopRuntimeClasspath"),
+    )
+    systemProperty(
+        "kmp.music.macos.avfoundation.bridge.path",
+        macosAvFoundationBridgeLibrary.get().asFile.absolutePath,
+    )
+    systemProperty(
+        "kmp.music.macos.avfoundation.smoke.dir",
+        macosAvFoundationBridgeSmokeDir.get().asFile.absolutePath,
+    )
 }
 
 val macosLibVlcDownloadDir = layout.dir(
