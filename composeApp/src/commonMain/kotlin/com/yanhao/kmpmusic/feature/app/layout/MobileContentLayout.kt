@@ -20,6 +20,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.navigationBars
@@ -35,15 +37,19 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
+import com.yanhao.kmpmusic.core.theme.MusicColors
 import com.yanhao.kmpmusic.core.theme.MusicDimens
 import com.yanhao.kmpmusic.core.theme.scaledDp
 import com.yanhao.kmpmusic.feature.app.ContentBottomSpace
 import com.yanhao.kmpmusic.feature.app.MobileFixedBarMode
 import com.yanhao.kmpmusic.feature.app.MusicAppController
 import com.yanhao.kmpmusic.feature.app.MusicAppUiState
+import com.yanhao.kmpmusic.feature.app.RootTab
 import com.yanhao.kmpmusic.feature.app.SecondaryScreen
 import com.yanhao.kmpmusic.feature.app.routes.MobileRootScreenRoute
 import com.yanhao.kmpmusic.feature.app.routes.MobileSecondaryScreenRoute
@@ -90,20 +96,59 @@ fun MobileContentLayout(
                 contentPadding = pagePadding,
             )
         } else {
-            MobileRootScreenRoute(
-                state = state,
-                controller = controller,
-                discoveryPlatform = discoveryPlatform,
+            Box(
                 modifier = modifier
                     .fillMaxSize()
                     .navigationBarsPadding(),
-                contentPadding = PaddingValues(
-                    top = statusBarTopPadding,
-                    bottom = bottomPadding,
-                ),
-            )
+            ) {
+                MobileRootScreenRoute(
+                    state = state,
+                    controller = controller,
+                    discoveryPlatform = discoveryPlatform,
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(
+                        top = statusBarTopPadding,
+                        bottom = bottomPadding,
+                    ),
+                )
+                if (shouldRenderTopLevelStatusBarBackground(rootTab = state.navigationState.rootTab)) {
+                    MobileTopLevelStatusBarBackground(
+                        statusBarTopPadding = statusBarTopPadding,
+                        modifier = Modifier.align(alignment = Alignment.TopCenter),
+                    )
+                }
+            }
         }
     }
+}
+
+/**
+ * 首页和收藏页是滚动列表，需要白底状态栏挡住上滑内容；我的页保留沉浸式背景。
+ */
+internal fun shouldRenderTopLevelStatusBarBackground(rootTab: RootTab): Boolean {
+    return when (rootTab) {
+        RootTab.Home,
+        RootTab.Favorites,
+        -> true
+        RootTab.Me -> false
+    }
+}
+
+// 一级页允许内容全屏滚动，但状态栏区域必须始终保持白底，避免列表卡片穿到系统图标下方。
+@Composable
+private fun MobileTopLevelStatusBarBackground(
+    statusBarTopPadding: Dp,
+    modifier: Modifier = Modifier,
+) {
+    if (statusBarTopPadding <= 0.dp) {
+        return
+    }
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(height = statusBarTopPadding)
+            .background(color = MusicColors.MobileToolbarBackground),
+    )
 }
 
 /**
