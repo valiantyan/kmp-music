@@ -10,12 +10,56 @@ import kotlin.test.assertTrue
 
 class LocalAudioFileRulesTest {
     @Test
-    fun matchAudioTypeRecognizesSupportedAudioExtensions() {
+    fun matchAudioTypeRecognizesAppleVerifiedAudioExtensions() {
         val mp3Type: LocalAudioType? = LocalAudioFileRules.matchAudioType(fileName = "Track 01.MP3")
         val flacType: LocalAudioType? = LocalAudioFileRules.matchAudioType(fileName = "live.flac")
+        val aiffType: LocalAudioType? = LocalAudioFileRules.matchAudioType(fileName = "master.AIFF")
 
         assertEquals(expected = "audio/mpeg", actual = mp3Type?.mimeType)
         assertEquals(expected = "audio/flac", actual = flacType?.mimeType)
+        assertEquals(expected = "audio/aiff", actual = aiffType?.mimeType)
+    }
+
+    @Test
+    fun matchAudioTypeRejectsAppleUnverifiedAudioExtensions() {
+        val oggType: LocalAudioType? = LocalAudioFileRules.matchAudioType(fileName = "archive.ogg")
+        val opusType: LocalAudioType? = LocalAudioFileRules.matchAudioType(fileName = "voice.opus")
+        val amrType: LocalAudioType? = LocalAudioFileRules.matchAudioType(fileName = "memo.amr")
+
+        assertNull(actual = oggType)
+        assertNull(actual = opusType)
+        assertNull(actual = amrType)
+    }
+
+    @Test
+    fun appleFormatMatrixCoversRequiredFormatsWithEvidence() {
+        val matrix: List<AppleAudioFormatSupport> = AppleAudioFormatSupportMatrix.entries
+        val names: Set<String> = matrix.map { support: AppleAudioFormatSupport -> support.formatName }.toSet()
+
+        assertEquals(
+            expected = setOf("MP3", "M4A/AAC", "WAV", "FLAC", "AIFF/ALAC", "OGG/OPUS", "AMR"),
+            actual = names,
+        )
+        assertTrue(
+            actual = matrix.all { support: AppleAudioFormatSupport -> support.evidence.isNotBlank() },
+        )
+        assertTrue(
+            actual = matrix
+                .filter { support: AppleAudioFormatSupport ->
+                    support.status == AppleAudioFormatSupportStatus.Supported
+                }
+                .all { support: AppleAudioFormatSupport ->
+                    support.evidence.contains(other = "iOS") &&
+                        support.evidence.contains(other = "后续 gate 验证")
+                },
+        )
+        assertTrue(
+            actual = matrix
+                .filter { support: AppleAudioFormatSupport ->
+                    support.status == AppleAudioFormatSupportStatus.PendingVerification
+                }
+                .all { support: AppleAudioFormatSupport -> !support.allowsScanning },
+        )
     }
 
     @Test

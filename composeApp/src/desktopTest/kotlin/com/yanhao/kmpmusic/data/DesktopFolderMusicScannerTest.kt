@@ -10,6 +10,7 @@ import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
+import kotlin.test.assertTrue
 
 /**
  * 桌面文件夹扫描器测试，保护扫描目录的稳定具体来源身份。
@@ -56,5 +57,27 @@ class DesktopFolderMusicScannerTest {
             expected = folderSourceId,
             actual = result.discovered.single().concreteSourceId,
         )
+    }
+
+    /**
+     * Apple 矩阵待验证格式不能被桌面扫描入口发布为可播放曲目。
+     */
+    @Test
+    fun scanIgnoresAppleUnverifiedAudioFormats(): Unit = runTest {
+        val folder: Path = Files.createTempDirectory("kmp-music-desktop-unverified")
+        Files.writeString(folder.resolve("voice.ogg"), "not a verified apple format")
+        Files.writeString(folder.resolve("memo.opus"), "not a verified apple format")
+        Files.writeString(folder.resolve("recording.amr"), "not a verified apple format")
+        val scanner: DesktopFolderMusicScanner = DesktopFolderMusicScanner(
+            chooseFolder = { folder },
+            nowMillis = { 123L },
+        )
+        val result: LocalMusicScanResult = scanner.scan(
+            request = LocalMusicScanRequest.Source(sourceKind = LocalMusicSourceKind.DesktopFolder),
+        )
+        assertTrue(actual = result.discovered.isEmpty())
+        assertTrue(actual = result.failed.isEmpty())
+        assertEquals(expected = 0, actual = result.sourceSummaries.single().songCount)
+        assertEquals(expected = 0, actual = result.sourceSummaries.single().problemCount)
     }
 }

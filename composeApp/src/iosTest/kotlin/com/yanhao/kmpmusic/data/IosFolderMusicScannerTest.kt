@@ -122,6 +122,27 @@ class IosFolderMusicScannerTest {
     }
 
     /**
+     * Apple 矩阵待验证格式不能进入 iOS 导入曲库，也不触发沙盒复制。
+     */
+    @Test
+    fun scanIgnoresAppleUnverifiedAudioFormats(): Unit = runBlocking {
+        val fileSystem: FakeIosImportFileSystem = FakeIosImportFileSystem()
+        fileSystem.registerFolder(
+            folderPath = "/external/Files/Music",
+            subpaths = listOf("voice.ogg", "memo.opus", "recording.amr"),
+        )
+        fileSystem.registerReadableFile(path = "/external/Files/Music/voice.ogg")
+        fileSystem.registerReadableFile(path = "/external/Files/Music/memo.opus")
+        fileSystem.registerReadableFile(path = "/external/Files/Music/recording.amr")
+        val scanner: IosFolderMusicScanner = scannerWith(fileSystem = fileSystem)
+        val result: LocalMusicScanResult = scanner.scan(request = LocalMusicScanRequest.Refresh)
+        assertTrue(actual = result.discovered.isEmpty())
+        assertTrue(actual = result.failed.isEmpty())
+        assertTrue(actual = fileSystem.copyOperations.isEmpty())
+        assertEquals(expected = 0, actual = result.sourceSummaries.single().songCount)
+    }
+
+    /**
      * 重复导入同一个文件时复用既有沙盒副本，避免覆盖已可播放文件。
      */
     @Test

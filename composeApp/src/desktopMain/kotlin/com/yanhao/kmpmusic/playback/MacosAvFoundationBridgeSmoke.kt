@@ -38,6 +38,7 @@ object MacosAvFoundationBridgeSmoke {
         }
         try {
             runSuccessfulPlaybackSmoke(bridge = bridge, events = events, mediaPath = mediaPath)
+            MacosAvFoundationFormatMatrixSmoke.run(workDir = workDir)
             runFailureSmoke(bridge = bridge, events = events, workDir = workDir)
             println("macOS AVFoundation bridge smoke 通过：${mediaPath.toUri()}")
         } finally {
