@@ -25,8 +25,11 @@ internal val artistDetailExpandedTitleScrollHeight: Dp = 64.dp
 // 播放入口上移 20dp 后保留的锚点高度，避免正文组和头图折叠关系脱节。
 internal val artistDetailPlayAllScrollHeight: Dp = 28.dp
 
-// 播放全部标题行固定视觉高度，参与歌手图跟随滚动的距离换算。
-internal val artistDetailSectionTitleScrollHeight: Dp = 80.dp
+// 播放全部按钮复用专辑详情组件，滚动估算需包含按钮 64dp 和顶部 32dp 间距。
+internal val artistDetailSectionTitleScrollHeight: Dp = 96.dp
+
+// 播放全部按钮和歌曲列表之间的视觉留白，避免首行卡片贴住按钮圆角。
+internal val artistDetailPlayAllListGapHeight: Dp = 12.dp
 
 // 歌曲行主体高度来自文字列与垂直 padding，用于更深列表滚动时连续推进头图。
 internal val artistDetailSongRowScrollHeight: Dp = 76.dp
@@ -238,6 +241,10 @@ internal fun calculateArtistDetailScrollOffsetFromListPosition(
         1 -> contentSpacerHeight
         2 -> contentSpacerHeight + artistDetailExpandedTitleScrollHeight
         3 -> contentSpacerHeight + artistDetailExpandedTitleScrollHeight + artistDetailPlayAllScrollHeight
+        4 -> contentSpacerHeight +
+            artistDetailExpandedTitleScrollHeight +
+            artistDetailPlayAllScrollHeight +
+            artistDetailSectionTitleScrollHeight
         else -> calculateArtistDetailSongListBaseOffset(
             firstVisibleItemIndex = firstVisibleItemIndex,
             contentSpacerHeight = contentSpacerHeight,
@@ -254,11 +261,12 @@ private fun calculateArtistDetailSongListBaseOffset(
     firstVisibleItemIndex: Int,
     contentSpacerHeight: Dp,
 ): Dp {
-    val songRowCount: Int = (firstVisibleItemIndex - 4).coerceAtLeast(minimumValue = 0)
+    val songRowCount: Int = (firstVisibleItemIndex - 5).coerceAtLeast(minimumValue = 0)
     return contentSpacerHeight +
         artistDetailExpandedTitleScrollHeight +
         artistDetailPlayAllScrollHeight +
         artistDetailSectionTitleScrollHeight +
+        artistDetailPlayAllListGapHeight +
         artistDetailSongRowScrollHeight * songRowCount
 }
 

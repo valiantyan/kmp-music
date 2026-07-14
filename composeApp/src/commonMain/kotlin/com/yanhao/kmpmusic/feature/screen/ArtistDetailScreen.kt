@@ -133,7 +133,7 @@ fun ArtistDetailScreen(
                 Spacer(modifier = Modifier.height(height = artistDetailPlayAllScrollHeight))
             }
             item(key = "artist-play-all-section-header") {
-                ArtistDetailPlayAllSectionHeader(
+                AlbumDetailPlayAllButton(
                     text = content.playAllText,
                     countText = content.playAllCountText,
                     enabled = content.artistSongs.isNotEmpty(),
@@ -143,6 +143,9 @@ fun ArtistDetailScreen(
                         }
                     },
                 )
+            }
+            item(key = "artist-play-all-list-gap", contentType = "artist-detail-gap") {
+                Spacer(modifier = Modifier.height(height = artistDetailPlayAllListGapHeight))
             }
             items(
                 items = content.songRows,

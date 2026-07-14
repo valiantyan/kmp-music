@@ -60,9 +60,6 @@ internal val artistDetailMetaColor: Color = Color(0xFF3D4947)
 // Figma 歌手详情页弱化序号色。
 internal val artistDetailMutedIndexColor: Color = Color(0x803D4947)
 
-// Figma 歌手详情页主按钮色。
-internal val artistDetailActionColor: Color = Color(0xFF26A69A)
-
 // Figma 歌手详情页当前歌曲卡片色。
 internal val artistDetailActiveRowColor: Color = Color.White.copy(alpha = 0.52f)
 

@@ -1,0 +1,3 @@
+# 忽略项目记忆 hook 生成的运行时文件。
+.runtime/
+events/
