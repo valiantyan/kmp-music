@@ -17,6 +17,7 @@ static const jint KMP_ERROR_UNSUPPORTED_FORMAT = 1;
 static const jint KMP_ERROR_PERMISSION_DENIED = 2;
 static const jint KMP_ERROR_ENGINE_UNAVAILABLE = 3;
 static const jint KMP_ERROR_UNKNOWN = 4;
+static const int64_t KMP_END_POSITION_TOLERANCE_MS = 1000;
 
 static void *KmpBridgeQueueKey = &KmpBridgeQueueKey;
 
@@ -46,6 +47,18 @@ static BOOL KmpDurationMsFromItem(AVPlayerItem *item, int64_t *durationMs) {
     return YES;
 }
 
+static BOOL KmpShouldFinishAtDuration(int64_t positionMs, int64_t durationMs, BOOL hasDuration) {
+    return hasDuration && positionMs >= durationMs + KMP_END_POSITION_TOLERANCE_MS;
+}
+
+static int64_t KmpClampPositionToDuration(int64_t positionMs, int64_t durationMs, BOOL hasDuration) {
+    int64_t safePositionMs = MAX(positionMs, 0);
+    if (hasDuration && safePositionMs > durationMs) {
+        return durationMs;
+    }
+    return safePositionMs;
+}
+
 @interface KmpMacosAvFoundationBridge : NSObject
 @property(nonatomic, assign) JavaVM *javaVm;
 @property(nonatomic, assign) jobject callback;
@@ -64,6 +77,7 @@ static BOOL KmpDurationMsFromItem(AVPlayerItem *item, int64_t *durationMs) {
 @property(nonatomic, copy) NSString *songId;
 @property(nonatomic, assign) int64_t generation;
 @property(nonatomic, assign) int64_t lastPositionMs;
+@property(nonatomic, assign) BOOL didEmitEnded;
 @property(nonatomic, assign) BOOL released;
 @end
 
@@ -83,6 +97,7 @@ static BOOL KmpDurationMsFromItem(AVPlayerItem *item, int64_t *durationMs) {
     _songId = @"";
     _generation = 0;
     _lastPositionMs = 0;
+    _didEmitEnded = NO;
     _released = NO;
     jclass callbackClass = env->GetObjectClass(callback);
     _onPrepared = env->GetMethodID(callbackClass, "onPrepared", "(JJZ)V");
@@ -167,18 +182,87 @@ static BOOL KmpDurationMsFromItem(AVPlayerItem *item, int64_t *durationMs) {
         }
         [self removeObservers];
         self.generation = generation;
+        self.didEmitEnded = NO;
         self.songId = songId ?: @"";
-        self.lastPositionMs = MAX(startPositionMs, 0);
+        int64_t requestedStartPositionMs = MAX(startPositionMs, 0);
+        self.lastPositionMs = 0;
         AVPlayerItem *item = [AVPlayerItem playerItemWithURL:url];
         [self installObserversForItem:item generation:generation songId:self.songId];
         [self.player replaceCurrentItemWithPlayerItem:item];
         [self installTimeObserverForItem:item generation:generation];
-        if (self.lastPositionMs > 0) {
-            [self.player seekToTime:CMTimeMake(self.lastPositionMs, 1000)];
-        }
-        [self emitPrepared:generation item:item];
+        [self completePreparationWhenReadyForItem:item
+                                      generation:generation
+                                          songId:self.songId
+                                 startPositionMs:requestedStartPositionMs
+                                      retryCount:0];
     }];
     return status;
+}
+
+- (void)completePreparationWhenReadyForItem:(AVPlayerItem *)item
+                                 generation:(int64_t)generation
+                                     songId:(NSString *)songId
+                            startPositionMs:(int64_t)startPositionMs
+                                 retryCount:(NSInteger)retryCount {
+    if (![self isGenerationCurrent:generation] || self.player.currentItem != item) {
+        return;
+    }
+    if (item.status == AVPlayerItemStatusReadyToPlay) {
+        [self completeInitialSeekForItem:item generation:generation startPositionMs:startPositionMs];
+        return;
+    }
+    if (item.status == AVPlayerItemStatusFailed) {
+        NSString *message = item.error.localizedDescription ?: @"macOS AVFoundation 准备音频失败";
+        [self emitFailed:generation errorType:KMP_ERROR_UNSUPPORTED_FORMAT songId:songId message:message];
+        return;
+    }
+    if (retryCount >= 200) {
+        [self emitFailed:generation errorType:KMP_ERROR_ENGINE_UNAVAILABLE songId:songId message:@"macOS AVFoundation 等待音频准备超时"];
+        return;
+    }
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(50 * NSEC_PER_MSEC)), self.commandQueue, ^{
+        [self completePreparationWhenReadyForItem:item
+                                      generation:generation
+                                          songId:songId
+                                 startPositionMs:startPositionMs
+                                      retryCount:retryCount + 1];
+    });
+}
+
+- (void)completeInitialSeekForItem:(AVPlayerItem *)item generation:(int64_t)generation startPositionMs:(int64_t)startPositionMs {
+    if (![self isGenerationCurrent:generation] || self.player.currentItem != item) {
+        return;
+    }
+    int64_t targetPositionMs = MAX(startPositionMs, 0);
+    if (targetPositionMs <= 0) {
+        [self emitPrepared:generation item:item];
+        return;
+    }
+    int64_t durationMs = 0;
+    BOOL hasDuration = KmpDurationMsFromItem(item, &durationMs);
+    if (KmpShouldFinishAtDuration(targetPositionMs, durationMs, hasDuration)) {
+        self.lastPositionMs = durationMs;
+        [self emitPrepared:generation item:item];
+        [self callTimed:self.onProgress generation:generation positionMs:durationMs durationMs:durationMs hasDuration:hasDuration];
+        [self finishGenerationAsEnded:generation];
+        return;
+    }
+    targetPositionMs = KmpClampPositionToDuration(targetPositionMs, durationMs, hasDuration);
+    CMTime targetTime = CMTimeMake(targetPositionMs, 1000);
+    __weak KmpMacosAvFoundationBridge *weakSelf = self;
+    [self.player seekToTime:targetTime toleranceBefore:kCMTimeZero toleranceAfter:kCMTimeZero completionHandler:^(BOOL finished) {
+        KmpMacosAvFoundationBridge *strongSelf = weakSelf;
+        if (strongSelf == nil || !finished) {
+            return;
+        }
+        dispatch_async(strongSelf.commandQueue, ^{
+            if (![strongSelf isGenerationCurrent:generation] || strongSelf.player.currentItem != item) {
+                return;
+            }
+            [strongSelf emitPrepared:generation item:item];
+            [strongSelf emitProgress:generation item:item];
+        });
+    }];
 }
 
 - (jint)playGeneration:(int64_t)generation {
@@ -210,9 +294,18 @@ static BOOL KmpDurationMsFromItem(AVPlayerItem *item, int64_t *durationMs) {
         if (![self isGenerationCurrent:generation]) {
             return;
         }
-        self.lastPositionMs = MAX(positionMs, 0);
+        int64_t targetPositionMs = MAX(positionMs, 0);
+        int64_t durationMs = 0;
+        BOOL hasDuration = KmpDurationMsFromItem(self.player.currentItem, &durationMs);
+        if (KmpShouldFinishAtDuration(targetPositionMs, durationMs, hasDuration)) {
+            self.lastPositionMs = durationMs;
+            [self callTimed:self.onProgress generation:generation positionMs:durationMs durationMs:durationMs hasDuration:hasDuration];
+            [self finishGenerationAsEnded:generation];
+            return;
+        }
+        targetPositionMs = KmpClampPositionToDuration(targetPositionMs, durationMs, hasDuration);
         __weak KmpMacosAvFoundationBridge *weakSelf = self;
-        [self.player seekToTime:CMTimeMake(self.lastPositionMs, 1000) completionHandler:^(BOOL finished) {
+        [self.player seekToTime:CMTimeMake(targetPositionMs, 1000) completionHandler:^(BOOL finished) {
             KmpMacosAvFoundationBridge *strongSelf = weakSelf;
             if (strongSelf == nil || !finished || ![strongSelf isGenerationCurrent:generation]) {
                 return;
@@ -260,7 +353,7 @@ static BOOL KmpDurationMsFromItem(AVPlayerItem *item, int64_t *durationMs) {
     id endedToken = [[NSNotificationCenter defaultCenter] addObserverForName:AVPlayerItemDidPlayToEndTimeNotification object:item queue:nil usingBlock:^(__unused NSNotification *notification) {
         KmpMacosAvFoundationBridge *strongSelf = weakSelf;
         if (strongSelf != nil && [strongSelf isGenerationCurrent:generation]) {
-            [strongSelf emitEnded:generation];
+            [strongSelf finishGenerationAsEnded:generation];
         }
     }];
     id failedToken = [[NSNotificationCenter defaultCenter] addObserverForName:AVPlayerItemFailedToPlayToEndTimeNotification object:item queue:nil usingBlock:^(__unused NSNotification *notification) {
@@ -321,13 +414,15 @@ static BOOL KmpDurationMsFromItem(AVPlayerItem *item, int64_t *durationMs) {
 - (void)emitPlaying:(int64_t)generation {
     int64_t durationMs = 0;
     BOOL hasDuration = KmpDurationMsFromItem(self.player.currentItem, &durationMs);
-    [self callTimed:self.onPlaying generation:generation positionMs:[self currentPositionMs] durationMs:durationMs hasDuration:hasDuration];
+    int64_t positionMs = KmpClampPositionToDuration([self currentPositionMs], durationMs, hasDuration);
+    [self callTimed:self.onPlaying generation:generation positionMs:positionMs durationMs:durationMs hasDuration:hasDuration];
 }
 
 - (void)emitPaused:(int64_t)generation {
     int64_t durationMs = 0;
     BOOL hasDuration = KmpDurationMsFromItem(self.player.currentItem, &durationMs);
-    [self callTimed:self.onPaused generation:generation positionMs:[self currentPositionMs] durationMs:durationMs hasDuration:hasDuration];
+    int64_t positionMs = KmpClampPositionToDuration([self currentPositionMs], durationMs, hasDuration);
+    [self callTimed:self.onPaused generation:generation positionMs:positionMs durationMs:durationMs hasDuration:hasDuration];
 }
 
 - (void)emitProgress:(int64_t)generation {
@@ -337,7 +432,26 @@ static BOOL KmpDurationMsFromItem(AVPlayerItem *item, int64_t *durationMs) {
 - (void)emitProgress:(int64_t)generation item:(AVPlayerItem *)item {
     int64_t durationMs = 0;
     BOOL hasDuration = KmpDurationMsFromItem(item, &durationMs);
-    [self callTimed:self.onProgress generation:generation positionMs:[self currentPositionMs] durationMs:durationMs hasDuration:hasDuration];
+    int64_t positionMs = [self currentPositionMs];
+    if (KmpShouldFinishAtDuration(positionMs, durationMs, hasDuration)) {
+        self.lastPositionMs = durationMs;
+        [self callTimed:self.onProgress generation:generation positionMs:durationMs durationMs:durationMs hasDuration:hasDuration];
+        [self finishGenerationAsEnded:generation];
+        return;
+    }
+    int64_t safePositionMs = KmpClampPositionToDuration(positionMs, durationMs, hasDuration);
+    self.lastPositionMs = safePositionMs;
+    [self callTimed:self.onProgress generation:generation positionMs:safePositionMs durationMs:durationMs hasDuration:hasDuration];
+}
+
+- (void)finishGenerationAsEnded:(int64_t)generation {
+    if (self.didEmitEnded || ![self isGenerationCurrent:generation]) {
+        return;
+    }
+    self.didEmitEnded = YES;
+    [self.player pause];
+    [self removeTimeObserver];
+    [self emitEnded:generation];
 }
 
 - (void)emitEnded:(int64_t)generation {

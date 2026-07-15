@@ -47,6 +47,45 @@ class DesktopAppleAudioPlayerEngineTest {
         advanceUntilIdle()
     }
 
+    /** 验证重启恢复的旧越界快照不会再次写入 bridge 或 Loading 状态。 */
+    @Test
+    fun setQueueClampsRestoredPositionToMediaDuration(): Unit = runTest {
+        val bridge: FakeApplePlaybackBridge = FakeApplePlaybackBridge()
+        val engine: DesktopAppleAudioPlayerEngine = testEngine(bridge = bridge)
+        val events: MutableList<PlaybackEngineEvent> = mutableListOf()
+        val collectJob: Job = launch {
+            engine.events.toList(destination = events)
+        }
+        engine.setQueue(
+            items = listOf(
+                media(
+                    songId = "song-overrun",
+                    uri = "file:///Users/test/Music/overrun.flac",
+                    durationMs = 180_000L,
+                ),
+            ),
+            startIndex = 0,
+            startPositionMs = 201_000L,
+        )
+        advanceUntilIdle()
+        assertEquals(
+            expected = "prepare:song-overrun:file:///Users/test/Music/overrun.flac:1:180000",
+            actual = bridge.commands.single(),
+        )
+        assertEquals(
+            expected = PlaybackEngineEvent.StatusChanged(
+                status = PlaybackStatus.Loading,
+                positionMs = 180_000L,
+                durationMs = 180_000L,
+            ),
+            actual = events.filterIsInstance<PlaybackEngineEvent.StatusChanged>().last(),
+        )
+        engine.release()
+        advanceUntilIdle()
+        collectJob.cancel()
+        advanceUntilIdle()
+    }
+
     /** 验证 prepared、buffering、playing 和 progress 都被规整成共享播放事实。 */
     @Test
     fun bridgeEventsMapToPlaybackFacts(): Unit = runTest {
@@ -196,6 +235,36 @@ class DesktopAppleAudioPlayerEngineTest {
         assertEquals(
             expected = PlaybackEngineEvent.ProgressChanged(
                 positionMs = 42_000L,
+                durationMs = 180_000L,
+            ),
+            actual = events.filterIsInstance<PlaybackEngineEvent.ProgressChanged>().last(),
+        )
+        engine.release()
+        advanceUntilIdle()
+        collectJob.cancel()
+        advanceUntilIdle()
+    }
+
+    /** 验证已准备后的越界 seek 会按媒体时长钳制，避免快照保存 position 大于 duration。 */
+    @Test
+    fun seekAfterPreparedClampsPositionToMediaDuration(): Unit = runTest {
+        val bridge: FakeApplePlaybackBridge = FakeApplePlaybackBridge()
+        val engine: DesktopAppleAudioPlayerEngine = testEngine(bridge = bridge)
+        val events: MutableList<PlaybackEngineEvent> = mutableListOf()
+        val collectJob = launch {
+            engine.events.toList(destination = events)
+        }
+        engine.setQueue(items = mediaItems(), startIndex = 0, startPositionMs = 0L)
+        bridge.emitPrepared(generation = 1L, durationMs = 180_000L)
+        engine.seekTo(positionMs = 201_000L)
+        runCurrent()
+        assertEquals(
+            expected = "seek:1:180000",
+            actual = bridge.commands.last(),
+        )
+        assertEquals(
+            expected = PlaybackEngineEvent.ProgressChanged(
+                positionMs = 180_000L,
                 durationMs = 180_000L,
             ),
             actual = events.filterIsInstance<PlaybackEngineEvent.ProgressChanged>().last(),

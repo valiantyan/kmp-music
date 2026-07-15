@@ -128,6 +128,7 @@ internal fun DesktopPlayerContent(
                 Spacer(modifier = Modifier.height(34.dp))
                 DesktopPlayerProgress(
                     song = song,
+                    isPlaying = isPlaying,
                     playbackPositionMs = playbackPositionMs,
                     playbackDurationMs = playbackDurationMs,
                     onSeek = onSeek,

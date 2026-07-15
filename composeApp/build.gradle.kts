@@ -319,6 +319,26 @@ tasks.register<JavaExec>("macosAvFoundationDefaultRuntimeSmoke") {
     )
 }
 
+tasks.register<JavaExec>("macosAvFoundationRestartResumeSmoke") {
+    description = "Runs a real restart/resume playback smoke through the default macOS desktop runtime."
+    group = "verification"
+    onlyIf { isMacosHost }
+    dependsOn("compileMacosAvFoundationBridge", "desktopJar")
+    mainClass.set("com.yanhao.kmpmusic.MacosAvFoundationRestartResumeSmoke")
+    classpath(
+        tasks.named("desktopJar"),
+        configurations.named("desktopRuntimeClasspath"),
+    )
+    systemProperty(
+        "kmp.music.macos.avfoundation.bridge.path",
+        macosAvFoundationBridgeLibrary.get().asFile.absolutePath,
+    )
+    systemProperty(
+        "kmp.music.macos.avfoundation.smoke.dir",
+        macosAvFoundationBridgeSmokeDir.get().asFile.absolutePath,
+    )
+}
+
 tasks.register<JavaExec>("macosAvFoundationPackagedBridgeSmoke") {
     description = "Runs the macOS AVFoundation smoke through the dylib staged inside the packaged app resources."
     group = "verification"

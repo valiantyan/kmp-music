@@ -215,8 +215,9 @@ internal class DesktopAppleAudioPlayerEngine(
                 minimumValue = 0,
                 maximumValue = state.queue.lastIndex,
             )
-            state.pendingSeekMs = command.startPositionMs
-            prepareCurrentMedia(startPositionMs = command.startPositionMs)
+            val startPositionMs: Long = coercePlaybackPositionToCurrentMedia(positionMs = command.startPositionMs)
+            state.pendingSeekMs = startPositionMs
+            prepareCurrentMedia(startPositionMs = startPositionMs)
         } finally {
             setQueueAckTracker.complete(ack = command.ack)
         }
@@ -248,7 +249,8 @@ internal class DesktopAppleAudioPlayerEngine(
         if (!state.isCurrentIndexValid()) {
             return
         }
-        state.pendingSeekMs = positionMs
+        val seekPositionMs: Long = coercePlaybackPositionToCurrentMedia(positionMs = positionMs)
+        state.pendingSeekMs = seekPositionMs
         if (!state.isPrepared) {
             return
         }
@@ -256,7 +258,7 @@ internal class DesktopAppleAudioPlayerEngine(
             ack = bridge.seekTo(
                 request = ApplePlaybackBridgeSeekRequest(
                     generation = state.generation,
-                    positionMs = positionMs,
+                    positionMs = seekPositionMs,
                 ),
             ),
         )
@@ -265,7 +267,7 @@ internal class DesktopAppleAudioPlayerEngine(
         }
         eventChannel.send(
             element = PlaybackEngineEvent.ProgressChanged(
-                positionMs = positionMs,
+                positionMs = seekPositionMs,
                 durationMs = state.currentMedia()?.durationMs,
             ),
         )
@@ -386,6 +388,16 @@ internal class DesktopAppleAudioPlayerEngine(
                 ),
             ),
         )
+    }
+
+    /** 将恢复/拖动位置限制在当前媒体声明时长内，避免持久化不可恢复的越界进度。 */
+    private fun coercePlaybackPositionToCurrentMedia(positionMs: Long): Long {
+        val safePositionMs: Long = positionMs.coerceAtLeast(minimumValue = 0L)
+        val durationMs: Long = state.currentMedia()?.durationMs ?: return safePositionMs
+        if (durationMs <= 0L) {
+            return safePositionMs
+        }
+        return safePositionMs.coerceAtMost(maximumValue = durationMs)
     }
 
     /** 把 bridge 命令失败统一折返成共享失败事件，并让当前 generation 失效。 */

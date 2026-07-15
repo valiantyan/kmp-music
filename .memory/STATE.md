@@ -2,10 +2,21 @@
 
 ## 当前目标
 
-修复 `./gradlew :composeApp:packageDmg` 和 `./gradlew :composeApp:packageReleaseDmg` 生成的 macOS DMG 安装包无法播放音频的问题：确保打包产物内置 macOS AVFoundation bridge dylib，且运行时能从 `.app` 自身 resources 加载该 bridge。
+修复 macOS 版本重启恢复上次播放歌曲后，进度条位置与真实音频播放位置不一致的问题：确保 AVFoundation bridge 在冷启动恢复的非零进度已真实 seek 完成后再回调，并让桌面播放器在真实播放仍继续时不把进度条固定显示为满格。
 
 ## 当前进度
 
+- 用户反馈当前路径已无法复现后，本轮已清理此前添加的临时定位日志，只保留真实播放修复逻辑和门禁测试。
+- 本轮已定位 macOS 恢复进度错位根因：`KmpMacosAvFoundationBridge.mm` 旧实现刚 `replaceCurrentItemWithPlayerItem` 就立刻按 `startPositionMs` 发起 seek 并回调 `Prepared`，没有等待 `AVPlayerItemStatusReadyToPlay` 和初始 seek completion；common 层 UI 因恢复快照显示旧进度，但真实 `AVPlayer` 可能仍从 0 或旧位置起播。
+- 已修改 `KmpMacosAvFoundationBridge.mm`：`prepare` 现在等待 `AVPlayerItemStatusReadyToPlay`，失败时回传 failed，超时 10 秒回传 engine unavailable；非零 `startPositionMs` 使用零容忍 seek，并在 seek completion 后才回调 `Prepared` 和 `Progress`。
+- 已扩展 `MacosAvFoundationBridgeSmoke`：正常播放先等待 `Prepared` 再 `play`；新增非零起始进度 smoke，生成 1.5 秒 M4A 样本后以 750ms 准备并播放，门禁 `playingPositionMs >= 600ms`，防止恢复进度只停留在 Kotlin 状态。
+- 已新增 `MacosAvFoundationRestorePositionGateTest`，门禁 native bridge 必须保留 ready/item 初始 seek completion 后再 prepared 的关键时序约束。
+- 用户复测后反馈仍会出现“进度条走完了还在继续播放”；本轮补充第二层修复：新增 `DesktopPlaybackProgressDisplayModel`，底栏和桌面播放详情页共用该模型。
+- `DesktopPlaybackProgressDisplayModel` 规则：已知时长正常时保持原范围；播放中且进度已顶到或越过已知时长时，把显示时长临时扩展 1000ms，避免 UI 满格但音频继续；暂停或结束态到达总时长时仍显示满格。
+- 已将 `DesktopBottomPlayerControls` 和 `DesktopPlayerProgress` 接入该模型，播放详情页通过 `DesktopPlayerDetailLayout` 传入 `isPlaying`。
+- 用户再次反馈问题未修复后，已在真实电脑复现更深一层根因：`游京 (Album Version) - 海伦.flac` 的 AVFoundation `currentTime` 可继续超过已知 `duration`，旧实现会把 `positionMs=201250`、`durationMs=189888` 这类不可恢复快照写入 Room，重启后 seek 到越界位置会造成进度与真实音频错位。
+- 已补充 native 和桌面引擎双层保护：`KmpMacosAvFoundationBridge.mm` 对 progress / seek / 初始恢复位置按 AVFoundation duration 钳制，超过 duration 1000ms 时主动发 ended 并移除 time observer；`DesktopAppleAudioPlayerEngine` 在恢复 startPosition 与 prepared 后 seek 入口按当前媒体 duration 规整，避免 Loading / 乐观 Progress 先写入越界快照。
+- 已新增 `DesktopAppleAudioPlayerEngineTest` 越界恢复与越界 seek 用例，并加严 `MacosAvFoundationProgressOverrunGateTest`，防止 native 忘记钳制 progress 或恢复时继续沿用请求位置。
 - 本轮已确认旧 `desktopRun --dry-run` 任务图不包含 `compileMacosAvFoundationBridge`，而现有真实播放 smoke 依赖显式 `kmp.music.macos.avfoundation.bridge.path`，因此 `desktopRun` 会进入缺少 bridge 的播放路径。
 - 已在 `composeApp/build.gradle.kts` 通过 `tasks.withType<JavaExec>().configureEach` 惰性命中后期注册的 `desktopRun`，为它增加 `compileMacosAvFoundationBridge` 依赖，并设置 `kmp.music.macos.avfoundation.bridge.path` 指向 `composeApp/build/macos-avfoundation-bridge/native/libkmp_music_macos_avfoundation_bridge.dylib`。
 - 已新增 `MacosAvFoundationDesktopRunGateTest`，门禁 `desktopRun` 必须保留 bridge 编译依赖和 JVM 属性注入，防止开发运行路径再次绕过 AVFoundation bridge。
@@ -14,6 +25,7 @@
 - 已新增 `stageMacosAvFoundationBridgeIntoReleasePackageApp`，让 `packageReleaseDmg` 先执行 `compileMacosAvFoundationBridge` 和 `createReleaseDistributable`，再把 dylib 放入 `composeApp/build/compose/binaries/main-release/app/KMP Music.app/Contents/app/resources/macos-avfoundation/`。
 - 已扩展 `SystemMacosAvFoundationNativeLibraryLoader`：优先使用显式 `kmp.music.macos.avfoundation.bridge.path`，其次从 Compose Desktop 注入的 `compose.application.resources.dir` 查找 packaged app resources 内的 dylib，最后才回退 `System.loadLibrary`。
 - 已新增 `MacosAvFoundationNativeLibraryTest`、`MacosAvFoundationPackageDmgGateTest`、`macosAvFoundationPackagedBridgeSmoke` 和 `macosAvFoundationReleasePackagedBridgeSmoke`，分别覆盖 resources 路径解析、main / main-release DMG 打包配置和 packaged resources dylib 真实播放加载。
+- 已新增 `macosAvFoundationRestartResumeSmoke`：通过两个独立桌面 controller/runtime 实例和同一个 Room 数据库模拟“播放第二首、拖动到 750ms、关闭进程、重开恢复并继续播放”。该 smoke 用 `RecordingApplePlaybackBridge` 记录 native prepare 请求，校验第二次进程准备的仍是同一首歌、同一 URI，且 `startPositionMs=750` 后继续播放到 `positionMs=1000`。
 - 09 Apple 播放契约和 fake bridge 行为防线已完成，状态为 `ready-for-human`。
 - 10 iOS 沙盒导入来源闭环已完成，状态为 `ready-for-human`。
 - 11 iOS AVFoundation 播放会话 P0 已完成，状态为 `ready-for-human`。
@@ -49,8 +61,10 @@
 
 ## 下一步
 
+- 自动化已覆盖 macOS 默认运行时的播放、seek、进程关闭、重启恢复与继续播放；若仍需要验证真实窗口交互手感，再在 macOS App 中人工按同一路径复核一次。
 - 本轮代码层面已完成并通过验证；如需要给别人测试 release 包，重新执行 `./gradlew :composeApp:packageReleaseDmg` 后分发 `composeApp/build/compose/binaries/main-release/dmg/KMP Music-1.0.0.dmg`。
 - 若需要人工听感确认，可安装或打开新 DMG 里的 App 后播放本地音频；当前自动化已验证 packaged resources 内 dylib 可被真实 AVFoundation smoke 加载并播放。
+- 本轮已完成真实电脑人工路径：启动 `desktopRun`、播放 `游京 (Album Version) - 海伦`、点击进度条到约 `2:06 / 3:09`、关闭窗口后重新打开，底栏恢复同一首歌约 `2:15 / 3:09`，再次点击播放后进度继续到 `2:18 / 3:09`。
 - 若继续 iOS 方向，真机人工验收需由宿主工程确认 `UIBackgroundModes = audio`、后台继续播放、锁屏后继续播放、回前台状态同步，以及 MP3、M4A/AAC、WAV、FLAC、AIFF/ALAC 样本真实播放。
 
 ## 阻塞
@@ -61,6 +75,17 @@
 
 ## 验证状态
 
+- 本轮清理临时定位日志后已运行前缀扫描，结果无命中；已运行 `./gradlew :composeApp:desktopTest :composeApp:compileMacosAvFoundationBridge`，结果通过。
+- 本轮已运行 `git diff --check`，结果通过。
+- 本轮红灯证据：新增 `MacosAvFoundationRestorePositionGateTest` 后首次运行 `./gradlew :composeApp:desktopTest --tests com.yanhao.kmpmusic.playback.MacosAvFoundationRestorePositionGateTest` 失败，暴露 native bridge 缺少 `AVPlayerItemStatusReadyToPlay` 和初始 seek completion 后再 prepared 的约束。
+- 本轮已运行 `./gradlew :composeApp:desktopTest --tests com.yanhao.kmpmusic.playback.MacosAvFoundationRestorePositionGateTest`，结果通过。
+- 本轮已运行 `./gradlew :composeApp:macosAvFoundationBridgeSmoke`，结果通过；新增恢复进度证据包含 `start-position-prepared`、`playing(generation=2,positionMs=750)` 和 `start-position-progress`。
+- 本轮已运行 `./gradlew :composeApp:macosAvFoundationDefaultRuntimeSmoke`，结果通过，覆盖默认桌面运行时的 current-media、playing、progress、seek、paused、resume、next、previous 和 stop。
+- 本轮已运行 `./gradlew :composeApp:desktopTest :composeApp:macosAvFoundationBridgeSmoke :composeApp:macosAvFoundationDefaultRuntimeSmoke :composeApp:compileDebugKotlinAndroid`，结果通过。
+- 本轮已运行 `git diff --check`，结果通过。
+- 第二轮红灯证据：新增播放中满格用例后运行 `./gradlew :composeApp:desktopTest --tests com.yanhao.kmpmusic.feature.desktop.player.DesktopPlaybackProgressDisplayModelTest` 首次编译失败，暴露进度模型没有 `isPlaying` 输入，无法区分自然结束和继续播放。
+- 第二轮已运行 `./gradlew :composeApp:desktopTest --tests com.yanhao.kmpmusic.feature.desktop.player.DesktopPlaybackProgressDisplayModelTest`，结果通过。
+- 第二轮已运行 `./gradlew :composeApp:desktopTest :composeApp:macosAvFoundationBridgeSmoke :composeApp:macosAvFoundationDefaultRuntimeSmoke :composeApp:compileDebugKotlinAndroid`，结果通过。
 - 本轮红灯证据：新增 `MacosAvFoundationDesktopRunGateTest` 后首次运行 `./gradlew :composeApp:desktopTest --tests com.yanhao.kmpmusic.playback.MacosAvFoundationDesktopRunGateTest` 失败，暴露 `composeApp/build.gradle.kts` 缺少 `desktopRun` bridge 配置。
 - 本轮已运行 `./gradlew :composeApp:desktopTest --tests com.yanhao.kmpmusic.playback.MacosAvFoundationDesktopRunGateTest`，结果通过。
 - 本轮已运行 `./gradlew :composeApp:desktopRun --dry-run`，结果通过，任务图包含 `:composeApp:compileMacosAvFoundationBridge` 后再到 `:composeApp:desktopRun`。
@@ -77,6 +102,13 @@
 - 本轮已运行 `test -f 'composeApp/build/compose/binaries/main-release/app/KMP Music.app/Contents/app/resources/macos-avfoundation/libkmp_music_macos_avfoundation_bridge.dylib'`，结果通过；`find 'composeApp/build/compose/binaries/main-release/app' -name 'libkmp_music_macos_avfoundation_bridge.dylib' -print` 输出 release packaged app resources 内 dylib 路径。
 - 本轮已运行 `./gradlew :composeApp:macosAvFoundationReleasePackagedBridgeSmoke`，结果通过；该 smoke 未设置显式 bridge path，通过 release packaged app resources 加载 dylib，输出 `prepared`、`playing`、多次 `progress`、`ended`、格式矩阵和 `failed(type=MissingFile)`。
 - 本轮已运行 `./gradlew :composeApp:desktopTest :composeApp:compileDebugKotlinAndroid`，结果通过。
+- 本轮已运行 `git diff --check`，结果通过。
+- 本轮已运行 `./gradlew :composeApp:macosAvFoundationRestartResumeSmoke`，结果通过；关键输出包含第一次进程 `songId=macos-avfoundation-restart-resume-2, positionMs=750`，第二次进程 native prepare `songId=macos-avfoundation-restart-resume-2, startPositionMs=750`，继续播放后 `positionMs=1000`。
+- 本轮已运行 `./gradlew :composeApp:desktopTest :composeApp:macosAvFoundationBridgeSmoke :composeApp:macosAvFoundationDefaultRuntimeSmoke :composeApp:macosAvFoundationRestartResumeSmoke :composeApp:compileDebugKotlinAndroid`，结果通过。
+- 本轮真实电脑越界恢复验证：临时写入 `playback_snapshot` 为 `游京`、`positionMs=201250`、`durationMs=189888` 后启动 `./gradlew :composeApp:desktopRun`，DB 自愈为 `positionMs=189000`、`durationMs=189888`，未再出现 `positionMs > durationMs`。
+- 本轮真实电脑完整路径验证：将 `游京` 快照置为 `60000 / 189888`，启动真实窗口后点击进度条到 `2:06 / 3:09`，关闭后 DB 为 `positionMs=135500`、`durationMs=189888`；重新打开后底栏显示同一首歌 `2:15 / 3:09`，点击播放后继续到 `2:18 / 3:09`。
+- 本轮已运行 `./gradlew :composeApp:desktopTest --tests com.yanhao.kmpmusic.playback.DesktopAppleAudioPlayerEngineTest --tests com.yanhao.kmpmusic.playback.MacosAvFoundationProgressOverrunGateTest :composeApp:compileMacosAvFoundationBridge`，结果通过。
+- 本轮已运行 `./gradlew :composeApp:desktopTest :composeApp:macosAvFoundationBridgeSmoke :composeApp:macosAvFoundationDefaultRuntimeSmoke :composeApp:macosAvFoundationRestartResumeSmoke :composeApp:compileDebugKotlinAndroid`，结果通过。
 - 本轮已运行 `git diff --check`，结果通过。
 - 11 已运行 `./gradlew :composeApp:tasks --all`，结果通过，并确认 iOS framework 编译任务名为 `linkDebugFrameworkIosSimulatorArm64`。
 - 11 已运行 `./gradlew :composeApp:iosSimulatorArm64Test :composeApp:linkDebugFrameworkIosSimulatorArm64 :composeApp:desktopTest :composeApp:compileDebugKotlinAndroid`，结果通过。
@@ -121,6 +153,19 @@
 
 ## 相关文件
 
+- `composeApp/src/desktopMain/native/macos-avfoundation/KmpMacosAvFoundationBridge.mm`
+- `composeApp/src/desktopMain/kotlin/com/yanhao/kmpmusic/playback/MacosAvFoundationBridgeSmoke.kt`
+- `composeApp/src/desktopMain/kotlin/com/yanhao/kmpmusic/playback/DesktopAppleAudioPlayerEngine.kt`
+- `composeApp/src/desktopMain/kotlin/com/yanhao/kmpmusic/MacosAvFoundationRestartResumeSmoke.kt`
+- `composeApp/src/desktopMain/kotlin/com/yanhao/kmpmusic/MacosAvFoundationRestartResumeSmokeSupport.kt`
+- `composeApp/src/desktopTest/kotlin/com/yanhao/kmpmusic/playback/DesktopAppleAudioPlayerEngineTest.kt`
+- `composeApp/src/desktopTest/kotlin/com/yanhao/kmpmusic/playback/MacosAvFoundationProgressOverrunGateTest.kt`
+- `composeApp/src/desktopTest/kotlin/com/yanhao/kmpmusic/playback/MacosAvFoundationRestorePositionGateTest.kt`
+- `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/desktop/player/DesktopPlaybackProgressDisplayModel.kt`
+- `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/desktop/player/DesktopBottomPlayerControls.kt`
+- `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/desktop/player/DesktopPlayerDetailControls.kt`
+- `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/desktop/player/DesktopPlayerDetailLayout.kt`
+- `composeApp/src/commonTest/kotlin/com/yanhao/kmpmusic/feature/desktop/player/DesktopPlaybackProgressDisplayModelTest.kt`
 - `.scratch/apple-platform-playback-wayfinder/PRD.md`
 - `.scratch/apple-platform-playback-wayfinder/issues/09-apple-playback-contract-fake-bridge.md`
 - `.scratch/apple-platform-playback-wayfinder/issues/10-ios-sandbox-import-source-lifecycle.md`

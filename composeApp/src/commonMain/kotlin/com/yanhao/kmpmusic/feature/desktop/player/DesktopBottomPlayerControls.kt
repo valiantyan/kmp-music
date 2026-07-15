@@ -44,18 +44,11 @@ internal fun DesktopPlayerControls(
     onSeek: (Long) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val durationMs: Long = playbackDurationMs?.coerceAtLeast(minimumValue = 0L) ?: 0L
-    val safePositionMs: Long = playbackPositionMs.coerceIn(
-        minimumValue = 0L,
-        maximumValue = durationMs.takeIf { value: Long -> value > 0L } ?: playbackPositionMs.coerceAtLeast(
-            minimumValue = 0L,
-        ),
+    val progressModel: DesktopPlaybackProgressDisplayModel = buildDesktopPlaybackProgressDisplayModel(
+        playbackPositionMs = playbackPositionMs,
+        playbackDurationMs = playbackDurationMs,
+        isPlaying = isPlaying,
     )
-    val progressValue: Float = if (durationMs > 0L) {
-        safePositionMs.toFloat()
-    } else {
-        0f
-    }
     val modeIcon: PlaybackModeIcon = playbackMode.toPlaybackModeIcon()
     Row(
         modifier = modifier,
@@ -102,21 +95,21 @@ internal fun DesktopPlayerControls(
             )
         }
         Text(
-            text = formatDesktopPlayerTime(valueMs = safePositionMs),
+            text = formatDesktopPlayerTime(valueMs = progressModel.positionMs),
             color = DesktopMusicColors.MutedStrong,
             fontSize = DesktopMusicType.Body,
         )
         DesktopThinSlider(
-            value = progressValue,
-            valueRange = 0f..durationMs.coerceAtLeast(minimumValue = 1L).toFloat(),
-            enabled = durationMs > 0L,
+            value = progressModel.sliderValue,
+            valueRange = progressModel.sliderRange,
+            enabled = progressModel.isSeekEnabled,
             onValueChange = { value: Float -> onSeek(value.toLong()) },
             modifier = Modifier
                 .weight(1f)
                 .height(26.dp),
         )
         Text(
-            text = formatDesktopPlayerTime(valueMs = durationMs),
+            text = formatDesktopPlayerTime(valueMs = progressModel.durationMs),
             color = DesktopMusicColors.MutedStrong,
             fontSize = DesktopMusicType.Body,
         )

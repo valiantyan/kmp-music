@@ -33,21 +33,21 @@ import com.yanhao.kmpmusic.feature.desktop.DesktopMusicColors
 @Composable
 internal fun DesktopPlayerProgress(
     song: Song,
+    isPlaying: Boolean,
     playbackPositionMs: Long,
     playbackDurationMs: Long?,
     onSeek: (Long) -> Unit,
 ) {
-    val durationMs: Long = playbackDurationMs ?: song.durationMs ?: 0L
-    val safePositionMs: Long = playbackPositionMs.coerceIn(
-        minimumValue = 0L,
-        maximumValue = durationMs.takeIf { value: Long -> value > 0L } ?: playbackPositionMs.coerceAtLeast(
-            minimumValue = 0L,
-        ),
+    val progressModel: DesktopPlaybackProgressDisplayModel = buildDesktopPlaybackProgressDisplayModel(
+        playbackPositionMs = playbackPositionMs,
+        playbackDurationMs = playbackDurationMs,
+        isPlaying = isPlaying,
+        fallbackDurationMs = song.durationMs,
     )
     DesktopThinSlider(
-        value = if (durationMs > 0L) safePositionMs.toFloat() else 0f,
-        valueRange = 0f..durationMs.coerceAtLeast(minimumValue = 1L).toFloat(),
-        enabled = durationMs > 0L,
+        value = progressModel.sliderValue,
+        valueRange = progressModel.sliderRange,
+        enabled = progressModel.isSeekEnabled,
         onValueChange = { value: Float -> onSeek(value.toLong()) },
         modifier = Modifier
             .fillMaxWidth()
@@ -57,8 +57,8 @@ internal fun DesktopPlayerProgress(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
-        DesktopPlayerTimeText(text = formatDesktopPlayerTime(valueMs = safePositionMs))
-        DesktopPlayerTimeText(text = formatDesktopPlayerTime(valueMs = durationMs))
+        DesktopPlayerTimeText(text = formatDesktopPlayerTime(valueMs = progressModel.positionMs))
+        DesktopPlayerTimeText(text = formatDesktopPlayerTime(valueMs = progressModel.durationMs))
     }
 }
 
