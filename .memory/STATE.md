@@ -2,7 +2,7 @@
 
 ## 当前目标
 
-苹果平台统一播放迁移实现批次推进到 Ticket 16：Apple 播放 ADR 和旧路线文档更新已完成实现、验证、票据更新和交付前审查。
+苹果平台统一播放迁移实现批次推进到 Ticket 17：硬门禁证据和人工验收交接已完成记录、验证、票据更新和交付前审查；交接明确记录打包产物 bridge 加载检查未通过，整批不能据此进入人工验收。
 
 ## 当前进度
 
@@ -14,6 +14,7 @@
 - 14 Apple 格式矩阵和播放错误自救文案已完成，状态为 `ready-for-human`。
 - 15 下线 vlcj / LibVLC 生产链路已完成，状态为 `ready-for-human`。
 - 16 更新 ADR 和旧播放路线文档已完成，状态为 `ready-for-human`。
+- 17 汇总硬门禁证据和人工验收交接已完成记录，状态为 `ready-for-human`；该状态只表示交接票可人工复核，不表示整批硬门禁全部通过。
 - 11 新增 iOS 进程级 `IosPlaybackSession` / `IosPlaybackSessionRuntime`，由会话持有 `MusicAppController`、`IosAvFoundationAudioPlayerEngine` 和 `IosAvAudioSessionController`，`IosEntry` 只复用会话并请求一次播放快照恢复。
 - 11 新增 iOS AVFoundation 播放链路：`IosPlaybackBridge`、`IosAvFoundationPlaybackBridge`、`IosAvFoundationAudioPlayerEngine`、`IosAudioSessionController` 和 `IosPlaybackHostConfiguration`。
 - 11 真实 bridge 使用单个 `AVPlayer`，不引入 `AVQueuePlayer`；队列、播放模式、自然结束推进和失败策略仍由 common `PlaybackCoordinator` 拥有。
@@ -35,15 +36,18 @@
 - 16 已修正 `docs/superpowers/specs/2026-06-30-playback-abstraction-audit-design.md` 中 Desktop 等同 vlcj、未来复用 Desktop vlcj engine、iOS 仍只是未来 adapter 等过时表述。
 - 16 README 只修正当前播放能力概述：Android 与 macOS 已有真实播放链路，iOS 是 App 内 AVFoundation 播放会话基础适配；iOS 真机后台 / 锁屏、Now Playing、远程命令、发布级验收和 Windows / Linux Desktop 真实播放仍在后续阶段。
 - 16 新增 `ApplePlaybackDocumentationGateTest`，防止 ADR 缺失、旧 vlcj 文档未标过时、播放抽象审计继续绑定 vlcj、README 再次笼统宣称真实播放全未完成。
+- 17 新增 `ApplePlaybackGateEvidenceHandoffTest`，把 17 号本地 issue 作为交接审计产物门禁，检查状态、验收项、自动化证据、真实播放 smoke、打包结果、人工验收待办、剩余风险和 code review 记录。
+- 17 已记录 `packageDmg` 成功生成 `composeApp/build/compose/binaries/main/dmg/KMP Music-1.0.0.dmg`，但 `find composeApp/build/compose/binaries/main/app -name 'libkmp_music_macos_avfoundation_bridge.dylib' -print` 无输出；当前 `.app` 未内置 macOS AVFoundation bridge dylib。
 
 ## 下一步
 
-- 当前可继续推进 `17-apple-playback-gate-evidence-handoff.md`；17 依赖 11/14/15/16，前置已满足。
+- 若要让整批进入人工验收，下一步应回到对应实现票或新票修复 macOS 打包产物 bridge 内置 / 加载策略，确保当前 App 或 DMG 产物包含并能加载 native bridge。
 - 若继续 iOS 方向，真机人工验收需由宿主工程确认 `UIBackgroundModes = audio`、后台继续播放、锁屏后继续播放、回前台状态同步，以及 MP3、M4A/AAC、WAV、FLAC、AIFF/ALAC 样本真实播放。
 
 ## 阻塞
 
 - `.codex/hooks/memory_hook.py` 当前不存在，无法运行 memory doctor。
+- macOS 打包产物 bridge 加载检查未通过：独立编译产物存在于 `composeApp/build/macos-avfoundation-bridge/native/libkmp_music_macos_avfoundation_bridge.dylib`，但 `packageDmg` 生成的 `.app` 未包含该 dylib；17 只记录该硬门禁结果，未在交接票内扩面修复。
 
 ## 验证状态
 
@@ -78,6 +82,14 @@
 - 16 已运行 `./gradlew :composeApp:desktopTest :composeApp:compileDebugKotlinAndroid`，结果通过，38 个 task，4 executed，34 up-to-date。
 - 16 已运行 `git diff --check`，结果通过。
 - 16 交付前已执行 Standards + Spec 两维 code review；Standards 指出的英文 Markdown 描述和测试重复读文件已修复，Spec 指出的 README iOS P0 提前宣称风险已修复为 App 内播放会话基础适配。
+- 17 TDD 红灯证据：先新增 `ApplePlaybackGateEvidenceHandoffTest` 后运行 `./gradlew :composeApp:desktopTest --tests com.yanhao.kmpmusic.playback.ApplePlaybackGateEvidenceHandoffTest`，3 个测试失败，暴露 17 号 issue 仍是 `ready-for-agent`、验收项未勾选、缺少硬门禁证据和 code review / 剩余风险交接记录；更新交接后同一测试通过。
+- 17 已运行 `./gradlew :composeApp:tasks --all`，结果通过，并确认 iOS framework 编译任务名为 `linkDebugFrameworkIosSimulatorArm64`。
+- 17 已运行 `./gradlew :composeApp:packageDmg`，结果通过，生成 `composeApp/build/compose/binaries/main/dmg/KMP Music-1.0.0.dmg`。
+- 17 已运行 `find composeApp/build/compose/binaries/main/app -name 'libkmp_music_macos_avfoundation_bridge.dylib' -print`，结果无输出；打包产物 bridge 加载检查未通过。
+- 17 已运行 `rg -n "vlcj|LibVLC|libvlc|VLC_PLUGIN_PATH|kmp\\.music\\.libvlc|macos-libvlc|TargetFormat\\.(Msi|Deb)|downloadMacosArm64LibVlc|extractMacosArm64LibVlc|prepareMacosArm64LibVlc|stageMacosArm64LibVlc" composeApp/build.gradle.kts gradle/libs.versions.toml composeApp/src/commonMain composeApp/src/desktopMain`，结果无命中。
+- 17 已运行 `./gradlew :composeApp:desktopTest :composeApp:linkDebugFrameworkIosSimulatorArm64 :composeApp:macosAvFoundationBridgeSmoke :composeApp:macosAvFoundationDefaultRuntimeSmoke :composeApp:compileDebugKotlinAndroid`，结果通过，46 个 task，7 executed，39 up-to-date；bridge smoke 输出 `prepared`、`playing`、多次 `progress`、`ended`、格式矩阵和 `failed(type=MissingFile)`；默认 runtime smoke 输出 `current-media`、`playing`、`progress`、`seek`、`paused`、`resume`、`next`、`previous` 和 `stop`。
+- 17 已运行 `git diff --check`，结果通过。
+- 17 交付前已执行 Standards + Spec 两维 code review；Standards 初审发现 code review 结论占位文本已修复，Spec 初审确认打包 bridge 内置失败必须作为整批人工验收阻塞记录，不能把 17 当作整批通过证据。
 - 本轮已尝试运行 `python3 .codex/hooks/memory_hook.py doctor --root /Users/yanhao/Desktop/demo/kmp-music`，结果失败；原因是 `.codex/hooks/memory_hook.py` 不存在。
 
 ## 相关文件
@@ -91,6 +103,7 @@
 - `.scratch/apple-platform-playback-wayfinder/issues/14-apple-format-matrix-error-copy.md`
 - `.scratch/apple-platform-playback-wayfinder/issues/15-decommission-vlcj-libvlc-production-path.md`
 - `.scratch/apple-platform-playback-wayfinder/issues/16-apple-playback-adr-docs.md`
+- `.scratch/apple-platform-playback-wayfinder/issues/17-apple-playback-gate-evidence-handoff.md`
 - `docs/APPLE_PLATFORM_FORMAT_SUPPORT_MATRIX.md`
 - `docs/adr/0005-apple-platform-avfoundation-playback.md`
 - `README.md`
@@ -118,6 +131,7 @@
 - `composeApp/src/desktopTest/kotlin/com/yanhao/kmpmusic/playback/MacosAvFoundationPlaybackBridgeTest.kt`
 - `composeApp/src/desktopTest/kotlin/com/yanhao/kmpmusic/playback/VlcjDecommissionGateTest.kt`
 - `composeApp/src/desktopTest/kotlin/com/yanhao/kmpmusic/playback/ApplePlaybackDocumentationGateTest.kt`
+- `composeApp/src/desktopTest/kotlin/com/yanhao/kmpmusic/playback/ApplePlaybackGateEvidenceHandoffTest.kt`
 - `composeApp/src/desktopTest/kotlin/com/yanhao/kmpmusic/playback/FakeMacosAvFoundationNativeBridgeSession.kt`
 - `composeApp/src/iosMain/kotlin/com/yanhao/kmpmusic/IosEntry.kt`
 - `composeApp/src/iosMain/kotlin/com/yanhao/kmpmusic/IosPlaybackSession.kt`
