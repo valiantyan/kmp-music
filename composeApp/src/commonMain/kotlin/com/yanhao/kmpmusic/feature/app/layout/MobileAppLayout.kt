@@ -92,6 +92,7 @@ fun MobileAppLayout(
                     onQueue = controller::openQueue,
                     onRootTab = controller::navigateToRoot,
                     modifier = underlayModifier.align(Alignment.BottomCenter),
+                    integratesBottomNavigationInset = discoveryPlatform == LocalMusicDiscoveryPlatform.Ios,
                 )
                 MobileChromeOverlay(
                     state = state,

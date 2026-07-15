@@ -53,16 +53,21 @@ fun MobileFixedPlayerBar(
     onPrev: () -> Unit,
     onQueue: () -> Unit,
     onRootTab: (RootTab) -> Unit,
+    integratesBottomNavigationInset: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
     val navigationBarHeight: Dp = with(LocalDensity.current) {
         WindowInsets.navigationBars.getBottom(density = this).toDp()
     }
-    val stackHeight: Dp = if (song == null) {
-        scaledDp(MusicDimens.BottomNavHeight)
-    } else {
-        scaledDp(MusicDimens.MiniPlayerHeight + MusicDimens.BottomNavHeight)
-    }
+    val miniPlayerHeight: Dp = scaledDp(value = MusicDimens.MiniPlayerHeight)
+    val bottomNavigationHeight: Dp = scaledDp(value = MusicDimens.BottomNavHeight)
+    val layoutMetrics: MobileFixedPlayerBarLayoutMetrics = buildMobileFixedPlayerBarLayoutMetrics(
+        hasSong = song != null,
+        miniPlayerHeight = miniPlayerHeight,
+        bottomNavigationHeight = bottomNavigationHeight,
+        navigationBarHeight = navigationBarHeight,
+        integratesBottomNavigationInset = integratesBottomNavigationInset,
+    )
     val fixedBarTransition = updateTransition(
         targetState = placement,
         label = "MobileFixedBarPlacement",
@@ -83,37 +88,35 @@ fun MobileFixedPlayerBar(
     ) { targetPlacement: MobileFixedBarPlacement ->
         when (targetPlacement) {
             MobileFixedBarPlacement.TopLevel -> 0.dp
-            MobileFixedBarPlacement.MiniPlayerOnly -> if (song == null) {
-                stackHeight + navigationBarHeight
-            } else {
-                scaledDp(MusicDimens.BottomNavHeight)
-            }
-            MobileFixedBarPlacement.Hidden -> stackHeight + navigationBarHeight
+            MobileFixedBarPlacement.MiniPlayerOnly -> layoutMetrics.miniPlayerOnlyOffset
+            MobileFixedBarPlacement.Hidden -> layoutMetrics.hiddenOffset
         }
     }
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .height(stackHeight + navigationBarHeight),
+            .height(layoutMetrics.containerHeight),
     ) {
+        if (layoutMetrics.navigationBarUnderlayHeight > 0.dp) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth()
+                    .height(layoutMetrics.navigationBarUnderlayHeight)
+                    .background(MusicColors.Paper),
+            )
+        }
         Box(
             modifier = Modifier
-                .align(Alignment.BottomCenter)
                 .fillMaxWidth()
-                .height(navigationBarHeight)
-                .background(MusicColors.Paper),
-        )
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(stackHeight)
+                .height(layoutMetrics.stackHeight)
                 .clipToBounds()
                 .align(Alignment.TopCenter),
         ) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(stackHeight)
+                    .height(layoutMetrics.stackHeight)
                     .offset(y = stackOffset),
             ) {
                 if (song != null) {
@@ -132,6 +135,8 @@ fun MobileFixedPlayerBar(
                 MobileBottomNavigation(
                     rootTab = rootTab,
                     isEnabled = showsBottomNavigation,
+                    contentHeight = layoutMetrics.bottomNavigationContentHeight,
+                    bottomInsetHeight = layoutMetrics.bottomNavigationInsetHeight,
                     onRootTab = onRootTab,
                     modifier = Modifier.align(Alignment.BottomCenter),
                 )

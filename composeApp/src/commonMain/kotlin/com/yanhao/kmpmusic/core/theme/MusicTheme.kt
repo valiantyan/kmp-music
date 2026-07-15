@@ -75,6 +75,8 @@ object MusicDimens {
     val HeroFolderSize: Dp = 126.dp
     val MiniPlayerHeight: Dp = 68.dp
     val BottomNavHeight: Dp = 78.dp
+    /** 底部 Tab 吸收系统安全区时，控件内容区保留的最小高度(56dp)。 */
+    val BottomNavIntegratedContentMinHeight: Dp = 56.dp
     val TopLevelContentBottom: Dp = 210.dp
     val SecondaryContentBottom: Dp = 96.dp
     val FullscreenContentBottom: Dp = 28.dp
