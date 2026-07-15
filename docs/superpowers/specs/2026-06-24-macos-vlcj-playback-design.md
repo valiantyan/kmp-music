@@ -1,5 +1,9 @@
 # macOS vlcj 真实播放设计
 
+状态：`Superseded`（已被取代）
+
+本文档是历史设计记录，不能作为当前实现依据。当前 Apple 平台播放路线已经迁移到 Apple AVFoundation，权威决策见 `docs/adr/0005-apple-platform-avfoundation-playback.md`；后续实现不得按本文继续扩展 vlcj / LibVLC 生产链路。
+
 ## 背景
 
 KMP Music 已经完成 Android 真实播放链路：App 内控制、队列、播放模式、错误恢复、快照恢复和媒体通知都通过 shared `MusicAppController -> PlaybackCoordinator -> AudioPlayerEngine` 路径协同。Desktop 当前只接入了 `DesktopFolderMusicScanner`，播放引擎仍使用 common fake engine，因此 macOS 扫描到本地音乐后无法进行真实音频播放。

@@ -2,7 +2,7 @@
 
 ## 当前目标
 
-苹果平台统一播放迁移实现批次推进到 Ticket 15：vlcj / LibVLC 生产链路下线已完成实现、验证、票据更新和交付前审查。
+苹果平台统一播放迁移实现批次推进到 Ticket 16：Apple 播放 ADR 和旧路线文档更新已完成实现、验证、票据更新和交付前审查。
 
 ## 当前进度
 
@@ -13,6 +13,7 @@
 - 13 桌面默认 AVFoundation engine 已完成，状态为 `ready-for-human`。
 - 14 Apple 格式矩阵和播放错误自救文案已完成，状态为 `ready-for-human`。
 - 15 下线 vlcj / LibVLC 生产链路已完成，状态为 `ready-for-human`。
+- 16 更新 ADR 和旧播放路线文档已完成，状态为 `ready-for-human`。
 - 11 新增 iOS 进程级 `IosPlaybackSession` / `IosPlaybackSessionRuntime`，由会话持有 `MusicAppController`、`IosAvFoundationAudioPlayerEngine` 和 `IosAvAudioSessionController`，`IosEntry` 只复用会话并请求一次播放快照恢复。
 - 11 新增 iOS AVFoundation 播放链路：`IosPlaybackBridge`、`IosAvFoundationPlaybackBridge`、`IosAvFoundationAudioPlayerEngine`、`IosAudioSessionController` 和 `IosPlaybackHostConfiguration`。
 - 11 真实 bridge 使用单个 `AVPlayer`，不引入 `AVQueuePlayer`；队列、播放模式、自然结束推进和失败策略仍由 common `PlaybackCoordinator` 拥有。
@@ -29,11 +30,15 @@
 - 15 已删除旧 `DesktopVlcjAudioPlayerEngine`、`MacosLibVlcRuntime`、`VlcjMediaPlayerAdapter`、`DesktopMediaPlayerAdapter` 旧适配边界及其 LibVLC / vlcj 细节测试。
 - 15 桌面 native distribution 已收窄为 macOS `Dmg`，不再生成 Windows / Linux 桌面真实播放分发暗示。
 - 15 新增 `VlcjDecommissionGateTest`，扫描生产代码、Gradle 依赖、打包脚本、运行参数、Markdown / shell / Kotlin / native 文本文件，证明生产树不再出现旧播放路径关键词。
+- 16 新增 `docs/adr/0005-apple-platform-avfoundation-playback.md`，固化 macOS 从 `vlcj / LibVLC` 改为 Apple `AVFoundation`，iOS 与 macOS 统一到 Apple 原生播放方案。
+- 16 旧 `docs/superpowers/specs/2026-06-24-macos-vlcj-playback-design.md` 顶部已标记 `Superseded`（已被取代），并说明不能作为当前实现依据。
+- 16 已修正 `docs/superpowers/specs/2026-06-30-playback-abstraction-audit-design.md` 中 Desktop 等同 vlcj、未来复用 Desktop vlcj engine、iOS 仍只是未来 adapter 等过时表述。
+- 16 README 只修正当前播放能力概述：Android 与 macOS 已有真实播放链路，iOS 是 App 内 AVFoundation 播放会话基础适配；iOS 真机后台 / 锁屏、Now Playing、远程命令、发布级验收和 Windows / Linux Desktop 真实播放仍在后续阶段。
+- 16 新增 `ApplePlaybackDocumentationGateTest`，防止 ADR 缺失、旧 vlcj 文档未标过时、播放抽象审计继续绑定 vlcj、README 再次笼统宣称真实播放全未完成。
 
 ## 下一步
 
-- 当前可继续推进 `16-apple-playback-adr-docs.md`；16 依赖 14/15，前置已满足。
-- 后续阻塞链保持不变：17 依赖 11/14/15/16。
+- 当前可继续推进 `17-apple-playback-gate-evidence-handoff.md`；17 依赖 11/14/15/16，前置已满足。
 - 若继续 iOS 方向，真机人工验收需由宿主工程确认 `UIBackgroundModes = audio`、后台继续播放、锁屏后继续播放、回前台状态同步，以及 MP3、M4A/AAC、WAV、FLAC、AIFF/ALAC 样本真实播放。
 
 ## 阻塞
@@ -68,6 +73,11 @@
 - 15 已运行 `git diff --check`，结果通过。
 - 15 已运行生产树无旧引用证明 `rg -n "vlcj|LibVLC|libvlc|VLC_PLUGIN_PATH|kmp\\.music\\.libvlc|macos-libvlc|TargetFormat\\.(Msi|Deb)|downloadMacosArm64LibVlc|extractMacosArm64LibVlc|prepareMacosArm64LibVlc|stageMacosArm64LibVlc" composeApp/build.gradle.kts gradle/libs.versions.toml composeApp/src/commonMain composeApp/src/desktopMain`，结果无命中。
 - 15 交付前已执行 Standards + Spec 两维 code review；Standards 无发现，Spec 初审指出无引用门禁漏扫 `.mm` native 文件，已补充 native 扩展名扫描并重跑精准测试与完整验证。
+- 16 TDD 红灯证据：先新增 `ApplePlaybackDocumentationGateTest` 后运行 `./gradlew :composeApp:desktopTest --tests com.yanhao.kmpmusic.playback.ApplePlaybackDocumentationGateTest`，4 个测试失败，分别暴露缺少 ADR、旧 vlcj 设计未标记 `Superseded`、播放抽象审计仍保留旧 vlcj 假设、README 仍把真实播放笼统写成后续能力。
+- 16 已运行 `./gradlew :composeApp:desktopTest --tests com.yanhao.kmpmusic.playback.ApplePlaybackDocumentationGateTest`，结果通过。
+- 16 已运行 `./gradlew :composeApp:desktopTest :composeApp:compileDebugKotlinAndroid`，结果通过，38 个 task，4 executed，34 up-to-date。
+- 16 已运行 `git diff --check`，结果通过。
+- 16 交付前已执行 Standards + Spec 两维 code review；Standards 指出的英文 Markdown 描述和测试重复读文件已修复，Spec 指出的 README iOS P0 提前宣称风险已修复为 App 内播放会话基础适配。
 - 本轮已尝试运行 `python3 .codex/hooks/memory_hook.py doctor --root /Users/yanhao/Desktop/demo/kmp-music`，结果失败；原因是 `.codex/hooks/memory_hook.py` 不存在。
 
 ## 相关文件
@@ -80,7 +90,12 @@
 - `.scratch/apple-platform-playback-wayfinder/issues/13-desktop-default-avfoundation-engine.md`
 - `.scratch/apple-platform-playback-wayfinder/issues/14-apple-format-matrix-error-copy.md`
 - `.scratch/apple-platform-playback-wayfinder/issues/15-decommission-vlcj-libvlc-production-path.md`
+- `.scratch/apple-platform-playback-wayfinder/issues/16-apple-playback-adr-docs.md`
 - `docs/APPLE_PLATFORM_FORMAT_SUPPORT_MATRIX.md`
+- `docs/adr/0005-apple-platform-avfoundation-playback.md`
+- `README.md`
+- `docs/superpowers/specs/2026-06-24-macos-vlcj-playback-design.md`
+- `docs/superpowers/specs/2026-06-30-playback-abstraction-audit-design.md`
 - `composeApp/build.gradle.kts`
 - `gradle/libs.versions.toml`
 - `composeApp/src/desktopMain/kotlin/com/yanhao/kmpmusic/DesktopAudioRuntimeFactory.kt`
@@ -102,6 +117,7 @@
 - `composeApp/src/desktopTest/kotlin/com/yanhao/kmpmusic/playback/DesktopAppleAudioPlayerEngineTest.kt`
 - `composeApp/src/desktopTest/kotlin/com/yanhao/kmpmusic/playback/MacosAvFoundationPlaybackBridgeTest.kt`
 - `composeApp/src/desktopTest/kotlin/com/yanhao/kmpmusic/playback/VlcjDecommissionGateTest.kt`
+- `composeApp/src/desktopTest/kotlin/com/yanhao/kmpmusic/playback/ApplePlaybackDocumentationGateTest.kt`
 - `composeApp/src/desktopTest/kotlin/com/yanhao/kmpmusic/playback/FakeMacosAvFoundationNativeBridgeSession.kt`
 - `composeApp/src/iosMain/kotlin/com/yanhao/kmpmusic/IosEntry.kt`
 - `composeApp/src/iosMain/kotlin/com/yanhao/kmpmusic/IosPlaybackSession.kt`

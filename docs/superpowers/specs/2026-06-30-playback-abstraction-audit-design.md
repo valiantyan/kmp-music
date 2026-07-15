@@ -4,9 +4,9 @@
 
 KMP Music 的播放架构前提是：`commonMain` 定义平台无关播放抽象和播放业务语义，Android、iOS、macOS、Windows 各自用原生或平台适合的音频能力实现抽象。这个前提不能改变。
 
-当前 Android 已经接入 Media3，macOS Desktop 已经接入 vlcj / LibVLC。当前不确定点不是“应该选哪个播放器库”，而是现有 Android 与 macOS 代码是否已经严格遵循了 `commonMain` 抽象、平台层实现的方向，还是各自形成了平行播放链路。
+历史状态下，Android 已经接入 Media3，macOS Desktop 曾经接入 vlcj / LibVLC。当前 Apple 播放路线已经改为 macOS AVFoundation bridge 与 iOS AVFoundation 播放会话；本文只保留当时的抽象审查结论，不能把 Desktop 继续等同于 vlcj。
 
-本设计聚焦审查和轻量优化已实现的 Android 与 macOS 播放链路。iOS、Windows 和网络音频只保留接口演进路线，不进入本轮真实实现。
+本设计聚焦审查和轻量优化当时已实现的 Android 与 macOS 播放链路。iOS、Windows 和网络音频在原审查中只保留接口演进路线；Apple 迁移后的当前决策以 `docs/adr/0005-apple-platform-avfoundation-playback.md` 为准。
 
 ## 第一性原理
 
@@ -19,10 +19,10 @@ MusicAppController
   -> PlaybackCoordinator
   -> AudioPlayerEngine
   -> platform player adapter
-  -> Media3 / vlcj / AVPlayer / desktop runtime
+  -> Media3 / AVFoundation / platform runtime
 ```
 
-为什么这样做：播放体验的一致性来自 common 层业务语义，而不是来自底层播放器库一致。Android 的 Media3、iOS 的 AVPlayer、Desktop 的 vlcj 都有各自平台优势。common 层只应定义命令、状态、事件和队列语义，不能污染平台类型。
+为什么这样做：播放体验的一致性来自 common 层业务语义，而不是来自底层播放器库一致。Android 的 Media3 与 Apple 平台的 AVFoundation 都有各自平台优势。common 层只应定义命令、状态、事件和队列语义，不能污染平台类型。
 
 ## 已确认结论
 
@@ -30,7 +30,7 @@ MusicAppController
 - `AudioPlayerEngine` 是 `commonMain` 的正式播放抽象。
 - `PlaybackCoordinator` 是 `commonMain` 的播放业务协调器，负责队列、播放模式、状态回写、失败恢复和快照恢复。
 - Android 的 `PlaybackServiceConnector : AudioPlayerEngine` 是 Media3 播放链路进入 common 的平台 adapter。
-- macOS Desktop 的 `DesktopVlcjAudioPlayerEngine : AudioPlayerEngine` 是 vlcj 播放链路进入 common 的平台 adapter。
+- 历史状态下，macOS Desktop 的 `DesktopVlcjAudioPlayerEngine : AudioPlayerEngine` 曾是 vlcj 播放链路进入 common 的平台 adapter；当前已由 AVFoundation 桌面 engine 和 native bridge 替代。
 - 本轮不推翻现有链路，只做契约收紧、边界澄清和播放来源语义补强。
 - 本轮继续手动依赖注入，不引入 Koin 或其他第三方 DI 框架。
 
@@ -50,9 +50,9 @@ MusicAppController
 
 - 不把 `AudioPlayerEngine` 大改成全新的 `AudioPlayer.prepare(source)`。
 - 不重写 Android Media3 主链路。
-- 不重写 macOS vlcj 主链路。
-- 不实现 iOS AVPlayer 播放。
-- 不实现 Windows vlcj 或 WinRT 播放。
+- 本历史审查当时保留既有 macOS 第三方播放实现；当前 Apple 迁移已经将 macOS 主链路切换为 AVFoundation。
+- 本历史审查不实现 iOS AVPlayer 播放；当前 iOS P0 已按 Apple 迁移票落到 AVFoundation 播放会话。
+- 不实现 Windows 或 Linux Desktop 播放。
 - 不实现网络音频播放、缓存、鉴权刷新、重试和缓冲进度。
 - 不实现音频焦点、电话/闹钟中断、输出设备切换、AirPlay 或蓝牙设备切换抽象。
 - 不引入 Koin。
@@ -110,9 +110,10 @@ interface AudioPlayerEngine {
 平台 engine 只负责把 common 命令转成平台播放器调用，并把平台播放器事实转回 `PlaybackEngineEvent`。
 
 - Android：`PlaybackServiceConnector` 连接 Media3 `MediaController` 和 `MusicPlaybackService`。
-- macOS/Desktop：`DesktopVlcjAudioPlayerEngine` 包装 `DesktopMediaPlayerAdapter` 和 vlcj。
-- 未来 iOS：`IosAvAudioPlayerEngine` 包装 AVPlayer / AVQueuePlayer。
-- 未来 Windows：JVM Desktop 路线优先复用 `DesktopVlcjAudioPlayerEngine`，只替换 LibVLC runtime resolver。
+- 历史 macOS/Desktop：`DesktopVlcjAudioPlayerEngine` 曾包装 `DesktopMediaPlayerAdapter` 和 vlcj。
+- 当前 macOS：AVFoundation 桌面 engine 通过 native bridge 调用 Apple 播放组件。
+- 当前 iOS：iOS 播放会话持有 AVFoundation 播放 engine。
+- Windows / Linux Desktop 真实播放需要重新设计，不能复用旧 Desktop vlcj engine 作为默认方案。
 
 平台 engine 不拥有业务队列规则，不直接写 UI state，不把平台类型暴露给 common。
 
@@ -165,9 +166,9 @@ Android 优化点：
 
 为什么这样做：Android 的真实播放必须通过 Media3 service/session 承接后台播放和系统媒体协议，但业务状态仍应归 common coordinator 管。
 
-## macOS Desktop 现状评估
+## macOS Desktop 历史状态评估
 
-当前 macOS Desktop 也符合播放抽象主原则：
+历史状态下，macOS Desktop 也符合播放抽象主原则：
 
 ```text
 PlaybackCoordinator
@@ -178,21 +179,21 @@ PlaybackCoordinator
   -> LibVLC
 ```
 
-关键判断：
+历史判断：
 
-- `DesktopVlcjAudioPlayerEngine` 实现 `AudioPlayerEngine`，是 Desktop 播放 adapter。
-- vlcj、JNA、LibVLC runtime、插件路径都留在 `desktopMain`。
-- `DesktopMediaPlayerAdapter` 是 Desktop 内部 adapter，不是 common 抽象。
+- `DesktopVlcjAudioPlayerEngine` 曾实现 `AudioPlayerEngine`，是当时的 Desktop 播放 adapter。
+- vlcj、JNA、LibVLC runtime、插件路径曾留在 `desktopMain`。
+- `DesktopMediaPlayerAdapter` 曾是 Desktop 内部 adapter，不是 common 抽象。
 - 自然结束后的下一首、单曲循环、随机和失败跳过仍由 `PlaybackCoordinator` 决定。
 
-macOS/Desktop 优化点：
+当前修正：
 
-- 不重写 vlcj 播放引擎。
-- `DesktopVlcjAudioPlayerEngine` 名字保留，继续代表 JVM Desktop 播放引擎。
-- 未来 Windows 接入前，把 `MacosLibVlcRuntime` 的职责收敛为 macOS runtime resolver，或引入 `DesktopLibVlcRuntimeResolver` 抽象。
-- 文档明确当前 macOS 实现是 Compose Desktop JVM 路线，不是 macOS 原生 AVFoundation 路线。
+- Desktop 不能继续等同于 vlcj；当前 macOS 真实播放路线是 Compose Desktop JVM 壳加 AVFoundation native bridge。
+- 旧 `DesktopVlcjAudioPlayerEngine`、`MacosLibVlcRuntime` 和 LibVLC runtime resolver 不再代表当前生产路线。
+- Windows / Linux Desktop 真实播放需要重新设计，不能通过复活旧 LibVLC resolver 来声明支持。
+- 文档明确当前 macOS 实现是 Compose Desktop JVM 壳调用 Apple AVFoundation，不是旧 vlcj / LibVLC 路线。
 
-为什么这样做：当前 macOS 已经抽象在 `desktopMain`，不应为了平台名重写。真正要防的是 Windows 接入时复制出第二套 Desktop 播放架构。
+为什么这样做：播放抽象的有效结论是 common 契约和事件回流方向，不是旧播放器库选择。Apple 迁移后，真正要防的是后续实现把历史 vlcj 路线误当成当前 Desktop 目标。
 
 ## AudioSource 契约
 
@@ -301,12 +302,12 @@ AndroidPlaybackSession.bootstrap(...)
   -> MusicAppController
 
 DesktopPlaybackSession
-  -> DesktopVlcjAudioPlayerEngine
+  -> Desktop Apple AVFoundation engine
   -> Desktop scanner / Room / repositories
   -> MusicAppController
 
-未来 IosEntry
-  -> IosAvAudioPlayerEngine
+IosEntry
+  -> iOS AVFoundation playback session
   -> iOS scanner / repositories
   -> MusicAppController
 ```
@@ -317,38 +318,37 @@ DesktopPlaybackSession
 
 ### iOS
 
-未来 iOS 接入点是：
+当前 iOS 接入点是：
 
 ```text
 IosEntry
-  -> IosAvAudioPlayerEngine : AudioPlayerEngine
-  -> AVPlayer / AVQueuePlayer
+  -> iOS playback session
+  -> AVFoundation / AVPlayer
 ```
 
 设计原则：
 
-- AVPlayer / AVQueuePlayer 只出现在 `iosMain`。
+- AVFoundation / AVPlayer 只出现在 `iosMain`。
 - AVAudioSession、MPNowPlayingInfoCenter、Remote Command Center 都留在 iOS 平台层。
 - iOS 播放事件必须映射成 `PlaybackEngineEvent` 回流 common。
 - common 不依赖 AVFoundation 类型。
 
-本轮不实现 iOS 播放。
+历史审查本轮不实现 iOS 播放；当前 iOS P0 播放会话以 Apple 迁移票和 ADR 为准。
 
 ### Windows
 
-当前 Desktop 假设仍是 Compose Multiplatform Desktop JVM。未来 Windows 优先复用 Desktop vlcj engine：
+当前 Desktop 仍是 Compose Multiplatform Desktop JVM，但 Apple 迁移后桌面真实播放只承诺 macOS AVFoundation。Windows / Linux Desktop 真实播放需要重新设计：
 
 ```text
 DesktopPlaybackSession
-  -> DesktopVlcjAudioPlayerEngine
-  -> WindowsLibVlcRuntimeResolver
-  -> vlcj / LibVLC
+  -> 待设计的 Windows / Linux platform engine
+  -> 待设计的原生或受控 runtime
 ```
 
 设计原则：
 
-- `DesktopVlcjAudioPlayerEngine` 继续复用。
-- Windows 差异封装在 LibVLC runtime resolver 和打包层。
+- 不复用旧 `DesktopVlcjAudioPlayerEngine` 作为未来默认方案。
+- Windows / Linux 差异必须先重新设计播放器 runtime、分发边界、格式支持和错误映射。
 - 不在 common 或 UI 层新增 Windows 专用播放链路。
 - 若未来 Desktop 转 Kotlin/Native，再单独评估 WinRT `Windows.Media.Playback.MediaPlayer` adapter。
 
@@ -391,7 +391,7 @@ DesktopPlaybackSession
 
 ### Desktop 测试
 
-- `DesktopVlcjAudioPlayerEngine` 继续通过 fake `DesktopMediaPlayerAdapter` 覆盖命令串行。
+- 历史 vlcj 测试曾通过 fake `DesktopMediaPlayerAdapter` 覆盖命令串行；当前应以 Apple fake bridge / engine 测试覆盖同等行为。
 - generation token 能丢弃过期事件。
 - seek 使用 latest-wins。
 - `finished` 只发 `PlaybackEngineEvent.Ended`，不自行推进下一首。
@@ -406,9 +406,9 @@ DesktopPlaybackSession
 1. 在 common 模型中新增 `AudioSource`，先通过 `PlayableMedia.audioSource` 派生 `AudioSource.Local(localUri)`。
 2. 补充 `AudioPlayerEngine`、`PlayableMedia`、`LocalMusicScanner` 的 KDoc，明确职责边界。
 3. 审查 Android 播放链路，确认没有 UI 或 service 绕过 `PlaybackCoordinator` 写 common 播放状态。
-4. 审查 Desktop 播放链路，确认 vlcj 事件只经 `DesktopVlcjAudioPlayerEngine` 回流 `PlaybackEngineEvent`。
-5. 记录后续 Windows runtime resolver 泛化任务，但不在本轮实现。
-6. 记录后续 iOS AVPlayer adapter 任务，但不在本轮实现。
+4. 审查 Desktop 播放链路时，当前应确认 AVFoundation bridge 事件只经桌面 Apple engine 回流 `PlaybackEngineEvent`。
+5. 记录后续 Windows / Linux Desktop 真实播放重新设计任务，但不在本轮实现。
+6. iOS 播放路线以 Apple AVFoundation 播放会话为当前方向，不再按旧“未来 adapter”表述推进。
 
 ## 验收标准
 
@@ -427,7 +427,7 @@ DesktopPlaybackSession
 | 只写文档不改代码，边界仍可能被后续实现误用 | 后续实施计划必须至少补 KDoc 和轻量 `AudioSource`，让边界出现在代码入口。 |
 | 过早引入远程播放来源让人误以为已支持网络播放 | 本轮生产模型只加入 `AudioSource.Local`，网络播放需要单独设计 buffering、错误、鉴权和缓存。 |
 | 大改 `AudioPlayerEngine` 造成 Android/macOS 回归 | 本轮不改主接口，只轻量补 source 语义。 |
-| Windows 复用 Desktop vlcj 时 macOS runtime 命名误导 | 未来 Windows 前先泛化 runtime resolver，而不是复制 engine。 |
+| 误把历史 Desktop vlcj 路线当成未来 Desktop 默认方案 | Windows / Linux Desktop 真实播放需要重新设计，当前不复活旧 vlcj engine 或 LibVLC runtime resolver。 |
 | DI 框架缺失导致后续依赖变复杂 | 当前继续手动 DI；等依赖图真实膨胀后再单独评估 Koin。 |
 
 ## 最终判断

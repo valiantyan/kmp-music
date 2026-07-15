@@ -2,7 +2,7 @@
 
 KMP Music 是一个基于 Kotlin Multiplatform 和 Compose Multiplatform 的跨平台音乐 App。项目目标是先打通本地音乐优先的播放闭环，再逐步完善平台播放能力、账号登录与云同步。
 
-当前仓库处于 MVP 构建阶段：共享 UI、导航状态、播放队列、收藏、搜索、主题、本地音乐扫描领域模型和曲库快照合并已经放在 `commonMain` 中复用；Android MediaStore 扫描、Desktop 文件夹扫描和 iOS 导入文件扫描由各平台 source set 注入。真实音频播放、持久化和云同步仍是后续阶段的能力。
+当前仓库处于 MVP 构建阶段：共享 UI、导航状态、播放队列、收藏、搜索、主题、本地音乐扫描领域模型和曲库快照合并已经放在 `commonMain` 中复用；Android MediaStore 扫描、Desktop 文件夹扫描和 iOS 导入文件扫描由各平台 source set 注入。Android 和 macOS 已接入真实播放链路，iOS 已落地 App 内 AVFoundation 播放会话；iOS 真机后台/锁屏体验、发布级验收、持久化和云同步仍是后续阶段能力。
 
 ## 产品定位
 
@@ -153,6 +153,7 @@ platform source sets -> platform entry and adapters
 - 本地音乐页按歌曲、专辑、歌手、来源分段展示，全量歌曲列表使用懒加载结构承载。
 - 本地音乐扫描领域模型、扫描状态、来源摘要、问题摘要和曲库快照合并。
 - Android MediaStore 扫描和音频权限引导；Desktop 文件夹扫描；iOS 导入文件扫描适配。
+- Android Media3、macOS AVFoundation 真实播放，以及 iOS App 内 AVFoundation 播放会话基础适配。
 - 全局迷你播放器、底部 Tab、二级页面导航、系统返回处理。
 - 播放/暂停、上一首/下一首、播放队列、队列弹层、更多操作弹层。
 - 歌曲收藏状态同步、收藏页分区、搜索范围切换，并统一消费当前曲库快照。
@@ -161,11 +162,11 @@ platform source sets -> platform entry and adapters
 
 仍在后续阶段：
 
-- 真实音频播放、后台播放、通知和锁屏控制。
+- iOS 真机后台播放、锁屏控制、Now Playing、远程命令和发布级播放验收。
 - 本地扫描结果、收藏、播放历史、设置等持久化。
 - 真实封面解析、更多平台媒体库能力和更完整的权限/导入体验。
 - 账号登录、云同步和冲突合并。
-- iOS/Android/Desktop 各平台的完整播放适配。
+- Windows / Linux Desktop 真实播放，以及各平台更完整的系统媒体入口。
 
 ## 测试
 
