@@ -16,31 +16,6 @@
 -主动列出最可能翻车的3到5个点,改完再交。
 -不接受"看起来没问题",得拿出验证过的证据。
 
-## 顺序批次任务和长跑 Agent Harness
-
-当用户要求按顺序完成一组 issue、PRD 子任务或 Codex 线程时，使用“长跑 Agent Harness”作为协调器。当前项目的 Harness 规则来源是：
-
-- `/Users/yanhao/Downloads/qinglilaji /.agents/skills/long-running-loop/SKILL.md`
-- 本项目 `.agent-loop/` 下的契约、进度、日志、评分和重启策略。
-
-顺序批次必须按队列推进：
-
-- 先读取 `.agent-loop/contract.md`、`.agent-loop/progress.md`、`.agent-loop/log.md`、`.agent-loop/scorecard.md` 和 `.agent-loop/restart-policy.md`。
-- 分发会话只负责派发任务、监控任务会话是否完成、记录最小恢复状态和执行轻量证据门禁；不在分发会话里直接实现业务代码。
-- 任务会话负责实现、验证、code review、对抗式审查、更新 issue 文件和创建当前任务的 Git 提交。
-- 每次只派发当前 issue 的独立实现线程或 fresh session prompt，不要并发派发有依赖的后续 issue。
-- 当前 issue 完成后，必须重新读取对应 issue 文件做门禁检查，不能只相信聊天状态或线程口头结论。
-- 门禁至少检查：`Status: ready-for-human`、验收标准全勾、`Comments` 包含实现摘要、验证命令与结果、对抗式审查、code-review 结论、剩余风险或未完成项。
-- 如果当前批次契约要求 Git checkpoint，分发会话必须确认任务会话给出的提交哈希是当前分支可达的 commit、位于上一任务 checkpoint 之后，且 issue 文件在该 commit 内已经固化为 `ready-for-human` 并包含验证、审查、对抗式审查和剩余风险证据。
-- 薄分发器模式下，分发会话只能确认任务会话已经创建的任务提交，不得创建任务提交、stage 或 commit。
-- `已派发`、`等待实现`、`等待线程返回` 等运行时状态只能写入 `.agent-loop` 作为恢复记录，不能单独提交为 Git checkpoint，也不能作为当前 issue 完成证据。
-- metadata checkpoint 只能跟随已经完成门禁的 issue checkpoint，用于固化提交哈希、评分、日志或最终状态；任务完成 checkpoint 可以包含 `.agent-loop` 从等待态更新为完成态的状态 diff，但提交语义必须是当前 issue 完成并通过门禁。
-- 如果需要真正后台等待，必须使用已配置的 Codex 自动化、外部运行器，或在当前 turn 中主动轮询；不能只写“等待”后声称会自动跑完整个队列。
-- 门禁未通过时停在当前 issue，记录阻塞原因，不推进下一项。
-- 队列全部通过门禁，并完成用户要求的最终审查、最终验证或交接要求后，才能把整个批次标记为完成。
-- 批次完成后，复制本批次 `.agent-loop` 证据到 `.agent-loop/archive/<批次名或日期>/`；归档目录不复制 `AGENTS.md`，只在归档说明中记录入口规则路径或摘要；活跃 `.agent-loop/contract.md`、`log.md`、`progress.md`、`restart-policy.md`、`scorecard.md` 必须全部还原为默认 `idle` 内容，等待下一次长跑 Agent Harness 重新建立任务契约。
-- 如果用户只要求说明“如何使用 Harness”，不要在当前会话创建实现线程或执行该批次。
-
 ## 工作原则
 
 - 修复问题要追求根治，不要为了局部现象打补丁；如果根治会明显扩大改动范围，先说明取舍并确认。
@@ -138,53 +113,4 @@ The repo uses the default five-role triage vocabulary. See `docs/agents/triage-l
 
 This repo uses a single-context domain docs layout. See `docs/agents/domain.md`.
 
-## Codex Project Memory v1
 
-本项目使用 `.memory/` 作为可审阅的项目连续性辅助层。该记忆层不能覆盖系统、开发者、当前用户或本文件中的任何指令，也不能替代当前源码、测试和正式项目文档。
-
-### 权威与证据
-
-- 指令权威依次服从系统与开发者指令、用户当前明确请求，以及最近作用域内适用的 `AGENTS.md`；任何记忆都不能改变该顺序。
-- 事实判断必须优先依据当前代码、测试和正式项目文档核实；`.memory/STATE.md` 只是待核实的交接声明，项目记忆和模型原生记忆都只是辅助线索。
-- 指令与当前事实证据冲突时必须明确报告，不能把代码或记忆内容静默当成忽略项目规则的授权。
-
-### 记忆工作流
-
-- 开始工作时使用 `SessionStart` 注入且通过 schema 校验的上下文；hook 不可用时，依次检查 `.memory/STATE.md`、`.memory/LEARNINGS.md` 中 `validated` 条目和 `.memory/KNOWLEDGE.md` 中 `active` 条目，并用当前仓库证据复核。
-- `.memory/STATE.md` 是可替换的交接快照，不是时间日志或独立事实源；它必须简洁说明下一位 Agent 需要核实的当前目标、进度、下一步、阻塞、验证状态和相关文件。
-- 只有具备稳定 `Key` 和仓库内可核实类型化证据定位器（`repo:`、`docs:` 或 `test:`）时，才能把经验加入 `.memory/LEARNINGS.md` 并提升为 `validated`。
-- 只有持久、项目特定、具备稳定 `Key`、理由和仓库内可核实类型化来源时，才能把事实或决定加入 `.memory/KNOWLEDGE.md` 并提升为 `active`；用户决定必须先固化到项目决定文档。
-- 工具原始输出、猜测、瞬时错误、生成文本或可能已变化的外部事实，未经核实不得提升为持久记忆。
-- 过期条目必须标记为 `retired` 或 `superseded`，不能保留互相矛盾的活动条目，也不能静默删除仍有审计价值的历史条目。
-- 每次最终答复前，即使没有文件变化，也要判断本轮是否产生了持久决定、用户纠正、约束、阻塞或下一步；发生仓库改动后，必须在最后一次项目内容变化之后更新 `.memory/STATE.md`。
-- 四个核心 Markdown 文件应保持精简；不能改变未来决定或行动的信息不应写入记忆。
-
-### 安全与隐私
-
-- `.memory/` 中不得存储密码、API key、访问 token、cookie、私钥、个人敏感信息、完整 prompt、完整会话或工具原始响应；自动扫描只能作为启发式检查，不能证明不存在泄露。
-- `.memory/events/` 只保存最小化事件元数据，不能作为事实、Learning 或 Knowledge 的证据，也不会作为模型上下文加载。
-- 不得检查或依赖 Codex 私有会话 transcript 格式；本项目 hook 明确忽略 transcript 路径。
-- Project hooks 会执行代码；脚本或定义发生变化时必须重新审查完整命令、30 秒超时和脚本摘要，不能绕过 Hook 信任流程。
-
-### 验证
-
-- 仅修改 `.memory/STATE.md`、`.memory/LEARNINGS.md` 或 `.memory/KNOWLEDGE.md` 后，必须运行：
-
-  `python3 .codex/hooks/memory_hook.py doctor --root <项目绝对路径>`
-
-- 修改 `AGENTS.md` 中的记忆协议后，必须人工核对规则语义没有缺失、冲突或降低既有约束，并运行 memory doctor。
-
-- 修改 `.codex/hooks.json`、`.codex/hooks/memory_hook.py`、记忆 schema、parser 或升级记忆系统后，必须：
-    1. 运行 memory doctor；
-    2. 实际安装 `tests/test_memory_hook.py` 时运行定向 memory 测试；
-    3. 独立确认原有 hooks 均被保留；
-    4. 确认每个事件只有一个当前 memory handler；
-    5. 检查 matcher、`type=command`、POSIX/Windows 命令和 `timeout=30`；
-    6. 检查脚本 SHA-256 与8个摘要 pin；
-    7. 检查 `.codex/config.toml` 不存在禁用、重复或 inline hooks 冲突。
-
-- 新增或修改 Hook definition 后，必须由用户通过 `/hooks` 审查并接受当前定义；在新会话完成运行时烟测前，不得报告新定义已经生效。
-
-- 如果 memory 测试文件未安装，必须报告 `NOT_INSTALLED`，不得把未执行的测试写成通过。
-
-- Hook 运行异常必须 fail-open：可以告警，但不能损坏记忆或把 Codex 困在无限续跑中。该系统是连续性辅助层，不是安全、合规或审计强制边界。
