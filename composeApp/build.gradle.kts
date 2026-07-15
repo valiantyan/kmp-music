@@ -162,11 +162,27 @@ compose.desktop {
 val macosAvFoundationBridgeSource = layout.projectDirectory.file(
     "src/desktopMain/native/macos-avfoundation/KmpMacosAvFoundationBridge.mm",
 )
+val macosAvFoundationBridgeLibraryFileName = "libkmp_music_macos_avfoundation_bridge.dylib"
 val macosAvFoundationBridgeOutputDir = layout.buildDirectory.dir("macos-avfoundation-bridge/native")
 val macosAvFoundationBridgeLibrary = macosAvFoundationBridgeOutputDir.map { directory ->
-    directory.file("libkmp_music_macos_avfoundation_bridge.dylib")
+    directory.file(macosAvFoundationBridgeLibraryFileName)
 }
+val macosAvFoundationBridgeBundleDirectory = "macos-avfoundation"
 val macosAvFoundationBridgeSmokeDir = layout.buildDirectory.dir("macos-avfoundation-bridge/smoke")
+val macosAvFoundationPackageAppDir = layout.buildDirectory.dir("compose/binaries/main/app/KMP Music.app")
+val macosAvFoundationBundledBridgeLibrary = macosAvFoundationPackageAppDir.map { directory ->
+    directory.file(
+        "Contents/app/resources/$macosAvFoundationBridgeBundleDirectory/$macosAvFoundationBridgeLibraryFileName",
+    )
+}
+val macosAvFoundationReleasePackageAppDir = layout.buildDirectory.dir(
+    "compose/binaries/main-release/app/KMP Music.app",
+)
+val macosAvFoundationReleaseBundledBridgeLibrary = macosAvFoundationReleasePackageAppDir.map { directory ->
+    directory.file(
+        "Contents/app/resources/$macosAvFoundationBridgeBundleDirectory/$macosAvFoundationBridgeLibraryFileName",
+    )
+}
 val isMacosHost: Boolean = System.getProperty("os.name").contains(other = "mac", ignoreCase = true)
 
 tasks.register<Exec>("compileMacosAvFoundationBridge") {
@@ -209,6 +225,60 @@ tasks.named<Test>("desktopTest") {
     )
 }
 
+tasks.withType<JavaExec>().configureEach {
+    if (name == "desktopRun") {
+        dependsOn("compileMacosAvFoundationBridge")
+        systemProperty(
+            "kmp.music.macos.avfoundation.bridge.path",
+            macosAvFoundationBridgeLibrary.get().asFile.absolutePath,
+        )
+    }
+}
+
+val stageMacosAvFoundationBridgeIntoPackageApp = tasks.register<Copy>(
+    "stageMacosAvFoundationBridgeIntoPackageApp",
+) {
+    description = "Stages the macOS AVFoundation JNI bridge inside the packaged app resources."
+    group = "build"
+    onlyIf { isMacosHost }
+    dependsOn("compileMacosAvFoundationBridge", "createDistributable")
+    from(macosAvFoundationBridgeLibrary)
+    into(
+        macosAvFoundationPackageAppDir.map { directory ->
+            directory.dir("Contents/app/resources/$macosAvFoundationBridgeBundleDirectory")
+        },
+    )
+}
+
+val stageMacosAvFoundationBridgeIntoReleasePackageApp = tasks.register<Copy>(
+    "stageMacosAvFoundationBridgeIntoReleasePackageApp",
+) {
+    description = "Stages the macOS AVFoundation JNI bridge inside the release packaged app resources."
+    group = "build"
+    onlyIf { isMacosHost }
+    dependsOn("compileMacosAvFoundationBridge", "createReleaseDistributable")
+    from(macosAvFoundationBridgeLibrary)
+    into(
+        macosAvFoundationReleasePackageAppDir.map { directory ->
+            directory.dir("Contents/app/resources/$macosAvFoundationBridgeBundleDirectory")
+        },
+    )
+}
+
+tasks.matching { task ->
+    task.name == "packageDmg"
+}.configureEach {
+    dependsOn(stageMacosAvFoundationBridgeIntoPackageApp)
+    inputs.file(macosAvFoundationBundledBridgeLibrary)
+}
+
+tasks.matching { task ->
+    task.name == "packageReleaseDmg"
+}.configureEach {
+    dependsOn(stageMacosAvFoundationBridgeIntoReleasePackageApp)
+    inputs.file(macosAvFoundationReleaseBundledBridgeLibrary)
+}
+
 tasks.register<JavaExec>("macosAvFoundationBridgeSmoke") {
     description = "Runs a real local M4A playback smoke through the macOS AVFoundation bridge."
     group = "verification"
@@ -242,6 +312,46 @@ tasks.register<JavaExec>("macosAvFoundationDefaultRuntimeSmoke") {
     systemProperty(
         "kmp.music.macos.avfoundation.bridge.path",
         macosAvFoundationBridgeLibrary.get().asFile.absolutePath,
+    )
+    systemProperty(
+        "kmp.music.macos.avfoundation.smoke.dir",
+        macosAvFoundationBridgeSmokeDir.get().asFile.absolutePath,
+    )
+}
+
+tasks.register<JavaExec>("macosAvFoundationPackagedBridgeSmoke") {
+    description = "Runs the macOS AVFoundation smoke through the dylib staged inside the packaged app resources."
+    group = "verification"
+    onlyIf { isMacosHost }
+    dependsOn(stageMacosAvFoundationBridgeIntoPackageApp, "desktopJar")
+    mainClass.set("com.yanhao.kmpmusic.playback.MacosAvFoundationBridgeSmoke")
+    classpath(
+        tasks.named("desktopJar"),
+        configurations.named("desktopRuntimeClasspath"),
+    )
+    systemProperty(
+        "compose.application.resources.dir",
+        macosAvFoundationPackageAppDir.get().dir("Contents/app/resources").asFile.absolutePath,
+    )
+    systemProperty(
+        "kmp.music.macos.avfoundation.smoke.dir",
+        macosAvFoundationBridgeSmokeDir.get().asFile.absolutePath,
+    )
+}
+
+tasks.register<JavaExec>("macosAvFoundationReleasePackagedBridgeSmoke") {
+    description = "Runs the macOS AVFoundation smoke through the dylib staged inside the release packaged app resources."
+    group = "verification"
+    onlyIf { isMacosHost }
+    dependsOn(stageMacosAvFoundationBridgeIntoReleasePackageApp, "desktopJar")
+    mainClass.set("com.yanhao.kmpmusic.playback.MacosAvFoundationBridgeSmoke")
+    classpath(
+        tasks.named("desktopJar"),
+        configurations.named("desktopRuntimeClasspath"),
+    )
+    systemProperty(
+        "compose.application.resources.dir",
+        macosAvFoundationReleasePackageAppDir.get().dir("Contents/app/resources").asFile.absolutePath,
     )
     systemProperty(
         "kmp.music.macos.avfoundation.smoke.dir",
