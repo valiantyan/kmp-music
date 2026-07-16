@@ -1,32 +1,56 @@
 # KMP Music
 
-KMP Music 是一个基于 Kotlin Multiplatform 和 Compose Multiplatform 的跨平台音乐 App。项目目标是先打通本地音乐优先的播放闭环，再逐步完善平台播放能力、账号登录与云同步。
+KMP Music 是一个本地音乐优先的 Kotlin Multiplatform 音乐播放器。项目目标是先把本地音频发现、曲库浏览、播放、队列、收藏、最近播放、本地自建歌单和设置做成跨端可复用闭环，再逐步补齐平台系统播放体验、账号登录和云同步。
 
-当前仓库处于 MVP 构建阶段：共享 UI、导航状态、播放队列、收藏、搜索、主题、本地音乐扫描领域模型和曲库快照合并已经放在 `commonMain` 中复用；Android MediaStore 扫描、Desktop 文件夹扫描和 iOS 导入文件扫描由各平台 source set 注入。Android 和 macOS 已接入真实播放链路，iOS 已落地 App 内 AVFoundation 播放会话；iOS 真机后台/锁屏体验、发布级验收、持久化和云同步仍是后续阶段能力。
+当前仓库已经从原型阶段进入真实 KMP App 迭代：共享领域模型、播放协调、数据仓库、移动端 UI 和桌面端 UI 位于 `commonMain`；Android、iOS、Desktop/macOS 通过各自 source set 接入扫描、播放和平台能力，Android/Desktop 额外接入数据库构造。
 
-## 产品定位
+## 当前代码状态
 
-- 本地优先：首版围绕本地曲库、离线播放、收藏和最近播放展开。
-- 轻量清晰：不做社区、直播、会员、电台、短视频等大型音乐平台能力。
-- 跨端复用：Android、iOS 和 Desktop 保持一致的信息架构与核心状态。
-- 游客可用：MVP 默认游客模式完整可用，登录入口为后续云同步预留。
+| 范围 | 当前已落地 | 明确边界 |
+| --- | --- | --- |
+| `commonMain` | 领域模型、Repository 接口、UseCase、播放协调器、队列/随机/失败策略、播放快照、搜索历史、用户偏好、本地歌单、移动端页面、桌面端页面和共享设计令牌。 | 不直接引入 Android、iOS、Desktop 专属 API。 |
+| Android | `MainActivity`、进程级 `AndroidPlaybackSession`、MediaStore 扫描、音频/通知权限入口、Media3 播放服务、MediaSession、通知与媒体按钮、Room3 持久化。 | Android 本地音乐来源语义是系统媒体库，不引入文件夹来源。 |
+| iOS | `MainViewController()`、进程级 `IosPlaybackSession`、文件夹选择与沙盒导入扫描、AVFoundation App 内播放、宿主后台音频配置证据。 | 当前 iOS 入口未接入持久化依赖图；Now Playing、远程命令、控制中心/耳机按钮和冷启动恢复不宣称已完成。 |
+| Desktop/macOS | `DesktopMusicApp`、左侧导航、桌面播放器、文件夹扫描、音频元数据/封面读取、Room3 持久化、macOS AVFoundation JNI bridge、DMG 打包时 bridge staging。 | 真实 Desktop 播放只面向 macOS；不宣称 Windows/Linux 已支持真实播放。 |
 
-主导航保持三项：
+## 产品范围
+
+MVP 聚焦本地音乐闭环：
+
+- 本地曲库扫描、刷新、来源摘要和问题摘要。
+- 首页、收藏、我的、搜索、播放页、专辑详情、歌手详情、最近播放、本地音乐、本地自建歌单、设置和登录占位。
+- 播放/暂停、上一首/下一首、seek、播放模式、队列、播放失败提示、播放快照恢复。
+- 收藏歌曲、最近播放、搜索历史、主题模式、本地发现偏好和本地歌单。
+- 游客模式完整可用；登录入口仅为后续云同步预留。
+
+暂不做复杂社区、直播、会员支付、广告、在线歌曲下载和发布级云同步。
+
+## 信息架构
+
+移动端一级导航固定为三项：
 
 ```text
 首页 / 收藏 / 我的
 ```
 
-搜索、播放页、专辑页、歌手页、设置、登录、本地音乐和本地来源等属于二级页面。移动端一级页面显示底部 Tab 和全局迷你播放器，二级页面隐藏底部 Tab。
+二级页面包括搜索、播放、专辑、歌手、设置、关于、登录、本地扫描、最近播放、本地音乐、本地歌单、本地歌单管理和歌单详情。移动端一级页面显示底部 Tab 与全局迷你播放器，二级页面隐藏底部 Tab。Desktop 使用左侧导航和底部播放器，但沿用同一套核心状态与内容层级。
 
 ## 技术栈
 
+版本事实以 `gradle/libs.versions.toml` 和 `composeApp/build.gradle.kts` 为准。
+
 | 类别 | 版本 / 说明 |
 | --- | --- |
-| Kotlin Multiplatform | 2.0.21 |
-| Compose Multiplatform | 1.7.3 |
+| Kotlin Multiplatform | 2.4.0 |
+| Compose Multiplatform | 1.11.1 |
 | Android Gradle Plugin | 8.13.2 |
-| Coroutines | 1.9.0 |
+| Coroutines | 1.11.0 |
+| Ktor | 3.5.1 |
+| Coil | 3.5.0 |
+| AndroidX Media3 | 1.10.1 |
+| Room3 | 3.0.0-rc01 |
+| SQLite | 2.6.2 |
+| jaudiotagger | 2.0.3 |
 | Android SDK | minSdk 24, targetSdk 36, compileSdk 36 |
 | JVM target | 17 |
 | 主模块 | `:composeApp` |
@@ -36,13 +60,17 @@ KMP Music 是一个基于 Kotlin Multiplatform 和 Compose Multiplatform 的跨�
 
 ### 环境要求
 
-- JDK 17
-- Android Studio 或可用的 Android SDK
-- Gradle Wrapper 使用仓库内的 `./gradlew`
+- JDK 17。
+- Android Studio 或可用 Android SDK。
+- iOS framework 构建需要 Xcode/Kotlin Native 环境。
+- macOS Desktop 真实播放和 smoke 需要 macOS 主机、`clang++`、AVFoundation framework。
 
 ### 常用命令
 
 ```bash
+# 查看 composeApp 可用任务
+./gradlew :composeApp:tasks
+
 # Android Kotlin 编译
 ./gradlew :composeApp:compileDebugKotlinAndroid
 
@@ -52,22 +80,31 @@ KMP Music 是一个基于 Kotlin Multiplatform 和 Compose Multiplatform 的跨�
 # 安装到已连接 Android 设备
 ./gradlew :composeApp:installDebug
 
-# 运行共享逻辑测试
+# 共享逻辑与 Desktop 测试
 ./gradlew :composeApp:desktopTest
 
 # 快速验证共享逻辑和 Android 编译
 ./gradlew :composeApp:compileDebugKotlinAndroid :composeApp:desktopTest
 
-# 运行 Desktop App
-./gradlew :composeApp:run
+# Android JVM 单测
+./gradlew :composeApp:testDebugUnitTest
 
-# 查看 composeApp 可用任务
-./gradlew :composeApp:tasks
+# 运行 Desktop App，当前 macOS bridge 属性在该任务上接入
+./gradlew :composeApp:desktopRun
+
+# 生成 iOS simulator debug framework
+./gradlew :composeApp:linkDebugFrameworkIosSimulatorArm64
 ```
 
-Desktop 入口在 `composeApp/src/desktopMain/kotlin/com/yanhao/kmpmusic/DesktopMain.kt`。如果任务名不确定，先执行 `./gradlew :composeApp:tasks` 查看。
+macOS AVFoundation 相关验证：
 
-iOS 侧当前提供 `MainViewController()` 供 SwiftUI/UIKit 宿主调用，入口位于 `composeApp/src/iosMain/kotlin/com/yanhao/kmpmusic/IosEntry.kt`。
+```bash
+./gradlew :composeApp:macosAvFoundationBridgeSmoke
+./gradlew :composeApp:macosAvFoundationDefaultRuntimeSmoke
+./gradlew :composeApp:macosAvFoundationRestartResumeSmoke
+./gradlew :composeApp:macosAvFoundationPackagedBridgeSmoke
+./gradlew :composeApp:macosAvFoundationReleasePackagedBridgeSmoke
+```
 
 ## 项目结构
 
@@ -75,22 +112,20 @@ iOS 侧当前提供 `MainViewController()` 供 SwiftUI/UIKit 宿主调用，入�
 .
 ├── composeApp
 │   ├── build.gradle.kts
+│   ├── schemas
 │   └── src
 │       ├── commonMain
-│       │   ├── composeResources/drawable
-│       │   └── kotlin/com/yanhao/kmpmusic
-│       │       ├── core/theme
-│       │       ├── data
-│       │       ├── domain
-│       │       └── feature
 │       ├── commonTest
 │       ├── androidMain
+│       ├── androidUnitTest
 │       ├── iosMain
-│       └── desktopMain
+│       ├── iosTest
+│       ├── desktopMain
+│       └── desktopTest
 ├── docs
+│   ├── agents
+│   ├── adr
 │   └── PRD.md
-├── .agents
-│   └── skills
 ├── gradle
 │   └── libs.versions.toml
 ├── prototypes
@@ -98,102 +133,55 @@ iOS 侧当前提供 `MainViewController()` 供 SwiftUI/UIKit 宿主调用，入�
 └── AGENTS.md
 ```
 
-重点目录：
+重点入口：
 
-- `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/domain`：领域模型、Repository 接口和 UseCase。
-- `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/data`：内存曲库实现、演示 scanner 和本地音频文件规则。
-- `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/core/theme`：主题、颜色、尺寸和封面调色逻辑。
-- `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/app`：全局 App 状态、导航、chrome 和控制器。
-- `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/components`：复用 UI 组件。
-- `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/screen`：首页、收藏、我的、搜索、播放、详情、设置、本地音乐等页面。
-- `composeApp/src/androidMain`、`iosMain`、`desktopMain`：平台入口、权限入口和本地音乐扫描适配。
-- `composeApp/src/commonTest`：共享逻辑测试，主要覆盖控制器、导航、播放状态和主题算法。
-- `.agents/skills`：项目内手动技能和协作工作流；列表性能诊断技能需要显式调用。
-- `prototypes/kmp-music-hi-fi`：高保真视觉参考，不是生产入口。
+- `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/domain`：领域模型、Repository 接口、UseCase、播放协调和持久化契约。
+- `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/data`：共享数据实现、持久化 Repository、数据库工厂、本地扫描合并和演示数据。
+- `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/app`：全局状态、导航、播放、收藏、搜索、扫描、偏好和会话控制器。
+- `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/screen`：移动端页面级 Composable 与显示模型。
+- `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/desktop`：桌面端布局、导航、页面、表格和播放器。
+- `composeApp/src/androidMain`：Android 入口、权限、MediaStore、Media3、通知、数据库和平台适配。
+- `composeApp/src/iosMain`：iOS 入口、沙盒导入扫描、AVFoundation 和平台适配。
+- `composeApp/src/desktopMain`：Desktop/macOS 入口、文件夹扫描、数据库、AVFoundation native bridge 和打包适配。
+- `composeApp/src/*Test`：共享、Android、iOS、Desktop 测试与 macOS 播放门禁。
 
-## 文档查找速查
+## 架构边界
 
-遇到问题时，优先先看已有文档和源码边界，再决定是否改代码：
-
-| 问题 | 先看哪里 | 判断标准 |
-| --- | --- | --- |
-| 这个功能是否属于 MVP？ | `docs/PRD.md` 的产品范围、非目标范围和里程碑 | PRD 已排除的能力不要在当前任务中顺手实现 |
-| 某个页面应该是一层还是二层？ | `docs/PRD.md` 信息架构、`AGENTS.md` UI 与状态规则 | 一级页面只保留首页、收藏、我的 |
-| 播放、队列、收藏或搜索状态不一致怎么办？ | `feature/app/MusicAppController.kt` 和 `MusicAppControllerTest.kt` | 先修共享控制器和测试，再看页面表现 |
-| 迷你播放器、底部栏或内容遮挡问题从哪里改？ | `feature/app/MusicApp.kt`、`core/theme/MusicTheme.kt` | 优先修全局 chrome、inset 和 token，不在单页复制补丁 |
-| 要改本地音乐扫描、来源或元数据合并怎么办？ | `domain/repository/LocalMusicScanner.kt`、`domain/usecase/ScanLocalMusicUseCase.kt`、`MergeLocalMusicScanResultUseCase.kt`、平台 scanner | 先守住 scanner/use case/repository 边界，再改平台实现 |
-| 要接入真实播放怎么办？ | `domain/repository/PlaybackRepository.kt`、`domain/usecase/PlaybackUseCases.kt`、平台 source set | 先定义播放边界，再接平台实现，不把平台 API 塞进 `commonMain` UI |
-| 视觉应该参考哪里？ | `prototypes/kmp-music-hi-fi` 和它自己的 `AGENTS.md` | 原型只作视觉参考，不作为生产入口 |
-| 列表卡顿、掉帧或重组需要复盘怎么办？ | `$compose-scroll-performance-diagnostics` | 这是手动技能，只有显式调用时使用；先测量分类，再决定优化点 |
-| 改动后该跑什么验证？ | README 的常用命令、`AGENTS.md` 测试与提交 | 触及共享状态时至少跑 `desktopTest`，UI 大改至少跑 Android 编译 |
-| 如何在 GitHub 提 BUG？ | `docs/GITHUB_BUG_REPORT_GUIDE.md` | 按模板填写问题现象、复现步骤、期望行为、实际行为和验收标准 |
-| 如何让 Agent 修复 GitHub BUG？ | `docs/GITHUB_ISSUE_AGENT_FIX_GUIDE.md` | 把 Issue 链接交给 Agent，并按流程镜像本地 issue、验证、提交、push 和回写 |
-
-## 架构约定
-
-项目采用 `core / domain / data / feature` 分层：
+项目保持 `core / domain / data / feature / platform source sets` 分层：
 
 ```text
 feature -> domain <- data
-core   -> shared theme and UI foundation
-platform source sets -> platform entry and adapters
+core    -> theme and UI foundation
+platform source sets -> entry, scanner, playback, database, system adapters
 ```
 
-- UI 层不直接依赖平台专属实现。
-- 新增数据能力时，先在 `domain/repository` 或 `domain/usecase` 定义边界，再在 `data` 或平台目录提供实现。
-- 平台媒体扫描、真实播放、通知、权限等能力通过接口、`expect/actual` 或平台 data source 接入。
-- 全局播放、队列、收藏、搜索和导航状态集中由 `MusicAppController` 管理，页面只负责布局和事件转发。
-- 设计 token 优先沉淀在 `MusicTheme.kt`，页面和组件复用共享尺寸、颜色和样式。
+- `MusicAppController` 是共享 UI 状态门面；扫描、播放、收藏、搜索、偏好和导航工作流已拆到子控制器或同步器。
+- 播放主链路是 `MusicAppController -> PlaybackCoordinator -> AudioPlayerEngine -> 平台实现`。
+- Android 和 Desktop 通过 `createPersistentMusicAppController` 接入 Room3；默认 `MusicAppController` 仍保留内存仓库，供预览、测试和未接持久化的平台入口使用。
+- 平台扫描只回答“发现了哪些可播放本地歌曲”；播放、队列推进和快照语义留在 common 层。
+- `prototypes/kmp-music-hi-fi` 只作为视觉参考，不是生产入口。
 
-## 当前能力
+## 测试策略
 
-已实现或已有骨架：
-
-- 首页、收藏、我的、搜索、播放、专辑详情、歌手详情、设置、登录占位、本地音乐二级页。
-- 本地音乐页按歌曲、专辑、歌手、来源分段展示，全量歌曲列表使用懒加载结构承载。
-- 本地音乐扫描领域模型、扫描状态、来源摘要、问题摘要和曲库快照合并。
-- Android MediaStore 扫描和音频权限引导；Desktop 文件夹扫描；iOS 导入文件扫描适配。
-- Android Media3、macOS AVFoundation 真实播放，以及 iOS App 内 AVFoundation 播放会话基础适配。
-- 全局迷你播放器、底部 Tab、二级页面导航、系统返回处理。
-- 播放/暂停、上一首/下一首、播放队列、队列弹层、更多操作弹层。
-- 歌曲收藏状态同步、收藏页分区、搜索范围切换，并统一消费当前曲库快照。
-- 主题模式切换和封面色彩提取相关逻辑。
-- 演示 scanner 与内存 Repository，用于非平台环境和共享状态验证。
-
-仍在后续阶段：
-
-- iOS 真机后台播放、锁屏控制、Now Playing、远程命令和发布级播放验收。
-- 本地扫描结果、收藏、播放历史、设置等持久化。
-- 真实封面解析、更多平台媒体库能力和更完整的权限/导入体验。
-- 账号登录、云同步和冲突合并。
-- Windows / Linux Desktop 真实播放，以及各平台更完整的系统媒体入口。
-
-## 测试
-
-常用验证：
+- Markdown 纯文档改动通常不需要跑 Gradle，但需要检查 `git diff`、链接路径和源码事实。
+- 改共享状态、导航、播放、队列、收藏、搜索、扫描或偏好时，至少运行：
 
 ```bash
-./gradlew :composeApp:desktopTest
-./gradlew :composeApp:compileDebugKotlinAndroid
+./gradlew :composeApp:compileDebugKotlinAndroid :composeApp:desktopTest
 ```
 
-涉及共享状态、导航、播放、队列、收藏或搜索时，请同步更新 `MusicAppControllerTest` 或新增 `commonTest` 测试。UI 视觉大改后至少运行 Android 编译；条件允许时用真机、模拟器或 Desktop 截图核对关键页面。
-
-## 开发注意事项
-
-- 修改生产 App 时优先改 `composeApp`，不要用 `prototypes/kmp-music-hi-fi` 代替真实实现。
-- 修复问题要追求根因；如果根因修复会明显扩大范围，应先说明取舍再推进。
-- 改动前先查 README、`AGENTS.md`、`docs/PRD.md` 和相关源码，确认已有边界是否能回答当前问题。
-- 一级页面只有首页、收藏、我的；搜索、播放、专辑、歌手、设置等保持为二级页面。
-- 迷你播放器是全局 chrome，不要在单个页面重复实现。
-- 当前播放歌曲需要在所有列表中保持一致高亮和播放中标识。
-- Compose 列表性能问题需要沉淀经验时，显式调用 `$compose-scroll-performance-diagnostics`；不要让它自动替代普通调试流程。
-- 不要在 `commonMain` 引入 Android、iOS 或 Desktop 专属 API。
-- 不要删除失败测试来让构建通过。
-- 提交前查看 `git status --short --branch`，避免提交 `.scratch/`、构建产物、IDE 状态、日志、原型 dist、APK/DMG 或本地缓存。
+- 改 Android MediaStore、Media3 service、通知按钮或权限时，至少运行 Android 编译，并补对应 JVM 或共享测试。
+- 改 Apple/macOS AVFoundation 时，至少运行 `desktopTest`，按影响范围补 smoke。
+- 不确定任务名时先跑 `./gradlew :composeApp:tasks`。
 
 ## 相关文档
 
 - 产品需求：[docs/PRD.md](docs/PRD.md)
+- 本地音频发现 PRD：[docs/LOCAL_AUDIO_DISCOVERY_PRD.md](docs/LOCAL_AUDIO_DISCOVERY_PRD.md)
+- 播放 PRD：[docs/PLAYBACK_PRD.md](docs/PLAYBACK_PRD.md)
+- 项目地图：[docs/agents/project-map.md](docs/agents/project-map.md)
+- 架构边界：[docs/agents/kmp-architecture.md](docs/agents/kmp-architecture.md)
+- UI 与状态规则：[docs/agents/ui-state.md](docs/agents/ui-state.md)
+- 验证策略：[docs/agents/testing.md](docs/agents/testing.md)
+- ADR：[docs/adr](docs/adr)
 - Agent 项目指南：[AGENTS.md](AGENTS.md)
-- 高保真原型参考：`prototypes/kmp-music-hi-fi`
