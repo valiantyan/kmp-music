@@ -31,3 +31,4 @@ dist/
 # Python runtime caches
 __pycache__/
 *.py[cod]
+/.scratch/ios-simulator-runner/
