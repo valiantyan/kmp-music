@@ -12,6 +12,7 @@ import androidx.compose.ui.window.rememberWindowState
 import com.yanhao.kmpmusic.feature.desktop.DesktopMusicApp
 import com.yanhao.kmpmusic.feature.desktop.DesktopMusicDimens
 import java.awt.Desktop
+import java.awt.Dimension
 import java.awt.GraphicsEnvironment
 import java.awt.desktop.AppReopenedListener
 import javax.swing.JRootPane
@@ -61,6 +62,7 @@ fun main(): Unit = application {
             }
         }
         DisposableEffect(window) {
+            window.applyMacosMinimumWindowSize()
             window.rootPane.applyMacosNativeTitleBar()
             onDispose {
                 window.rootPane.clearMacosNativeTitleBar()
@@ -69,6 +71,19 @@ fun main(): Unit = application {
         DesktopMusicApp(
             controller = DesktopPlaybackSession.controller,
         )
+    }
+}
+
+/**
+ * macOS 设计截图是当前桌面壳的最小可用尺寸，防止窗口缩小后内容互相挤压。
+ */
+private fun java.awt.Window.applyMacosMinimumWindowSize(): Unit {
+    if (!isMacosHost()) {
+        return
+    }
+    minimumSize = Dimension().apply {
+        width = DesktopMusicDimens.MinWindowWidth.value.toInt()
+        height = DesktopMusicDimens.MinWindowHeight.value.toInt()
     }
 }
 

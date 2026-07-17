@@ -28,10 +28,10 @@ object DesktopMusicColors {
  * Desktop UI dimensions copied from the HTML prototype.
  */
 object DesktopMusicDimens {
-    val MinWindowWidth: Dp = 1120.dp
-    val MinWindowHeight: Dp = 760.dp
+    val MinWindowWidth: Dp = 1240.dp
+    val MinWindowHeight: Dp = 824.dp
     val DefaultWindowWidth: Dp = 1240.dp
-    val DefaultWindowHeight: Dp = 820.dp
+    val DefaultWindowHeight: Dp = 824.dp
     val TitleBarHeight: Dp = 42.dp
     val RailWidth: Dp = 88.dp
     val LibrarySidebarWidth: Dp = 304.dp
