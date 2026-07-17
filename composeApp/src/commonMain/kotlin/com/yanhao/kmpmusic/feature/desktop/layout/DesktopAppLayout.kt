@@ -10,6 +10,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.saveable.SaveableStateHolder
 import androidx.compose.ui.Modifier
 import com.yanhao.kmpmusic.domain.model.SearchContext
+import com.yanhao.kmpmusic.domain.model.Song
 import com.yanhao.kmpmusic.feature.app.LocalMusicSection
 import com.yanhao.kmpmusic.feature.app.MusicAppController
 import com.yanhao.kmpmusic.feature.app.MusicAppUiState
@@ -54,6 +55,14 @@ fun DesktopAppLayout(
                     onLike = controller::toggleFavorite,
                     onSeek = controller::seekTo,
                     onVolumeChange = controller::setVolume,
+                    onQueueIndexClick = { queueIndex: Int ->
+                        state.queueSongs.getOrNull(index = queueIndex)?.let { selectedSong: Song ->
+                            controller.playSong(
+                                song = selectedSong,
+                                queueSongs = state.queueSongs,
+                            )
+                        }
+                    },
                     modifier = Modifier.fillMaxSize(),
                 )
             }

@@ -37,6 +37,7 @@ fun DesktopPlayerDetailScreen(
     onLike: (String) -> Unit,
     onSeek: (Long) -> Unit,
     onVolumeChange: (Float) -> Unit,
+    onQueueIndexClick: (Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val palette: PlayerPagePalette = rememberDesktopPlayerPagePalette(song = song)
@@ -74,7 +75,7 @@ fun DesktopPlayerDetailScreen(
             } else {
                 DesktopPlayerContent(
                     song = song,
-                    queueSongs = buildPlayerQueueRows(
+                    queueRows = buildPlayerQueueRowStates(
                         song = song,
                         queueSongs = queueSongs,
                     ),
@@ -90,6 +91,7 @@ fun DesktopPlayerDetailScreen(
                     onLike = onLike,
                     onSeek = onSeek,
                     onVolumeChange = onVolumeChange,
+                    onQueueIndexClick = onQueueIndexClick,
                 )
             }
         }

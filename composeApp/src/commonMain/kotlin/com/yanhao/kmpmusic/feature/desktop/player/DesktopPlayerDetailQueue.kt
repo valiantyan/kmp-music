@@ -1,6 +1,7 @@
 package com.yanhao.kmpmusic.feature.desktop.player
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -24,11 +25,23 @@ import com.yanhao.kmpmusic.domain.model.Song
 import com.yanhao.kmpmusic.feature.desktop.DesktopMusicColors
 import com.yanhao.kmpmusic.feature.desktop.DesktopMusicType
 
+/**
+ * 桌面播放页队列行状态。
+ *
+ * @property song 行内展示的歌曲。
+ * @property queueIndex [song] 在共享播放队列中的真实下标。
+ */
+internal data class DesktopPlayerQueueRowState(
+    val song: Song,
+    val queueIndex: Int,
+)
+
 // 队列预览用单个轻量分组承载，避免播放页变成多层卡片。
 @Composable
 internal fun DesktopPlayerQueuePreview(
-    queueSongs: List<Song>,
+    queueRows: List<DesktopPlayerQueueRowState>,
     currentSongId: String,
+    onQueueIndexClick: (Int) -> Unit,
 ) {
     Column {
         Text(
@@ -45,14 +58,15 @@ internal fun DesktopPlayerQueuePreview(
                 .clip(RoundedCornerShape(18.dp))
                 .background(Color.White.copy(alpha = 0.58f)),
         ) {
-            itemsIndexed(items = queueSongs) { index: Int, song: Song ->
+            itemsIndexed(items = queueRows) { index: Int, row: DesktopPlayerQueueRowState ->
                 DesktopPlayerQueueRow(
-                    index = index,
-                    song = song,
-                    isCurrentSong = song.id == currentSongId,
+                    displayIndex = index,
+                    song = row.song,
+                    isCurrentSong = row.song.id == currentSongId,
+                    onClick = { onQueueIndexClick(row.queueIndex) },
                 )
             }
-            if (queueSongs.isEmpty()) {
+            if (queueRows.isEmpty()) {
                 item {
                     Text(
                         text = "当前队列没有更多歌曲",
@@ -69,20 +83,22 @@ internal fun DesktopPlayerQueuePreview(
 // 队列行保持紧凑高度，让右侧控制区仍以当前歌曲为视觉中心。
 @Composable
 private fun DesktopPlayerQueueRow(
-    index: Int,
+    displayIndex: Int,
     song: Song,
     isCurrentSong: Boolean,
+    onClick: () -> Unit,
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .height(54.dp)
+            .clickable(onClick = onClick)
             .padding(horizontal = 16.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
-            text = (index + 1).toString().padStart(length = 2, padChar = '0'),
+            text = (displayIndex + 1).toString().padStart(length = 2, padChar = '0'),
             color = DesktopMusicColors.Muted,
             fontSize = DesktopMusicType.Body,
             fontWeight = FontWeight.Bold,
@@ -112,17 +128,25 @@ private fun DesktopPlayerQueueRow(
     }
 }
 
-// 队列从当前歌曲开始展示完整播放顺序，列表本身负责滚动承载全部数据。
-internal fun buildPlayerQueueRows(
+/**
+ * 队列从当前歌曲开始展示完整播放顺序，同时保留原始队列下标供点击播放使用。
+ */
+internal fun buildPlayerQueueRowStates(
     song: Song,
     queueSongs: List<Song>,
-): List<Song> {
+): List<DesktopPlayerQueueRowState> {
     if (queueSongs.isEmpty()) {
         return emptyList()
     }
-    val currentIndex: Int = queueSongs.indexOfFirst { candidate: Song -> candidate.id == song.id }
-    if (currentIndex < 0) {
-        return queueSongs
+    val rows: List<DesktopPlayerQueueRowState> = queueSongs.mapIndexed { index: Int, queueSong: Song ->
+        DesktopPlayerQueueRowState(
+            song = queueSong,
+            queueIndex = index,
+        )
     }
-    return queueSongs.drop(n = currentIndex) + queueSongs.take(n = currentIndex)
+    val currentIndex: Int = rows.indexOfFirst { row: DesktopPlayerQueueRowState -> row.song.id == song.id }
+    if (currentIndex < 0) {
+        return rows
+    }
+    return rows.drop(n = currentIndex) + rows.take(n = currentIndex)
 }

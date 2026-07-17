@@ -85,7 +85,7 @@ internal fun DesktopPlayerTopBar(
 @Composable
 internal fun DesktopPlayerContent(
     song: Song,
-    queueSongs: List<Song>,
+    queueRows: List<DesktopPlayerQueueRowState>,
     isPlaying: Boolean,
     playbackPositionMs: Long,
     playbackDurationMs: Long?,
@@ -98,6 +98,7 @@ internal fun DesktopPlayerContent(
     onLike: (String) -> Unit,
     onSeek: (Long) -> Unit,
     onVolumeChange: (Float) -> Unit,
+    onQueueIndexClick: (Int) -> Unit,
 ) {
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
         val coverSize = (maxWidth * 0.36f).coerceIn(
@@ -146,8 +147,9 @@ internal fun DesktopPlayerContent(
                 )
                 Spacer(modifier = Modifier.height(28.dp))
                 DesktopPlayerQueuePreview(
-                    queueSongs = queueSongs,
+                    queueRows = queueRows,
                     currentSongId = song.id,
+                    onQueueIndexClick = onQueueIndexClick,
                 )
                 Spacer(modifier = Modifier.height(22.dp))
                 DesktopPlayerVolume(
