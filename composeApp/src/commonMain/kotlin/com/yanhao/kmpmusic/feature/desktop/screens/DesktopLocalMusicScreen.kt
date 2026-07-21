@@ -1,10 +1,20 @@
 package com.yanhao.kmpmusic.feature.desktop.screens
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
@@ -13,6 +23,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.yanhao.kmpmusic.domain.model.Album
@@ -25,12 +36,13 @@ import com.yanhao.kmpmusic.domain.model.Song
 import com.yanhao.kmpmusic.feature.app.LocalMusicSection
 import com.yanhao.kmpmusic.feature.desktop.DesktopMusicColors
 import com.yanhao.kmpmusic.feature.desktop.DesktopMusicType
-import com.yanhao.kmpmusic.feature.desktop.components.DesktopAlbumGrid
+import com.yanhao.kmpmusic.feature.desktop.components.DesktopAlbumCard
 import com.yanhao.kmpmusic.feature.desktop.components.DesktopArtistStrip
 import com.yanhao.kmpmusic.feature.desktop.components.DesktopContentRow
 import com.yanhao.kmpmusic.feature.desktop.components.DesktopContentRowFolderIcon
 import com.yanhao.kmpmusic.feature.desktop.components.DesktopContentRowSyncIcon
 import com.yanhao.kmpmusic.feature.desktop.components.DesktopPageHeader
+import com.yanhao.kmpmusic.feature.desktop.components.DesktopPageTitleToolbar
 import com.yanhao.kmpmusic.feature.desktop.components.DesktopPrimaryButton
 import com.yanhao.kmpmusic.feature.desktop.components.DesktopSectionEmptyMessage
 import com.yanhao.kmpmusic.feature.desktop.components.DesktopSectionHeader
@@ -44,6 +56,8 @@ import com.yanhao.kmpmusic.feature.screen.localMusicScanActionLabel
 import com.yanhao.kmpmusic.feature.screen.localMusicSourceKindLabel
 
 private const val ARTIST_STRIP_COUNT = 4
+private const val DESKTOP_LOCAL_ALBUM_WIDE_COLUMNS = 4
+private const val DESKTOP_LOCAL_ALBUM_NARROW_COLUMNS = 2
 
 /**
  * 本地音乐二级页在桌面端保留分段语义，避免不同入口都退化成来源管理页。
@@ -68,6 +82,13 @@ internal fun DesktopLocalMusicScreen(
 ) {
     var section: LocalMusicSection by remember(initialSection) {
         mutableStateOf(value = initialSection)
+    }
+    if (section == LocalMusicSection.Albums) {
+        DesktopLocalAlbumPage(
+            albums = albums,
+            onAlbumOpen = onAlbumOpen,
+        )
+        return
     }
     Column(
         modifier =
@@ -96,13 +117,9 @@ internal fun DesktopLocalMusicScreen(
                 onClick = onScan,
             )
         }
-        DesktopSegmentedControl(
-            labels =
-                LocalMusicSection.entries.map { sectionEntry: LocalMusicSection ->
-                    sectionEntry.desktopLabel()
-                },
-            selectedIndex = LocalMusicSection.entries.indexOf(section),
-            onSelect = { index: Int -> section = LocalMusicSection.entries[index] },
+        DesktopLocalMusicSegmentedControl(
+            section = section,
+            onSection = { selectedSection: LocalMusicSection -> section = selectedSection },
         )
         Spacer(modifier = Modifier.height(18.dp))
         when (section) {
@@ -145,21 +162,121 @@ internal fun DesktopLocalMusicScreen(
 }
 
 /**
+ * 桌面专辑分段使用固定标题和独立滚动网格，避免回退到本地音乐管理页头部。
+ */
+@Composable
+private fun DesktopLocalAlbumPage(
+    albums: List<Album>,
+    onAlbumOpen: (Album) -> Unit,
+) {
+    Column(modifier = Modifier.fillMaxSize()) {
+        DesktopPageTitleToolbar(title = "专辑")
+        DesktopLocalAlbumSection(
+            albums = albums,
+            onAlbumOpen = onAlbumOpen,
+            modifier = Modifier.weight(weight = 1f),
+        )
+    }
+}
+
+/**
+ * 本地音乐分段控件保持四个入口一致，专辑页只是替换外层标题区域。
+ */
+@Composable
+private fun DesktopLocalMusicSegmentedControl(
+    section: LocalMusicSection,
+    onSection: (LocalMusicSection) -> Unit,
+) {
+    DesktopSegmentedControl(
+        labels =
+            LocalMusicSection.entries.map { sectionEntry: LocalMusicSection ->
+                sectionEntry.desktopLabel()
+            },
+        selectedIndex = LocalMusicSection.entries.indexOf(section),
+        onSelect = { index: Int -> onSection(LocalMusicSection.entries[index]) },
+    )
+}
+
+/**
  * 专辑分段复用现有桌面网格，保持与首页预览一致的阅读节奏。
  */
 @Composable
 private fun DesktopLocalAlbumSection(
     albums: List<Album>,
     onAlbumOpen: (Album) -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     if (albums.isEmpty()) {
-        DesktopSectionEmptyMessage(message = "扫描后会按专辑自动聚合。")
+        Box(modifier = modifier.fillMaxSize()) {
+            DesktopSectionEmptyMessage(message = "扫描后会按专辑自动聚合。")
+        }
         return
     }
-    DesktopAlbumGrid(
-        albums = albums,
-        onAlbumOpen = onAlbumOpen,
-    )
+    BoxWithConstraints(modifier = modifier.fillMaxSize()) {
+        val columns: Int =
+            if (maxWidth < 720.dp) {
+                DESKTOP_LOCAL_ALBUM_NARROW_COLUMNS
+            } else {
+                DESKTOP_LOCAL_ALBUM_WIDE_COLUMNS
+            }
+        val albumRows: List<List<Album>> = albums.chunked(size = columns)
+        val listState: LazyListState = rememberLazyListState()
+        Box(modifier = Modifier.fillMaxSize()) {
+            LazyColumn(
+                state = listState,
+                modifier =
+                    Modifier
+                        .fillMaxSize()
+                        .padding(end = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+                contentPadding = PaddingValues(bottom = 24.dp),
+            ) {
+                items(
+                    items = albumRows,
+                    key = { rowAlbums: List<Album> ->
+                        rowAlbums.joinToString(separator = "|") { album: Album -> album.id }
+                    },
+                    contentType = { "desktop-local-album-row" },
+                ) { rowAlbums: List<Album> ->
+                    DesktopLocalAlbumRow(
+                        rowAlbums = rowAlbums,
+                        columns = columns,
+                        onAlbumOpen = onAlbumOpen,
+                    )
+                }
+            }
+            DesktopHomeSongScrollbar(
+                listState = listState,
+                modifier = Modifier.align(alignment = Alignment.CenterEnd),
+            )
+        }
+    }
+}
+
+/**
+ * 专辑网格行补齐空槽位，避免最后一行卡片宽度变大。
+ */
+@Composable
+private fun DesktopLocalAlbumRow(
+    rowAlbums: List<Album>,
+    columns: Int,
+    onAlbumOpen: (Album) -> Unit,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
+    ) {
+        rowAlbums.forEach { album: Album ->
+            DesktopAlbumCard(
+                album = album,
+                onOpen = onAlbumOpen,
+                modifier = Modifier.weight(weight = 1f),
+            )
+        }
+        repeat(times = columns - rowAlbums.size) {
+            Spacer(modifier = Modifier.weight(weight = 1f))
+        }
+    }
 }
 
 /**

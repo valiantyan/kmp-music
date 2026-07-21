@@ -75,6 +75,33 @@ fun DesktopPageHeader(
     }
 }
 
+/**
+ * 桌面二级页轻量标题 Toolbar，用于无需副标题和操作区的单一资源页。
+ */
+@Composable
+fun DesktopPageTitleToolbar(
+    title: String,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .padding(bottom = 24.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = title,
+            color = DesktopMusicColors.Ink,
+            fontSize = DesktopMusicType.PageTitle,
+            lineHeight = DesktopMusicType.PageTitle,
+            fontWeight = FontWeight.ExtraBold,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+    }
+}
+
 @Composable
 fun DesktopToolbar(
     playAllLabel: String,
