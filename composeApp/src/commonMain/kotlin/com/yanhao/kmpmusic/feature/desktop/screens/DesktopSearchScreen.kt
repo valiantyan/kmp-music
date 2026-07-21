@@ -37,8 +37,8 @@ import com.yanhao.kmpmusic.feature.desktop.components.DesktopAlbumGrid
 import com.yanhao.kmpmusic.feature.desktop.components.DesktopArtistStrip
 import com.yanhao.kmpmusic.feature.desktop.components.DesktopPageHeader
 import com.yanhao.kmpmusic.feature.desktop.components.DesktopSecondaryButton
-import com.yanhao.kmpmusic.feature.desktop.components.DesktopSectionHeader
 import com.yanhao.kmpmusic.feature.desktop.components.DesktopSectionEmptyMessage
+import com.yanhao.kmpmusic.feature.desktop.components.DesktopSectionHeader
 import com.yanhao.kmpmusic.feature.desktop.components.DesktopSegmentedControl
 import com.yanhao.kmpmusic.feature.desktop.components.DesktopSongTable
 import com.yanhao.kmpmusic.feature.desktop.components.DesktopTextInput
@@ -70,23 +70,27 @@ fun DesktopSearchScreen(
     onAlbumOpen: (Album) -> Unit,
     onArtistOpen: (Artist) -> Unit,
 ) {
-    val backLabel: String = when (context) {
-        SearchContext.LocalLibrary -> "← 本地音乐"
-        SearchContext.Favorites -> "← 收藏"
-    }
-    val subtitle: String = when (context) {
-        SearchContext.LocalLibrary -> "在本地音乐中搜索歌曲、专辑、歌手"
-        SearchContext.Favorites -> "在收藏中搜索歌曲、专辑、歌手"
-    }
+    val backLabel: String =
+        when (context) {
+            SearchContext.LocalLibrary -> "← 本地音乐"
+            SearchContext.Favorites -> "← 收藏"
+        }
+    val subtitle: String =
+        when (context) {
+            SearchContext.LocalLibrary -> "在本地音乐中搜索歌曲、专辑、歌手"
+            SearchContext.Favorites -> "在收藏中搜索歌曲、专辑、歌手"
+        }
     val isEmptyQuery: Boolean = query.isBlank()
-    val shouldShowResults: Boolean = shouldShowDesktopSearchResults(
-        query = query,
-        activeQuery = activeQuery,
-    )
+    val shouldShowResults: Boolean =
+        shouldShowDesktopSearchResults(
+            query = query,
+            activeQuery = activeQuery,
+        )
     Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState()),
+        modifier =
+            Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState()),
     ) {
         DesktopPageHeader(
             title = "搜索",
@@ -162,12 +166,13 @@ private fun DesktopSearchScopeTabs(
 ) {
     DesktopSegmentedControl(
         labels = listOf("全部", "歌曲", "专辑", "歌手"),
-        selectedIndex = when (selectedScope) {
-            SearchScope.All -> 0
-            SearchScope.Songs -> 1
-            SearchScope.Albums -> 2
-            SearchScope.Artists -> 3
-        },
+        selectedIndex =
+            when (selectedScope) {
+                SearchScope.All -> 0
+                SearchScope.Songs -> 1
+                SearchScope.Albums -> 2
+                SearchScope.Artists -> 3
+            },
         onSelect = { index: Int ->
             onScope(
                 when (index) {
@@ -201,9 +206,10 @@ private fun DesktopSearchHistorySection(
         onAction = onHistoryClear,
     )
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .horizontalScroll(rememberScrollState()),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .horizontalScroll(rememberScrollState()),
         horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         history.forEach { item: String ->
@@ -280,12 +286,13 @@ private fun DesktopSearchResultsSection(
         return
     }
     Text(
-        text = when (scope) {
-            SearchScope.All -> "找到 ${result.songs.size} 首歌曲、${result.albums.size} 张专辑、${result.artists.size} 位歌手"
-            SearchScope.Songs -> "找到 ${result.songs.size} 首歌曲"
-            SearchScope.Albums -> "找到 ${result.albums.size} 张专辑"
-            SearchScope.Artists -> "找到 ${result.artists.size} 位歌手"
-        },
+        text =
+            when (scope) {
+                SearchScope.All -> "找到 ${result.songs.size} 首歌曲、${result.albums.size} 张专辑、${result.artists.size} 位歌手"
+                SearchScope.Songs -> "找到 ${result.songs.size} 首歌曲"
+                SearchScope.Albums -> "找到 ${result.albums.size} 张专辑"
+                SearchScope.Artists -> "找到 ${result.artists.size} 位歌手"
+            },
         color = DesktopMusicColors.Muted,
         fontSize = DesktopMusicType.Eyebrow,
         fontWeight = FontWeight.SemiBold,

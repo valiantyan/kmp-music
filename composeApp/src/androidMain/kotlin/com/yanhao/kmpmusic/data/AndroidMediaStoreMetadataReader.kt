@@ -33,19 +33,20 @@ internal class AndroidMediaStoreMetadataReader(
         val modifiedColumn: Int = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DATE_MODIFIED)
         val discovered: MutableList<MusicFileMetadata> = mutableListOf()
         while (cursor.moveToNext()) {
-            discovered += cursor.toMetadata(
-                collectionUri = collectionUri,
-                idColumn = idColumn,
-                nameColumn = nameColumn,
-                titleColumn = titleColumn,
-                artistColumn = artistColumn,
-                albumColumn = albumColumn,
-                albumIdColumn = albumIdColumn,
-                durationColumn = durationColumn,
-                mimeTypeColumn = mimeTypeColumn,
-                sizeColumn = sizeColumn,
-                modifiedColumn = modifiedColumn,
-            )
+            discovered +=
+                cursor.toMetadata(
+                    collectionUri = collectionUri,
+                    idColumn = idColumn,
+                    nameColumn = nameColumn,
+                    titleColumn = titleColumn,
+                    artistColumn = artistColumn,
+                    albumColumn = albumColumn,
+                    albumIdColumn = albumIdColumn,
+                    durationColumn = durationColumn,
+                    mimeTypeColumn = mimeTypeColumn,
+                    sizeColumn = sizeColumn,
+                    modifiedColumn = modifiedColumn,
+                )
         }
         return discovered
     }
@@ -78,15 +79,17 @@ internal class AndroidMediaStoreMetadataReader(
             durationMs = getPositiveLong(columnIndex = durationColumn),
             mimeType = getKnownText(columnIndex = mimeTypeColumn),
             sizeBytes = getPositiveLong(columnIndex = sizeColumn),
-            modifiedAt = getPositiveLong(columnIndex = modifiedColumn)?.let { modifiedSeconds: Long ->
-                modifiedSeconds * 1_000L
-            },
+            modifiedAt =
+                getPositiveLong(columnIndex = modifiedColumn)?.let { modifiedSeconds: Long ->
+                    modifiedSeconds * 1_000L
+                },
             coverArt = CoverArt.HeroLocalMusic,
-            coverImageUri = artworkExtractor.extractArtworkUri(
-                mediaUri = mediaUri,
-                sourceId = sourceId,
-                albumId = getPositiveLong(columnIndex = albumIdColumn),
-            ),
+            coverImageUri =
+                artworkExtractor.extractArtworkUri(
+                    mediaUri = mediaUri,
+                    sourceId = sourceId,
+                    albumId = getPositiveLong(columnIndex = albumIdColumn),
+                ),
         )
     }
 

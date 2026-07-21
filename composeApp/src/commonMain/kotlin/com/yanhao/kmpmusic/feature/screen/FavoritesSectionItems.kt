@@ -85,14 +85,14 @@ internal fun LazyListScope.favoriteArtistItems(
 @Composable
 internal fun FavoritesEmptyState(message: String) {
     Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = favoritesHorizontalPadding)
-            .background(
-                color = Color.White,
-                shape = RoundedCornerShape(size = favoritesSongRowRadius),
-            )
-            .padding(horizontal = 20.dp, vertical = 22.dp),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = favoritesHorizontalPadding)
+                .background(
+                    color = Color.White,
+                    shape = RoundedCornerShape(size = favoritesSongRowRadius),
+                ).padding(horizontal = 20.dp, vertical = 22.dp),
         verticalArrangement = Arrangement.spacedBy(space = 6.dp),
     ) {
         Text(

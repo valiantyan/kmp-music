@@ -25,11 +25,12 @@ internal class PlaybackFailurePolicy {
         hasRecoverableTarget: Boolean,
     ): PlaybackFailureDecision {
         if (playbackMode == PlaybackMode.LoopOne) {
-            loopOneFailureCount = if (lastFailedSongId == error.songId) {
-                loopOneFailureCount + 1
-            } else {
-                1
-            }
+            loopOneFailureCount =
+                if (lastFailedSongId == error.songId) {
+                    loopOneFailureCount + 1
+                } else {
+                    1
+                }
             lastFailedSongId = error.songId
             return if (loopOneFailureCount < FAILURE_THRESHOLD) {
                 PlaybackFailureDecision.RetryCurrent

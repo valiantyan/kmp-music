@@ -3,8 +3,8 @@ package com.yanhao.kmpmusic.feature.screen
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -53,8 +53,8 @@ internal fun MeSettingsMenuSection() {
 }
 
 // 构造静态菜单，避免视觉还原时误接半成品设置路由。
-private fun buildMeSettingsMenuItems(): List<MeSettingsMenuItem> {
-    return listOf(
+private fun buildMeSettingsMenuItems(): List<MeSettingsMenuItem> =
+    listOf(
         MeSettingsMenuItem(
             icon = Icons.Rounded.Storage,
             title = "存储管理",
@@ -68,7 +68,6 @@ private fun buildMeSettingsMenuItems(): List<MeSettingsMenuItem> {
             title = "关于",
         ),
     )
-}
 
 // 单行保留 Figma 的图标、标题和右箭头，不声明点击回调。
 @Composable
@@ -76,17 +75,19 @@ private fun MeSettingsMenuRow(
     item: MeSettingsMenuItem,
 ) {
     Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(height = meSettingsRowHeight),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .height(height = meSettingsRowHeight),
         shape = RoundedCornerShape(size = meSettingsRowRadius),
         color = meBackgroundColor,
         border = BorderStroke(width = 1.dp, color = meOutlineColor),
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(all = meSettingsRowPadding),
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .padding(all = meSettingsRowPadding),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {

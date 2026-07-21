@@ -56,32 +56,36 @@ fun MobileFixedPlayerBar(
     integratesBottomNavigationInset: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
-    val navigationBarHeight: Dp = with(LocalDensity.current) {
-        WindowInsets.navigationBars.getBottom(density = this).toDp()
-    }
+    val navigationBarHeight: Dp =
+        with(LocalDensity.current) {
+            WindowInsets.navigationBars.getBottom(density = this).toDp()
+        }
     val miniPlayerHeight: Dp = scaledDp(value = MusicDimens.MiniPlayerHeight)
     val bottomNavigationHeight: Dp = scaledDp(value = MusicDimens.BottomNavHeight)
-    val layoutMetrics: MobileFixedPlayerBarLayoutMetrics = buildMobileFixedPlayerBarLayoutMetrics(
-        hasSong = song != null,
-        miniPlayerHeight = miniPlayerHeight,
-        bottomNavigationHeight = bottomNavigationHeight,
-        navigationBarHeight = navigationBarHeight,
-        integratesBottomNavigationInset = integratesBottomNavigationInset,
-    )
-    val fixedBarTransition = updateTransition(
-        targetState = placement,
-        label = "MobileFixedBarPlacement",
-    )
+    val layoutMetrics: MobileFixedPlayerBarLayoutMetrics =
+        buildMobileFixedPlayerBarLayoutMetrics(
+            hasSong = song != null,
+            miniPlayerHeight = miniPlayerHeight,
+            bottomNavigationHeight = bottomNavigationHeight,
+            navigationBarHeight = navigationBarHeight,
+            integratesBottomNavigationInset = integratesBottomNavigationInset,
+        )
+    val fixedBarTransition =
+        updateTransition(
+            targetState = placement,
+            label = "MobileFixedBarPlacement",
+        )
     val stackOffset: Dp by fixedBarTransition.animateDp(
         transitionSpec = {
-            val durationMillis: Int = if (
-                initialState == MobileFixedBarPlacement.Hidden ||
+            val durationMillis: Int =
+                if (
+                    initialState == MobileFixedBarPlacement.Hidden ||
                     targetState == MobileFixedBarPlacement.Hidden
-            ) {
-                MOBILE_FIXED_BAR_HIDDEN_TRANSITION_MILLIS
-            } else {
-                MOBILE_FIXED_BAR_PARTIAL_TRANSITION_MILLIS
-            }
+                ) {
+                    MOBILE_FIXED_BAR_HIDDEN_TRANSITION_MILLIS
+                } else {
+                    MOBILE_FIXED_BAR_PARTIAL_TRANSITION_MILLIS
+                }
             tween(durationMillis = durationMillis, easing = FastOutSlowInEasing)
         },
         label = "MobileFixedBarOffset",
@@ -93,31 +97,35 @@ fun MobileFixedPlayerBar(
         }
     }
     Box(
-        modifier = modifier
-            .fillMaxWidth()
-            .height(layoutMetrics.containerHeight),
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .height(layoutMetrics.containerHeight),
     ) {
         if (layoutMetrics.navigationBarUnderlayHeight > 0.dp) {
             Box(
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .fillMaxWidth()
-                    .height(layoutMetrics.navigationBarUnderlayHeight)
-                    .background(MusicColors.Paper),
+                modifier =
+                    Modifier
+                        .align(Alignment.BottomCenter)
+                        .fillMaxWidth()
+                        .height(layoutMetrics.navigationBarUnderlayHeight)
+                        .background(MusicColors.Paper),
             )
         }
         Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(layoutMetrics.stackHeight)
-                .clipToBounds()
-                .align(Alignment.TopCenter),
-        ) {
-            Box(
-                modifier = Modifier
+            modifier =
+                Modifier
                     .fillMaxWidth()
                     .height(layoutMetrics.stackHeight)
-                    .offset(y = stackOffset),
+                    .clipToBounds()
+                    .align(Alignment.TopCenter),
+        ) {
+            Box(
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .height(layoutMetrics.stackHeight)
+                        .offset(y = stackOffset),
             ) {
                 if (song != null) {
                     MobileMiniPlayer(

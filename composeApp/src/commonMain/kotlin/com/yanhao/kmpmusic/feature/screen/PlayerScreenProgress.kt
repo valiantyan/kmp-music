@@ -31,58 +31,61 @@ internal fun PlayerProgress(
     onSeek: (Long) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val progressFraction: Float = calculatePlayerProgressFraction(
-        value = value,
-        durationMs = durationMs,
-    )
+    val progressFraction: Float =
+        calculatePlayerProgressFraction(
+            value = value,
+            durationMs = durationMs,
+        )
     Box(
-        modifier = modifier
-            .height(height = scaledDp(30.dp))
-            .pointerInput(durationMs) {
-                detectTapGestures { offset ->
-                    seekToPlayerProgressOffset(
-                        offsetX = offset.x,
-                        width = size.width,
-                        durationMs = durationMs,
-                        onSeek = onSeek,
-                    )
-                }
-            }
-            .pointerInput(durationMs) {
-                detectDragGestures(
-                    onDragStart = { offset ->
+        modifier =
+            modifier
+                .height(height = scaledDp(30.dp))
+                .pointerInput(durationMs) {
+                    detectTapGestures { offset ->
                         seekToPlayerProgressOffset(
                             offsetX = offset.x,
                             width = size.width,
                             durationMs = durationMs,
                             onSeek = onSeek,
                         )
-                    },
-                    onDrag = { change, _ ->
-                        seekToPlayerProgressOffset(
-                            offsetX = change.position.x,
-                            width = size.width,
-                            durationMs = durationMs,
-                            onSeek = onSeek,
-                        )
-                    },
-                )
-            },
+                    }
+                }.pointerInput(durationMs) {
+                    detectDragGestures(
+                        onDragStart = { offset ->
+                            seekToPlayerProgressOffset(
+                                offsetX = offset.x,
+                                width = size.width,
+                                durationMs = durationMs,
+                                onSeek = onSeek,
+                            )
+                        },
+                        onDrag = { change, _ ->
+                            seekToPlayerProgressOffset(
+                                offsetX = change.position.x,
+                                width = size.width,
+                                durationMs = durationMs,
+                                onSeek = onSeek,
+                            )
+                        },
+                    )
+                },
         contentAlignment = Alignment.CenterStart,
     ) {
         Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(height = scaledDp(6.dp))
-                .clip(shape = CircleShape)
-                .background(color = MusicColors.Accent.copy(alpha = 0.12f)),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .height(height = scaledDp(6.dp))
+                    .clip(shape = CircleShape)
+                    .background(color = MusicColors.Accent.copy(alpha = 0.12f)),
         )
         Box(
-            modifier = Modifier
-                .fillMaxWidth(fraction = progressFraction)
-                .height(height = scaledDp(6.dp))
-                .clip(shape = CircleShape)
-                .background(color = MusicColors.Accent),
+            modifier =
+                Modifier
+                    .fillMaxWidth(fraction = progressFraction)
+                    .height(height = scaledDp(6.dp))
+                    .clip(shape = CircleShape)
+                    .background(color = MusicColors.Accent),
         )
     }
     Row(
@@ -130,9 +133,10 @@ private fun seekToPlayerProgressOffset(
     if (width <= 0 || durationMs <= 0L) {
         return
     }
-    val fraction: Float = (offsetX / width.toFloat()).coerceIn(
-        minimumValue = 0f,
-        maximumValue = 1f,
-    )
+    val fraction: Float =
+        (offsetX / width.toFloat()).coerceIn(
+            minimumValue = 0f,
+            maximumValue = 1f,
+        )
     onSeek((durationMs * fraction).toLong())
 }

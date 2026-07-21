@@ -28,10 +28,11 @@ internal fun HomeFilterChips(
     onSection: (HomeContentSection) -> Unit,
 ) {
     LazyRow(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(48.dp)
-            .padding(horizontal = 20.dp, vertical = 8.dp),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .height(48.dp)
+                .padding(horizontal = 20.dp, vertical = 8.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         item(key = "songs-chip") {
@@ -68,18 +69,20 @@ private fun HomeFilterChip(
     selected: Boolean,
     onClick: (() -> Unit)? = null,
 ) {
-    val clickModifier: Modifier = if (onClick != null) {
-        Modifier.clickable(onClick = onClick)
-    } else {
-        Modifier
-    }
+    val clickModifier: Modifier =
+        if (onClick != null) {
+            Modifier.clickable(onClick = onClick)
+        } else {
+            Modifier
+        }
     Box(
-        modifier = Modifier
-            .height(32.dp)
-            .clip(RoundedCornerShape(999.dp))
-            .background(if (selected) homeAccentColor else homeChipColor)
-            .then(clickModifier)
-            .padding(horizontal = 20.dp),
+        modifier =
+            Modifier
+                .height(32.dp)
+                .clip(RoundedCornerShape(999.dp))
+                .background(if (selected) homeAccentColor else homeChipColor)
+                .then(clickModifier)
+                .padding(horizontal = 20.dp),
         contentAlignment = Alignment.Center,
     ) {
         Text(

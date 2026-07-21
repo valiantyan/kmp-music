@@ -37,12 +37,12 @@ fun DesktopPrimaryButton(
 ) {
     val content: @Composable () -> Unit = {
         Box(
-            modifier = Modifier
-                .background(
-                    brush = resolveDesktopPrimaryButtonBrush(enabled = enabled),
-                    shape = RoundedCornerShape(14.dp),
-                )
-                .padding(horizontal = 20.dp),
+            modifier =
+                Modifier
+                    .background(
+                        brush = resolveDesktopPrimaryButtonBrush(enabled = enabled),
+                        shape = RoundedCornerShape(14.dp),
+                    ).padding(horizontal = 20.dp),
             contentAlignment = Alignment.Center,
         ) {
             Text(

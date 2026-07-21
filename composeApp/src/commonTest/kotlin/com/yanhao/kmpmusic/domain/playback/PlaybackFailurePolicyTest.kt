@@ -14,33 +14,36 @@ class PlaybackFailurePolicyTest {
      * 单曲循环允许同一首歌重试两次，第三次失败后必须停留在错误态。
      */
     @Test
-    fun loopOneRetriesSameSongUntilThirdFailure(): Unit {
+    fun loopOneRetriesSameSongUntilThirdFailure() {
         val policy: PlaybackFailurePolicy = PlaybackFailurePolicy()
         val error: PlaybackError = playbackError(songId = "a")
 
         assertEquals(
             expected = PlaybackFailureDecision.RetryCurrent,
-            actual = policy.onFailure(
-                error = error,
-                playbackMode = PlaybackMode.LoopOne,
-                hasRecoverableTarget = true,
-            ),
+            actual =
+                policy.onFailure(
+                    error = error,
+                    playbackMode = PlaybackMode.LoopOne,
+                    hasRecoverableTarget = true,
+                ),
         )
         assertEquals(
             expected = PlaybackFailureDecision.RetryCurrent,
-            actual = policy.onFailure(
-                error = error,
-                playbackMode = PlaybackMode.LoopOne,
-                hasRecoverableTarget = true,
-            ),
+            actual =
+                policy.onFailure(
+                    error = error,
+                    playbackMode = PlaybackMode.LoopOne,
+                    hasRecoverableTarget = true,
+                ),
         )
         assertEquals(
             expected = PlaybackFailureDecision.StayError,
-            actual = policy.onFailure(
-                error = error,
-                playbackMode = PlaybackMode.LoopOne,
-                hasRecoverableTarget = true,
-            ),
+            actual =
+                policy.onFailure(
+                    error = error,
+                    playbackMode = PlaybackMode.LoopOne,
+                    hasRecoverableTarget = true,
+                ),
         )
     }
 
@@ -48,7 +51,7 @@ class PlaybackFailurePolicyTest {
      * 单曲循环切到新歌后，失败窗口必须按歌曲重新计数。
      */
     @Test
-    fun loopOneNewSongStartsOwnFailureWindow(): Unit {
+    fun loopOneNewSongStartsOwnFailureWindow() {
         val policy: PlaybackFailurePolicy = PlaybackFailurePolicy()
 
         policy.onFailure(
@@ -59,11 +62,12 @@ class PlaybackFailurePolicyTest {
 
         assertEquals(
             expected = PlaybackFailureDecision.RetryCurrent,
-            actual = policy.onFailure(
-                error = playbackError(songId = "b"),
-                playbackMode = PlaybackMode.LoopOne,
-                hasRecoverableTarget = true,
-            ),
+            actual =
+                policy.onFailure(
+                    error = playbackError(songId = "b"),
+                    playbackMode = PlaybackMode.LoopOne,
+                    hasRecoverableTarget = true,
+                ),
         )
     }
 
@@ -71,32 +75,35 @@ class PlaybackFailurePolicyTest {
      * 非单曲循环应连续跳过前两首坏歌，第三首继续失败时再停止恢复。
      */
     @Test
-    fun nonLoopOneSkipsUntilThirdConsecutiveFailure(): Unit {
+    fun nonLoopOneSkipsUntilThirdConsecutiveFailure() {
         val policy: PlaybackFailurePolicy = PlaybackFailurePolicy()
 
         assertEquals(
             expected = PlaybackFailureDecision.SkipToNext,
-            actual = policy.onFailure(
-                error = playbackError(songId = "a"),
-                playbackMode = PlaybackMode.LoopAll,
-                hasRecoverableTarget = true,
-            ),
+            actual =
+                policy.onFailure(
+                    error = playbackError(songId = "a"),
+                    playbackMode = PlaybackMode.LoopAll,
+                    hasRecoverableTarget = true,
+                ),
         )
         assertEquals(
             expected = PlaybackFailureDecision.SkipToNext,
-            actual = policy.onFailure(
-                error = playbackError(songId = "b"),
-                playbackMode = PlaybackMode.LoopAll,
-                hasRecoverableTarget = true,
-            ),
+            actual =
+                policy.onFailure(
+                    error = playbackError(songId = "b"),
+                    playbackMode = PlaybackMode.LoopAll,
+                    hasRecoverableTarget = true,
+                ),
         )
         assertEquals(
             expected = PlaybackFailureDecision.StayError,
-            actual = policy.onFailure(
-                error = playbackError(songId = "c"),
-                playbackMode = PlaybackMode.LoopAll,
-                hasRecoverableTarget = true,
-            ),
+            actual =
+                policy.onFailure(
+                    error = playbackError(songId = "c"),
+                    playbackMode = PlaybackMode.LoopAll,
+                    hasRecoverableTarget = true,
+                ),
         )
     }
 
@@ -104,16 +111,17 @@ class PlaybackFailurePolicyTest {
      * 非单曲循环如果根本没有可恢复目标，就不应假装还能继续跳歌。
      */
     @Test
-    fun nonLoopOneStaysErrorWhenNoNextSongExists(): Unit {
+    fun nonLoopOneStaysErrorWhenNoNextSongExists() {
         val policy: PlaybackFailurePolicy = PlaybackFailurePolicy()
 
         assertEquals(
             expected = PlaybackFailureDecision.StayError,
-            actual = policy.onFailure(
-                error = playbackError(songId = "a"),
-                playbackMode = PlaybackMode.LoopAll,
-                hasRecoverableTarget = false,
-            ),
+            actual =
+                policy.onFailure(
+                    error = playbackError(songId = "a"),
+                    playbackMode = PlaybackMode.LoopAll,
+                    hasRecoverableTarget = false,
+                ),
         )
     }
 
@@ -121,7 +129,7 @@ class PlaybackFailurePolicyTest {
      * 成功恢复后重置策略，避免旧失败窗口污染后续歌曲。
      */
     @Test
-    fun resetAfterSuccessfulPlayingClearsCounters(): Unit {
+    fun resetAfterSuccessfulPlayingClearsCounters() {
         val policy: PlaybackFailurePolicy = PlaybackFailurePolicy()
 
         policy.onFailure(
@@ -138,22 +146,22 @@ class PlaybackFailurePolicyTest {
 
         assertEquals(
             expected = PlaybackFailureDecision.SkipToNext,
-            actual = policy.onFailure(
-                error = playbackError(songId = "c"),
-                playbackMode = PlaybackMode.LoopAll,
-                hasRecoverableTarget = true,
-            ),
+            actual =
+                policy.onFailure(
+                    error = playbackError(songId = "c"),
+                    playbackMode = PlaybackMode.LoopAll,
+                    hasRecoverableTarget = true,
+                ),
         )
     }
 
     /**
      * 构造最小失败对象，专注验证恢复决策而不是错误来源细节。
      */
-    private fun playbackError(songId: String): PlaybackError {
-        return PlaybackError(
+    private fun playbackError(songId: String): PlaybackError =
+        PlaybackError(
             type = PlaybackErrorType.Unknown,
             songId = songId,
             message = "坏文件",
         )
-    }
 }

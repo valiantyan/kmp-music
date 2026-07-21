@@ -131,67 +131,60 @@ fun extractPlayerPagePalette(imageBitmap: ImageBitmap): PlayerPagePalette {
 }
 
 // 把封面种子色转成浅色模式下可读的播放器容器色。
-internal fun createMiniPlayerContainerColor(seedColor: Color): Color {
-    return blendColors(
+internal fun createMiniPlayerContainerColor(seedColor: Color): Color =
+    blendColors(
         start = seedColor,
         end = MusicColors.Paper,
         endWeight = MINI_PLAYER_CONTAINER_PAPER_WEIGHT,
     )
-}
 
 // 把头像种子色转成歌手详情页根底色，形成同源烟灰暗背景。
-internal fun createArtistDetailBackgroundColor(seedColor: Color): Color {
-    return blendColors(
+internal fun createArtistDetailBackgroundColor(seedColor: Color): Color =
+    blendColors(
         start = seedColor,
         end = MusicColors.DarkPaper,
         endWeight = ARTIST_DETAIL_BACKGROUND_DARK_WEIGHT,
     )
-}
 
 // 歌手详情页顶部氛围色比根底色更接近头像色，用于沉浸式渐变。
-internal fun createArtistDetailAmbientColor(seedColor: Color): Color {
-    return blendColors(
+internal fun createArtistDetailAmbientColor(seedColor: Color): Color =
+    blendColors(
         start = seedColor,
         end = MusicColors.DarkPaper,
         endWeight = ARTIST_DETAIL_AMBIENT_DARK_WEIGHT,
     )
-}
 
 // 正文区域仍来自头像色，但混入浅色纸面以保留现有歌曲行文字可读性。
-internal fun createArtistDetailContentColor(seedColor: Color): Color {
-    return blendColors(
+internal fun createArtistDetailContentColor(seedColor: Color): Color =
+    blendColors(
         start = seedColor,
         end = MusicColors.Paper,
         endWeight = ARTIST_DETAIL_CONTENT_PAPER_WEIGHT,
     )
-}
 
 // 头图遮罩使用头像同源暗色，避免标题和按钮压在高对比图片上。
-internal fun createArtistDetailHeroScrimColor(seedColor: Color): Color {
-    return blendColors(
+internal fun createArtistDetailHeroScrimColor(seedColor: Color): Color =
+    blendColors(
         start = seedColor,
         end = MusicColors.Ink,
         endWeight = ARTIST_DETAIL_HERO_SCRIM_INK_WEIGHT,
     )
-}
 
 // 把封面种子色转成整页底色，既明显取自封面又不压低文字对比度。
-internal fun createPlayerPageBackgroundColor(seedColor: Color): Color {
-    return blendColors(
+internal fun createPlayerPageBackgroundColor(seedColor: Color): Color =
+    blendColors(
         start = seedColor,
         end = MusicColors.Paper,
         endWeight = PLAYER_PAGE_BACKGROUND_PAPER_WEIGHT,
     )
-}
 
 // 页面氛围色保留更多封面原色，用于渐变光晕而不是承载正文。
-internal fun createPlayerPageAmbientColor(seedColor: Color): Color {
-    return blendColors(
+internal fun createPlayerPageAmbientColor(seedColor: Color): Color =
+    blendColors(
         start = seedColor,
         end = MusicColors.Paper,
         endWeight = PLAYER_PAGE_AMBIENT_PAPER_WEIGHT,
     )
-}
 
 // 大封面只读取均匀取样点，避免每次切歌都遍历超大位图。
 private fun readSampledPixels(imageBitmap: ImageBitmap): IntArray {
@@ -220,7 +213,11 @@ private fun readSampledPixels(imageBitmap: ImageBitmap): IntArray {
 }
 
 // 混合两个 [Color]，用于把封面色收敛到主题表面色。
-private fun blendColors(start: Color, end: Color, endWeight: Float): Color {
+private fun blendColors(
+    start: Color,
+    end: Color,
+    endWeight: Float,
+): Color {
     val startWeight: Float = 1f - endWeight
     return Color(
         red = start.red * startWeight + end.red * endWeight,

@@ -26,11 +26,12 @@ fun MobileSecondaryPage(
     content: @Composable ColumnScope.() -> Unit,
 ) {
     Column(
-        modifier = modifier
-            .fillMaxSize()
-            .background(color = backgroundColor)
-            .statusBarsPadding()
-            .navigationBarsPadding(),
+        modifier =
+            modifier
+                .fillMaxSize()
+                .background(color = backgroundColor)
+                .statusBarsPadding()
+                .navigationBarsPadding(),
     ) {
         MobileSecondaryToolbar(
             title = title,

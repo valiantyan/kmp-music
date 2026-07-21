@@ -38,10 +38,11 @@ internal fun HomeSongActions(
                     imageVector = if (song.isLiked) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder,
                     contentDescription = if (song.isLiked) "取消收藏 ${song.title}" else "收藏 ${song.title}",
                     modifier = Modifier.size(width = 20.dp, height = 20.dp),
-                    tint = resolveHomeFavoriteIconTint(
-                        song = song,
-                        isCurrentSong = isCurrentSong,
-                    ),
+                    tint =
+                        resolveHomeFavoriteIconTint(
+                            song = song,
+                            isCurrentSong = isCurrentSong,
+                        ),
                 )
             }
         }

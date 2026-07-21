@@ -15,24 +15,27 @@ private const val ARG_HAS_ACTIVE_PLAYBACK_SESSION: String = "has_active_playback
  */
 internal object MediaButtonStateCodec {
     /** 把 shared 层按钮状态编码为 [Bundle]，避免平台层直接引用 UI state。 */
-    fun createUpdateButtonsArgs(state: MediaButtonState): Bundle {
-        return Bundle().apply {
+    fun createUpdateButtonsArgs(state: MediaButtonState): Bundle =
+        Bundle().apply {
             putBoolean(ARG_SHOULD_SHOW_PAUSE_BUTTON, state.shouldShowPauseButton)
             putBoolean(ARG_IS_FAVORITE, state.isFavorite)
             putString(ARG_PLAYBACK_MODE, state.playbackMode.name)
             putString(ARG_PLAYBACK_STATUS, state.playbackStatus.name)
             putBoolean(ARG_HAS_ACTIVE_PLAYBACK_SESSION, state.hasActivePlaybackSession)
         }
-    }
 
     /** 从 custom command 参数中恢复按钮状态，解析失败时拒绝更新 session。 */
     fun resolveUpdateButtonsState(args: Bundle): MediaButtonState? {
-        val playbackMode: PlaybackMode = args.getString(ARG_PLAYBACK_MODE)
-            ?.let { value: String -> runCatching { PlaybackMode.valueOf(value) }.getOrNull() }
-            ?: return null
-        val playbackStatus: PlaybackStatus = args.getString(ARG_PLAYBACK_STATUS)
-            ?.let { value: String -> runCatching { PlaybackStatus.valueOf(value) }.getOrNull() }
-            ?: return null
+        val playbackMode: PlaybackMode =
+            args
+                .getString(ARG_PLAYBACK_MODE)
+                ?.let { value: String -> runCatching { PlaybackMode.valueOf(value) }.getOrNull() }
+                ?: return null
+        val playbackStatus: PlaybackStatus =
+            args
+                .getString(ARG_PLAYBACK_STATUS)
+                ?.let { value: String -> runCatching { PlaybackStatus.valueOf(value) }.getOrNull() }
+                ?: return null
         return MediaButtonState(
             shouldShowPauseButton = args.getBoolean(ARG_SHOULD_SHOW_PAUSE_BUTTON),
             isFavorite = args.getBoolean(ARG_IS_FAVORITE),

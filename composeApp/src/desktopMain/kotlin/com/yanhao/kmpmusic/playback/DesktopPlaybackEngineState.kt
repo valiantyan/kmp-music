@@ -26,18 +26,14 @@ internal class DesktopPlaybackEngineState {
     var isPrepared: Boolean = false
 
     /** 判断当前下标是否仍指向有效媒体，避免访问已失效队列。 */
-    fun isCurrentIndexValid(): Boolean {
-        return currentIndex in queue.indices
-    }
+    fun isCurrentIndexValid(): Boolean = currentIndex in queue.indices
 
     /** 读取当前媒体，供命令处理逻辑复用统一访问入口。 */
-    fun currentMedia(): PlayableMedia? {
-        return queue.getOrNull(index = currentIndex)
-    }
+    fun currentMedia(): PlayableMedia? = queue.getOrNull(index = currentIndex)
 
     /** 生成状态快照，便于需要原子视图的逻辑读取同一时刻状态。 */
-    fun snapshot(): DesktopPlaybackEngineSnapshot {
-        return DesktopPlaybackEngineSnapshot(
+    fun snapshot(): DesktopPlaybackEngineSnapshot =
+        DesktopPlaybackEngineSnapshot(
             queue = queue,
             currentIndex = currentIndex,
             generation = generation,
@@ -45,7 +41,6 @@ internal class DesktopPlaybackEngineState {
             pendingSeekMs = pendingSeekMs,
             isPrepared = isPrepared,
         )
-    }
 
     /** 递增媒体代号，用最简单的方式让旧回调天然失效。 */
     fun nextGeneration(): Long {
@@ -81,12 +76,8 @@ internal data class DesktopPlaybackEngineSnapshot(
     val isPrepared: Boolean,
 ) {
     /** 判断快照中的当前下标是否仍然有效。 */
-    fun isCurrentIndexValid(): Boolean {
-        return currentIndex in queue.indices
-    }
+    fun isCurrentIndexValid(): Boolean = currentIndex in queue.indices
 
     /** 读取快照对应的当前媒体，避免多次手写越界保护。 */
-    fun currentMedia(): PlayableMedia? {
-        return queue.getOrNull(index = currentIndex)
-    }
+    fun currentMedia(): PlayableMedia? = queue.getOrNull(index = currentIndex)
 }

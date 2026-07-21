@@ -59,11 +59,12 @@ fun StandardMissingLibraryItemScreen(
         modifier = modifier,
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .weight(weight = 1f)
-                .verticalScroll(state = rememberScrollState())
-                .padding(contentPadding),
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .weight(weight = 1f)
+                    .verticalScroll(state = rememberScrollState())
+                    .padding(contentPadding),
             verticalArrangement = Arrangement.spacedBy(space = 20.dp),
         ) {
             MobileSecondaryPageSubtitle(text = subtitle)

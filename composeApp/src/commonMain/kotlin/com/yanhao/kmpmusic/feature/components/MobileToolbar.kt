@@ -1,10 +1,10 @@
 package com.yanhao.kmpmusic.feature.components
 
+import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.indication
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -43,12 +43,14 @@ fun MobilePrimaryToolbar(
     MobileToolbarRow(modifier = modifier) {
         MobileToolbarTitle(
             title = title,
-            modifier = Modifier
-                .weight(weight = 1f)
-                .padding(
-                    start = MusicDimens.MobilePrimaryToolbarTitleStart -
-                        MusicDimens.MobileToolbarOuterPadding,
-                ),
+            modifier =
+                Modifier
+                    .weight(weight = 1f)
+                    .padding(
+                        start =
+                            MusicDimens.MobilePrimaryToolbarTitleStart -
+                                MusicDimens.MobileToolbarOuterPadding,
+                    ),
         )
         MobileToolbarIconButton(
             contentDescription = "搜索",
@@ -92,9 +94,10 @@ fun MobileSecondaryToolbar(
         }
         MobileToolbarTitle(
             title = title,
-            modifier = Modifier
-                .weight(weight = 1f)
-                .alpha(alpha = titleAlpha),
+            modifier =
+                Modifier
+                    .weight(weight = 1f)
+                    .alpha(alpha = titleAlpha),
         )
         Spacer(modifier = Modifier.width(width = MusicDimens.MobileToolbarActionSlotWidth))
     }
@@ -108,17 +111,18 @@ private fun MobileToolbarRow(
     content: @Composable androidx.compose.foundation.layout.RowScope.() -> Unit,
 ) {
     Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .height(height = MusicDimens.MobileToolbarHeight)
-            .background(
-                color = MusicColors.MobileToolbarBackground.copy(alpha = backgroundAlpha),
-            )
-            .padding(horizontal = MusicDimens.MobileToolbarOuterPadding),
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .height(height = MusicDimens.MobileToolbarHeight)
+                .background(
+                    color = MusicColors.MobileToolbarBackground.copy(alpha = backgroundAlpha),
+                ).padding(horizontal = MusicDimens.MobileToolbarOuterPadding),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(
-            space = MusicDimens.MobileToolbarContentGap,
-        ),
+        horizontalArrangement =
+            androidx.compose.foundation.layout.Arrangement.spacedBy(
+                space = MusicDimens.MobileToolbarContentGap,
+            ),
         content = content,
     )
 }
@@ -152,27 +156,28 @@ private fun MobileToolbarIconButton(
 ) {
     val interactionSource: MutableInteractionSource = remember { MutableInteractionSource() }
     Box(
-        modifier = Modifier
-            .width(width = MusicDimens.MobileToolbarActionSlotWidth)
-            .height(height = MusicDimens.MobileToolbarHeight)
-            .semantics {
-                this.contentDescription = contentDescription
-            }
-            .clickable(
-                interactionSource = interactionSource,
-                indication = null,
-                role = Role.Button,
-                onClick = onClick,
-            ),
+        modifier =
+            Modifier
+                .width(width = MusicDimens.MobileToolbarActionSlotWidth)
+                .height(height = MusicDimens.MobileToolbarHeight)
+                .semantics {
+                    this.contentDescription = contentDescription
+                }.clickable(
+                    interactionSource = interactionSource,
+                    indication = null,
+                    role = Role.Button,
+                    onClick = onClick,
+                ),
         contentAlignment = Alignment.Center,
     ) {
         Box(
-            modifier = Modifier
-                .size(size = MusicDimens.MobileToolbarStateLayerSize)
-                .indication(
-                    interactionSource = interactionSource,
-                    indication = LocalIndication.current,
-                ),
+            modifier =
+                Modifier
+                    .size(size = MusicDimens.MobileToolbarStateLayerSize)
+                    .indication(
+                        interactionSource = interactionSource,
+                        indication = LocalIndication.current,
+                    ),
             contentAlignment = Alignment.Center,
         ) {
             content()

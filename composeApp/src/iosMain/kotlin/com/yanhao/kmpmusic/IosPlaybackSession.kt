@@ -17,16 +17,18 @@ object IosPlaybackSession {
     private val runtime: IosPlaybackSessionRuntime by lazy {
         val sessionScope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
         val audioSessionController: IosAudioSessionController = IosAvAudioSessionController()
-        val audioEngine: IosAvFoundationAudioPlayerEngine = IosAvFoundationAudioPlayerEngine(
-            audioSessionController = audioSessionController,
-            scope = sessionScope,
-        )
+        val audioEngine: IosAvFoundationAudioPlayerEngine =
+            IosAvFoundationAudioPlayerEngine(
+                audioSessionController = audioSessionController,
+                scope = sessionScope,
+            )
         IosPlaybackSessionRuntime(
-            controller = MusicAppController(
-                localMusicScanner = IosFolderMusicScanner(),
-                audioPlayerEngine = audioEngine,
-                controllerScope = sessionScope,
-            ),
+            controller =
+                MusicAppController(
+                    localMusicScanner = IosFolderMusicScanner(),
+                    audioPlayerEngine = audioEngine,
+                    controllerScope = sessionScope,
+                ),
             sessionScope = sessionScope,
             releaseAudioEngine = {
                 audioEngine.releaseAndAwait()

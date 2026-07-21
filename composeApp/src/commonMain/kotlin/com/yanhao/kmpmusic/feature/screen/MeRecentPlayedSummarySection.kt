@@ -77,10 +77,11 @@ internal fun buildRecentPlayedSummaryDisplayModel(
         title = "最近播放",
         actionLabel = RECENT_PLAYED_SUMMARY_ACTION_LABEL,
         emptyMessage = "播放歌曲后，最近听过的音乐会出现在这里。",
-        songRows = buildRecentPlayedSongRowDisplayModels(
-            songs = visibleSongs,
-            currentSongId = currentSongId,
-        ),
+        songRows =
+            buildRecentPlayedSongRowDisplayModels(
+                songs = visibleSongs,
+                currentSongId = currentSongId,
+            ),
         isActionEnabled = true,
     )
 }
@@ -96,10 +97,11 @@ internal fun MeRecentPlayedSummarySection(
     onSongPlay: (Song) -> Unit,
     onSongMore: (Song) -> Unit,
 ) {
-    val displayModel: RecentPlayedSummaryDisplayModel = buildRecentPlayedSummaryDisplayModel(
-        recentSongs = recentSongs,
-        currentSongId = currentSongId,
-    )
+    val displayModel: RecentPlayedSummaryDisplayModel =
+        buildRecentPlayedSummaryDisplayModel(
+            recentSongs = recentSongs,
+            currentSongId = currentSongId,
+        )
     Column(verticalArrangement = Arrangement.spacedBy(space = meSectionTitleGap)) {
         MeRecentPlayedHeader(
             displayModel = displayModel,
@@ -131,13 +133,13 @@ private fun MeRecentPlayedHeader(
         MeSectionTitle(title = displayModel.title)
         Text(
             text = displayModel.actionLabel,
-            modifier = Modifier
-                .clip(shape = RoundedCornerShape(size = 999.dp))
-                .clickable(
-                    enabled = displayModel.isActionEnabled,
-                    onClick = onViewAll,
-                )
-                .padding(horizontal = 4.dp, vertical = 2.dp),
+            modifier =
+                Modifier
+                    .clip(shape = RoundedCornerShape(size = 999.dp))
+                    .clickable(
+                        enabled = displayModel.isActionEnabled,
+                        onClick = onViewAll,
+                    ).padding(horizontal = 4.dp, vertical = 2.dp),
             color = meAccentDarkColor,
             fontSize = 16.sp,
             lineHeight = 24.sp,
@@ -175,17 +177,19 @@ private fun MeRecentPlayedSongRow(
     val titleColor: Color = if (row.isCurrentSong) MusicColors.PlayingRed else meTextColor
     val metaColor: Color = if (row.isCurrentSong) MusicColors.PlayingRed else meMetaColor
     Surface(
-        modifier = Modifier
-            .fillMaxWidth(),
+        modifier =
+            Modifier
+                .fillMaxWidth(),
         shape = RoundedCornerShape(size = 16.dp),
         color = meBackgroundColor,
         border = BorderStroke(width = 1.dp, color = meOutlineColor),
         onClick = { onSongPlay(song) },
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(all = meRecentSongPadding),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(all = meRecentSongPadding),
             horizontalArrangement = Arrangement.spacedBy(space = 16.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -193,9 +197,10 @@ private fun MeRecentPlayedSongRow(
                 coverArt = song.coverArt,
                 coverImageUri = song.coverImageUri,
                 contentDescription = "${song.title} 封面",
-                modifier = Modifier
-                    .size(size = meRecentCoverSize)
-                    .clip(shape = RoundedCornerShape(size = meRecentCoverRadius)),
+                modifier =
+                    Modifier
+                        .size(size = meRecentCoverSize)
+                        .clip(shape = RoundedCornerShape(size = meRecentCoverRadius)),
                 contentScale = ContentScale.Crop,
             )
             Column(
@@ -267,10 +272,11 @@ private fun MeRecentPlayedMoreButton(
         return
     }
     Box(
-        modifier = Modifier
-            .size(size = 40.dp)
-            .clip(shape = RoundedCornerShape(size = 999.dp))
-            .clickable { onSongMore(row.song) },
+        modifier =
+            Modifier
+                .size(size = 40.dp)
+                .clip(shape = RoundedCornerShape(size = 999.dp))
+                .clickable { onSongMore(row.song) },
         contentAlignment = Alignment.Center,
     ) {
         Icon(
@@ -288,12 +294,13 @@ private fun MeRecentPlayedEmptyState(
     message: String,
 ) {
     Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .heightIn(min = 80.dp)
-            .clip(shape = RoundedCornerShape(size = 16.dp))
-            .background(color = meBackgroundColor)
-            .padding(all = meRecentSongPadding),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .heightIn(min = 80.dp)
+                .clip(shape = RoundedCornerShape(size = 16.dp))
+                .background(color = meBackgroundColor)
+                .padding(all = meRecentSongPadding),
         contentAlignment = Alignment.CenterStart,
     ) {
         Text(

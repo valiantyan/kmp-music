@@ -33,9 +33,10 @@ internal fun SearchHistorySection(
     onClearHistory: () -> Unit,
 ) {
     Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = searchHorizontalPadding),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = searchHorizontalPadding),
         verticalArrangement = Arrangement.spacedBy(space = 16.dp),
     ) {
         SearchSectionHeader(

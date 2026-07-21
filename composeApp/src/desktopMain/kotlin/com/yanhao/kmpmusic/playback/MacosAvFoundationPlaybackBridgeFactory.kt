@@ -15,21 +15,24 @@ internal object MacosAvFoundationPlaybackBridgeFactory {
     ): MacosAvFoundationPlaybackBridge {
         val eventChannel: Channel<ApplePlaybackBridgeEvent> = Channel(capacity = Channel.UNLIMITED)
         var bridge: MacosAvFoundationPlaybackBridge? = null
-        val callback = MacosAvFoundationPlaybackBridgeCallback(
-            eventChannel = eventChannel,
-            canEmit = { bridge?.canEmitCallbacks() != false },
-        )
-        val creation: MacosAvFoundationBridgeCreation = createSession(
-            libraryLoader = libraryLoader,
-            sessionFactory = sessionFactory,
-            callback = callback,
-            eventChannel = eventChannel,
-        )
-        bridge = MacosAvFoundationPlaybackBridge(
-            eventChannel = eventChannel,
-            session = creation.session,
-            initialization = creation.initialization,
-        )
+        val callback =
+            MacosAvFoundationPlaybackBridgeCallback(
+                eventChannel = eventChannel,
+                canEmit = { bridge?.canEmitCallbacks() != false },
+            )
+        val creation: MacosAvFoundationBridgeCreation =
+            createSession(
+                libraryLoader = libraryLoader,
+                sessionFactory = sessionFactory,
+                callback = callback,
+                eventChannel = eventChannel,
+            )
+        bridge =
+            MacosAvFoundationPlaybackBridge(
+                eventChannel = eventChannel,
+                session = creation.session,
+                initialization = creation.initialization,
+            )
         return bridge
     }
 
@@ -39,48 +42,57 @@ internal object MacosAvFoundationPlaybackBridgeFactory {
         sessionFactory: MacosAvFoundationNativeBridgeSessionFactory,
         callback: MacosAvFoundationNativeBridgeCallback,
         eventChannel: Channel<ApplePlaybackBridgeEvent>,
-    ): MacosAvFoundationBridgeCreation {
-        return when (val loadResult: MacosAvFoundationNativeLibraryLoadResult = libraryLoader.load()) {
-            MacosAvFoundationNativeLibraryLoadResult.Loaded -> createLoadedSession(
-                sessionFactory = sessionFactory,
-                callback = callback,
-                eventChannel = eventChannel,
-            )
-            is MacosAvFoundationNativeLibraryLoadResult.Failed -> failedCreation(
-                reason = "加载失败：${loadResult.reason}",
-                eventChannel = eventChannel,
-            )
+    ): MacosAvFoundationBridgeCreation =
+        when (val loadResult: MacosAvFoundationNativeLibraryLoadResult = libraryLoader.load()) {
+            MacosAvFoundationNativeLibraryLoadResult.Loaded -> {
+                createLoadedSession(
+                    sessionFactory = sessionFactory,
+                    callback = callback,
+                    eventChannel = eventChannel,
+                )
+            }
+
+            is MacosAvFoundationNativeLibraryLoadResult.Failed -> {
+                failedCreation(
+                    reason = "加载失败：${loadResult.reason}",
+                    eventChannel = eventChannel,
+                )
+            }
         }
-    }
 
     /** native library 已加载后创建 session。 */
     private fun createLoadedSession(
         sessionFactory: MacosAvFoundationNativeBridgeSessionFactory,
         callback: MacosAvFoundationNativeBridgeCallback,
         eventChannel: Channel<ApplePlaybackBridgeEvent>,
-    ): MacosAvFoundationBridgeCreation {
-        return when (val creation: MacosAvFoundationNativeBridgeSessionCreation = sessionFactory.create(callback)) {
-            is MacosAvFoundationNativeBridgeSessionCreation.Success -> MacosAvFoundationBridgeCreation(
-                session = creation.session,
-                initialization = MacosAvFoundationBridgeInitialization.Success,
-            )
-            is MacosAvFoundationNativeBridgeSessionCreation.Failed -> failedCreation(
-                reason = "初始化失败：${creation.reason}",
-                eventChannel = eventChannel,
-            )
+    ): MacosAvFoundationBridgeCreation =
+        when (val creation: MacosAvFoundationNativeBridgeSessionCreation = sessionFactory.create(callback)) {
+            is MacosAvFoundationNativeBridgeSessionCreation.Success -> {
+                MacosAvFoundationBridgeCreation(
+                    session = creation.session,
+                    initialization = MacosAvFoundationBridgeInitialization.Success,
+                )
+            }
+
+            is MacosAvFoundationNativeBridgeSessionCreation.Failed -> {
+                failedCreation(
+                    reason = "初始化失败：${creation.reason}",
+                    eventChannel = eventChannel,
+                )
+            }
         }
-    }
 
     /** 创建失败结果并缓存初始化失败事件。 */
     private fun failedCreation(
         reason: String,
         eventChannel: Channel<ApplePlaybackBridgeEvent>,
     ): MacosAvFoundationBridgeCreation {
-        val error = PlaybackError(
-            type = PlaybackErrorType.EngineUnavailable,
-            songId = null,
-            message = "macOS AVFoundation bridge $reason",
-        )
+        val error =
+            PlaybackError(
+                type = PlaybackErrorType.EngineUnavailable,
+                songId = null,
+                message = "macOS AVFoundation bridge $reason",
+            )
         eventChannel.trySend(element = ApplePlaybackBridgeEvent.InitializationFailed(error = error))
         return MacosAvFoundationBridgeCreation(
             session = null,

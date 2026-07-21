@@ -8,9 +8,9 @@ import com.yanhao.kmpmusic.domain.model.LocalMusicScanRequest
 import com.yanhao.kmpmusic.domain.model.PlaybackStatus
 import com.yanhao.kmpmusic.domain.model.Song
 import com.yanhao.kmpmusic.feature.app.HomeContentSection
-import com.yanhao.kmpmusic.feature.app.NavigationState
 import com.yanhao.kmpmusic.feature.app.LocalMusicSection
 import com.yanhao.kmpmusic.feature.app.MusicAppUiState
+import com.yanhao.kmpmusic.feature.app.NavigationState
 import com.yanhao.kmpmusic.feature.app.RootTab
 import com.yanhao.kmpmusic.feature.app.SecondaryScreen
 import com.yanhao.kmpmusic.feature.app.library.LibraryStateSynchronizer
@@ -29,14 +29,15 @@ class ContentNavigationControllerTest {
      * 打开本地音乐应按需加载完整曲库，并进入指定二级分段。
      */
     @Test
-    fun openLocalMusicLoadsFullLibraryAndOpensRequestedSection(): Unit {
+    fun openLocalMusicLoadsFullLibraryAndOpensRequestedSection() {
         val repository: InMemoryMusicLibraryRepository = createSeededRepository()
         val controller: ContentNavigationController = createController(repository = repository)
 
-        val result: ContentNavigationController.Result = controller.openLocalMusic(
-            state = baseState(repository = repository),
-            section = LocalMusicSection.Artists,
-        )
+        val result: ContentNavigationController.Result =
+            controller.openLocalMusic(
+                state = baseState(repository = repository),
+                section = LocalMusicSection.Artists,
+            )
 
         assertTrue(actual = result.loadedFullLibrary)
         assertTrue(actual = result.state.localSongs.isNotEmpty())
@@ -50,17 +51,19 @@ class ContentNavigationControllerTest {
      * 我的页歌曲统计入口应回到首页歌曲分段，并保持一级页语义。
      */
     @Test
-    fun openHomeSongsReturnsToHomeSongsTopLevelPage(): Unit {
+    fun openHomeSongsReturnsToHomeSongsTopLevelPage() {
         val repository: InMemoryMusicLibraryRepository = createSeededRepository()
         val controller: ContentNavigationController = createController(repository = repository)
-        val initialState: MusicAppUiState = baseState(repository = repository).copy(
-            homeContentSection = HomeContentSection.Albums,
-            navigationState = NavigationState(
-                rootTab = RootTab.Me,
-                previousRootTab = RootTab.Me,
-                secondaryScreen = SecondaryScreen.RecentPlayed,
-            ),
-        )
+        val initialState: MusicAppUiState =
+            baseState(repository = repository).copy(
+                homeContentSection = HomeContentSection.Albums,
+                navigationState =
+                    NavigationState(
+                        rootTab = RootTab.Me,
+                        previousRootTab = RootTab.Me,
+                        secondaryScreen = SecondaryScreen.RecentPlayed,
+                    ),
+            )
 
         val result: ContentNavigationController.Result = controller.openHomeSongs(state = initialState)
 
@@ -74,7 +77,7 @@ class ContentNavigationControllerTest {
      * 扫描页和最近播放页只是导航入口，不应为了进入页面读取完整曲库。
      */
     @Test
-    fun scanAndRecentRoutesDoNotLoadFullLibrary(): Unit {
+    fun scanAndRecentRoutesDoNotLoadFullLibrary() {
         val repository: InMemoryMusicLibraryRepository = createSeededRepository()
         val controller: ContentNavigationController = createController(repository = repository)
         val initialState: MusicAppUiState = baseState(repository = repository)
@@ -94,19 +97,21 @@ class ContentNavigationControllerTest {
      * 专辑和歌手详情入口必须先补齐完整曲库，再写入选中身份并进入二级页。
      */
     @Test
-    fun albumAndArtistDetailRoutesLoadLibraryBeforeSelectingIdentity(): Unit {
+    fun albumAndArtistDetailRoutesLoadLibraryBeforeSelectingIdentity() {
         val repository: InMemoryMusicLibraryRepository = createSeededRepository()
         val controller: ContentNavigationController = createController(repository = repository)
         val initialState: MusicAppUiState = baseState(repository = repository)
 
-        val albumResult: ContentNavigationController.Result = controller.openAlbum(
-            state = initialState,
-            album = initialState.detailAlbums.first(),
-        )
-        val artistResult: ContentNavigationController.Result = controller.openArtist(
-            state = initialState,
-            artist = initialState.detailArtists.first(),
-        )
+        val albumResult: ContentNavigationController.Result =
+            controller.openAlbum(
+                state = initialState,
+                album = initialState.detailAlbums.first(),
+            )
+        val artistResult: ContentNavigationController.Result =
+            controller.openArtist(
+                state = initialState,
+                artist = initialState.detailArtists.first(),
+            )
 
         assertTrue(actual = albumResult.loadedFullLibrary)
         assertTrue(actual = artistResult.loadedFullLibrary)
@@ -122,19 +127,21 @@ class ContentNavigationControllerTest {
      * 从歌曲进入详情时应复用元数据匹配，并关闭歌曲更多菜单残留。
      */
     @Test
-    fun songDetailRoutesMatchMetadataAndCloseMoreMenu(): Unit {
+    fun songDetailRoutesMatchMetadataAndCloseMoreMenu() {
         val repository: InMemoryMusicLibraryRepository = createSeededRepository()
         val controller: ContentNavigationController = createController(repository = repository)
         val targetSong: Song = baseState(repository = repository).homeLocalSongPreview.first()
 
-        val albumResult: ContentNavigationController.Result = controller.openAlbumFromSong(
-            state = baseState(repository = repository).copy(moreSongId = targetSong.id),
-            song = targetSong,
-        )
-        val artistResult: ContentNavigationController.Result = controller.openArtistFromSong(
-            state = baseState(repository = repository).copy(moreSongId = targetSong.id),
-            song = targetSong,
-        )
+        val albumResult: ContentNavigationController.Result =
+            controller.openAlbumFromSong(
+                state = baseState(repository = repository).copy(moreSongId = targetSong.id),
+                song = targetSong,
+            )
+        val artistResult: ContentNavigationController.Result =
+            controller.openArtistFromSong(
+                state = baseState(repository = repository).copy(moreSongId = targetSong.id),
+                song = targetSong,
+            )
 
         assertTrue(actual = albumResult.loadedFullLibrary)
         assertTrue(actual = artistResult.loadedFullLibrary)
@@ -147,17 +154,21 @@ class ContentNavigationControllerTest {
     /** 构造控制器依赖，复用真实曲库同步规则避免测试和生产分叉。 */
     private fun createController(repository: InMemoryMusicLibraryRepository): ContentNavigationController {
         val initialSongs: List<Song> = repository.getHomePreview(limit = 6)
-        val likedSongIds: Set<String> = initialSongs.filter { song: Song -> song.isLiked }
-            .map { song: Song -> song.id }
-            .toSet()
+        val likedSongIds: Set<String> =
+            initialSongs
+                .filter { song: Song -> song.isLiked }
+                .map { song: Song -> song.id }
+                .toSet()
         return ContentNavigationController(
-            libraryStateSynchronizer = LibraryStateSynchronizer(
-                musicLibraryRepository = repository,
-                favoritesRepository = InMemoryFavoritesRepository(
-                    initialLikedSongIds = likedSongIds,
+            libraryStateSynchronizer =
+                LibraryStateSynchronizer(
+                    musicLibraryRepository = repository,
+                    favoritesRepository =
+                        InMemoryFavoritesRepository(
+                            initialLikedSongIds = likedSongIds,
+                        ),
+                    playbackRepository = InMemoryPlaybackRepository(),
                 ),
-                playbackRepository = InMemoryPlaybackRepository(),
-            ),
         )
     }
 
@@ -180,9 +191,11 @@ class ContentNavigationControllerTest {
         val previewSongs: List<Song> = repository.getHomePreview(limit = 6)
         return MusicAppUiState(
             homeLocalSongPreview = previewSongs,
-            likedSongIds = previewSongs.filter { song: Song -> song.isLiked }
-                .map { song: Song -> song.id }
-                .toSet(),
+            likedSongIds =
+                previewSongs
+                    .filter { song: Song -> song.isLiked }
+                    .map { song: Song -> song.id }
+                    .toSet(),
             currentSongId = null,
             playbackStatus = PlaybackStatus.Idle,
             queueSongIds = emptyList(),

@@ -30,45 +30,53 @@ internal fun createPersistentMusicAppController(
 ): MusicAppController {
     val favoriteSongDao: FavoriteSongDao = playbackDatabase.favoriteSongDao()
     val localSongDao: LocalSongDao = playbackDatabase.localSongDao()
-    val musicLibraryRepository: PersistentMusicLibraryRepository = PersistentMusicLibraryRepository(
-        localSongDao = localSongDao,
-        favoriteSongDao = favoriteSongDao,
-    )
-    val favoritesRepository: PersistentFavoritesRepository = runBlocking {
-        PersistentFavoritesRepository(
+    val musicLibraryRepository: PersistentMusicLibraryRepository =
+        PersistentMusicLibraryRepository(
+            localSongDao = localSongDao,
             favoriteSongDao = favoriteSongDao,
-            initialLikedSongIds = PersistentFavoritesRepository.loadInitialLikedSongIds(
-                favoriteSongDao = favoriteSongDao,
-            ),
-            nowMillis = nowMillis,
         )
-    }
+    val favoritesRepository: PersistentFavoritesRepository =
+        runBlocking {
+            PersistentFavoritesRepository(
+                favoriteSongDao = favoriteSongDao,
+                initialLikedSongIds =
+                    PersistentFavoritesRepository.loadInitialLikedSongIds(
+                        favoriteSongDao = favoriteSongDao,
+                    ),
+                nowMillis = nowMillis,
+            )
+        }
     return MusicAppController(
         localMusicScanner = localMusicScanner,
         audioPlayerEngine = audioPlayerEngine,
-        playbackRepository = PersistentPlaybackRepository.create(
-            playbackDatabase = playbackDatabase,
-            nowMillis = nowMillis,
-        ),
-        playbackSnapshotStore = RoomPlaybackSnapshotStore(
-            database = playbackDatabase,
-            nowMillis = nowMillis,
-        ),
+        playbackRepository =
+            PersistentPlaybackRepository.create(
+                playbackDatabase = playbackDatabase,
+                nowMillis = nowMillis,
+            ),
+        playbackSnapshotStore =
+            RoomPlaybackSnapshotStore(
+                database = playbackDatabase,
+                nowMillis = nowMillis,
+            ),
         musicLibraryRepository = musicLibraryRepository,
         injectedFavoritesRepository = favoritesRepository,
-        localPlaylistRepository = PersistentLocalPlaylistRepository.create(
-            playbackDatabase = playbackDatabase,
-            musicLibraryRepository = musicLibraryRepository,
-            nowMillis = nowMillis,
-        ),
-        searchHistoryRepository = PersistentSearchHistoryRepository.create(
-            playbackDatabase = playbackDatabase,
-            nowMillis = nowMillis,
-        ),
-        userPreferencesRepository = PersistentUserPreferencesRepository.create(
-            playbackDatabase = playbackDatabase,
-            nowMillis = nowMillis,
-        ),
+        localPlaylistRepository =
+            PersistentLocalPlaylistRepository.create(
+                playbackDatabase = playbackDatabase,
+                musicLibraryRepository = musicLibraryRepository,
+                nowMillis = nowMillis,
+            ),
+        searchHistoryRepository =
+            PersistentSearchHistoryRepository.create(
+                playbackDatabase = playbackDatabase,
+                nowMillis = nowMillis,
+            ),
+        userPreferencesRepository =
+            PersistentUserPreferencesRepository.create(
+                playbackDatabase = playbackDatabase,
+                nowMillis = nowMillis,
+            ),
         permissionSettingsOpener = permissionSettingsOpener,
         controllerScope = controllerScope,
         nowMillis = nowMillis,

@@ -10,62 +10,70 @@ import kotlin.test.assertTrue
  */
 class DesktopSongTableBehaviorTest {
     @Test
-    fun currentActiveOrPausedSongUsesPlaybackToggle(): Unit {
+    fun currentActiveOrPausedSongUsesPlaybackToggle() {
         assertTrue(
-            actual = shouldToggleDesktopSongTableCurrentPlayback(
-                isCurrentSong = true,
-                currentPlaybackStatus = PlaybackStatus.Playing,
-            ),
+            actual =
+                shouldToggleDesktopSongTableCurrentPlayback(
+                    isCurrentSong = true,
+                    currentPlaybackStatus = PlaybackStatus.Playing,
+                ),
         )
         assertTrue(
-            actual = shouldToggleDesktopSongTableCurrentPlayback(
-                isCurrentSong = true,
-                currentPlaybackStatus = PlaybackStatus.Loading,
-            ),
+            actual =
+                shouldToggleDesktopSongTableCurrentPlayback(
+                    isCurrentSong = true,
+                    currentPlaybackStatus = PlaybackStatus.Loading,
+                ),
         )
         assertTrue(
-            actual = shouldToggleDesktopSongTableCurrentPlayback(
-                isCurrentSong = true,
-                currentPlaybackStatus = PlaybackStatus.Buffering,
-            ),
+            actual =
+                shouldToggleDesktopSongTableCurrentPlayback(
+                    isCurrentSong = true,
+                    currentPlaybackStatus = PlaybackStatus.Buffering,
+                ),
         )
         assertTrue(
-            actual = shouldToggleDesktopSongTableCurrentPlayback(
-                isCurrentSong = true,
-                currentPlaybackStatus = PlaybackStatus.Paused,
-            ),
+            actual =
+                shouldToggleDesktopSongTableCurrentPlayback(
+                    isCurrentSong = true,
+                    currentPlaybackStatus = PlaybackStatus.Paused,
+                ),
         )
     }
 
     @Test
-    fun currentIdleEndedOrErrorSongFallsBackToPlay(): Unit {
+    fun currentIdleEndedOrErrorSongFallsBackToPlay() {
         assertFalse(
-            actual = shouldToggleDesktopSongTableCurrentPlayback(
-                isCurrentSong = true,
-                currentPlaybackStatus = PlaybackStatus.Idle,
-            ),
+            actual =
+                shouldToggleDesktopSongTableCurrentPlayback(
+                    isCurrentSong = true,
+                    currentPlaybackStatus = PlaybackStatus.Idle,
+                ),
         )
         assertFalse(
-            actual = shouldToggleDesktopSongTableCurrentPlayback(
-                isCurrentSong = true,
-                currentPlaybackStatus = PlaybackStatus.Ended,
-            ),
+            actual =
+                shouldToggleDesktopSongTableCurrentPlayback(
+                    isCurrentSong = true,
+                    currentPlaybackStatus = PlaybackStatus.Ended,
+                ),
         )
         assertFalse(
-            actual = shouldToggleDesktopSongTableCurrentPlayback(
-                isCurrentSong = true,
-                currentPlaybackStatus = PlaybackStatus.Error,
-            ),
+            actual =
+                shouldToggleDesktopSongTableCurrentPlayback(
+                    isCurrentSong = true,
+                    currentPlaybackStatus = PlaybackStatus.Error,
+                ),
         )
     }
 
     @Test
-    fun nonCurrentSongAlwaysFallsBackToPlay(): Unit {
+    fun nonCurrentSongAlwaysFallsBackToPlay() {
         assertFalse(
-            actual = shouldToggleDesktopSongTableCurrentPlayback(
-                isCurrentSong = false,
-                currentPlaybackStatus = PlaybackStatus.Playing,
-            ),
+            actual =
+                shouldToggleDesktopSongTableCurrentPlayback(
+                    isCurrentSong = false,
+                    currentPlaybackStatus = PlaybackStatus.Playing,
+                ),
         )
     }
 }

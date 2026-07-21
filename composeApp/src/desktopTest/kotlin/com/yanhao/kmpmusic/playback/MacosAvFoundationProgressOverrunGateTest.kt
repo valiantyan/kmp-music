@@ -11,19 +11,20 @@ import kotlin.test.assertTrue
 class MacosAvFoundationProgressOverrunGateTest {
     /** 验证 native progress 超过 duration 后会结束当前 generation，而不是继续推进进度。 */
     @Test
-    fun nativeProgressBeyondDurationFinishesCurrentGeneration(): Unit {
+    fun nativeProgressBeyondDurationFinishesCurrentGeneration() {
         val text: String = readProjectFile(relativePath = NATIVE_BRIDGE_FILE_PATH)
         assertContainsAll(
             text = text,
-            requiredSnippets = listOf(
-                "KMP_END_POSITION_TOLERANCE_MS",
-                "KmpShouldFinishAtDuration",
-                "KmpClampPositionToDuration",
-                "self.lastPositionMs = 0",
-                "positionMs >= durationMs + KMP_END_POSITION_TOLERANCE_MS",
-                "finishGenerationAsEnded:generation",
-                "removeTimeObserver",
-            ),
+            requiredSnippets =
+                listOf(
+                    "KMP_END_POSITION_TOLERANCE_MS",
+                    "KmpShouldFinishAtDuration",
+                    "KmpClampPositionToDuration",
+                    "self.lastPositionMs = 0",
+                    "positionMs >= durationMs + KMP_END_POSITION_TOLERANCE_MS",
+                    "finishGenerationAsEnded:generation",
+                    "removeTimeObserver",
+                ),
         )
     }
 
@@ -46,10 +47,11 @@ class MacosAvFoundationProgressOverrunGateTest {
     private fun assertContainsAll(
         text: String,
         requiredSnippets: List<String>,
-    ): Unit {
-        val missingSnippets: List<String> = requiredSnippets.filterNot { snippet: String ->
-            text.contains(other = snippet)
-        }
+    ) {
+        val missingSnippets: List<String> =
+            requiredSnippets.filterNot { snippet: String ->
+                text.contains(other = snippet)
+            }
         assertTrue(
             actual = missingSnippets.isEmpty(),
             message = "$NATIVE_BRIDGE_FILE_PATH 缺少：${missingSnippets.joinToString(separator = "；")}",

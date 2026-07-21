@@ -26,9 +26,10 @@ class PlaybackServiceConnector(
     scope: CoroutineScope,
 ) : AudioPlayerEngine {
     // 对 common 层暴露的真实播放事件。
-    private val mutableEvents: MutableSharedFlow<PlaybackEngineEvent> = MutableSharedFlow(
-        extraBufferCapacity = 128,
-    )
+    private val mutableEvents: MutableSharedFlow<PlaybackEngineEvent> =
+        MutableSharedFlow(
+            extraBufferCapacity = 128,
+        )
 
     // 最近一次同步给平台播放器的播放模式。
     private var playbackMode: PlaybackMode = PlaybackMode.LoopAll
@@ -40,17 +41,19 @@ class PlaybackServiceConnector(
     private var pendingMediaButtonState: MediaButtonState? = null
 
     // Media3 Player 事件桥，专门负责状态和进度翻译。
-    private val eventBridge: MediaControllerEventBridge = MediaControllerEventBridge(
-        scope = scope,
-        emitEvent = { event: PlaybackEngineEvent -> mutableEvents.tryEmit(event) },
-    )
+    private val eventBridge: MediaControllerEventBridge =
+        MediaControllerEventBridge(
+            scope = scope,
+            emitEvent = { event: PlaybackEngineEvent -> mutableEvents.tryEmit(event) },
+        )
 
     // Media3 controller 连接管理，专门负责 SessionToken 绑定和断线清理。
-    private val controllerConnection: MediaControllerConnection = MediaControllerConnection(
-        onConnected = ::handleControllerConnected,
-        onDisconnected = eventBridge::detachController,
-        onConnectionFailed = ::emitEngineUnavailable,
-    )
+    private val controllerConnection: MediaControllerConnection =
+        MediaControllerConnection(
+            onConnected = ::handleControllerConnected,
+            onDisconnected = eventBridge::detachController,
+            onConnectionFailed = ::emitEngineUnavailable,
+        )
 
     /** 对 common 层暴露的播放事件流。 */
     override val events: Flow<PlaybackEngineEvent> = mutableEvents.asSharedFlow()
@@ -73,10 +76,11 @@ class PlaybackServiceConnector(
     ) {
         val controller: MediaController = controllerConnection.awaitController() ?: return emitEngineUnavailable()
         val context: Context = appContext ?: return emitEngineUnavailable()
-        val mediaItems: List<MediaItem> = AndroidPlayableMediaMapper.toMediaItems(
-            context = context,
-            items = items,
-        )
+        val mediaItems: List<MediaItem> =
+            AndroidPlayableMediaMapper.toMediaItems(
+                context = context,
+                items = items,
+            )
         if (!controller.isCommandAvailable(Player.COMMAND_CHANGE_MEDIA_ITEMS)) {
             emitEngineUnavailable(message = "Android 播放控制器不允许替换媒体队列")
             return
@@ -161,13 +165,14 @@ class PlaybackServiceConnector(
         playbackStatus: PlaybackStatus,
         hasActivePlaybackSession: Boolean,
     ) {
-        pendingMediaButtonState = MediaButtonState(
-            shouldShowPauseButton = shouldShowPauseButton,
-            isFavorite = isFavorite,
-            playbackMode = playbackMode,
-            playbackStatus = playbackStatus,
-            hasActivePlaybackSession = hasActivePlaybackSession,
-        )
+        pendingMediaButtonState =
+            MediaButtonState(
+                shouldShowPauseButton = shouldShowPauseButton,
+                isFavorite = isFavorite,
+                playbackMode = playbackMode,
+                playbackStatus = playbackStatus,
+                hasActivePlaybackSession = hasActivePlaybackSession,
+            )
         executeWithController { controller: MediaController ->
             MediaButtonStateSender.send(
                 controller = controller,
@@ -180,13 +185,14 @@ class PlaybackServiceConnector(
      * 没有活动歌曲时只清理已连接 session；未连接时不主动拉起播放服务。
      */
     fun clearNotification() {
-        pendingMediaButtonState = MediaButtonState(
-            shouldShowPauseButton = false,
-            isFavorite = false,
-            playbackMode = playbackMode,
-            playbackStatus = PlaybackStatus.Idle,
-            hasActivePlaybackSession = false,
-        )
+        pendingMediaButtonState =
+            MediaButtonState(
+                shouldShowPauseButton = false,
+                isFavorite = false,
+                playbackMode = playbackMode,
+                playbackStatus = PlaybackStatus.Idle,
+                hasActivePlaybackSession = false,
+            )
         controllerConnection.currentController?.let { controller: MediaController ->
             MediaButtonStateSender.send(
                 controller = controller,
@@ -219,11 +225,12 @@ class PlaybackServiceConnector(
     private fun emitEngineUnavailable(message: String = "Android 播放控制器尚未就绪") {
         mutableEvents.tryEmit(
             PlaybackEngineEvent.Failed(
-                error = PlaybackError(
-                    type = PlaybackErrorType.EngineUnavailable,
-                    songId = null,
-                    message = message,
-                ),
+                error =
+                    PlaybackError(
+                        type = PlaybackErrorType.EngineUnavailable,
+                        songId = null,
+                        message = message,
+                    ),
             ),
         )
     }

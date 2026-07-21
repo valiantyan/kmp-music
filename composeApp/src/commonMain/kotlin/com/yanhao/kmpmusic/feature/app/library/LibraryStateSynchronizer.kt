@@ -28,13 +28,14 @@ class LibraryStateSynchronizer(
                 return LocalMusicScanState.Idle
             }
             return LocalMusicScanState.Done(
-                summary = LocalMusicLastScanSummary(
-                    addedCount = stats.songCount,
-                    updatedCount = 0,
-                    removedCount = 0,
-                    problemCount = 0,
-                    completedAt = 0L,
-                ),
+                summary =
+                    LocalMusicLastScanSummary(
+                        addedCount = stats.songCount,
+                        updatedCount = 0,
+                        removedCount = 0,
+                        problemCount = 0,
+                        completedAt = 0L,
+                    ),
             )
         }
     }
@@ -47,9 +48,7 @@ class LibraryStateSynchronizer(
     }
 
     /** 为 facade 暴露冷启动扫描态构造入口，统一复用同一条规则。 */
-    fun buildInitialScanState(stats: LibraryStats): LocalMusicScanState {
-        return buildInitialScanStateFromStats(stats = stats)
-    }
+    fun buildInitialScanState(stats: LibraryStats): LocalMusicScanState = buildInitialScanStateFromStats(stats = stats)
 
     /** 扫描后同步首页预览、完整曲库、收藏和最近播放这些共享列表。 */
     fun syncLibrarySnapshot(
@@ -57,48 +56,57 @@ class LibraryStateSynchronizer(
         snapshot: LibrarySnapshot,
     ): MusicAppUiState {
         val likedSongIds: Set<String> = favoritesRepository.getLikedSongIds()
-        val previewWithLikes: List<Song> = musicLibraryRepository.getHomePreview(limit = 6).map { song: Song ->
-            song.copy(isLiked = likedSongIds.contains(element = song.id) || song.isLiked)
-        }
-        val shouldRefreshFullLibrary: Boolean = state.localSongs.isNotEmpty() ||
-            state.homeContentSection == HomeContentSection.Albums ||
-            state.homeContentSection == HomeContentSection.Artists ||
-            state.navigationState.secondaryScreen is SecondaryScreen.LocalMusic
-        val fullSongsWithLikes: List<Song> = if (shouldRefreshFullLibrary) {
-            musicLibraryRepository.getAllAvailableSongs().map { song: Song ->
+        val previewWithLikes: List<Song> =
+            musicLibraryRepository.getHomePreview(limit = 6).map { song: Song ->
                 song.copy(isLiked = likedSongIds.contains(element = song.id) || song.isLiked)
             }
-        } else {
-            state.localSongs
-        }
+        val shouldRefreshFullLibrary: Boolean =
+            state.localSongs.isNotEmpty() ||
+                state.homeContentSection == HomeContentSection.Albums ||
+                state.homeContentSection == HomeContentSection.Artists ||
+                state.navigationState.secondaryScreen is SecondaryScreen.LocalMusic
+        val fullSongsWithLikes: List<Song> =
+            if (shouldRefreshFullLibrary) {
+                musicLibraryRepository.getAllAvailableSongs().map { song: Song ->
+                    song.copy(isLiked = likedSongIds.contains(element = song.id) || song.isLiked)
+                }
+            } else {
+                state.localSongs
+            }
         return state.copy(
             homeLocalSongPreview = previewWithLikes,
             localSongs = fullSongsWithLikes,
-            localAlbums = if (shouldRefreshFullLibrary) {
-                MusicLibraryProjector.buildAlbums(songs = fullSongsWithLikes)
-            } else {
-                state.localAlbums
-            },
-            localArtists = if (shouldRefreshFullLibrary) {
-                MusicLibraryProjector.buildArtists(songs = fullSongsWithLikes)
-            } else {
-                state.localArtists
-            },
+            localAlbums =
+                if (shouldRefreshFullLibrary) {
+                    MusicLibraryProjector.buildAlbums(songs = fullSongsWithLikes)
+                } else {
+                    state.localAlbums
+                },
+            localArtists =
+                if (shouldRefreshFullLibrary) {
+                    MusicLibraryProjector.buildArtists(songs = fullSongsWithLikes)
+                } else {
+                    state.localArtists
+                },
             libraryStats = musicLibraryRepository.getLibraryStats(),
             localMusicSources = snapshot.sources,
             localMusicProblems = snapshot.problems,
             scanState = snapshot.scanState,
-            likedSongIds = likedSongIds + previewWithLikes
-                .filter { song: Song -> song.isLiked }
-                .map { song: Song -> song.id },
-            recentSongs = buildRecentSongs(
-                state = state,
-                extraSongs = fullSongsWithLikes + previewWithLikes,
-            ),
-            favoriteSongs = buildFavoriteSongs(
-                likedSongIds = likedSongIds,
-                preferredSongs = previewWithLikes + fullSongsWithLikes + state.queueSongsSnapshot + state.favoriteSongs,
-            ),
+            likedSongIds =
+                likedSongIds +
+                    previewWithLikes
+                        .filter { song: Song -> song.isLiked }
+                        .map { song: Song -> song.id },
+            recentSongs =
+                buildRecentSongs(
+                    state = state,
+                    extraSongs = fullSongsWithLikes + previewWithLikes,
+                ),
+            favoriteSongs =
+                buildFavoriteSongs(
+                    likedSongIds = likedSongIds,
+                    preferredSongs = previewWithLikes + fullSongsWithLikes + state.queueSongsSnapshot + state.favoriteSongs,
+                ),
         )
     }
 
@@ -108,24 +116,29 @@ class LibraryStateSynchronizer(
             return state
         }
         val likedSongIds: Set<String> = favoritesRepository.getLikedSongIds()
-        val songsWithLikes: List<Song> = musicLibraryRepository.getAllAvailableSongs().map { song: Song ->
-            song.copy(isLiked = likedSongIds.contains(element = song.id) || song.isLiked)
-        }
+        val songsWithLikes: List<Song> =
+            musicLibraryRepository.getAllAvailableSongs().map { song: Song ->
+                song.copy(isLiked = likedSongIds.contains(element = song.id) || song.isLiked)
+            }
         return state.copy(
             localSongs = songsWithLikes,
             localAlbums = MusicLibraryProjector.buildAlbums(songs = songsWithLikes),
             localArtists = MusicLibraryProjector.buildArtists(songs = songsWithLikes),
-            favoriteSongs = buildFavoriteSongs(
-                likedSongIds = likedSongIds,
-                preferredSongs = state.homeLocalSongPreview + songsWithLikes + state.queueSongsSnapshot + state.favoriteSongs,
-            ),
-            likedSongIds = likedSongIds + songsWithLikes
-                .filter { song: Song -> song.isLiked }
-                .map { song: Song -> song.id },
-            recentSongs = buildRecentSongs(
-                state = state,
-                extraSongs = songsWithLikes,
-            ),
+            favoriteSongs =
+                buildFavoriteSongs(
+                    likedSongIds = likedSongIds,
+                    preferredSongs = state.homeLocalSongPreview + songsWithLikes + state.queueSongsSnapshot + state.favoriteSongs,
+                ),
+            likedSongIds =
+                likedSongIds +
+                    songsWithLikes
+                        .filter { song: Song -> song.isLiked }
+                        .map { song: Song -> song.id },
+            recentSongs =
+                buildRecentSongs(
+                    state = state,
+                    extraSongs = songsWithLikes,
+                ),
         )
     }
 
@@ -138,19 +151,22 @@ class LibraryStateSynchronizer(
         if (historySongIds.isEmpty()) {
             return emptyList()
         }
-        val preferredSongs: List<Song> = extraSongs +
-            state.queueSongsSnapshot +
-            state.localSongs +
-            state.homeLocalSongPreview +
-            state.favoriteSongs
-        val preferredSongsById: Map<String, Song> = preferredSongs
-            .distinctBy { song: Song -> song.id }
-            .associateBy { song: Song -> song.id }
-        val availableSongsById: Map<String, Song> = musicLibraryRepository.getAvailableSongsByIds(
-            songIds = historySongIds,
-        )
-            .filter { song: Song -> song.isPlayable }
-            .associateBy { song: Song -> song.id }
+        val preferredSongs: List<Song> =
+            extraSongs +
+                state.queueSongsSnapshot +
+                state.localSongs +
+                state.homeLocalSongPreview +
+                state.favoriteSongs
+        val preferredSongsById: Map<String, Song> =
+            preferredSongs
+                .distinctBy { song: Song -> song.id }
+                .associateBy { song: Song -> song.id }
+        val availableSongsById: Map<String, Song> =
+            musicLibraryRepository
+                .getAvailableSongsByIds(
+                    songIds = historySongIds,
+                ).filter { song: Song -> song.isPlayable }
+                .associateBy { song: Song -> song.id }
         return historySongIds.mapNotNull { songId: String ->
             val availableSong: Song = availableSongsById[songId] ?: return@mapNotNull null
             availableSong.copy(
@@ -163,14 +179,13 @@ class LibraryStateSynchronizer(
     fun buildFavoriteSongs(
         likedSongIds: Set<String>,
         preferredSongs: List<Song>,
-    ): List<Song> {
-        return resolveAvailableSongsByIds(
+    ): List<Song> =
+        resolveAvailableSongsByIds(
             songIds = likedSongIds.toList(),
             preferredSongs = preferredSongs,
         ).map { song: Song ->
             song.copy(isLiked = true)
         }
-    }
 
     /** 先复用当前已知歌曲对象，再补查仓库，避免同一首歌出现多份不同实例。 */
     fun resolveAvailableSongsByIds(
@@ -189,7 +204,6 @@ class LibraryStateSynchronizer(
                 preferredSongs.filter { song: Song ->
                     requestedIds.contains(element = song.id) && !fetchedSongIds.contains(element = song.id)
                 }
-            )
-            .distinctBy { song: Song -> song.id }
+        ).distinctBy { song: Song -> song.id }
     }
 }

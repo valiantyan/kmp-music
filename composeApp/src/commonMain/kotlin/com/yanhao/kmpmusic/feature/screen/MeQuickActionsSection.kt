@@ -34,12 +34,13 @@ internal fun MeQuickActionsSection(
             onClick = onScanMusic,
         ) {
             Row(
-                modifier = Modifier.padding(
-                    start = 16.dp,
-                    top = 16.dp,
-                    end = 31.dp,
-                    bottom = 16.dp,
-                ),
+                modifier =
+                    Modifier.padding(
+                        start = 16.dp,
+                        top = 16.dp,
+                        end = 31.dp,
+                        bottom = 16.dp,
+                    ),
                 horizontalArrangement = Arrangement.spacedBy(space = 16.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {

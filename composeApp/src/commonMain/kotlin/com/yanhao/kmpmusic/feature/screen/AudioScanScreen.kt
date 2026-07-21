@@ -48,6 +48,7 @@ import com.yanhao.kmpmusic.domain.model.LocalMusicSourceSummary
 import com.yanhao.kmpmusic.feature.components.MobileSecondaryPage
 
 private val scanPageBackground: Color = MusicColors.PageBackground
+
 // 扫描目录行保留原有弱化底色，避免页面背景调整改变组件层级。
 private val scanDirectoryRowBackground: Color = Color(0xFFF8FAFB)
 private val scanPageInk = Color(0xFF191C1D)
@@ -72,10 +73,11 @@ fun AudioScanScreen(
     modifier: Modifier = Modifier,
     contentPadding: PaddingValues = PaddingValues(0.dp),
 ) {
-    val summaryDisplayModel: LocalMusicScanSummaryDisplayModel = buildLocalMusicScanSummaryDisplayModel(
-        playableSongCount = playableSongCount,
-        scanState = scanState,
-    )
+    val summaryDisplayModel: LocalMusicScanSummaryDisplayModel =
+        buildLocalMusicScanSummaryDisplayModel(
+            playableSongCount = playableSongCount,
+            scanState = scanState,
+        )
     MobileSecondaryPage(
         title = "扫描音频文件",
         onBack = onBack,
@@ -83,56 +85,58 @@ fun AudioScanScreen(
         modifier = modifier,
     ) {
         LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .weight(weight = 1f),
-            contentPadding = PaddingValues(
-                top = scaledDp(28.dp),
-                bottom = contentPadding.calculateBottomPadding() + scaledDp(24.dp),
-            ),
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .weight(weight = 1f),
+            contentPadding =
+                PaddingValues(
+                    top = scaledDp(28.dp),
+                    bottom = contentPadding.calculateBottomPadding() + scaledDp(24.dp),
+                ),
             verticalArrangement = Arrangement.spacedBy(scaledDp(28.dp)),
         ) {
-        item(key = "scan-action") {
-            ScanActionSection(
-                scanState = scanState,
-                discoveryPlatform = discoveryPlatform,
-                onScan = onScan,
-            )
-        }
-        item(key = "scan-statistics") {
-            ScanStatisticsSection(summaryDisplayModel = summaryDisplayModel)
-        }
-        item(key = "scan-filters") {
-            ScanFiltersSection(
-                preferences = discoveryPreferences,
-                discoveryPlatform = discoveryPlatform,
-                onAutoScanOnLaunchChange = onAutoScanOnLaunchChange,
-                onShortAudioIgnoredChange = onShortAudioIgnoredChange,
-                onSystemFoldersExcludedChange = onSystemFoldersExcludedChange,
-            )
-        }
-        item(key = "scan-folders-title") {
-            SectionHeader(
-                title = scanDirectoryTitle(discoveryPlatform = discoveryPlatform),
-                action = "管理全部",
-            )
-        }
-        if (sources.isEmpty()) {
-            item(key = "scan-folders-empty") {
-                ScanDirectoriesEmptyState(
+            item(key = "scan-action") {
+                ScanActionSection(
+                    scanState = scanState,
                     discoveryPlatform = discoveryPlatform,
                     onScan = onScan,
                 )
             }
-        } else {
-            item(key = "scan-folders") {
-                ScanDirectoriesCard(
-                    sources = sources,
+            item(key = "scan-statistics") {
+                ScanStatisticsSection(summaryDisplayModel = summaryDisplayModel)
+            }
+            item(key = "scan-filters") {
+                ScanFiltersSection(
+                    preferences = discoveryPreferences,
                     discoveryPlatform = discoveryPlatform,
-                    onScan = onScan,
+                    onAutoScanOnLaunchChange = onAutoScanOnLaunchChange,
+                    onShortAudioIgnoredChange = onShortAudioIgnoredChange,
+                    onSystemFoldersExcludedChange = onSystemFoldersExcludedChange,
                 )
             }
-        }
+            item(key = "scan-folders-title") {
+                SectionHeader(
+                    title = scanDirectoryTitle(discoveryPlatform = discoveryPlatform),
+                    action = "管理全部",
+                )
+            }
+            if (sources.isEmpty()) {
+                item(key = "scan-folders-empty") {
+                    ScanDirectoriesEmptyState(
+                        discoveryPlatform = discoveryPlatform,
+                        onScan = onScan,
+                    )
+                }
+            } else {
+                item(key = "scan-folders") {
+                    ScanDirectoriesCard(
+                        sources = sources,
+                        discoveryPlatform = discoveryPlatform,
+                        onScan = onScan,
+                    )
+                }
+            }
         }
     }
 }
@@ -145,10 +149,11 @@ private fun ScanActionSection(
     onScan: () -> Unit,
 ) {
     Surface(
-        modifier = Modifier
-            .padding(horizontal = scaledDp(20.dp))
-            .fillMaxWidth()
-            .shadow(elevation = scaledDp(14.dp), shape = RoundedCornerShape(size = scaledDp(24.dp))),
+        modifier =
+            Modifier
+                .padding(horizontal = scaledDp(20.dp))
+                .fillMaxWidth()
+                .shadow(elevation = scaledDp(14.dp), shape = RoundedCornerShape(size = scaledDp(24.dp))),
         shape = RoundedCornerShape(size = scaledDp(24.dp)),
         color = Color.White,
     ) {
@@ -180,10 +185,11 @@ private fun ScanActionSection(
                 onClick = onScan,
             ) {
                 Text(
-                    text = localMusicScanActionLabel(
-                        scanState = scanState,
-                        platform = discoveryPlatform,
-                    ),
+                    text =
+                        localMusicScanActionLabel(
+                            scanState = scanState,
+                            platform = discoveryPlatform,
+                        ),
                     modifier = Modifier.padding(vertical = scaledDp(12.dp)),
                     color = Color(0xFF003430),
                     fontSize = scaledSp(16.sp),
@@ -200,9 +206,10 @@ private fun ScanActionSection(
 @Composable
 private fun ScanPulseIcon() {
     Box(
-        modifier = Modifier
-            .size(scaledDp(184.dp))
-            .padding(bottom = scaledDp(24.dp)),
+        modifier =
+            Modifier
+                .size(scaledDp(184.dp))
+                .padding(bottom = scaledDp(24.dp)),
         contentAlignment = Alignment.Center,
     ) {
         ScanRing(size = 160.dp, alpha = 0.10f)
@@ -228,15 +235,19 @@ private fun ScanPulseIcon() {
 
 // 单个扫描圆环。
 @Composable
-private fun ScanRing(size: androidx.compose.ui.unit.Dp, alpha: Float) {
+private fun ScanRing(
+    size: androidx.compose.ui.unit.Dp,
+    alpha: Float,
+) {
     Box(
-        modifier = Modifier
-            .size(scaledDp(size))
-            .border(
-                width = scaledDp(2.dp),
-                color = scanPageAccent.copy(alpha = alpha),
-                shape = CircleShape,
-            ),
+        modifier =
+            Modifier
+                .size(scaledDp(size))
+                .border(
+                    width = scaledDp(2.dp),
+                    color = scanPageAccent.copy(alpha = alpha),
+                    shape = CircleShape,
+                ),
     )
 }
 
@@ -265,10 +276,11 @@ private fun ScanStatisticsSection(summaryDisplayModel: LocalMusicScanSummaryDisp
                     alignEnd = false,
                 )
                 Box(
-                    modifier = Modifier
-                        .height(scaledDp(40.dp))
-                        .width(scaledDp(1.dp))
-                        .background(scanPageAccent.copy(alpha = 0.20f)),
+                    modifier =
+                        Modifier
+                            .height(scaledDp(40.dp))
+                            .width(scaledDp(1.dp))
+                            .background(scanPageAccent.copy(alpha = 0.20f)),
                 )
                 StatisticColumn(
                     value = summaryDisplayModel.lastScanTimeText.removePrefix(prefix = "最近扫描："),
@@ -360,9 +372,10 @@ private fun FilterRow(
     onCheckedChange: (Boolean) -> Unit,
 ) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = scaledDp(12.dp), vertical = scaledDp(12.dp)),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = scaledDp(12.dp), vertical = scaledDp(12.dp)),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -394,9 +407,10 @@ private fun ScanDirectoriesCard(
     onScan: () -> Unit,
 ) {
     Surface(
-        modifier = Modifier
-            .padding(horizontal = scaledDp(20.dp))
-            .fillMaxWidth(),
+        modifier =
+            Modifier
+                .padding(horizontal = scaledDp(20.dp))
+                .fillMaxWidth(),
         shape = RoundedCornerShape(size = scaledDp(24.dp)),
         color = Color.White,
         shadowElevation = scaledDp(4.dp),
@@ -420,15 +434,15 @@ private fun ScanDirectoriesCard(
 @Composable
 private fun ScanDirectoryRow(source: LocalMusicSourceSummary) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(color = scanDirectoryRowBackground, shape = RoundedCornerShape(size = scaledDp(12.dp)))
-            .border(
-                width = scaledDp(1.dp),
-                color = MusicColors.Line.copy(alpha = 0.30f),
-                shape = RoundedCornerShape(size = scaledDp(12.dp)),
-            )
-            .padding(all = scaledDp(13.dp)),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .background(color = scanDirectoryRowBackground, shape = RoundedCornerShape(size = scaledDp(12.dp)))
+                .border(
+                    width = scaledDp(1.dp),
+                    color = MusicColors.Line.copy(alpha = 0.30f),
+                    shape = RoundedCornerShape(size = scaledDp(12.dp)),
+                ).padding(all = scaledDp(13.dp)),
         horizontalArrangement = Arrangement.spacedBy(scaledDp(16.dp)),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -479,9 +493,10 @@ private fun ScanDirectoriesEmptyState(
     onScan: () -> Unit,
 ) {
     Surface(
-        modifier = Modifier
-            .padding(horizontal = scaledDp(20.dp))
-            .fillMaxWidth(),
+        modifier =
+            Modifier
+                .padding(horizontal = scaledDp(20.dp))
+                .fillMaxWidth(),
         shape = RoundedCornerShape(size = scaledDp(24.dp)),
         color = Color.White,
         shadowElevation = scaledDp(4.dp),
@@ -512,15 +527,15 @@ private fun AddFolderButton(
     onScan: () -> Unit,
 ) {
     Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onScan)
-            .border(
-                width = scaledDp(2.dp),
-                color = scanPageAccent.copy(alpha = 0.50f),
-                shape = RoundedCornerShape(size = scaledDp(12.dp)),
-            )
-            .padding(vertical = scaledDp(14.dp)),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .clickable(onClick = onScan)
+                .border(
+                    width = scaledDp(2.dp),
+                    color = scanPageAccent.copy(alpha = 0.50f),
+                    shape = RoundedCornerShape(size = scaledDp(12.dp)),
+                ).padding(vertical = scaledDp(14.dp)),
         contentAlignment = Alignment.Center,
     ) {
         Row(
@@ -551,9 +566,10 @@ private fun SectionHeader(
     action: String? = null,
 ) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = scaledDp(32.dp)),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = scaledDp(32.dp)),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -577,22 +593,26 @@ private fun SectionHeader(
 }
 
 // 扫描状态标题映射到 Figma 主卡片。
-private fun scanStatusTitle(scanState: LocalMusicScanState): String {
-    return when (scanState) {
+private fun scanStatusTitle(scanState: LocalMusicScanState): String =
+    when (scanState) {
         LocalMusicScanState.Idle -> "准备就绪"
+
         LocalMusicScanState.WaitingForPermission -> "等待授权"
+
         is LocalMusicScanState.Importing,
         is LocalMusicScanState.Scanning,
         -> "正在扫描"
+
         is LocalMusicScanState.Done -> "扫描完成"
+
         is LocalMusicScanState.Cancelled -> "已取消"
+
         is LocalMusicScanState.Error -> "扫描失败"
     }
-}
 
 // 扫描状态副标题解释当前动作，不泄露内部增删改统计。
-private fun scanStatusSubtitle(scanState: LocalMusicScanState): String {
-    return when (scanState) {
+private fun scanStatusSubtitle(scanState: LocalMusicScanState): String =
+    when (scanState) {
         LocalMusicScanState.Idle -> "扫描您的设备以发现新音乐"
         LocalMusicScanState.WaitingForPermission -> "需要授权后才能发现本地音乐"
         is LocalMusicScanState.Importing -> "正在导入您选择的音频"
@@ -601,40 +621,35 @@ private fun scanStatusSubtitle(scanState: LocalMusicScanState): String {
         is LocalMusicScanState.Cancelled -> "当前曲库已保留，可稍后继续扫描"
         is LocalMusicScanState.Error -> "请稍后重试或检查授权状态"
     }
-}
 
 // 平台扫描目录标题。
-private fun scanDirectoryTitle(discoveryPlatform: LocalMusicDiscoveryPlatform): String {
-    return when (discoveryPlatform) {
+private fun scanDirectoryTitle(discoveryPlatform: LocalMusicDiscoveryPlatform): String =
+    when (discoveryPlatform) {
         LocalMusicDiscoveryPlatform.Android -> "扫描来源"
         LocalMusicDiscoveryPlatform.Desktop -> "扫描目录"
         LocalMusicDiscoveryPlatform.Ios -> "音频来源"
     }
-}
 
 // 排除项标题根据平台避免 Android 文案误导 iOS/Desktop。
-private fun excludeSystemFoldersTitle(discoveryPlatform: LocalMusicDiscoveryPlatform): String {
-    return when (discoveryPlatform) {
+private fun excludeSystemFoldersTitle(discoveryPlatform: LocalMusicDiscoveryPlatform): String =
+    when (discoveryPlatform) {
         LocalMusicDiscoveryPlatform.Android -> "排除系统文件夹"
         LocalMusicDiscoveryPlatform.Desktop -> "排除系统目录"
         LocalMusicDiscoveryPlatform.Ios -> "排除系统音频"
     }
-}
 
 // 排除项说明根据平台收敛。
-private fun excludeSystemFoldersSubtitle(discoveryPlatform: LocalMusicDiscoveryPlatform): String {
-    return when (discoveryPlatform) {
+private fun excludeSystemFoldersSubtitle(discoveryPlatform: LocalMusicDiscoveryPlatform): String =
+    when (discoveryPlatform) {
         LocalMusicDiscoveryPlatform.Android -> "跳过 Android 系统音频目录"
         LocalMusicDiscoveryPlatform.Desktop -> "跳过系统和缓存目录"
         LocalMusicDiscoveryPlatform.Ios -> "跳过系统提示音和不可访问来源"
     }
-}
 
 // 添加来源按钮文案复用平台真实授权模型。
-private fun addSourceLabel(discoveryPlatform: LocalMusicDiscoveryPlatform): String {
-    return when (discoveryPlatform) {
+private fun addSourceLabel(discoveryPlatform: LocalMusicDiscoveryPlatform): String =
+    when (discoveryPlatform) {
         LocalMusicDiscoveryPlatform.Android -> "添加来源"
         LocalMusicDiscoveryPlatform.Desktop -> "添加文件夹"
         LocalMusicDiscoveryPlatform.Ios -> "导入音频"
     }
-}

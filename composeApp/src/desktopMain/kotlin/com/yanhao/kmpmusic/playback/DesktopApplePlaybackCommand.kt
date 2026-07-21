@@ -25,16 +25,24 @@ internal sealed interface DesktopApplePlaybackCommand {
     data object Pause : DesktopApplePlaybackCommand
 
     /** 请求跳转当前媒体代进度。 */
-    data class SeekTo(val positionMs: Long) : DesktopApplePlaybackCommand
+    data class SeekTo(
+        val positionMs: Long,
+    ) : DesktopApplePlaybackCommand
 
     /** 请求切到队列中的目标下标。 */
-    data class SkipToIndex(val index: Int) : DesktopApplePlaybackCommand
+    data class SkipToIndex(
+        val index: Int,
+    ) : DesktopApplePlaybackCommand
 
     /** 保留播放模式同步命令，业务语义仍由 common 协调器拥有。 */
-    data class SetPlaybackMode(val playbackMode: PlaybackMode) : DesktopApplePlaybackCommand
+    data class SetPlaybackMode(
+        val playbackMode: PlaybackMode,
+    ) : DesktopApplePlaybackCommand
 
     /** 请求设置当前播放器音量，值为 0.0 到 1.0。 */
-    data class SetVolume(val volume: Float) : DesktopApplePlaybackCommand
+    data class SetVolume(
+        val volume: Float,
+    ) : DesktopApplePlaybackCommand
 
     /** 请求停止当前媒体并回到 idle。 */
     data object Stop : DesktopApplePlaybackCommand
@@ -43,5 +51,7 @@ internal sealed interface DesktopApplePlaybackCommand {
     data object Release : DesktopApplePlaybackCommand
 
     /** 把 Apple bridge 回调重新包装回串行命令流。 */
-    data class BridgeEventReceived(val event: ApplePlaybackBridgeEvent) : DesktopApplePlaybackCommand
+    data class BridgeEventReceived(
+        val event: ApplePlaybackBridgeEvent,
+    ) : DesktopApplePlaybackCommand
 }

@@ -1,23 +1,23 @@
 package com.yanhao.kmpmusic.feature.screen
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.background
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Folder
 import androidx.compose.material.icons.rounded.Info
@@ -73,11 +73,12 @@ fun SettingsScreen(
         modifier = modifier,
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .weight(weight = 1f)
-                .verticalScroll(state = rememberScrollState())
-                .padding(contentPadding),
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .weight(weight = 1f)
+                    .verticalScroll(state = rememberScrollState())
+                    .padding(contentPadding),
             verticalArrangement = Arrangement.spacedBy(scaledDp(18.dp)),
         ) {
             MobileSecondaryPageSubtitle(text = "播放、扫描与外观")
@@ -140,11 +141,12 @@ fun AboutScreen(
         modifier = modifier,
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .weight(weight = 1f)
-                .verticalScroll(state = rememberScrollState())
-                .padding(contentPadding),
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .weight(weight = 1f)
+                    .verticalScroll(state = rememberScrollState())
+                    .padding(contentPadding),
             verticalArrangement = Arrangement.spacedBy(scaledDp(18.dp)),
         ) {
             MobileSecondaryPageSubtitle(text = "KMP Music")
@@ -186,11 +188,12 @@ fun LoginScreen(
         modifier = modifier,
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .weight(weight = 1f)
-                .verticalScroll(state = rememberScrollState())
-                .padding(contentPadding),
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .weight(weight = 1f)
+                    .verticalScroll(state = rememberScrollState())
+                    .padding(contentPadding),
             verticalArrangement = Arrangement.spacedBy(scaledDp(22.dp)),
         ) {
             MobileSecondaryPageSubtitle(text = "使用邮箱接收魔法链接")
@@ -221,12 +224,13 @@ private fun LoginCard(
         tonalElevation = scaledDp(1.dp),
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(
-                    horizontal = scaledDp(MusicDimens.LoginCardPaddingHorizontal),
-                    vertical = scaledDp(MusicDimens.LoginCardPaddingVertical),
-                ),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(
+                        horizontal = scaledDp(MusicDimens.LoginCardPaddingHorizontal),
+                        vertical = scaledDp(MusicDimens.LoginCardPaddingVertical),
+                    ),
             verticalArrangement = Arrangement.spacedBy(scaledDp(MusicDimens.LoginCardHeaderGap)),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
@@ -321,16 +325,18 @@ private fun LoginEmailField(
     onEmail: (String) -> Unit,
 ) {
     Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(scaledDp(MusicDimens.LoginInputHeight)),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .height(scaledDp(MusicDimens.LoginInputHeight)),
         shape = RoundedCornerShape(scaledDp(MusicDimens.LoginInputRadius)),
         color = MusicColors.Paper.copy(alpha = 0.78f),
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = scaledDp(MusicDimens.LoginInputHorizontalPadding)),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = scaledDp(MusicDimens.LoginInputHorizontalPadding)),
             horizontalArrangement = Arrangement.spacedBy(scaledDp(12.dp)),
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -344,12 +350,13 @@ private fun LoginEmailField(
                 onValueChange = onEmail,
                 modifier = Modifier.weight(weight = 1f),
                 cursorBrush = SolidColor(MusicColors.Accent),
-                textStyle = androidx.compose.ui.text.TextStyle(
-                    color = MaterialTheme.colorScheme.onSurface,
-                    fontSize = scaledSp(16.sp),
-                    lineHeight = scaledSp(20.sp),
-                    fontWeight = FontWeight.Medium,
-                ),
+                textStyle =
+                    androidx.compose.ui.text.TextStyle(
+                        color = MaterialTheme.colorScheme.onSurface,
+                        fontSize = scaledSp(16.sp),
+                        lineHeight = scaledSp(20.sp),
+                        fontWeight = FontWeight.Medium,
+                    ),
                 decorationBox = { innerTextField ->
                     if (email.isEmpty()) {
                         Text(
@@ -379,9 +386,10 @@ private fun SettingsGroup(
         color = MusicColors.Soft,
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = scaledDp(MusicDimens.SettingsGroupPaddingVertical)),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = scaledDp(MusicDimens.SettingsGroupPaddingVertical)),
             content = content,
         )
     }
@@ -396,24 +404,26 @@ private fun SettingsListRow(
     detail: String,
     onClick: () -> Unit,
 ) {
-    val rowIcon = when {
-        title.contains("关于") -> Icons.Rounded.Info
-        title.contains("定时") -> Icons.Rounded.Timer
-        else -> Icons.Rounded.Folder
-    }
+    val rowIcon =
+        when {
+            title.contains("关于") -> Icons.Rounded.Info
+            title.contains("定时") -> Icons.Rounded.Timer
+            else -> Icons.Rounded.Folder
+        }
     Surface(
         modifier = Modifier.fillMaxWidth(),
         color = Color.Transparent,
         onClick = onClick,
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .heightIn(min = scaledDp(MusicDimens.SettingsRowMinHeight))
-                .padding(
-                    horizontal = scaledDp(MusicDimens.SettingsRowHorizontalPadding),
-                    vertical = scaledDp(MusicDimens.SettingsRowVerticalPadding),
-                ),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = scaledDp(MusicDimens.SettingsRowMinHeight))
+                    .padding(
+                        horizontal = scaledDp(MusicDimens.SettingsRowHorizontalPadding),
+                        vertical = scaledDp(MusicDimens.SettingsRowVerticalPadding),
+                    ),
             horizontalArrangement = Arrangement.spacedBy(scaledDp(MusicDimens.SettingsRowContentGap)),
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -466,13 +476,14 @@ private fun AboutInfoRow(
     detail: String,
 ) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .heightIn(min = scaledDp(MusicDimens.SettingsRowMinHeight))
-            .padding(
-                horizontal = scaledDp(MusicDimens.SettingsRowHorizontalPadding),
-                vertical = scaledDp(MusicDimens.SettingsRowVerticalPadding),
-            ),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .heightIn(min = scaledDp(MusicDimens.SettingsRowMinHeight))
+                .padding(
+                    horizontal = scaledDp(MusicDimens.SettingsRowHorizontalPadding),
+                    vertical = scaledDp(MusicDimens.SettingsRowVerticalPadding),
+                ),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -501,10 +512,11 @@ private fun SettingsDivider() {
     Row(modifier = Modifier.fillMaxWidth()) {
         Box(modifier = Modifier.width(scaledDp(MusicDimens.SettingsRowDividerStart)))
         Box(
-            modifier = Modifier
-                .weight(weight = 1f)
-                .heightIn(min = scaledDp(1.dp))
-                .background(MusicColors.Line.copy(alpha = 0.55f)),
+            modifier =
+                Modifier
+                    .weight(weight = 1f)
+                    .heightIn(min = scaledDp(1.dp))
+                    .background(MusicColors.Line.copy(alpha = 0.55f)),
         )
     }
 }
@@ -512,10 +524,9 @@ private fun SettingsDivider() {
 /**
  * 主题模式中文名。
  */
-private fun ThemeMode.label(): String {
-    return when (this) {
+private fun ThemeMode.label(): String =
+    when (this) {
         ThemeMode.Light -> "浅色"
         ThemeMode.Dark -> "深色"
         ThemeMode.System -> "跟随系统"
     }
-}

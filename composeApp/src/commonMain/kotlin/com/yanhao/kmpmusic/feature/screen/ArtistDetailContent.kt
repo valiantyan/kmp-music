@@ -75,20 +75,22 @@ internal fun buildArtistDetailContent(
     currentSongId: String?,
     currentPlaybackStatus: PlaybackStatus,
 ): ArtistDetailContent {
-    val artistSongs: List<Song> = songs.filter { song: Song ->
-        isSongByArtist(
-            song = song,
-            artist = artist,
-        )
-    }
-    val songRows: List<ArtistDetailSongRowState> = artistSongs.mapIndexed { index: Int, song: Song ->
-        buildArtistDetailSongRowState(
-            index = index,
-            song = song,
-            isCurrentSong = song.id == currentSongId,
-            currentPlaybackStatus = currentPlaybackStatus,
-        )
-    }
+    val artistSongs: List<Song> =
+        songs.filter { song: Song ->
+            isSongByArtist(
+                song = song,
+                artist = artist,
+            )
+        }
+    val songRows: List<ArtistDetailSongRowState> =
+        artistSongs.mapIndexed { index: Int, song: Song ->
+            buildArtistDetailSongRowState(
+                index = index,
+                song = song,
+                isCurrentSong = song.id == currentSongId,
+                currentPlaybackStatus = currentPlaybackStatus,
+            )
+        }
     return ArtistDetailContent(
         artistSongs = artistSongs,
         playAllText = "播放全部",
@@ -115,11 +117,10 @@ internal fun resolveArtistDetailSongClickAction(
 }
 
 // 与全局播放控制保持一致：正在启动、缓冲和播放中都可通过当前歌曲行暂停。
-private fun shouldShowArtistDetailPauseControl(currentPlaybackStatus: PlaybackStatus): Boolean {
-    return currentPlaybackStatus == PlaybackStatus.Loading ||
+private fun shouldShowArtistDetailPauseControl(currentPlaybackStatus: PlaybackStatus): Boolean =
+    currentPlaybackStatus == PlaybackStatus.Loading ||
         currentPlaybackStatus == PlaybackStatus.Buffering ||
         currentPlaybackStatus == PlaybackStatus.Playing
-}
 
 // 歌手详情页行样式只用颜色表达播放态，不显示等化器动画。
 private fun buildArtistDetailSongRowState(

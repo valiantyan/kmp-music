@@ -9,28 +9,31 @@ import kotlin.test.assertTrue
  */
 class DesktopTextInputDisplayModelTest {
     @Test
-    fun clearActionStaysHiddenWhenFeatureIsDisabled(): Unit {
+    fun clearActionStaysHiddenWhenFeatureIsDisabled() {
         assertFalse(
-            actual = shouldShowDesktopTextInputClearAction(
-                value = "music",
-                isClearEnabled = false,
-            ),
+            actual =
+                shouldShowDesktopTextInputClearAction(
+                    value = "music",
+                    isClearEnabled = false,
+                ),
         )
     }
 
     @Test
-    fun enabledClearActionOnlyShowsWhenInputHasText(): Unit {
+    fun enabledClearActionOnlyShowsWhenInputHasText() {
         assertFalse(
-            actual = shouldShowDesktopTextInputClearAction(
-                value = "",
-                isClearEnabled = true,
-            ),
+            actual =
+                shouldShowDesktopTextInputClearAction(
+                    value = "",
+                    isClearEnabled = true,
+                ),
         )
         assertTrue(
-            actual = shouldShowDesktopTextInputClearAction(
-                value = "music",
-                isClearEnabled = true,
-            ),
+            actual =
+                shouldShowDesktopTextInputClearAction(
+                    value = "music",
+                    isClearEnabled = true,
+                ),
         )
     }
 }

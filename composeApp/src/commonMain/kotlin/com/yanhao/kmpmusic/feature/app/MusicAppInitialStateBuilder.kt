@@ -26,40 +26,45 @@ internal class MusicAppInitialStateBuilder(
     /**
      * 按既有仓库顺序构建初始状态，避免冷启动额外读取完整曲库。
      */
-    fun build(homePreview: List<Song>, initialLikedSongIds: Set<String>): MusicAppUiState {
+    fun build(
+        homePreview: List<Song>,
+        initialLikedSongIds: Set<String>,
+    ): MusicAppUiState {
         val stats: LibraryStats = musicLibraryRepository.getLibraryStats()
         val playbackState: PlaybackState = playbackRepository.getPlaybackState()
         val queueState: QueueState = playbackRepository.getQueueState()
-        val previewWithLikes: List<Song> = homePreview.map { song: Song ->
-            song.copy(isLiked = initialLikedSongIds.contains(element = song.id) || song.isLiked)
-        }
+        val previewWithLikes: List<Song> =
+            homePreview.map { song: Song ->
+                song.copy(isLiked = initialLikedSongIds.contains(element = song.id) || song.isLiked)
+            }
         val initialScanState: LocalMusicScanState = buildInitialScanState(stats = stats)
-        val baseState: MusicAppUiState = buildBaseState(
-            previewWithLikes = previewWithLikes,
-            initialLikedSongIds = initialLikedSongIds,
-            playbackState = playbackState,
-            queueState = queueState,
-            stats = stats,
-            initialScanState = initialScanState,
-        )
+        val baseState: MusicAppUiState =
+            buildBaseState(
+                previewWithLikes = previewWithLikes,
+                initialLikedSongIds = initialLikedSongIds,
+                playbackState = playbackState,
+                queueState = queueState,
+                stats = stats,
+                initialScanState = initialScanState,
+            )
         return baseState.copy(
             favoriteSongs = favoriteSongsBuilder(initialLikedSongIds, previewWithLikes),
             recentSongs = recentSongsBuilder(baseState, previewWithLikes),
             themeMode = userPreferencesRepository.getThemeMode(),
             localMusicDiscoveryPreferences = userPreferencesRepository.getLocalMusicDiscoveryPreferences(),
-            localLibrarySearchHistory = searchHistoryRepository.getSearchHistory(
-                context = SearchContext.LocalLibrary,
-            ),
-            favoritesSearchHistory = searchHistoryRepository.getSearchHistory(
-                context = SearchContext.Favorites,
-            ),
+            localLibrarySearchHistory =
+                searchHistoryRepository.getSearchHistory(
+                    context = SearchContext.LocalLibrary,
+                ),
+            favoritesSearchHistory =
+                searchHistoryRepository.getSearchHistory(
+                    context = SearchContext.Favorites,
+                ),
         )
     }
 
     // 持久层已有歌曲时，冷启动首页表达已有曲库，但不因此读取全量歌曲。
-    private fun buildInitialScanState(stats: LibraryStats): LocalMusicScanState {
-        return LibraryStateSynchronizer.buildInitialScanStateFromStats(stats = stats)
-    }
+    private fun buildInitialScanState(stats: LibraryStats): LocalMusicScanState = LibraryStateSynchronizer.buildInitialScanStateFromStats(stats = stats)
 
     // 先构造最小状态，供收藏和最近播放投影复用同一份基础事实。
     private fun buildBaseState(
@@ -69,8 +74,8 @@ internal class MusicAppInitialStateBuilder(
         queueState: QueueState,
         stats: LibraryStats,
         initialScanState: LocalMusicScanState,
-    ): MusicAppUiState {
-        return MusicAppUiState(
+    ): MusicAppUiState =
+        MusicAppUiState(
             homeLocalSongPreview = previewWithLikes,
             localSongs = emptyList(),
             localAlbums = emptyList(),
@@ -88,5 +93,4 @@ internal class MusicAppInitialStateBuilder(
             libraryStats = stats,
             scanState = initialScanState,
         )
-    }
 }

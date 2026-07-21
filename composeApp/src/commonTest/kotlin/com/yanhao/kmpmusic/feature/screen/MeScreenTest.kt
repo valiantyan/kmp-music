@@ -16,10 +16,11 @@ class MeScreenTest {
      * 最近播放摘要为空时继续展示固定标题、查看全部占位和轻量空态。
      */
     @Test
-    fun recentPlayedSummaryDisplayModelShowsEmptySkeleton(): Unit {
-        val model: RecentPlayedSummaryDisplayModel = buildRecentPlayedSummaryDisplayModel(
-            recentSongs = emptyList(),
-        )
+    fun recentPlayedSummaryDisplayModelShowsEmptySkeleton() {
+        val model: RecentPlayedSummaryDisplayModel =
+            buildRecentPlayedSummaryDisplayModel(
+                recentSongs = emptyList(),
+            )
 
         assertEquals(expected = "最近播放", actual = model.title)
         assertEquals(expected = "查看全部", actual = model.actionLabel)
@@ -31,14 +32,16 @@ class MeScreenTest {
      * 摘要只显示统一最近播放列表的前 3 条，避免把完整历史塞进“我的”页。
      */
     @Test
-    fun recentPlayedSummaryDisplayModelKeepsOnlyTopThreeSongs(): Unit {
-        val songs: List<Song> = (1..5).map { index: Int ->
-            testSong(id = "song-$index", title = "Song $index")
-        }
+    fun recentPlayedSummaryDisplayModelKeepsOnlyTopThreeSongs() {
+        val songs: List<Song> =
+            (1..5).map { index: Int ->
+                testSong(id = "song-$index", title = "Song $index")
+            }
 
-        val model: RecentPlayedSummaryDisplayModel = buildRecentPlayedSummaryDisplayModel(
-            recentSongs = songs,
-        )
+        val model: RecentPlayedSummaryDisplayModel =
+            buildRecentPlayedSummaryDisplayModel(
+                recentSongs = songs,
+            )
 
         assertEquals(
             expected = listOf("song-1", "song-2", "song-3"),
@@ -50,10 +53,11 @@ class MeScreenTest {
      * 展示模型只使用调用方传入的过滤后列表，不自行回退到 demo、全库或陈旧历史。
      */
     @Test
-    fun recentPlayedSummaryDisplayModelUsesProvidedFilteredSongsOnly(): Unit {
-        val model: RecentPlayedSummaryDisplayModel = buildRecentPlayedSummaryDisplayModel(
-            recentSongs = listOf(testSong(id = "filtered-real-song", title = "Real Song")),
-        )
+    fun recentPlayedSummaryDisplayModelUsesProvidedFilteredSongsOnly() {
+        val model: RecentPlayedSummaryDisplayModel =
+            buildRecentPlayedSummaryDisplayModel(
+                recentSongs = listOf(testSong(id = "filtered-real-song", title = "Real Song")),
+            )
 
         assertEquals(
             expected = listOf("filtered-real-song"),
@@ -66,10 +70,11 @@ class MeScreenTest {
      * 查看全部只启用最近播放页导航，歌曲行的三点更多入口与标题区保持分离。
      */
     @Test
-    fun recentPlayedSummaryDisplayModelKeepsViewAllSeparateFromMoreAction(): Unit {
-        val model: RecentPlayedSummaryDisplayModel = buildRecentPlayedSummaryDisplayModel(
-            recentSongs = listOf(testSong(id = "song-1", title = "Song 1")),
-        )
+    fun recentPlayedSummaryDisplayModelKeepsViewAllSeparateFromMoreAction() {
+        val model: RecentPlayedSummaryDisplayModel =
+            buildRecentPlayedSummaryDisplayModel(
+                recentSongs = listOf(testSong(id = "song-1", title = "Song 1")),
+            )
 
         assertTrue(actual = model.isActionEnabled)
         assertEquals(expected = "查看全部", actual = model.actionLabel)
@@ -83,15 +88,17 @@ class MeScreenTest {
      * 摘要展示模型只把当前播放标识给命中的可见歌曲，避免普通行误变红或误显示播放中。
      */
     @Test
-    fun recentPlayedSummaryDisplayModelMarksOnlyCurrentVisibleSong(): Unit {
-        val songs: List<Song> = (1..4).map { index: Int ->
-            testSong(id = "song-$index", title = "Song $index")
-        }
+    fun recentPlayedSummaryDisplayModelMarksOnlyCurrentVisibleSong() {
+        val songs: List<Song> =
+            (1..4).map { index: Int ->
+                testSong(id = "song-$index", title = "Song $index")
+            }
 
-        val model: RecentPlayedSummaryDisplayModel = buildRecentPlayedSummaryDisplayModel(
-            recentSongs = songs,
-            currentSongId = "song-2",
-        )
+        val model: RecentPlayedSummaryDisplayModel =
+            buildRecentPlayedSummaryDisplayModel(
+                recentSongs = songs,
+                currentSongId = "song-2",
+            )
 
         assertEquals(
             expected = listOf(false, true, false),
@@ -111,8 +118,8 @@ class MeScreenTest {
     private fun testSong(
         id: String,
         title: String,
-    ): Song {
-        return Song(
+    ): Song =
+        Song(
             id = id,
             title = title,
             artist = "Artist",
@@ -128,5 +135,4 @@ class MeScreenTest {
             sourceKind = LocalMusicSourceKind.AndroidMediaStore,
             localUri = "content://$id",
         )
-    }
 }

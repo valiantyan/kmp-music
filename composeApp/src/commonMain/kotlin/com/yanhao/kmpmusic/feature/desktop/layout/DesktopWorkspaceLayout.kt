@@ -31,14 +31,15 @@ fun DesktopWorkspaceLayout(
     BoxWithConstraints(modifier = modifier.fillMaxSize()) {
         val horizontalPadding: Dp = desktopPageHorizontalPadding(width = maxWidth)
         Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(DesktopMusicColors.Paper)
-                .padding(
-                    start = horizontalPadding,
-                    top = DesktopMusicDimens.PagePaddingTop,
-                    end = horizontalPadding,
-                ),
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .background(DesktopMusicColors.Paper)
+                    .padding(
+                        start = horizontalPadding,
+                        top = DesktopMusicDimens.PagePaddingTop,
+                        end = horizontalPadding,
+                    ),
         ) {
             saveableStateHolder.SaveableStateProvider(key = state.navigationState.scrollStateKey) {
                 if (state.navigationState.secondaryScreen == null) {

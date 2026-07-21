@@ -43,9 +43,10 @@ internal fun DesktopRecentPlayedScreen(
             currentSongId = currentSongId,
         )
     Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState()),
+        modifier =
+            Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState()),
     ) {
         DesktopPageHeader(
             title = displayModel.title,
@@ -76,20 +77,23 @@ private fun DesktopRecentPlayedEmptyState(
     displayModel: DesktopRecentPlayedPageDisplayModel,
 ) {
     Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(180.dp),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .height(180.dp),
         shape = RoundedCornerShape(18.dp),
         color = Color.White.copy(alpha = 0.72f),
-        border = BorderStroke(
-            width = 1.dp,
-            color = DesktopMusicColors.Line,
-        ),
+        border =
+            BorderStroke(
+                width = 1.dp,
+                color = DesktopMusicColors.Line,
+            ),
     ) {
         Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 24.dp),
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 24.dp),
             contentAlignment = Alignment.CenterStart,
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {

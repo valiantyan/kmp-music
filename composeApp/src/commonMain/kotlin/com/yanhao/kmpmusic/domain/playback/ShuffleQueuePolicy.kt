@@ -12,9 +12,10 @@ internal class ShuffleQueuePolicy(
     /**
      * 为随机模式生成首轮待播集合，避免一开始就重复当前歌曲。
      */
-    internal fun buildInitialRemaining(queueSize: Int, currentIndex: Int): List<Int> {
-        return (0 until queueSize).filterNot { index: Int -> index == currentIndex }
-    }
+    internal fun buildInitialRemaining(
+        queueSize: Int,
+        currentIndex: Int,
+    ): List<Int> = (0 until queueSize).filterNot { index: Int -> index == currentIndex }
 
     /**
      * 计算随机模式下的下一首；若当前轮已耗尽，则开启新一轮但避开当前歌曲。
@@ -23,12 +24,13 @@ internal class ShuffleQueuePolicy(
         if (queueState.songIds.isEmpty()) {
             return -1
         }
-        val candidates: List<Int> = queueState.shuffleRemaining.ifEmpty {
-            buildInitialRemaining(
-                queueSize = queueState.songIds.size,
-                currentIndex = queueState.currentIndex,
-            )
-        }
+        val candidates: List<Int> =
+            queueState.shuffleRemaining.ifEmpty {
+                buildInitialRemaining(
+                    queueSize = queueState.songIds.size,
+                    currentIndex = queueState.currentIndex,
+                )
+            }
         return candidates.firstOrNull()?.let {
             randomIndex(candidates)
         } ?: queueState.currentIndex.coerceAtLeast(minimumValue = 0)
@@ -46,45 +48,51 @@ internal class ShuffleQueuePolicy(
             return queueState.copy(
                 currentIndex = targetIndex,
                 shuffleHistory = queueState.shuffleHistory.dropLast(n = 1),
-                shuffleRemaining = rebuildRemainingForBackward(
-                    queueState = queueState,
-                    targetIndex = targetIndex,
-                ),
+                shuffleRemaining =
+                    rebuildRemainingForBackward(
+                        queueState = queueState,
+                        targetIndex = targetIndex,
+                    ),
             )
         }
         return queueState.copy(
             currentIndex = targetIndex,
             shuffleHistory = rebuildHistoryForForward(queueState = queueState),
-            shuffleRemaining = rebuildRemainingForForward(
-                queueState = queueState,
-                targetIndex = targetIndex,
-            ),
+            shuffleRemaining =
+                rebuildRemainingForForward(
+                    queueState = queueState,
+                    targetIndex = targetIndex,
+                ),
         )
     }
 
     /**
      * 前进到新歌曲时记录旧 current，保证上一首回退能复用同一条历史链。
      */
-    private fun rebuildHistoryForForward(queueState: QueueState): List<Int> {
-        return queueState.currentIndex.takeIf { index: Int -> index >= 0 }?.let { index: Int ->
+    private fun rebuildHistoryForForward(queueState: QueueState): List<Int> =
+        queueState.currentIndex.takeIf { index: Int -> index >= 0 }?.let { index: Int ->
             queueState.shuffleHistory + index
         } ?: queueState.shuffleHistory
-    }
 
     /**
      * 后退离开当前歌曲时把它放回 remaining，避免本轮剩余集合丢失可回放项。
      */
-    private fun rebuildRemainingForBackward(queueState: QueueState, targetIndex: Int): List<Int> {
-        return (queueState.shuffleRemaining + queueState.currentIndex)
+    private fun rebuildRemainingForBackward(
+        queueState: QueueState,
+        targetIndex: Int,
+    ): List<Int> =
+        (queueState.shuffleRemaining + queueState.currentIndex)
             .distinct()
             .filterNot { index: Int -> index == targetIndex }
-    }
 
     /**
      * 前进后剔除目标歌曲；若上一轮耗尽，则基于新 current 重建下一轮 remaining。
      */
-    private fun rebuildRemainingForForward(queueState: QueueState, targetIndex: Int): List<Int> {
-        return queueState.shuffleRemaining
+    private fun rebuildRemainingForForward(
+        queueState: QueueState,
+        targetIndex: Int,
+    ): List<Int> =
+        queueState.shuffleRemaining
             .filterNot { index: Int -> index == targetIndex }
             .ifEmpty {
                 buildInitialRemaining(
@@ -92,5 +100,4 @@ internal class ShuffleQueuePolicy(
                     currentIndex = targetIndex,
                 )
             }
-    }
 }

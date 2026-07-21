@@ -9,90 +9,99 @@ import kotlin.test.assertTrue
  */
 class SearchKeyboardDismissBehaviorTest {
     @Test
-    fun userVerticalScrollDismissesSearchKeyboard(): Unit {
+    fun userVerticalScrollDismissesSearchKeyboard() {
         assertTrue(
-            actual = shouldDismissSearchKeyboardOnScroll(
-                isUserInput = true,
-                isSearchInputFocused = true,
-                horizontalDelta = 0f,
-                verticalDelta = 12f,
-            ),
+            actual =
+                shouldDismissSearchKeyboardOnScroll(
+                    isUserInput = true,
+                    isSearchInputFocused = true,
+                    horizontalDelta = 0f,
+                    verticalDelta = 12f,
+                ),
         )
         assertTrue(
-            actual = shouldDismissSearchKeyboardOnScroll(
-                isUserInput = true,
-                isSearchInputFocused = true,
-                horizontalDelta = 0f,
-                verticalDelta = -8f,
-            ),
+            actual =
+                shouldDismissSearchKeyboardOnScroll(
+                    isUserInput = true,
+                    isSearchInputFocused = true,
+                    horizontalDelta = 0f,
+                    verticalDelta = -8f,
+                ),
         )
     }
 
     @Test
-    fun nonUserOrHorizontalScrollKeepsSearchKeyboard(): Unit {
+    fun nonUserOrHorizontalScrollKeepsSearchKeyboard() {
         assertFalse(
-            actual = shouldDismissSearchKeyboardOnScroll(
-                isUserInput = false,
-                isSearchInputFocused = true,
-                horizontalDelta = 0f,
-                verticalDelta = 12f,
-            ),
+            actual =
+                shouldDismissSearchKeyboardOnScroll(
+                    isUserInput = false,
+                    isSearchInputFocused = true,
+                    horizontalDelta = 0f,
+                    verticalDelta = 12f,
+                ),
         )
         assertFalse(
-            actual = shouldDismissSearchKeyboardOnScroll(
-                isUserInput = true,
-                isSearchInputFocused = true,
-                horizontalDelta = 12f,
-                verticalDelta = 0f,
-            ),
-        )
-    }
-
-    @Test
-    fun horizontalDominantOrUnfocusedScrollKeepsSearchKeyboard(): Unit {
-        assertFalse(
-            actual = shouldDismissSearchKeyboardOnScroll(
-                isUserInput = true,
-                isSearchInputFocused = true,
-                horizontalDelta = 20f,
-                verticalDelta = 2f,
-            ),
-        )
-        assertFalse(
-            actual = shouldDismissSearchKeyboardOnScroll(
-                isUserInput = true,
-                isSearchInputFocused = false,
-                horizontalDelta = 0f,
-                verticalDelta = 12f,
-            ),
+            actual =
+                shouldDismissSearchKeyboardOnScroll(
+                    isUserInput = true,
+                    isSearchInputFocused = true,
+                    horizontalDelta = 12f,
+                    verticalDelta = 0f,
+                ),
         )
     }
 
     @Test
-    fun verticalScrollMustExceedDismissThresholdAndDominance(): Unit {
+    fun horizontalDominantOrUnfocusedScrollKeepsSearchKeyboard() {
         assertFalse(
-            actual = shouldDismissSearchKeyboardOnScroll(
-                isUserInput = true,
-                isSearchInputFocused = true,
-                horizontalDelta = 0f,
-                verticalDelta = 2f,
-            ),
+            actual =
+                shouldDismissSearchKeyboardOnScroll(
+                    isUserInput = true,
+                    isSearchInputFocused = true,
+                    horizontalDelta = 20f,
+                    verticalDelta = 2f,
+                ),
         )
         assertFalse(
-            actual = shouldDismissSearchKeyboardOnScroll(
-                isUserInput = true,
-                isSearchInputFocused = true,
-                horizontalDelta = 3f,
-                verticalDelta = 3f,
-            ),
+            actual =
+                shouldDismissSearchKeyboardOnScroll(
+                    isUserInput = true,
+                    isSearchInputFocused = false,
+                    horizontalDelta = 0f,
+                    verticalDelta = 12f,
+                ),
+        )
+    }
+
+    @Test
+    fun verticalScrollMustExceedDismissThresholdAndDominance() {
+        assertFalse(
+            actual =
+                shouldDismissSearchKeyboardOnScroll(
+                    isUserInput = true,
+                    isSearchInputFocused = true,
+                    horizontalDelta = 0f,
+                    verticalDelta = 2f,
+                ),
+        )
+        assertFalse(
+            actual =
+                shouldDismissSearchKeyboardOnScroll(
+                    isUserInput = true,
+                    isSearchInputFocused = true,
+                    horizontalDelta = 3f,
+                    verticalDelta = 3f,
+                ),
         )
         assertTrue(
-            actual = shouldDismissSearchKeyboardOnScroll(
-                isUserInput = true,
-                isSearchInputFocused = true,
-                horizontalDelta = 0f,
-                verticalDelta = 2.1f,
-            ),
+            actual =
+                shouldDismissSearchKeyboardOnScroll(
+                    isUserInput = true,
+                    isSearchInputFocused = true,
+                    horizontalDelta = 0f,
+                    verticalDelta = 2.1f,
+                ),
         )
     }
 }

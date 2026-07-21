@@ -52,7 +52,9 @@ sealed class LocalPlaylistCreateResult {
      *
      * @property playlist 已保存的歌单元信息。
      */
-    data class Success(val playlist: LocalPlaylist) : LocalPlaylistCreateResult()
+    data class Success(
+        val playlist: LocalPlaylist,
+    ) : LocalPlaylistCreateResult()
 
     /** 裁剪后名称为空。 */
     data object BlankName : LocalPlaylistCreateResult()
@@ -70,14 +72,18 @@ sealed class AddSongToLocalPlaylistResult {
      *
      * @property relation 新保存的歌曲关系。
      */
-    data class Added(val relation: LocalPlaylistSong) : AddSongToLocalPlaylistResult()
+    data class Added(
+        val relation: LocalPlaylistSong,
+    ) : AddSongToLocalPlaylistResult()
 
     /**
      * 目标关系已经存在，调用者仍可按成功处理。
      *
      * @property relation 已存在的歌曲关系。
      */
-    data class AlreadyExists(val relation: LocalPlaylistSong) : AddSongToLocalPlaylistResult()
+    data class AlreadyExists(
+        val relation: LocalPlaylistSong,
+    ) : AddSongToLocalPlaylistResult()
 
     /** 目标歌单不存在。 */
     data object PlaylistNotFound : AddSongToLocalPlaylistResult()

@@ -33,9 +33,10 @@ internal fun CreatePlaylistDialog(
         Surface(
             modifier = Modifier.widthIn(max = CreatePlaylistDialogDesignSpec.maxWidth),
             shape = RoundedCornerShape(size = CreatePlaylistDialogDesignSpec.cornerRadius),
-            color = CreatePlaylistDialogDesignSpec.containerColor.copy(
-                alpha = CreatePlaylistDialogDesignSpec.backgroundAlpha,
-            ),
+            color =
+                CreatePlaylistDialogDesignSpec.containerColor.copy(
+                    alpha = CreatePlaylistDialogDesignSpec.backgroundAlpha,
+                ),
             border = createPlaylistDialogBorder(),
         ) {
             Column(
@@ -112,11 +113,11 @@ private fun RowActions(controller: MusicAppController) {
 }
 
 // 新建弹窗描边集中使用规格对象，避免颜色透明度散落在布局中。
-private fun createPlaylistDialogBorder(): BorderStroke {
-    return BorderStroke(
+private fun createPlaylistDialogBorder(): BorderStroke =
+    BorderStroke(
         width = CreatePlaylistDialogDesignSpec.borderWidth,
-        color = CreatePlaylistDialogDesignSpec.containerColor.copy(
-            alpha = CreatePlaylistDialogDesignSpec.borderAlpha,
-        ),
+        color =
+            CreatePlaylistDialogDesignSpec.containerColor.copy(
+                alpha = CreatePlaylistDialogDesignSpec.borderAlpha,
+            ),
     )
-}

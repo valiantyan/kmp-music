@@ -34,13 +34,15 @@ internal class AndroidEmbeddedArtworkExtractor(
     ): String? {
         return try {
             Log.d(TAG, "开始提取 Android 音频封面: sourceId=$sourceId")
-            val artworkBytes: ByteArray = readEmbeddedPicture(mediaUri = mediaUri)
-                ?: readAlbumArtwork(albumId = albumId)
-                ?: return null
-            val artworkFile: File = writeArtworkCache(
-                sourceId = sourceId,
-                artworkBytes = artworkBytes,
-            )
+            val artworkBytes: ByteArray =
+                readEmbeddedPicture(mediaUri = mediaUri)
+                    ?: readAlbumArtwork(albumId = albumId)
+                    ?: return null
+            val artworkFile: File =
+                writeArtworkCache(
+                    sourceId = sourceId,
+                    artworkBytes = artworkBytes,
+                )
             artworkFile.toURI().toString()
         } catch (ioException: IOException) {
             Log.e(TAG, "Android 音频封面缓存写入失败: sourceId=$sourceId", ioException)
@@ -101,15 +103,14 @@ internal class AndroidEmbeddedArtworkExtractor(
     }
 
     // 文件名只保留安全字符，避免来源 ID 中的路径分隔符影响缓存目录。
-    private fun String.toCacheFileName(): String {
-        return map { char: Char ->
+    private fun String.toCacheFileName(): String =
+        map { char: Char ->
             if (char.isLetterOrDigit()) {
                 char
             } else {
                 '_'
             }
         }.joinToString(separator = "")
-    }
 }
 
 private const val TAG = "AndroidEmbeddedArtwork"

@@ -41,9 +41,10 @@ fun DesktopPageHeader(
     actions: @Composable () -> Unit = {},
 ) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(bottom = 24.dp),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(bottom = 24.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.Top,
     ) {
@@ -186,10 +187,11 @@ fun DesktopAlbumCard(
                 coverArt = album.coverArt,
                 coverImageUri = album.coverImageUri,
                 contentDescription = "${album.title} 封面",
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .aspectRatio(1f)
-                    .clip(RoundedCornerShape(12.dp)),
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .aspectRatio(1f)
+                        .clip(RoundedCornerShape(12.dp)),
                 contentScale = ContentScale.Crop,
             )
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -230,9 +232,10 @@ fun DesktopArtistStrip(
     ) {
         artists.forEach { artist: Artist ->
             Surface(
-                modifier = Modifier
-                    .weight(1f)
-                    .clickable { onArtistOpen(artist) },
+                modifier =
+                    Modifier
+                        .weight(1f)
+                        .clickable { onArtistOpen(artist) },
                 shape = RoundedCornerShape(14.dp),
                 color = DesktopMusicColors.Soft,
             ) {
@@ -245,9 +248,10 @@ fun DesktopArtistStrip(
                         coverArt = artist.coverArt,
                         coverImageUri = artist.coverImageUri,
                         contentDescription = "${artist.name} 图片",
-                        modifier = Modifier
-                            .size(56.dp)
-                            .clip(CircleShape),
+                        modifier =
+                            Modifier
+                                .size(56.dp)
+                                .clip(CircleShape),
                         contentScale = ContentScale.Crop,
                     )
                     Text(

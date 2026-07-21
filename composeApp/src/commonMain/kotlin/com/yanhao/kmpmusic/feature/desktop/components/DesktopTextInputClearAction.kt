@@ -23,9 +23,7 @@ import com.yanhao.kmpmusic.feature.desktop.DesktopMusicColors
 internal fun shouldShowDesktopTextInputClearAction(
     value: String,
     isClearEnabled: Boolean,
-): Boolean {
-    return isClearEnabled && value.isNotEmpty()
-}
+): Boolean = isClearEnabled && value.isNotEmpty()
 
 // 空输入仍保留按钮槽位，避免搜索框文字区域在输入和清空时横向跳动。
 @Composable
@@ -42,15 +40,16 @@ internal fun DesktopTextInputClearAction(
         return
     }
     Box(
-        modifier = Modifier
-            .size(22.dp)
-            .clip(shape = CircleShape)
-            .background(color = DesktopMusicColors.Line)
-            .semantics { this.contentDescription = "清除输入内容" }
-            .clickable(
-                role = Role.Button,
-                onClick = onClear,
-            ),
+        modifier =
+            Modifier
+                .size(22.dp)
+                .clip(shape = CircleShape)
+                .background(color = DesktopMusicColors.Line)
+                .semantics { this.contentDescription = "清除输入内容" }
+                .clickable(
+                    role = Role.Button,
+                    onClick = onClear,
+                ),
         contentAlignment = Alignment.Center,
     ) {
         Icon(

@@ -68,8 +68,9 @@ private fun SourceSummaryRow(
 ) {
     SummarySurface(
         title = source.displayName,
-        detail = "${localMusicSourceKindLabel(sourceKind = source.sourceKind, platform = discoveryPlatform)} · " +
-            "${source.songCount} 首 · ${source.problemCount} 个问题",
+        detail =
+            "${localMusicSourceKindLabel(sourceKind = source.sourceKind, platform = discoveryPlatform)} · " +
+                "${source.songCount} 首 · ${source.problemCount} 个问题",
     )
 }
 
@@ -81,8 +82,9 @@ private fun ProblemSummaryRow(
 ) {
     SummarySurface(
         title = problem.fileName,
-        detail = "${localMusicSourceKindLabel(sourceKind = problem.sourceKind, platform = discoveryPlatform)} · " +
-            problem.error.message,
+        detail =
+            "${localMusicSourceKindLabel(sourceKind = problem.sourceKind, platform = discoveryPlatform)} · " +
+                problem.error.message,
     )
 }
 

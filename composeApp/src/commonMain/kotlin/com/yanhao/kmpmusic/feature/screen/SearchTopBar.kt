@@ -54,14 +54,15 @@ internal fun SearchTopBar(
     onInputFocusChanged: (Boolean) -> Unit,
 ) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(height = searchTopBarHeight)
-            .background(color = searchTopBarColor)
-            .padding(
-                start = searchTopBarStartPadding,
-                end = searchTopBarEndPadding,
-            ),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .height(height = searchTopBarHeight)
+                .background(color = searchTopBarColor)
+                .padding(
+                    start = searchTopBarStartPadding,
+                    end = searchTopBarEndPadding,
+                ),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         SearchToolbarBackButton(
@@ -83,14 +84,15 @@ private fun SearchToolbarBackButton(
     onClick: () -> Unit,
 ) {
     Box(
-        modifier = Modifier
-            .width(width = searchTopBarBackSlotWidth)
-            .height(height = searchTopBarHeight)
-            .semantics { this.contentDescription = "返回" }
-            .clickable(
-                role = Role.Button,
-                onClick = onClick,
-            ),
+        modifier =
+            Modifier
+                .width(width = searchTopBarBackSlotWidth)
+                .height(height = searchTopBarHeight)
+                .semantics { this.contentDescription = "返回" }
+                .clickable(
+                    role = Role.Button,
+                    onClick = onClick,
+                ),
         contentAlignment = Alignment.Center,
     ) {
         Icon(
@@ -117,21 +119,23 @@ private fun SearchInputPill(
     var isInputFocused: Boolean by remember { mutableStateOf(value = false) }
     LaunchedEffect(query, textFieldValue.text) {
         if (textFieldValue.text != query) {
-            textFieldValue = TextFieldValue(
-                text = query,
-                selection = TextRange(index = query.length),
-            )
+            textFieldValue =
+                TextFieldValue(
+                    text = query,
+                    selection = TextRange(index = query.length),
+                )
         }
     }
     Row(
-        modifier = modifier
-            .height(height = searchInputHeight)
-            .clip(shape = CircleShape)
-            .background(color = searchInputColor)
-            .padding(
-                horizontal = searchInputHorizontalPadding,
-                vertical = searchInputVerticalPadding,
-            ),
+        modifier =
+            modifier
+                .height(height = searchInputHeight)
+                .clip(shape = CircleShape)
+                .background(color = searchInputColor)
+                .padding(
+                    horizontal = searchInputHorizontalPadding,
+                    vertical = searchInputVerticalPadding,
+                ),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         SearchInputLeadingIcon()
@@ -141,18 +145,20 @@ private fun SearchInputPill(
                 textFieldValue = nextValue
                 onQuery(nextValue.text)
             },
-            modifier = Modifier
-                .weight(weight = 1f)
-                .onFocusChanged { focusState: FocusState ->
-                    isInputFocused = focusState.isFocused
-                    onInputFocusChanged(focusState.isFocused)
-                },
-            textStyle = TextStyle(
-                color = searchPrimaryTextColor,
-                fontSize = 16.sp,
-                lineHeight = 22.sp,
-                fontWeight = FontWeight.Normal,
-            ),
+            modifier =
+                Modifier
+                    .weight(weight = 1f)
+                    .onFocusChanged { focusState: FocusState ->
+                        isInputFocused = focusState.isFocused
+                        onInputFocusChanged(focusState.isFocused)
+                    },
+            textStyle =
+                TextStyle(
+                    color = searchPrimaryTextColor,
+                    fontSize = 16.sp,
+                    lineHeight = 22.sp,
+                    fontWeight = FontWeight.Normal,
+                ),
             cursorBrush = SolidColor(value = searchToolbarAccentColor),
             singleLine = true,
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
@@ -162,9 +168,10 @@ private fun SearchInputPill(
                     if (textFieldValue.text.isEmpty()) {
                         Text(
                             text = "搜索...",
-                            modifier = Modifier.padding(
-                                start = if (isInputFocused) 3.dp else 0.dp,
-                            ),
+                            modifier =
+                                Modifier.padding(
+                                    start = if (isInputFocused) 3.dp else 0.dp,
+                                ),
                             color = searchPlaceholderTextColor,
                             fontSize = 16.sp,
                             lineHeight = 22.sp,
@@ -220,15 +227,16 @@ private fun SearchInputTrailingAction(
         contentAlignment = Alignment.Center,
     ) {
         Box(
-            modifier = Modifier
-                .size(size = searchClearButtonSize)
-                .clip(shape = CircleShape)
-                .background(color = searchClearButtonColor)
-                .semantics { this.contentDescription = "清除输入内容" }
-                .clickable(
-                    role = Role.Button,
-                    onClick = onClear,
-                ),
+            modifier =
+                Modifier
+                    .size(size = searchClearButtonSize)
+                    .clip(shape = CircleShape)
+                    .background(color = searchClearButtonColor)
+                    .semantics { this.contentDescription = "清除输入内容" }
+                    .clickable(
+                        role = Role.Button,
+                        onClick = onClear,
+                    ),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
@@ -245,16 +253,18 @@ private fun SearchInputTrailingAction(
 @Composable
 private fun SearchInputDivider() {
     Box(
-        modifier = Modifier
-            .width(width = searchInputDividerSlotWidth)
-            .height(height = searchInputIconSlotSize),
+        modifier =
+            Modifier
+                .width(width = searchInputDividerSlotWidth)
+                .height(height = searchInputIconSlotSize),
         contentAlignment = Alignment.Center,
     ) {
         Box(
-            modifier = Modifier
-                .width(width = 1.dp)
-                .height(height = searchInputDividerHeight)
-                .background(color = searchToolbarDividerColor),
+            modifier =
+                Modifier
+                    .width(width = 1.dp)
+                    .height(height = searchInputDividerHeight)
+                    .background(color = searchToolbarDividerColor),
         )
     }
 }
@@ -265,14 +275,15 @@ private fun SearchSubmitButton(
     onClick: () -> Unit,
 ) {
     Box(
-        modifier = Modifier
-            .width(width = searchSubmitButtonWidth)
-            .height(height = searchSubmitButtonHeight)
-            .clip(shape = CircleShape)
-            .clickable(
-                role = Role.Button,
-                onClick = onClick,
-            ),
+        modifier =
+            Modifier
+                .width(width = searchSubmitButtonWidth)
+                .height(height = searchSubmitButtonHeight)
+                .clip(shape = CircleShape)
+                .clickable(
+                    role = Role.Button,
+                    onClick = onClick,
+                ),
         contentAlignment = Alignment.Center,
     ) {
         Text(

@@ -12,11 +12,16 @@ internal class PlaybackHistoryRecorder(
     fun record(songId: String) {
         val currentSongIds: List<String> = playbackRepository.getPlaybackHistory().songIds
         playbackRepository.savePlaybackHistory(
-            history = PlaybackHistory(
-                songIds = (listOf(songId) + currentSongIds.filterNot { currentId: String ->
-                    currentId == songId
-                }).take(n = MAX_HISTORY_SIZE),
-            ),
+            history =
+                PlaybackHistory(
+                    songIds =
+                        (
+                            listOf(songId) +
+                                currentSongIds.filterNot { currentId: String ->
+                                    currentId == songId
+                                }
+                        ).take(n = MAX_HISTORY_SIZE),
+                ),
         )
     }
 

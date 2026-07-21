@@ -16,12 +16,11 @@ internal fun createDesktopPlaybackController(
     controllerScope: CoroutineScope,
     localMusicScanner: LocalMusicScanner = DesktopFolderMusicScanner(),
     nowMillis: () -> Long = { System.currentTimeMillis() },
-): MusicAppController {
-    return createPersistentMusicAppController(
+): MusicAppController =
+    createPersistentMusicAppController(
         playbackDatabase = playbackDatabase,
         localMusicScanner = localMusicScanner,
         audioPlayerEngine = audioPlayerEngine,
         controllerScope = controllerScope,
         nowMillis = nowMillis,
     )
-}

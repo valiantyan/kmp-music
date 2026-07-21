@@ -24,22 +24,27 @@ internal fun buildLocalMusicScanSummaryDisplayModel(
     val completedAt: Long? = findLastScanCompletedAt(scanState = scanState)
     return LocalMusicScanSummaryDisplayModel(
         playableSongTotalText = "$playableSongCount 首可播放歌曲",
-        lastScanTimeText = completedAt?.let { timestampMillis: Long ->
-            "最近扫描：${formatLocalMusicScanDate(timestampMillis = timestampMillis)}"
-        } ?: "尚未记录扫描时间",
+        lastScanTimeText =
+            completedAt?.let { timestampMillis: Long ->
+                "最近扫描：${formatLocalMusicScanDate(timestampMillis = timestampMillis)}"
+            } ?: "尚未记录扫描时间",
     )
 }
 
 // 失败或取消也代表一次明确扫描结果，页面仍可展示它的结果时间。
-private fun findLastScanCompletedAt(scanState: LocalMusicScanState): Long? {
-    return when (scanState) {
+private fun findLastScanCompletedAt(scanState: LocalMusicScanState): Long? =
+    when (scanState) {
         LocalMusicScanState.Idle,
         LocalMusicScanState.WaitingForPermission,
         -> null
+
         is LocalMusicScanState.Importing -> scanState.previousSummary?.completedAt
+
         is LocalMusicScanState.Scanning -> scanState.previousSummary?.completedAt
+
         is LocalMusicScanState.Done -> scanState.summary.completedAt
+
         is LocalMusicScanState.Cancelled -> scanState.summary.completedAt
+
         is LocalMusicScanState.Error -> scanState.summary?.completedAt
     }
-}

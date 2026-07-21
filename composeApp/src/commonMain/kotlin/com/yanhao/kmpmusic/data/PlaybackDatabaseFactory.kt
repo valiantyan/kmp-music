@@ -11,8 +11,8 @@ import com.yanhao.kmpmusic.domain.persistence.PlaybackDatabaseMigrations
  * @param builder 指向 [PlaybackDatabase] 的 Room builder。
  * @return 完成底层 driver 与协程上下文配置的数据库实例。
  */
-fun createPlaybackDatabase(builder: RoomDatabase.Builder<PlaybackDatabase>): PlaybackDatabase {
-    return builder
+fun createPlaybackDatabase(builder: RoomDatabase.Builder<PlaybackDatabase>): PlaybackDatabase =
+    builder
         .setDriver(BundledSQLiteDriver())
         .addMigrations(PlaybackDatabaseMigrations.MIGRATION_1_2)
         .addMigrations(PlaybackDatabaseMigrations.MIGRATION_2_3)
@@ -23,4 +23,3 @@ fun createPlaybackDatabase(builder: RoomDatabase.Builder<PlaybackDatabase>): Pla
         .addMigrations(PlaybackDatabaseMigrations.MIGRATION_7_8)
         .setQueryCoroutineContext(providePlaybackDatabaseQueryCoroutineContext())
         .build()
-}

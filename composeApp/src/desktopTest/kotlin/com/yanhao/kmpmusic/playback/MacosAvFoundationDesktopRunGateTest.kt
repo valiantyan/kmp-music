@@ -11,18 +11,19 @@ import kotlin.test.assertTrue
 class MacosAvFoundationDesktopRunGateTest {
     /** 验证 [desktopRun] 会准备并注入真实播放所需的 native bridge。 */
     @Test
-    fun configuresDesktopRunWithMacosAvFoundationBridge(): Unit {
+    fun configuresDesktopRunWithMacosAvFoundationBridge() {
         val text: String = readProjectFile(relativePath = BUILD_FILE_PATH)
         assertContainsAll(
             text = text,
-            requiredSnippets = listOf(
-                "tasks.withType<JavaExec>().configureEach",
-                "name == \"desktopRun\"",
-                "dependsOn(\"compileMacosAvFoundationBridge\")",
-                "systemProperty(",
-                "\"kmp.music.macos.avfoundation.bridge.path\"",
-                "macosAvFoundationBridgeLibrary.get().asFile.absolutePath",
-            ),
+            requiredSnippets =
+                listOf(
+                    "tasks.withType<JavaExec>().configureEach",
+                    "name == \"desktopRun\"",
+                    "dependsOn(\"compileMacosAvFoundationBridge\")",
+                    "systemProperty(",
+                    "\"kmp.music.macos.avfoundation.bridge.path\"",
+                    "macosAvFoundationBridgeLibrary.get().asFile.absolutePath",
+                ),
         )
     }
 
@@ -45,10 +46,11 @@ class MacosAvFoundationDesktopRunGateTest {
     private fun assertContainsAll(
         text: String,
         requiredSnippets: List<String>,
-    ): Unit {
-        val missingSnippets: List<String> = requiredSnippets.filterNot { snippet: String ->
-            text.contains(other = snippet)
-        }
+    ) {
+        val missingSnippets: List<String> =
+            requiredSnippets.filterNot { snippet: String ->
+                text.contains(other = snippet)
+            }
         assertTrue(
             actual = missingSnippets.isEmpty(),
             message = "$BUILD_FILE_PATH 缺少：${missingSnippets.joinToString(separator = "；")}",

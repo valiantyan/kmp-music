@@ -19,7 +19,5 @@ class ToggleFavoriteUseCaseImpl(
     private val favoritesRepository: FavoritesRepository,
 ) : ToggleFavoriteUseCase {
     /** 委托仓库更新收藏状态，保持 UI 不感知存储细节。 */
-    override operator fun invoke(songId: String): Set<String> {
-        return favoritesRepository.toggleSong(songId = songId)
-    }
+    override operator fun invoke(songId: String): Set<String> = favoritesRepository.toggleSong(songId = songId)
 }

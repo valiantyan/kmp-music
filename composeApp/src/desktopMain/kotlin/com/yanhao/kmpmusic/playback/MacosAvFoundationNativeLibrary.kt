@@ -112,9 +112,7 @@ interface MacosAvFoundationNativeLibraryLoader {
 
     companion object {
         /** 判断当前 JVM 是否运行在 macOS。 */
-        fun isMacos(): Boolean {
-            return System.getProperty("os.name").contains(other = "mac", ignoreCase = true)
-        }
+        fun isMacos(): Boolean = System.getProperty("os.name").contains(other = "mac", ignoreCase = true)
     }
 }
 
@@ -141,11 +139,13 @@ internal object MacosAvFoundationNativeLibraryPathResolver {
     }
 
     /** 从指定 resources 目录解析 bridge，供测试模拟 packaged app 环境。 */
-    internal fun resolveBundledBridgePath(resourcesDir: String): String? {
-        return try {
-            val candidate: Path = Path.of(resourcesDir)
-                .resolve(MACOS_AVFOUNDATION_BRIDGE_BUNDLED_RESOURCE_DIRECTORY)
-                .resolve(MACOS_AVFOUNDATION_BRIDGE_LIBRARY_FILE_NAME)
+    internal fun resolveBundledBridgePath(resourcesDir: String): String? =
+        try {
+            val candidate: Path =
+                Path
+                    .of(resourcesDir)
+                    .resolve(MACOS_AVFOUNDATION_BRIDGE_BUNDLED_RESOURCE_DIRECTORY)
+                    .resolve(MACOS_AVFOUNDATION_BRIDGE_LIBRARY_FILE_NAME)
             if (Files.isRegularFile(candidate)) {
                 candidate.toAbsolutePath().toString()
             } else {
@@ -156,7 +156,6 @@ internal object MacosAvFoundationNativeLibraryPathResolver {
         } catch (error: SecurityException) {
             null
         }
-    }
 }
 
 /**
@@ -185,8 +184,8 @@ object SystemMacosAvFoundationNativeLibraryLoader : MacosAvFoundationNativeLibra
     }
 
     /** 执行一次真实加载，并把 JVM 异常压缩成诊断文本。 */
-    private fun loadOnce(): MacosAvFoundationNativeLibraryLoadResult {
-        return try {
+    private fun loadOnce(): MacosAvFoundationNativeLibraryLoadResult =
+        try {
             val configuredPath: String? = MacosAvFoundationNativeLibraryPathResolver.resolveConfiguredBridgePath()
             val bundledPath: String? = MacosAvFoundationNativeLibraryPathResolver.resolveBundledBridgePath()
             if (!configuredPath.isNullOrBlank()) {
@@ -203,5 +202,4 @@ object SystemMacosAvFoundationNativeLibraryLoader : MacosAvFoundationNativeLibra
         } catch (error: SecurityException) {
             MacosAvFoundationNativeLibraryLoadResult.Failed(reason = error.message ?: error.javaClass.simpleName)
         }
-    }
 }

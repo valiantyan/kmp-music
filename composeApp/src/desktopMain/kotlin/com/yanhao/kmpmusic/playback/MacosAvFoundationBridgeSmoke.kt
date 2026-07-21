@@ -1,5 +1,10 @@
 package com.yanhao.kmpmusic.playback
 
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeout
 import java.io.ByteArrayInputStream
 import java.io.IOException
 import java.nio.file.Files
@@ -10,11 +15,6 @@ import javax.sound.sampled.AudioFileFormat
 import javax.sound.sampled.AudioFormat
 import javax.sound.sampled.AudioInputStream
 import javax.sound.sampled.AudioSystem
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.collect
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.withTimeout
 
 /**
  * macOS AVFoundation bridge 真实播放 smoke，供 Gradle 门禁在本机生成 M4A 并验证事件回流。
@@ -22,31 +22,33 @@ import kotlinx.coroutines.withTimeout
 object MacosAvFoundationBridgeSmoke {
     /** 运行真实 bridge smoke。 */
     @JvmStatic
-    fun main(args: Array<String>): Unit = runBlocking {
-        val workDir: Path = smokeWorkDir(args = args)
-        val mediaPath: Path = prepareSmokeM4a(workDir = workDir)
-        val bridge: MacosAvFoundationPlaybackBridge = MacosAvFoundationPlaybackBridge.create()
-        check(bridge.isInitialized) {
-            "macOS AVFoundation bridge 初始化失败：${bridge.initialization}"
-        }
-        val events: MutableList<ApplePlaybackBridgeEvent> = Collections.synchronizedList(mutableListOf())
-        val collectJob = launch {
-            bridge.events.collect { event: ApplePlaybackBridgeEvent ->
-                events += event
-                println("smoke-event: ${event.smokeName()}")
+    fun main(args: Array<String>): Unit =
+        runBlocking {
+            val workDir: Path = smokeWorkDir(args = args)
+            val mediaPath: Path = prepareSmokeM4a(workDir = workDir)
+            val bridge: MacosAvFoundationPlaybackBridge = MacosAvFoundationPlaybackBridge.create()
+            check(bridge.isInitialized) {
+                "macOS AVFoundation bridge 初始化失败：${bridge.initialization}"
+            }
+            val events: MutableList<ApplePlaybackBridgeEvent> = Collections.synchronizedList(mutableListOf())
+            val collectJob =
+                launch {
+                    bridge.events.collect { event: ApplePlaybackBridgeEvent ->
+                        events += event
+                        println("smoke-event: ${event.smokeName()}")
+                    }
+                }
+            try {
+                runSuccessfulPlaybackSmoke(bridge = bridge, events = events, mediaPath = mediaPath)
+                runStartPositionPlaybackSmoke(bridge = bridge, events = events, mediaPath = mediaPath)
+                MacosAvFoundationFormatMatrixSmoke.run(workDir = workDir)
+                runFailureSmoke(bridge = bridge, events = events, workDir = workDir)
+                println("macOS AVFoundation bridge smoke 通过：${mediaPath.toUri()}")
+            } finally {
+                bridge.release()
+                collectJob.cancel()
             }
         }
-        try {
-            runSuccessfulPlaybackSmoke(bridge = bridge, events = events, mediaPath = mediaPath)
-            runStartPositionPlaybackSmoke(bridge = bridge, events = events, mediaPath = mediaPath)
-            MacosAvFoundationFormatMatrixSmoke.run(workDir = workDir)
-            runFailureSmoke(bridge = bridge, events = events, workDir = workDir)
-            println("macOS AVFoundation bridge smoke 通过：${mediaPath.toUri()}")
-        } finally {
-            bridge.release()
-            collectJob.cancel()
-        }
-    }
 
     /** 执行真实 M4A 播放，等待 prepared、playing、progress 和 ended。 */
     private suspend fun runSuccessfulPlaybackSmoke(
@@ -54,14 +56,16 @@ object MacosAvFoundationBridgeSmoke {
         events: MutableList<ApplePlaybackBridgeEvent>,
         mediaPath: Path,
     ) {
-        val prepareAck: ApplePlaybackBridgeCommandAck = bridge.prepare(
-            request = ApplePlaybackBridgePrepareRequest(
-                songId = "macos-avfoundation-smoke",
-                mediaUri = mediaPath.toUri().toString(),
-                generation = 1L,
-                startPositionMs = 0L,
-            ),
-        )
+        val prepareAck: ApplePlaybackBridgeCommandAck =
+            bridge.prepare(
+                request =
+                    ApplePlaybackBridgePrepareRequest(
+                        songId = "macos-avfoundation-smoke",
+                        mediaUri = mediaPath.toUri().toString(),
+                        generation = 1L,
+                        startPositionMs = 0L,
+                    ),
+            )
         check(prepareAck == ApplePlaybackBridgeCommandAck.Accepted) {
             "prepare ack 失败：$prepareAck"
         }
@@ -89,14 +93,16 @@ object MacosAvFoundationBridgeSmoke {
         events: MutableList<ApplePlaybackBridgeEvent>,
         mediaPath: Path,
     ) {
-        val prepareAck: ApplePlaybackBridgeCommandAck = bridge.prepare(
-            request = ApplePlaybackBridgePrepareRequest(
-                songId = "macos-avfoundation-start-position-smoke",
-                mediaUri = mediaPath.toUri().toString(),
-                generation = 2L,
-                startPositionMs = START_POSITION_SMOKE_MS,
-            ),
-        )
+        val prepareAck: ApplePlaybackBridgeCommandAck =
+            bridge.prepare(
+                request =
+                    ApplePlaybackBridgePrepareRequest(
+                        songId = "macos-avfoundation-start-position-smoke",
+                        mediaUri = mediaPath.toUri().toString(),
+                        generation = 2L,
+                        startPositionMs = START_POSITION_SMOKE_MS,
+                    ),
+            )
         check(prepareAck == ApplePlaybackBridgeCommandAck.Accepted) {
             "start position prepare ack 失败：$prepareAck"
         }
@@ -107,12 +113,13 @@ object MacosAvFoundationBridgeSmoke {
         check(playAck == ApplePlaybackBridgeCommandAck.Accepted) {
             "start position play ack 失败：$playAck"
         }
-        val playingEvent: ApplePlaybackBridgeEvent = waitForEvent(
-            label = "start-position-playing",
-            events = events,
-        ) { event: ApplePlaybackBridgeEvent ->
-            event is ApplePlaybackBridgeEvent.Playing && event.generation == 2L
-        }
+        val playingEvent: ApplePlaybackBridgeEvent =
+            waitForEvent(
+                label = "start-position-playing",
+                events = events,
+            ) { event: ApplePlaybackBridgeEvent ->
+                event is ApplePlaybackBridgeEvent.Playing && event.generation == 2L
+            }
         val playingPositionMs: Long = (playingEvent as ApplePlaybackBridgeEvent.Playing).positionMs
         check(playingPositionMs >= START_POSITION_SMOKE_LOWER_BOUND_MS) {
             "start position 未兑现：playingPositionMs=$playingPositionMs, expected>=$START_POSITION_SMOKE_LOWER_BOUND_MS"
@@ -131,12 +138,13 @@ object MacosAvFoundationBridgeSmoke {
         workDir: Path,
     ) {
         bridge.prepare(
-            request = ApplePlaybackBridgePrepareRequest(
-                songId = "macos-avfoundation-missing",
-                mediaUri = workDir.resolve("missing.m4a").toUri().toString(),
-                generation = 3L,
-                startPositionMs = 0L,
-            ),
+            request =
+                ApplePlaybackBridgePrepareRequest(
+                    songId = "macos-avfoundation-missing",
+                    mediaUri = workDir.resolve("missing.m4a").toUri().toString(),
+                    generation = 3L,
+                    startPositionMs = 0L,
+                ),
         )
         waitForEvent(label = "failed", events = events) { event: ApplePlaybackBridgeEvent ->
             event is ApplePlaybackBridgeEvent.Failed && event.generation == 3L
@@ -149,20 +157,22 @@ object MacosAvFoundationBridgeSmoke {
         events: MutableList<ApplePlaybackBridgeEvent>,
         predicate: (ApplePlaybackBridgeEvent) -> Boolean,
     ): ApplePlaybackBridgeEvent {
-        val event: ApplePlaybackBridgeEvent = withTimeout(timeMillis = 10_000L) {
-            while (!events.any(predicate = predicate)) {
-                delay(timeMillis = 50L)
+        val event: ApplePlaybackBridgeEvent =
+            withTimeout(timeMillis = 10_000L) {
+                while (!events.any(predicate = predicate)) {
+                    delay(timeMillis = 50L)
+                }
+                events.first(predicate = predicate)
             }
-            events.first(predicate = predicate)
-        }
         println("smoke-check: $label")
         return event
     }
 
     /** 解析 smoke 工作目录，命令行参数优先于系统属性。 */
     internal fun smokeWorkDir(args: Array<String>): Path {
-        val configured: String? = args.firstOrNull()
-            ?: System.getProperty(MACOS_AVFOUNDATION_BRIDGE_SMOKE_DIR_PROPERTY)
+        val configured: String? =
+            args.firstOrNull()
+                ?: System.getProperty(MACOS_AVFOUNDATION_BRIDGE_SMOKE_DIR_PROPERTY)
         return Paths.get(configured ?: "build/macos-avfoundation-bridge/smoke").toAbsolutePath()
     }
 
@@ -193,17 +203,21 @@ object MacosAvFoundationBridgeSmoke {
     }
 
     /** 调用 macOS afconvert 生成 M4A/AAC 样本。 */
-    private fun convertWavToM4a(wavPath: Path, m4aPath: Path) {
+    private fun convertWavToM4a(
+        wavPath: Path,
+        m4aPath: Path,
+    ) {
         try {
-            val process: Process = ProcessBuilder(
-                "/usr/bin/afconvert",
-                "-f",
-                "m4af",
-                "-d",
-                "aac",
-                wavPath.toString(),
-                m4aPath.toString(),
-            ).redirectErrorStream(true).start()
+            val process: Process =
+                ProcessBuilder(
+                    "/usr/bin/afconvert",
+                    "-f",
+                    "m4af",
+                    "-d",
+                    "aac",
+                    wavPath.toString(),
+                    m4aPath.toString(),
+                ).redirectErrorStream(true).start()
             val output: String = process.inputStream.bufferedReader().readText()
             val exitCode: Int = process.waitFor()
             check(exitCode == 0) {
@@ -215,8 +229,8 @@ object MacosAvFoundationBridgeSmoke {
     }
 
     /** 输出可读事件名，便于 ticket 记录 smoke 证据。 */
-    private fun ApplePlaybackBridgeEvent.smokeName(): String {
-        return when (this) {
+    private fun ApplePlaybackBridgeEvent.smokeName(): String =
+        when (this) {
             is ApplePlaybackBridgeEvent.Prepared -> "prepared(generation=$generation,durationMs=$durationMs)"
             is ApplePlaybackBridgeEvent.Buffering -> "buffering(generation=$generation,positionMs=$positionMs)"
             is ApplePlaybackBridgeEvent.Playing -> "playing(generation=$generation,positionMs=$positionMs)"
@@ -226,7 +240,6 @@ object MacosAvFoundationBridgeSmoke {
             is ApplePlaybackBridgeEvent.Failed -> "failed(generation=$generation,type=${error.type})"
             is ApplePlaybackBridgeEvent.InitializationFailed -> "initializationFailed(type=${error.type})"
         }
-    }
 
     /** 恢复进度 smoke 的目标起始位置，落在 1.5 秒样本中段以便验证播放起点。 */
     private const val START_POSITION_SMOKE_MS = 750L

@@ -34,10 +34,11 @@ class ScanLocalMusicUseCaseImpl(
         likedSongIds: Set<String>,
         preferences: LocalMusicDiscoveryPreferences,
     ): LibrarySnapshot {
-        val result: LocalMusicScanResult = localMusicScanner.scan(
-            request = request,
-            preferences = preferences,
-        )
+        val result: LocalMusicScanResult =
+            localMusicScanner.scan(
+                request = request,
+                preferences = preferences,
+            )
         return musicLibraryRepository.applyScanResult(
             request = request,
             scanResult = result,

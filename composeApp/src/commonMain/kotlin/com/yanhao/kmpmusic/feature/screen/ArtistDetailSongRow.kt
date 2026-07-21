@@ -40,9 +40,10 @@ internal fun ArtistDetailSongRow(
     onLike: (String) -> Unit,
 ) {
     Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 20.dp),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp),
         shape = RoundedCornerShape(size = 16.dp),
         color = rowState.containerColor,
         onClick = {
@@ -58,9 +59,10 @@ internal fun ArtistDetailSongRow(
         },
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 15.dp),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 15.dp),
             horizontalArrangement = Arrangement.spacedBy(space = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {

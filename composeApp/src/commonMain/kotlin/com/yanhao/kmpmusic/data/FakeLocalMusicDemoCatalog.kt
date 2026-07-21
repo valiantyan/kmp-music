@@ -10,9 +10,10 @@ import com.yanhao.kmpmusic.domain.model.MusicFileMetadata
 internal object FakeLocalMusicDemoCatalog {
     /** 根据目标数量生成 fake 扫描元数据。 */
     fun buildMetadata(demoSongCount: Int): List<MusicFileMetadata> {
-        val effectiveDemoSongCount: Int = demoSongCount.coerceAtLeast(
-            minimumValue = BASE_DEMO_SONG_COUNT,
-        )
+        val effectiveDemoSongCount: Int =
+            demoSongCount.coerceAtLeast(
+                minimumValue = BASE_DEMO_SONG_COUNT,
+            )
         val baseSongs: List<MusicFileMetadata> = buildBaseMetadata()
         if (effectiveDemoSongCount == BASE_DEMO_SONG_COUNT) {
             return baseSongs
@@ -22,17 +23,18 @@ internal object FakeLocalMusicDemoCatalog {
 
     /** 生成与 fake 歌曲一一对应的收藏 id 集合。 */
     fun buildFavoriteSongIds(demoSongCount: Int): Set<String> {
-        val effectiveDemoSongCount: Int = demoSongCount.coerceAtLeast(
-            minimumValue = BASE_DEMO_SONG_COUNT,
-        )
+        val effectiveDemoSongCount: Int =
+            demoSongCount.coerceAtLeast(
+                minimumValue = BASE_DEMO_SONG_COUNT,
+            )
         return (1..effectiveDemoSongCount)
             .map { index: Int -> "fakeScanner:${formatSourceId(index = index)}" }
             .toSet()
     }
 
     // 保留最初 8 首有代表性的演示歌曲，避免既有搜索和播放用例丢失锚点。
-    private fun buildBaseMetadata(): List<MusicFileMetadata> {
-        return listOf(
+    private fun buildBaseMetadata(): List<MusicFileMetadata> =
+        listOf(
             metadata(
                 sourceId = "001",
                 title = "海边的梦",
@@ -114,11 +116,10 @@ internal object FakeLocalMusicDemoCatalog {
                 modifiedAt = 1_782_042_500_000L,
             ),
         )
-    }
 
     // 为收藏页滑动和增删压力测试补齐到 500 首，时间戳低于基础歌曲以稳定首页预览。
-    private fun buildStressMetadata(demoSongCount: Int): List<MusicFileMetadata> {
-        return (BASE_DEMO_SONG_COUNT + 1..demoSongCount).map { index: Int ->
+    private fun buildStressMetadata(demoSongCount: Int): List<MusicFileMetadata> =
+        (BASE_DEMO_SONG_COUNT + 1..demoSongCount).map { index: Int ->
             metadata(
                 sourceId = formatSourceId(index = index),
                 title = "收藏压力测试 ${formatSourceId(index = index)}",
@@ -130,7 +131,6 @@ internal object FakeLocalMusicDemoCatalog {
                 modifiedAt = 1_782_042_400_000L - (index * 60_000L),
             )
         }
-    }
 
     // 创建单首 fake 音频元数据，sourceId 与 localUri 保持一一对应。
     private fun metadata(
@@ -142,8 +142,8 @@ internal object FakeLocalMusicDemoCatalog {
         mimeType: String,
         coverArt: CoverArt,
         modifiedAt: Long,
-    ): MusicFileMetadata {
-        return MusicFileMetadata(
+    ): MusicFileMetadata =
+        MusicFileMetadata(
             sourceId = sourceId,
             sourceKind = LocalMusicSourceKind.FakeScanner,
             localUri = "fake://local-audio/$sourceId",
@@ -157,16 +157,14 @@ internal object FakeLocalMusicDemoCatalog {
             modifiedAt = modifiedAt,
             coverArt = coverArt,
         )
-    }
 
     // 按序号轮换 MIME，避免 500 条数据在音质文案上完全相同。
-    private fun stressMimeType(index: Int): String {
-        return when (index % 3) {
+    private fun stressMimeType(index: Int): String =
+        when (index % 3) {
             0 -> "audio/flac"
             1 -> "audio/mpeg"
             else -> "audio/aac"
         }
-    }
 
     // 按序号轮换封面兜底，真实无封面时合并层仍会统一成占位资源。
     private fun stressCoverArt(index: Int): CoverArt {
@@ -175,9 +173,7 @@ internal object FakeLocalMusicDemoCatalog {
     }
 
     // fake scanner 的 sourceId 保持三位数，便于快照和日志人工核对。
-    private fun formatSourceId(index: Int): String {
-        return index.toString().padStart(length = 3, padChar = '0')
-    }
+    private fun formatSourceId(index: Int): String = index.toString().padStart(length = 3, padChar = '0')
 
     /** 最初固定演示歌曲数量。 */
     private const val BASE_DEMO_SONG_COUNT: Int = 8

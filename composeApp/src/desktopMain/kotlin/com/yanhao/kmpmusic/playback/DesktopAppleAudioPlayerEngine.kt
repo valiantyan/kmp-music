@@ -7,7 +7,6 @@ import com.yanhao.kmpmusic.domain.model.PlaybackMode
 import com.yanhao.kmpmusic.domain.model.PlaybackStatus
 import com.yanhao.kmpmusic.domain.playback.AudioPlayerEngine
 import com.yanhao.kmpmusic.domain.playback.PlaybackEngineEvent
-import kotlin.coroutines.CoroutineContext
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -18,6 +17,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
+import kotlin.coroutines.CoroutineContext
 
 /**
  * 桌面 Apple 播放引擎，把 [ApplePlaybackBridge] 的原生事实规整成共享 [AudioPlayerEngine] 事件。
@@ -32,34 +32,44 @@ internal class DesktopAppleAudioPlayerEngine(
 ) : AudioPlayerEngine {
     // 引擎内部生命周期，确保 release 时能完整回收常驻协程。
     private val engineJob: Job = SupervisorJob(parent = scope.coroutineContext[Job])
+
     // 引擎私有作用域，隔离常驻协程与外部调用方的业务协程。
     private val engineScope: CoroutineScope = CoroutineScope(context = dispatcher + engineJob)
+
     // 向协调器暴露的平台事件流。
     private val eventChannel: Channel<PlaybackEngineEvent> = Channel(capacity = Channel.UNLIMITED)
+
     // 引擎唯一命令入口，确保所有状态转换串行执行。
     private val commandChannel: Channel<DesktopApplePlaybackCommand> = Channel(capacity = Channel.UNLIMITED)
+
     // 引擎内部可变状态，集中承载当前队列、代际和准备态。
     private val state: DesktopPlaybackEngineState = DesktopPlaybackEngineState()
+
     // 跟踪所有待完成的 [setQueue] 确认，确保 release 与异常退出都能统一收口。
     private val setQueueAckTracker: DesktopSetQueueAckTracker = DesktopSetQueueAckTracker()
+
     // bridge 事件规整器，只负责从快照推导副作用意图。
     private val bridgeEventReducer: ApplePlaybackBridgeEventReducer = ApplePlaybackBridgeEventReducer()
+
     // bridge 事件订阅任务，释放后取消以阻止 native 回调继续灌入命令通道。
-    private val bridgeEventJob: Job = engineScope.launch {
-        bridge.events.collect { event: ApplePlaybackBridgeEvent ->
-            commandChannel.send(
-                element = DesktopApplePlaybackCommand.BridgeEventReceived(event = event),
-            )
+    private val bridgeEventJob: Job =
+        engineScope.launch {
+            bridge.events.collect { event: ApplePlaybackBridgeEvent ->
+                commandChannel.send(
+                    element = DesktopApplePlaybackCommand.BridgeEventReceived(event = event),
+                )
+            }
         }
-    }
+
     // 串行命令循环任务，负责把所有状态变更压到同一条执行序列中。
-    private val commandLoopJob: Job = engineScope.launch {
-        DesktopApplePlaybackCommandLoop(
-            commands = commandChannel,
-            handleCommand = ::handle,
-            onFinally = setQueueAckTracker::completeAll,
-        ).run()
-    }
+    private val commandLoopJob: Job =
+        engineScope.launch {
+            DesktopApplePlaybackCommandLoop(
+                commands = commandChannel,
+                handleCommand = ::handle,
+                onFinally = setQueueAckTracker::completeAll,
+            ).run()
+        }
 
     // 释放流程是否已开始；一旦开始就不再接受新的外部命令。
     @Volatile
@@ -84,14 +94,16 @@ internal class DesktopAppleAudioPlayerEngine(
         }
         val ack: CompletableDeferred<Unit> = CompletableDeferred()
         setQueueAckTracker.register(ack = ack)
-        val sendResult = commandChannel.trySend(
-            element = DesktopApplePlaybackCommand.SetQueue(
-                items = items,
-                startIndex = startIndex,
-                startPositionMs = startPositionMs.coerceAtLeast(minimumValue = 0L),
-                ack = ack,
-            ),
-        )
+        val sendResult =
+            commandChannel.trySend(
+                element =
+                    DesktopApplePlaybackCommand.SetQueue(
+                        items = items,
+                        startIndex = startIndex,
+                        startPositionMs = startPositionMs.coerceAtLeast(minimumValue = 0L),
+                        ack = ack,
+                    ),
+            )
         if (sendResult.isFailure) {
             setQueueAckTracker.complete(ack = ack)
         }
@@ -120,9 +132,10 @@ internal class DesktopAppleAudioPlayerEngine(
             return
         }
         commandChannel.trySend(
-            element = DesktopApplePlaybackCommand.SeekTo(
-                positionMs = positionMs.coerceAtLeast(minimumValue = 0L),
-            ),
+            element =
+                DesktopApplePlaybackCommand.SeekTo(
+                    positionMs = positionMs.coerceAtLeast(minimumValue = 0L),
+                ),
         )
     }
 
@@ -150,9 +163,10 @@ internal class DesktopAppleAudioPlayerEngine(
             return
         }
         commandChannel.trySend(
-            element = DesktopApplePlaybackCommand.SetVolume(
-                volume = volume.coerceIn(minimumValue = 0f, maximumValue = 1f),
-            ),
+            element =
+                DesktopApplePlaybackCommand.SetVolume(
+                    volume = volume.coerceIn(minimumValue = 0f, maximumValue = 1f),
+                ),
         )
     }
 
@@ -211,10 +225,11 @@ internal class DesktopAppleAudioPlayerEngine(
                 eventChannel.send(element = PlaybackEngineEvent.Failed(error = buildEmptyQueueError()))
                 return
             }
-            state.currentIndex = command.startIndex.coerceIn(
-                minimumValue = 0,
-                maximumValue = state.queue.lastIndex,
-            )
+            state.currentIndex =
+                command.startIndex.coerceIn(
+                    minimumValue = 0,
+                    maximumValue = state.queue.lastIndex,
+                )
             val startPositionMs: Long = coercePlaybackPositionToCurrentMedia(positionMs = command.startPositionMs)
             state.pendingSeekMs = startPositionMs
             prepareCurrentMedia(startPositionMs = startPositionMs)
@@ -254,22 +269,26 @@ internal class DesktopAppleAudioPlayerEngine(
         if (!state.isPrepared) {
             return
         }
-        val isSeekAccepted: Boolean = handleBridgeAck(
-            ack = bridge.seekTo(
-                request = ApplePlaybackBridgeSeekRequest(
-                    generation = state.generation,
-                    positionMs = seekPositionMs,
-                ),
-            ),
-        )
+        val isSeekAccepted: Boolean =
+            handleBridgeAck(
+                ack =
+                    bridge.seekTo(
+                        request =
+                            ApplePlaybackBridgeSeekRequest(
+                                generation = state.generation,
+                                positionMs = seekPositionMs,
+                            ),
+                    ),
+            )
         if (!isSeekAccepted) {
             return
         }
         eventChannel.send(
-            element = PlaybackEngineEvent.ProgressChanged(
-                positionMs = seekPositionMs,
-                durationMs = state.currentMedia()?.durationMs,
-            ),
+            element =
+                PlaybackEngineEvent.ProgressChanged(
+                    positionMs = seekPositionMs,
+                    durationMs = state.currentMedia()?.durationMs,
+                ),
         )
     }
 
@@ -296,11 +315,12 @@ internal class DesktopAppleAudioPlayerEngine(
         state.resetPlaybackFlags()
         handleBridgeAck(ack = bridge.stop(generation = activeGeneration))
         eventChannel.send(
-            element = PlaybackEngineEvent.StatusChanged(
-                status = PlaybackStatus.Idle,
-                positionMs = 0L,
-                durationMs = null,
-            ),
+            element =
+                PlaybackEngineEvent.StatusChanged(
+                    status = PlaybackStatus.Idle,
+                    positionMs = 0L,
+                    durationMs = null,
+                ),
         )
     }
 
@@ -318,10 +338,11 @@ internal class DesktopAppleAudioPlayerEngine(
 
     /** 只消费当前 generation 的有效回调，旧媒体与释放后的回调全部丢弃。 */
     private suspend fun handleBridgeEvent(event: ApplePlaybackBridgeEvent) {
-        val reduction: ApplePlaybackBridgeEventReduction = bridgeEventReducer.reduce(
-            snapshot = state.snapshot(),
-            event = event,
-        )
+        val reduction: ApplePlaybackBridgeEventReduction =
+            bridgeEventReducer.reduce(
+                snapshot = state.snapshot(),
+                event = event,
+            )
         reduction.stateUpdates.forEach { update: ApplePlaybackEngineStateUpdate ->
             when (update) {
                 ApplePlaybackEngineStateUpdate.MarkPrepared -> state.isPrepared = true
@@ -344,20 +365,29 @@ internal class DesktopAppleAudioPlayerEngine(
     }
 
     /** 执行规整出的 bridge 动作，并让失败 ack 阻断后续乐观事件。 */
-    private suspend fun executeBridgeAction(action: ApplePlaybackBridgeAction): Boolean {
-        return when (action) {
-            is ApplePlaybackBridgeAction.SeekTo -> handleBridgeAck(
-                ack = bridge.seekTo(
-                    request = ApplePlaybackBridgeSeekRequest(
-                        generation = action.generation,
-                        positionMs = action.positionMs,
-                    ),
-                ),
-            )
-            is ApplePlaybackBridgeAction.Play -> handleBridgeAck(ack = bridge.play(generation = action.generation))
-            is ApplePlaybackBridgeAction.Pause -> handleBridgeAck(ack = bridge.pause(generation = action.generation))
+    private suspend fun executeBridgeAction(action: ApplePlaybackBridgeAction): Boolean =
+        when (action) {
+            is ApplePlaybackBridgeAction.SeekTo -> {
+                handleBridgeAck(
+                    ack =
+                        bridge.seekTo(
+                            request =
+                                ApplePlaybackBridgeSeekRequest(
+                                    generation = action.generation,
+                                    positionMs = action.positionMs,
+                                ),
+                        ),
+                )
+            }
+
+            is ApplePlaybackBridgeAction.Play -> {
+                handleBridgeAck(ack = bridge.play(generation = action.generation))
+            }
+
+            is ApplePlaybackBridgeAction.Pause -> {
+                handleBridgeAck(ack = bridge.pause(generation = action.generation))
+            }
         }
-    }
 
     /** 为当前下标生成新媒体代号，并用 loading 状态通知上层开始切歌。 */
     private suspend fun prepareCurrentMedia(startPositionMs: Long) {
@@ -365,28 +395,32 @@ internal class DesktopAppleAudioPlayerEngine(
         val activeGeneration: Long = state.nextGeneration()
         state.isPrepared = false
         eventChannel.send(
-            element = PlaybackEngineEvent.CurrentMediaChanged(
-                songId = media.songId,
-                index = state.currentIndex,
-                durationMs = media.durationMs,
-            ),
+            element =
+                PlaybackEngineEvent.CurrentMediaChanged(
+                    songId = media.songId,
+                    index = state.currentIndex,
+                    durationMs = media.durationMs,
+                ),
         )
         eventChannel.send(
-            element = PlaybackEngineEvent.StatusChanged(
-                status = PlaybackStatus.Loading,
-                positionMs = startPositionMs,
-                durationMs = media.durationMs,
-            ),
+            element =
+                PlaybackEngineEvent.StatusChanged(
+                    status = PlaybackStatus.Loading,
+                    positionMs = startPositionMs,
+                    durationMs = media.durationMs,
+                ),
         )
         handleBridgeAck(
-            ack = bridge.prepare(
-                request = ApplePlaybackBridgePrepareRequest(
-                    songId = media.songId,
-                    mediaUri = media.audioSource.uri,
-                    generation = activeGeneration,
-                    startPositionMs = startPositionMs,
+            ack =
+                bridge.prepare(
+                    request =
+                        ApplePlaybackBridgePrepareRequest(
+                            songId = media.songId,
+                            mediaUri = media.audioSource.uri,
+                            generation = activeGeneration,
+                            startPositionMs = startPositionMs,
+                        ),
                 ),
-            ),
         )
     }
 
@@ -403,13 +437,17 @@ internal class DesktopAppleAudioPlayerEngine(
     /** 把 bridge 命令失败统一折返成共享失败事件，并让当前 generation 失效。 */
     private suspend fun handleBridgeAck(ack: ApplePlaybackBridgeCommandAck): Boolean {
         when (ack) {
-            ApplePlaybackBridgeCommandAck.Accepted -> return true
+            ApplePlaybackBridgeCommandAck.Accepted -> {
+                return true
+            }
+
             is ApplePlaybackBridgeCommandAck.Failed -> {
                 state.nextGeneration()
                 state.resetPlaybackFlags()
                 eventChannel.send(element = PlaybackEngineEvent.Failed(error = ack.error))
                 return false
             }
+
             is ApplePlaybackBridgeCommandAck.TimedOut -> {
                 state.nextGeneration()
                 state.resetPlaybackFlags()
@@ -420,11 +458,10 @@ internal class DesktopAppleAudioPlayerEngine(
     }
 
     /** 构造空队列错误，避免平台引擎抛出越界异常。 */
-    private fun buildEmptyQueueError(): PlaybackError {
-        return PlaybackError(
+    private fun buildEmptyQueueError(): PlaybackError =
+        PlaybackError(
             type = PlaybackErrorType.MissingFile,
             songId = null,
             message = "播放队列为空",
         )
-    }
 }

@@ -57,11 +57,12 @@ internal class IosSandboxAudioCommitter(
                 message = "无法访问导入源文件，请重新导入音频",
             )
         }
-        val committedPath: String = buildImportedAudioPath(
-            importDirectoryPath = candidate.importDirectoryPath,
-            sourcePath = candidate.sourcePath,
-            fileName = candidate.fileName,
-        )
+        val committedPath: String =
+            buildImportedAudioPath(
+                importDirectoryPath = candidate.importDirectoryPath,
+                sourcePath = candidate.sourcePath,
+                fileName = candidate.fileName,
+            )
         if (fileSystem.fileExists(path = committedPath)) {
             return reuseExistingImport(
                 candidate = candidate,
@@ -141,14 +142,14 @@ internal class IosSandboxAudioCommitter(
         candidate: IosSandboxAudioImportCandidate,
         type: LocalMusicScanErrorType,
         message: String,
-    ): IosSandboxAudioCommitResult.Failure {
-        return IosSandboxAudioCommitResult.Failure(
-            problem = createIosImportProblem(
-                sourcePath = candidate.sourcePath,
-                fileName = candidate.fileName,
-                type = type,
-                message = message,
-            ),
+    ): IosSandboxAudioCommitResult.Failure =
+        IosSandboxAudioCommitResult.Failure(
+            problem =
+                createIosImportProblem(
+                    sourcePath = candidate.sourcePath,
+                    fileName = candidate.fileName,
+                    type = type,
+                    message = message,
+                ),
         )
-    }
 }

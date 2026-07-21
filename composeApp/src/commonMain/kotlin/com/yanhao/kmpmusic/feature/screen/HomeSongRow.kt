@@ -42,24 +42,28 @@ internal fun HomeSongRow(
     onMore: ((Song) -> Unit)? = null,
     onLike: ((String) -> Unit)? = null,
 ) {
-    val rowStyle: HomeSongRowStyle = resolveHomeSongRowStyle(
-        isCurrentSong = isCurrentSong,
-    )
+    val rowStyle: HomeSongRowStyle =
+        resolveHomeSongRowStyle(
+            isCurrentSong = isCurrentSong,
+        )
     Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(height = favoritesSongRowHeight)
-            .padding(horizontal = favoritesHorizontalPadding),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .height(height = favoritesSongRowHeight)
+                .padding(horizontal = favoritesHorizontalPadding),
         shape = RoundedCornerShape(size = favoritesSongRowRadius),
         color = rowStyle.containerColor,
         border = rowStyle.border,
         shadowElevation = rowStyle.shadowElevation,
         onClick = {
-            when (resolveHomeSongRowClickAction(
-                isCurrentSong = isCurrentSong,
-                currentPlaybackStatus = currentPlaybackStatus,
-                hasCurrentSongToggle = onCurrentSongToggle != null,
-            )) {
+            when (
+                resolveHomeSongRowClickAction(
+                    isCurrentSong = isCurrentSong,
+                    currentPlaybackStatus = currentPlaybackStatus,
+                    hasCurrentSongToggle = onCurrentSongToggle != null,
+                )
+            ) {
                 HomeSongRowClickAction.PlaySelectedSong -> onSongPlay(song, queueSongs)
                 HomeSongRowClickAction.ToggleCurrentPlayback -> onCurrentSongToggle?.invoke()
             }
@@ -102,17 +106,19 @@ private fun HomeSongCover(
             coverArt = song.coverArt,
             coverImageUri = song.coverImageUri,
             contentDescription = "${song.title} 封面",
-            modifier = Modifier
-                .fillMaxSize()
-                .clip(shape = RoundedCornerShape(size = favoritesSongCoverRadius)),
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .clip(shape = RoundedCornerShape(size = favoritesSongCoverRadius)),
             contentScale = ContentScale.Crop,
         )
         if (showsPlaybackBadge) {
             Box(
-                modifier = Modifier
-                    .align(alignment = Alignment.BottomEnd)
-                    .clip(shape = CircleShape)
-                    .padding(all = 4.dp),
+                modifier =
+                    Modifier
+                        .align(alignment = Alignment.BottomEnd)
+                        .clip(shape = CircleShape)
+                        .padding(all = 4.dp),
             ) {
                 PlayingGlyph(color = MusicColors.PlayingRed)
             }

@@ -8,29 +8,31 @@ import kotlin.test.assertTrue
 
 class CoverArtImageRequestTest {
     @Test
-    fun buildCoverArtImageRequestUsesCoverImageUriBeforeFallbackResource(): Unit {
-        val request: CoverArtImageRequest = buildCoverArtImageRequest(
-            coverArt = CoverArt.AlbumBestOfMe,
-            coverImageUri = "file:///tmp/cover.art",
-        )
+    fun buildCoverArtImageRequestUsesCoverImageUriBeforeFallbackResource() {
+        val request: CoverArtImageRequest =
+            buildCoverArtImageRequest(
+                coverArt = CoverArt.AlbumBestOfMe,
+                coverImageUri = "file:///tmp/cover.art",
+            )
         assertEquals("file:///tmp/cover.art", request.primaryModel)
         assertEquals("drawable/album_best_of_me.png", request.fallbackResourcePath)
         assertTrue(request.usesExternalCover)
     }
 
     @Test
-    fun buildCoverArtImageRequestUsesFallbackResourceWhenCoverImageUriIsBlank(): Unit {
-        val request: CoverArtImageRequest = buildCoverArtImageRequest(
-            coverArt = CoverArt.CoverSeaDream,
-            coverImageUri = "   ",
-        )
+    fun buildCoverArtImageRequestUsesFallbackResourceWhenCoverImageUriIsBlank() {
+        val request: CoverArtImageRequest =
+            buildCoverArtImageRequest(
+                coverArt = CoverArt.CoverSeaDream,
+                coverImageUri = "   ",
+            )
         assertEquals("drawable/cover_sea_dream.png", request.primaryModel)
         assertEquals("drawable/cover_sea_dream.png", request.fallbackResourcePath)
         assertFalse(request.usesExternalCover)
     }
 
     @Test
-    fun coverArtResourcePathMapsEveryCoverArtValue(): Unit {
+    fun coverArtResourcePathMapsEveryCoverArtValue() {
         val paths: Set<String> = CoverArt.entries.map(::coverArtResourcePath).toSet()
         assertEquals(CoverArt.entries.size, paths.size)
         assertEquals("drawable/album_best_of_me.png", coverArtResourcePath(CoverArt.AlbumBestOfMe))

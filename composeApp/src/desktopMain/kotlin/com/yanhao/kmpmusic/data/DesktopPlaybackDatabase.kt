@@ -13,11 +13,10 @@ import java.io.File
  */
 fun createDesktopPlaybackDatabase(
     userHome: String = System.getProperty("user.home"),
-): PlaybackDatabase {
-    return createDesktopPlaybackDatabaseAtPath(
+): PlaybackDatabase =
+    createDesktopPlaybackDatabaseAtPath(
         databasePath = defaultDesktopPlaybackDatabasePath(userHome = userHome),
     )
-}
 
 /**
  * 为 Desktop 平台创建指定路径的播放数据库实例，供测试和进程会话复用。
@@ -28,10 +27,11 @@ fun createDesktopPlaybackDatabase(
 internal fun createDesktopPlaybackDatabaseAtPath(databasePath: String): PlaybackDatabase {
     File(databasePath).parentFile.mkdirs()
     return createPlaybackDatabase(
-        builder = Room.databaseBuilder<PlaybackDatabase>(
-            name = databasePath,
-            factory = PlaybackDatabaseConstructor::initialize,
-        ),
+        builder =
+            Room.databaseBuilder<PlaybackDatabase>(
+                name = databasePath,
+                factory = PlaybackDatabaseConstructor::initialize,
+            ),
     )
 }
 
@@ -41,9 +41,8 @@ internal fun createDesktopPlaybackDatabaseAtPath(databasePath: String): Playback
  * @param userHome 当前用户 home 目录。
  * @return `~/Library/Application Support/KMP Music/kmp_music_playback.db` 的绝对路径。
  */
-fun defaultDesktopPlaybackDatabasePath(userHome: String): String {
-    return File(
+fun defaultDesktopPlaybackDatabasePath(userHome: String): String =
+    File(
         File(userHome, "Library/Application Support/KMP Music"),
         "kmp_music_playback.db",
     ).absolutePath
-}

@@ -38,10 +38,11 @@ internal fun AndroidAlbumDetailPerformanceHarness(onBack: () -> Unit) {
             onSongPlay = { _: Song, _: List<Song> -> },
             onCurrentSongToggle = {},
             onMore = {},
-            modifier = Modifier
-                .fillMaxSize()
-                .statusBarsPadding()
-                .navigationBarsPadding(),
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .statusBarsPadding()
+                    .navigationBarsPadding(),
         )
     }
 }
@@ -66,17 +67,18 @@ internal fun AndroidFavoritesPerformanceHarness() {
             onSearch = {},
             onAlbumOpen = { _: Album -> },
             onArtistOpen = { _: Artist -> },
-            modifier = Modifier
-                .fillMaxSize()
-                .statusBarsPadding()
-                .navigationBarsPadding(),
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .statusBarsPadding()
+                    .navigationBarsPadding(),
         )
     }
 }
 
 // 构造滑动性能监控使用的固定专辑。
-private fun createAlbumDetailPerformanceAlbum(): Album {
-    return Album(
+private fun createAlbumDetailPerformanceAlbum(): Album =
+    Album(
         id = "album:performance-river-year",
         title = "River Year Performance",
         artist = "Trip",
@@ -85,17 +87,15 @@ private fun createAlbumDetailPerformanceAlbum(): Album {
         mood = "性能监控",
         year = "Debug",
     )
-}
 
 // 构造滑动性能监控使用的固定专辑歌曲，避免真实详情页组件携带 demo 追加逻辑。
-private fun createAlbumDetailPerformanceSongs(album: Album): List<Song> {
-    return (1..ALBUM_DETAIL_PERFORMANCE_SONG_COUNT).map { index: Int ->
+private fun createAlbumDetailPerformanceSongs(album: Album): List<Song> =
+    (1..ALBUM_DETAIL_PERFORMANCE_SONG_COUNT).map { index: Int ->
         createAlbumDetailPerformanceSong(
             album = album,
             index = index,
         )
     }
-}
 
 // 构造滑动性能监控使用的单首专辑歌曲。
 private fun createAlbumDetailPerformanceSong(
@@ -123,8 +123,8 @@ private fun createAlbumDetailPerformanceSong(
 }
 
 // 构造 500 条收藏页性能监控歌曲，全部保持已收藏状态。
-private fun createFavoritesPerformanceSongs(): List<Song> {
-    return (1..FAVORITES_PERFORMANCE_SONG_COUNT).map { index: Int ->
+private fun createFavoritesPerformanceSongs(): List<Song> =
+    (1..FAVORITES_PERFORMANCE_SONG_COUNT).map { index: Int ->
         val sourceId: String = index.toString().padStart(length = 3, padChar = '0')
         Song(
             id = "favorites-performance:$sourceId",
@@ -144,7 +144,6 @@ private fun createFavoritesPerformanceSongs(): List<Song> {
             localUri = "fake://favorites-performance/$sourceId",
         )
     }
-}
 
 /**
  * 收藏页压力测试歌曲数量。

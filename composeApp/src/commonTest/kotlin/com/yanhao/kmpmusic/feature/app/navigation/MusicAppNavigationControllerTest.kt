@@ -9,8 +9,8 @@ import com.yanhao.kmpmusic.feature.app.MobileFixedBarPlacement
 import com.yanhao.kmpmusic.feature.app.MusicAppUiState
 import com.yanhao.kmpmusic.feature.app.NavigationState
 import com.yanhao.kmpmusic.feature.app.RootTab
-import com.yanhao.kmpmusic.feature.app.SecondaryStackEntry
 import com.yanhao.kmpmusic.feature.app.SecondaryScreen
+import com.yanhao.kmpmusic.feature.app.SecondaryStackEntry
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -25,17 +25,19 @@ class MusicAppNavigationControllerTest {
      * 进入二级页时应记住来源一级 Tab，并清理不能跨路由保留的临时浮层状态。
      */
     @Test
-    fun navigateToSecondaryStoresPreviousRootAndClosesTransientOverlays(): Unit {
-        val state = testState().copy(
-            navigationState = NavigationState(rootTab = RootTab.Favorites, previousRootTab = RootTab.Favorites),
-            isQueueOpen = true,
-            moreSongId = "song-1",
-        )
+    fun navigateToSecondaryStoresPreviousRootAndClosesTransientOverlays() {
+        val state =
+            testState().copy(
+                navigationState = NavigationState(rootTab = RootTab.Favorites, previousRootTab = RootTab.Favorites),
+                isQueueOpen = true,
+                moreSongId = "song-1",
+            )
 
-        val nextState = NavigationStateController.navigateToSecondary(
-            state = state,
-            screen = SecondaryScreen.Search(context = SearchContext.Favorites),
-        )
+        val nextState =
+            NavigationStateController.navigateToSecondary(
+                state = state,
+                screen = SecondaryScreen.Search(context = SearchContext.Favorites),
+            )
 
         assertEquals(expected = RootTab.Favorites, actual = nextState.navigationState.previousRootTab)
         assertEquals(expected = SecondaryScreen.Search(context = SearchContext.Favorites), actual = nextState.navigationState.secondaryScreen)
@@ -49,20 +51,23 @@ class MusicAppNavigationControllerTest {
      * 从二级页继续打开二级页时应压栈，返回才能恢复上一层 chrome 与内容。
      */
     @Test
-    fun navigateToSecondaryFromSecondaryPushesPreviousScreen(): Unit {
-        val state = testState().copy(
-            navigationState = NavigationState(
-                rootTab = RootTab.Me,
-                previousRootTab = RootTab.Me,
-                secondaryScreen = SecondaryScreen.Settings,
-                secondaryEntryId = 4,
-            ),
-        )
+    fun navigateToSecondaryFromSecondaryPushesPreviousScreen() {
+        val state =
+            testState().copy(
+                navigationState =
+                    NavigationState(
+                        rootTab = RootTab.Me,
+                        previousRootTab = RootTab.Me,
+                        secondaryScreen = SecondaryScreen.Settings,
+                        secondaryEntryId = 4,
+                    ),
+            )
 
-        val nextState = NavigationStateController.navigateToSecondary(
-            state = state,
-            screen = SecondaryScreen.About,
-        )
+        val nextState =
+            NavigationStateController.navigateToSecondary(
+                state = state,
+                screen = SecondaryScreen.About,
+            )
 
         assertEquals(expected = SecondaryScreen.About, actual = nextState.navigationState.secondaryScreen)
         assertEquals(expected = 5, actual = nextState.navigationState.secondaryEntryId)
@@ -80,17 +85,19 @@ class MusicAppNavigationControllerTest {
      * 切换一级页时应彻底退出二级路由，并把目标一级页作为新的返回基线。
      */
     @Test
-    fun navigateToRootClearsSecondaryAndUsesTargetRootAsPreviousRoot(): Unit {
-        val state = testState().copy(
-            navigationState = NavigationState(
-                rootTab = RootTab.Home,
-                previousRootTab = RootTab.Home,
-                secondaryScreen = SecondaryScreen.Player,
-                secondaryEntryId = 4,
-            ),
-            isQueueOpen = true,
-            moreSongId = "song-1",
-        )
+    fun navigateToRootClearsSecondaryAndUsesTargetRootAsPreviousRoot() {
+        val state =
+            testState().copy(
+                navigationState =
+                    NavigationState(
+                        rootTab = RootTab.Home,
+                        previousRootTab = RootTab.Home,
+                        secondaryScreen = SecondaryScreen.Player,
+                        secondaryEntryId = 4,
+                    ),
+                isQueueOpen = true,
+                moreSongId = "song-1",
+            )
 
         val nextState = NavigationStateController.navigateToRoot(state = state, tab = RootTab.Me)
 
@@ -103,15 +110,17 @@ class MusicAppNavigationControllerTest {
      * 从二级页返回时应恢复上次一级页，同时保留 entry id 作为滚动 key 的稳定来源。
      */
     @Test
-    fun navigateBackReturnsToPreviousRootWithoutChangingEntryId(): Unit {
-        val state = testState().copy(
-            navigationState = NavigationState(
-                rootTab = RootTab.Favorites,
-                previousRootTab = RootTab.Me,
-                secondaryScreen = SecondaryScreen.Player,
-                secondaryEntryId = 3,
-            ),
-        )
+    fun navigateBackReturnsToPreviousRootWithoutChangingEntryId() {
+        val state =
+            testState().copy(
+                navigationState =
+                    NavigationState(
+                        rootTab = RootTab.Favorites,
+                        previousRootTab = RootTab.Me,
+                        secondaryScreen = SecondaryScreen.Player,
+                        secondaryEntryId = 3,
+                    ),
+            )
 
         val nextState = NavigationStateController.navigateBack(state = state)
 
@@ -124,18 +133,21 @@ class MusicAppNavigationControllerTest {
      * 栈内返回应先恢复上一层二级页，而不是直接退回一级页。
      */
     @Test
-    fun navigateBackFromStackRestoresPreviousSecondary(): Unit {
-        val state = testState().copy(
-            navigationState = NavigationState(
-                rootTab = RootTab.Me,
-                previousRootTab = RootTab.Me,
-                secondaryScreen = SecondaryScreen.About,
-                secondaryEntryId = 5,
-                secondaryBackStack = listOf(
-                    SecondaryStackEntry(screen = SecondaryScreen.Settings, entryId = 4),
-                ),
-            ),
-        )
+    fun navigateBackFromStackRestoresPreviousSecondary() {
+        val state =
+            testState().copy(
+                navigationState =
+                    NavigationState(
+                        rootTab = RootTab.Me,
+                        previousRootTab = RootTab.Me,
+                        secondaryScreen = SecondaryScreen.About,
+                        secondaryEntryId = 5,
+                        secondaryBackStack =
+                            listOf(
+                                SecondaryStackEntry(screen = SecondaryScreen.Settings, entryId = 4),
+                            ),
+                    ),
+            )
 
         val nextState = NavigationStateController.navigateBack(state = state)
 
@@ -149,20 +161,23 @@ class MusicAppNavigationControllerTest {
      * 最近播放页应是稳定命名的普通二级页，方便移动端和桌面工作区共用路由语义。
      */
     @Test
-    fun recentPlayedUsesNamedSecondaryRouteAndBackStack(): Unit {
-        val state = testState().copy(
-            navigationState = NavigationState(
-                rootTab = RootTab.Me,
-                previousRootTab = RootTab.Me,
-                secondaryScreen = SecondaryScreen.Settings,
-                secondaryEntryId = 6,
-            ),
-        )
+    fun recentPlayedUsesNamedSecondaryRouteAndBackStack() {
+        val state =
+            testState().copy(
+                navigationState =
+                    NavigationState(
+                        rootTab = RootTab.Me,
+                        previousRootTab = RootTab.Me,
+                        secondaryScreen = SecondaryScreen.Settings,
+                        secondaryEntryId = 6,
+                    ),
+            )
 
-        val recentState: MusicAppUiState = NavigationStateController.navigateToSecondary(
-            state = state,
-            screen = SecondaryScreen.RecentPlayed,
-        )
+        val recentState: MusicAppUiState =
+            NavigationStateController.navigateToSecondary(
+                state = state,
+                screen = SecondaryScreen.RecentPlayed,
+            )
 
         assertEquals(expected = SecondaryScreen.RecentPlayed, actual = recentState.navigationState.secondaryScreen)
         assertEquals(expected = "secondary:RecentPlayed:7", actual = recentState.navigationState.scrollStateKey)
@@ -182,7 +197,7 @@ class MusicAppNavigationControllerTest {
      * 页面 fixed-bar 策略应由导航状态纯派生，避免 facade 层重复维护同一规则。
      */
     @Test
-    fun navigationStateProvidesFixedBarMode(): Unit {
+    fun navigationStateProvidesFixedBarMode() {
         val topLevelState: NavigationState = NavigationState()
         assertEquals(expected = MobileFixedBarMode.TopLevel, actual = topLevelState.fixedBarMode)
         assertTrue(actual = topLevelState.fixedBarMode.showsBottomNavigation)
@@ -191,9 +206,10 @@ class MusicAppNavigationControllerTest {
             actual = topLevelState.fixedBarMode.fixedBarPlacement,
         )
 
-        val secondaryState: NavigationState = NavigationState(
-            secondaryScreen = SecondaryScreen.AlbumDetail,
-        )
+        val secondaryState: NavigationState =
+            NavigationState(
+                secondaryScreen = SecondaryScreen.AlbumDetail,
+            )
         assertEquals(expected = MobileFixedBarMode.SecondaryWithMiniPlayer, actual = secondaryState.fixedBarMode)
         assertFalse(actual = secondaryState.fixedBarMode.showsBottomNavigation)
         assertEquals(
@@ -201,9 +217,10 @@ class MusicAppNavigationControllerTest {
             actual = secondaryState.fixedBarMode.fixedBarPlacement,
         )
 
-        val artistDetailState: NavigationState = NavigationState(
-            secondaryScreen = SecondaryScreen.ArtistDetail,
-        )
+        val artistDetailState: NavigationState =
+            NavigationState(
+                secondaryScreen = SecondaryScreen.ArtistDetail,
+            )
         assertEquals(expected = MobileFixedBarMode.SecondaryWithMiniPlayer, actual = artistDetailState.fixedBarMode)
         assertFalse(actual = artistDetailState.fixedBarMode.showsBottomNavigation)
         assertEquals(
@@ -211,9 +228,10 @@ class MusicAppNavigationControllerTest {
             actual = artistDetailState.fixedBarMode.fixedBarPlacement,
         )
 
-        val fullscreenPlayerState: NavigationState = NavigationState(
-            secondaryScreen = SecondaryScreen.Player,
-        )
+        val fullscreenPlayerState: NavigationState =
+            NavigationState(
+                secondaryScreen = SecondaryScreen.Player,
+            )
         assertEquals(expected = MobileFixedBarMode.Player, actual = fullscreenPlayerState.fixedBarMode)
         assertFalse(actual = fullscreenPlayerState.fixedBarMode.showsBottomNavigation)
         assertEquals(
@@ -221,18 +239,20 @@ class MusicAppNavigationControllerTest {
             actual = fullscreenPlayerState.fixedBarMode.fixedBarPlacement,
         )
 
-        val settingsState: NavigationState = NavigationState(
-            secondaryScreen = SecondaryScreen.Settings,
-        )
+        val settingsState: NavigationState =
+            NavigationState(
+                secondaryScreen = SecondaryScreen.Settings,
+            )
         assertEquals(expected = MobileFixedBarMode.SecondaryWithMiniPlayer, actual = settingsState.fixedBarMode)
         assertEquals(
             expected = MobileFixedBarPlacement.MiniPlayerOnly,
             actual = settingsState.fixedBarMode.fixedBarPlacement,
         )
 
-        val recentPlayedState: NavigationState = NavigationState(
-            secondaryScreen = SecondaryScreen.RecentPlayed,
-        )
+        val recentPlayedState: NavigationState =
+            NavigationState(
+                secondaryScreen = SecondaryScreen.RecentPlayed,
+            )
         assertEquals(expected = MobileFixedBarMode.SecondaryWithMiniPlayer, actual = recentPlayedState.fixedBarMode)
         assertFalse(actual = recentPlayedState.fixedBarMode.showsBottomNavigation)
         assertNull(actual = recentPlayedState.chromeOverlayScreen)
@@ -241,18 +261,20 @@ class MusicAppNavigationControllerTest {
             actual = recentPlayedState.fixedBarMode.fixedBarPlacement,
         )
 
-        val aboutState: NavigationState = NavigationState(
-            secondaryScreen = SecondaryScreen.About,
-        )
+        val aboutState: NavigationState =
+            NavigationState(
+                secondaryScreen = SecondaryScreen.About,
+            )
         assertEquals(expected = MobileFixedBarMode.SecondaryWithoutChrome, actual = aboutState.fixedBarMode)
         assertEquals(
             expected = MobileFixedBarPlacement.Hidden,
             actual = aboutState.fixedBarMode.fixedBarPlacement,
         )
 
-        val localPlaylistManagementState: NavigationState = NavigationState(
-            secondaryScreen = SecondaryScreen.LocalPlaylistManagement,
-        )
+        val localPlaylistManagementState: NavigationState =
+            NavigationState(
+                secondaryScreen = SecondaryScreen.LocalPlaylistManagement,
+            )
         assertEquals(
             expected = MobileFixedBarMode.SecondaryWithoutChrome,
             actual = localPlaylistManagementState.fixedBarMode,
@@ -269,28 +291,28 @@ class MusicAppNavigationControllerTest {
     }
 
     /** 构造只包含导航测试所需最小字段的 [MusicAppUiState]。 */
-    private fun testState(): MusicAppUiState {
-        return MusicAppUiState(
+    private fun testState(): MusicAppUiState =
+        MusicAppUiState(
             likedSongIds = emptySet(),
             currentSongId = null,
             playbackStatus = PlaybackStatus.Idle,
             queueSongIds = emptyList(),
-            homeLocalSongPreview = listOf(
-                Song(
-                    id = "song-1",
-                    title = "Song",
-                    artist = "Artist",
-                    album = "Album",
-                    duration = "03:00",
-                    coverArt = CoverArt.CoverSeaDream,
-                    isLiked = false,
-                    lastPlayed = "",
-                    quality = "Lossless",
-                    lyric = "",
-                    trackNumber = 1,
-                    durationMs = 180_000L,
+            homeLocalSongPreview =
+                listOf(
+                    Song(
+                        id = "song-1",
+                        title = "Song",
+                        artist = "Artist",
+                        album = "Album",
+                        duration = "03:00",
+                        coverArt = CoverArt.CoverSeaDream,
+                        isLiked = false,
+                        lastPlayed = "",
+                        quality = "Lossless",
+                        lyric = "",
+                        trackNumber = 1,
+                        durationMs = 180_000L,
+                    ),
                 ),
-            ),
         )
-    }
 }

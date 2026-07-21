@@ -64,10 +64,11 @@ fun LocalMusicScreen(
     var section: LocalMusicSection by remember(initialSection) {
         mutableStateOf(value = initialSection)
     }
-    val scanSummaryDisplayModel: LocalMusicScanSummaryDisplayModel = buildLocalMusicScanSummaryDisplayModel(
-        playableSongCount = songs.size,
-        scanState = scanState,
-    )
+    val scanSummaryDisplayModel: LocalMusicScanSummaryDisplayModel =
+        buildLocalMusicScanSummaryDisplayModel(
+            playableSongCount = songs.size,
+            scanState = scanState,
+        )
     MobileSecondaryPage(
         title = "本地音乐",
         onBack = onBack,
@@ -75,9 +76,10 @@ fun LocalMusicScreen(
         modifier = modifier,
     ) {
         LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .weight(weight = 1f),
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .weight(weight = 1f),
             contentPadding = contentPadding,
             verticalArrangement = Arrangement.spacedBy(scaledDp(18.dp)),
         ) {
@@ -96,34 +98,46 @@ fun LocalMusicScreen(
                 )
             }
             when (section) {
-                LocalMusicSection.Songs -> songSectionItems(
-                    songs = songs,
-                    currentSongId = currentSongId,
-                    currentPlaybackStatus = currentPlaybackStatus,
-                    onSongPlay = onSongPlay,
-                    onCurrentSongToggle = onCurrentSongToggle,
-                    onMore = onMore,
-                )
-                LocalMusicSection.Albums -> albumSectionItems(
-                    albums = albums,
-                    onAlbumOpen = onAlbumOpen,
-                )
-                LocalMusicSection.Artists -> artistSectionItems(
-                    artists = artists,
-                    onArtistOpen = onArtistOpen,
-                )
-                LocalMusicSection.Sources -> item(key = "sources") {
-                    SourceSection(
-                        sources = sources,
-                        problems = problems,
-                        scanState = scanState,
-                        discoveryPlatform = discoveryPlatform,
+                LocalMusicSection.Songs -> {
+                    songSectionItems(
+                        songs = songs,
+                        currentSongId = currentSongId,
+                        currentPlaybackStatus = currentPlaybackStatus,
+                        onSongPlay = onSongPlay,
+                        onCurrentSongToggle = onCurrentSongToggle,
+                        onMore = onMore,
                     )
+                }
+
+                LocalMusicSection.Albums -> {
+                    albumSectionItems(
+                        albums = albums,
+                        onAlbumOpen = onAlbumOpen,
+                    )
+                }
+
+                LocalMusicSection.Artists -> {
+                    artistSectionItems(
+                        artists = artists,
+                        onArtistOpen = onArtistOpen,
+                    )
+                }
+
+                LocalMusicSection.Sources -> {
+                    item(key = "sources") {
+                        SourceSection(
+                            sources = sources,
+                            problems = problems,
+                            scanState = scanState,
+                            discoveryPlatform = discoveryPlatform,
+                        )
+                    }
                 }
             }
         }
     }
 }
+
 // 分段入口使用横向列表，后续扩展平台来源分段时不会挤压页面宽度。
 @Composable
 private fun LocalMusicSectionTabs(
@@ -140,6 +154,7 @@ private fun LocalMusicSectionTabs(
         }
     }
 }
+
 // 渲染歌曲条目时只组合可见行，避免真实曲库进入页面时阻塞主线程。
 private fun LazyListScope.songSectionItems(
     songs: List<Song>,
@@ -171,6 +186,7 @@ private fun LazyListScope.songSectionItems(
         )
     }
 }
+
 // 渲染专辑网格行，保持两列布局并让行级组合按需发生。
 private fun LazyListScope.albumSectionItems(
     albums: List<Album>,
@@ -201,6 +217,7 @@ private fun LazyListScope.albumSectionItems(
         }
     }
 }
+
 // 渲染歌手条目时按 [Artist.id] 复用节点，降低分段切换后的重组成本。
 private fun LazyListScope.artistSectionItems(
     artists: List<Artist>,
@@ -220,17 +237,18 @@ private fun LazyListScope.artistSectionItems(
         ArtistRow(artist = artist, onOpen = onArtistOpen)
     }
 }
+
 // 本地音乐空态保持轻量，避免在扫描前误导用户已有本地数据。
 @Composable
 private fun EmptyLocalMusicState(text: String) {
     Text(text = text, color = MusicColors.Muted, fontSize = scaledSp(15.sp), fontWeight = FontWeight.SemiBold)
 }
+
 // 本地音乐分段中文名。
-private fun LocalMusicSection.label(): String {
-    return when (this) {
+private fun LocalMusicSection.label(): String =
+    when (this) {
         LocalMusicSection.Songs -> "歌曲"
         LocalMusicSection.Albums -> "专辑"
         LocalMusicSection.Artists -> "歌手"
         LocalMusicSection.Sources -> "来源"
     }
-}

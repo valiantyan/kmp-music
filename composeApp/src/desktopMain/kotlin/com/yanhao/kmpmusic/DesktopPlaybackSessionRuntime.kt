@@ -23,8 +23,9 @@ internal class DesktopPlaybackSessionRuntime(
     },
 ) {
     // [sessionScope] 必须带 Job，关闭时才能等待长生命周期协程完整收口。
-    private val sessionJob: Job = sessionScope.coroutineContext[Job]
-        ?: error("DesktopPlaybackSessionRuntime 需要带 Job 的会话作用域")
+    private val sessionJob: Job =
+        sessionScope.coroutineContext[Job]
+            ?: error("DesktopPlaybackSessionRuntime 需要带 Job 的会话作用域")
 
     // 冷启动恢复只允许请求一次，避免窗口重组或多次 attach 覆盖活跃播放态。
     private var hasRequestedPlaybackRestore: Boolean = false
@@ -49,14 +50,15 @@ internal class DesktopPlaybackSessionRuntime(
      * 进程关闭前按顺序释放桌面播放器、停止长生命周期协程并同步持久化最终快照。
      */
     fun close() {
-        val shouldClose: Boolean = synchronized(this) {
-            if (isClosed) {
-                false
-            } else {
-                isClosed = true
-                true
+        val shouldClose: Boolean =
+            synchronized(this) {
+                if (isClosed) {
+                    false
+                } else {
+                    isClosed = true
+                    true
+                }
             }
-        }
         if (!shouldClose) {
             return
         }

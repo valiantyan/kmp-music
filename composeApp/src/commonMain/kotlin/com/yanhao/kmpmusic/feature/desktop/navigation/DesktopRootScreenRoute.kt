@@ -20,61 +20,69 @@ fun DesktopRootScreenRoute(
     onScanLocalMusic: () -> Unit,
 ) {
     when (state.navigationState.rootTab) {
-        RootTab.Home -> DesktopLocalMusicRootScreen(
-            songs = state.songs,
-            albums = state.albums,
-            recentSongs = state.recentSongs,
-            libraryStats = state.libraryStats,
-            scanState = state.scanState,
-            currentSongId = state.currentSongId,
-            currentPlaybackStatus = state.playbackStatus,
-            onScan = onScanLocalMusic,
-            onBrowseLibrary = {
-                controller.openLocalMusic(section = LocalMusicSection.Songs)
-            },
-            onBrowseAlbums = {
-                controller.openLocalMusic(section = LocalMusicSection.Albums)
-            },
-            onSongPlay = { song: Song, queueSongs: List<Song> ->
-                controller.playSong(
-                    song = song,
-                    queueSongs = queueSongs,
-                )
-            },
-            onCurrentSongToggle = controller::togglePlayback,
-            onMore = controller::openMore,
-            onAlbumOpen = controller::openAlbum,
-        )
-        RootTab.Favorites -> DesktopFavoritesRootScreen(
-            songs = state.favoriteSongs,
-            albums = state.favoriteAlbums,
-            artists = state.favoriteArtists,
-            section = state.favoriteSection,
-            currentSongId = state.currentSongId,
-            currentPlaybackStatus = state.playbackStatus,
-            onSection = controller::setFavoriteSection,
-            onSongPlay = { song: Song, queueSongs: List<Song> ->
-                controller.playSong(
-                    song = song,
-                    queueSongs = queueSongs,
-                )
-            },
-            onCurrentSongToggle = controller::togglePlayback,
-            onMore = controller::openMore,
-            onLike = controller::toggleFavorite,
-            onAlbumOpen = controller::openAlbum,
-            onArtistOpen = controller::openArtist,
-        )
-        RootTab.Me -> DesktopMeRootScreen(
-            recentSongs = state.recentSongs,
-            libraryStats = state.libraryStats,
-            localPlaylistCount = state.localPlaylistCount,
-            currentSongId = state.currentSongId,
-            onScanMusic = onScanLocalMusic,
-            onLocalPlaylistsOpen = controller::openLocalPlaylists,
-            onRecentPlayedViewAll = controller::openRecentPlayed,
-            onRecentSongPlay = controller::playRecentSong,
-            onRecentSongMore = controller::openMore,
-        )
+        RootTab.Home -> {
+            DesktopLocalMusicRootScreen(
+                songs = state.songs,
+                albums = state.albums,
+                recentSongs = state.recentSongs,
+                libraryStats = state.libraryStats,
+                scanState = state.scanState,
+                currentSongId = state.currentSongId,
+                currentPlaybackStatus = state.playbackStatus,
+                onScan = onScanLocalMusic,
+                onBrowseLibrary = {
+                    controller.openLocalMusic(section = LocalMusicSection.Songs)
+                },
+                onBrowseAlbums = {
+                    controller.openLocalMusic(section = LocalMusicSection.Albums)
+                },
+                onSongPlay = { song: Song, queueSongs: List<Song> ->
+                    controller.playSong(
+                        song = song,
+                        queueSongs = queueSongs,
+                    )
+                },
+                onCurrentSongToggle = controller::togglePlayback,
+                onMore = controller::openMore,
+                onAlbumOpen = controller::openAlbum,
+            )
+        }
+
+        RootTab.Favorites -> {
+            DesktopFavoritesRootScreen(
+                songs = state.favoriteSongs,
+                albums = state.favoriteAlbums,
+                artists = state.favoriteArtists,
+                section = state.favoriteSection,
+                currentSongId = state.currentSongId,
+                currentPlaybackStatus = state.playbackStatus,
+                onSection = controller::setFavoriteSection,
+                onSongPlay = { song: Song, queueSongs: List<Song> ->
+                    controller.playSong(
+                        song = song,
+                        queueSongs = queueSongs,
+                    )
+                },
+                onCurrentSongToggle = controller::togglePlayback,
+                onMore = controller::openMore,
+                onLike = controller::toggleFavorite,
+                onAlbumOpen = controller::openAlbum,
+                onArtistOpen = controller::openArtist,
+            )
+        }
+
+        RootTab.Me -> {
+            DesktopMeRootScreen(
+                recentSongs = state.recentSongs,
+                libraryStats = state.libraryStats,
+                localPlaylistCount = state.localPlaylistCount,
+                currentSongId = state.currentSongId,
+                onScanMusic = onScanLocalMusic,
+                onLocalPlaylistsOpen = controller::openLocalPlaylists,
+                onRecentPlayedViewAll = controller::openRecentPlayed,
+                onRecentSongPlay = controller::playRecentSong,
+                onRecentSongMore = controller::openMore,
+            )
+        }
     }
 }

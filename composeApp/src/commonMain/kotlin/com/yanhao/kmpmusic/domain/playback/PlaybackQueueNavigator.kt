@@ -20,11 +20,12 @@ internal class PlaybackQueueNavigator(
         if (queueState.songIds.isEmpty()) {
             return null
         }
-        val targetIndex: Int = when {
-            keepLoopOneCurrent && queueState.playbackMode == PlaybackMode.LoopOne -> queueState.currentIndex
-            queueState.playbackMode == PlaybackMode.Shuffle -> shufflePolicy.nextIndex(queueState = queueState)
-            else -> (queueState.currentIndex + 1 + queueState.songIds.size) % queueState.songIds.size
-        }
+        val targetIndex: Int =
+            when {
+                keepLoopOneCurrent && queueState.playbackMode == PlaybackMode.LoopOne -> queueState.currentIndex
+                queueState.playbackMode == PlaybackMode.Shuffle -> shufflePolicy.nextIndex(queueState = queueState)
+                else -> (queueState.currentIndex + 1 + queueState.songIds.size) % queueState.songIds.size
+            }
         return exactIndex(
             queueState = queueState,
             targetIndex = targetIndex,
@@ -39,14 +40,15 @@ internal class PlaybackQueueNavigator(
         if (queueState.songIds.isEmpty()) {
             return null
         }
-        val targetIndex: Int = if (
-            queueState.playbackMode == PlaybackMode.Shuffle &&
-            queueState.shuffleHistory.isNotEmpty()
-        ) {
-            queueState.shuffleHistory.last()
-        } else {
-            (queueState.currentIndex - 1 + queueState.songIds.size) % queueState.songIds.size
-        }
+        val targetIndex: Int =
+            if (
+                queueState.playbackMode == PlaybackMode.Shuffle &&
+                queueState.shuffleHistory.isNotEmpty()
+            ) {
+                queueState.shuffleHistory.last()
+            } else {
+                (queueState.currentIndex - 1 + queueState.songIds.size) % queueState.songIds.size
+            }
         return exactIndex(
             queueState = queueState,
             targetIndex = targetIndex,
@@ -71,15 +73,16 @@ internal class PlaybackQueueNavigator(
                 targetIndex = targetIndex,
             )
         }
-        val nextQueueState: QueueState = if (queueState.playbackMode == PlaybackMode.Shuffle) {
-            shufflePolicy.migrateQueueState(
-                queueState = queueState,
-                targetIndex = targetIndex,
-                isMovingBackward = isMovingBackward,
-            )
-        } else {
-            queueState.copy(currentIndex = targetIndex)
-        }
+        val nextQueueState: QueueState =
+            if (queueState.playbackMode == PlaybackMode.Shuffle) {
+                shufflePolicy.migrateQueueState(
+                    queueState = queueState,
+                    targetIndex = targetIndex,
+                    isMovingBackward = isMovingBackward,
+                )
+            } else {
+                queueState.copy(currentIndex = targetIndex)
+            }
         return QueueNavigationResult(
             queueState = nextQueueState,
             targetIndex = targetIndex,
@@ -115,17 +118,17 @@ internal class PlaybackQueueNavigator(
     fun changePlaybackMode(
         queueState: QueueState,
         playbackMode: PlaybackMode,
-    ): QueueState {
-        return queueState.copy(
+    ): QueueState =
+        queueState.copy(
             playbackMode = playbackMode,
             shuffleHistory = emptyList(),
-            shuffleRemaining = buildShuffleRemaining(
-                playbackMode = playbackMode,
-                queueSize = queueState.songIds.size,
-                currentIndex = queueState.currentIndex,
-            ),
+            shuffleRemaining =
+                buildShuffleRemaining(
+                    playbackMode = playbackMode,
+                    queueSize = queueState.songIds.size,
+                    currentIndex = queueState.currentIndex,
+                ),
         )
-    }
 
     /**
      * 从队列删除歌曲后重新解析 current，并重建随机状态，避免旧索引污染新队列。
@@ -139,22 +142,25 @@ internal class PlaybackQueueNavigator(
         if (removedSongId !in queueState.songIds || nextSongIds.isEmpty()) {
             return null
         }
-        val nextCurrentSongId: String = if (currentSongId == removedSongId) {
-            nextSongIds.first()
-        } else {
-            currentSongId?.takeIf { songId: String -> songId in nextSongIds } ?: nextSongIds.first()
-        }
+        val nextCurrentSongId: String =
+            if (currentSongId == removedSongId) {
+                nextSongIds.first()
+            } else {
+                currentSongId?.takeIf { songId: String -> songId in nextSongIds } ?: nextSongIds.first()
+            }
         val nextCurrentIndex: Int = nextSongIds.indexOf(nextCurrentSongId).coerceAtLeast(minimumValue = 0)
-        val nextQueueState: QueueState = queueState.copy(
-            songIds = nextSongIds,
-            currentIndex = nextCurrentIndex,
-            shuffleHistory = emptyList(),
-            shuffleRemaining = buildShuffleRemaining(
-                playbackMode = queueState.playbackMode,
-                queueSize = nextSongIds.size,
+        val nextQueueState: QueueState =
+            queueState.copy(
+                songIds = nextSongIds,
                 currentIndex = nextCurrentIndex,
-            ),
-        )
+                shuffleHistory = emptyList(),
+                shuffleRemaining =
+                    buildShuffleRemaining(
+                        playbackMode = queueState.playbackMode,
+                        queueSize = nextSongIds.size,
+                        currentIndex = nextCurrentIndex,
+                    ),
+            )
         return QueueNavigationResult(
             queueState = nextQueueState,
             targetIndex = nextCurrentIndex,

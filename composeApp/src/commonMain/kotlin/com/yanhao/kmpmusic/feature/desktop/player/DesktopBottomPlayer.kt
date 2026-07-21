@@ -46,11 +46,12 @@ fun DesktopBottomPlayer(
     modifier: Modifier = Modifier,
 ) {
     Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .height(DesktopMusicDimens.PlayerHeight)
-            .background(Color.White.copy(alpha = 0.86f))
-            .padding(horizontal = 28.dp, vertical = 12.dp),
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .height(DesktopMusicDimens.PlayerHeight)
+                .background(Color.White.copy(alpha = 0.86f))
+                .padding(horizontal = 28.dp, vertical = 12.dp),
         horizontalArrangement = Arrangement.spacedBy(22.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {

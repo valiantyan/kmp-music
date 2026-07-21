@@ -45,28 +45,28 @@ class MusicPlaybackService : MediaSessionService() {
         )
         val exoPlayer: ExoPlayer = ExoPlayer.Builder(this).build()
         player = exoPlayer
-        val session: MediaSession = MediaSession.Builder(
-            /* context = */ this,
-            /* player = */ exoPlayer,
-        )
-            .setCallback(
-                AndroidPlaybackMediaSessionCallback(
-                    mediaButtonPreferencesProvider = { latestMediaButtonPreferences },
-                    updateMediaButtonPreferences = ::refreshMediaButtonPreferences,
-                    clearMediaNotification = ::clearMediaNotification,
-                ),
-            )
-            .setMediaButtonPreferences(latestMediaButtonPreferences)
-            .setSessionActivity(createOpenPlayerPendingIntent())
-            .build()
+        val session: MediaSession =
+            MediaSession
+                .Builder(
+                    // context =
+                    this,
+                    // player =
+                    exoPlayer,
+                ).setCallback(
+                    AndroidPlaybackMediaSessionCallback(
+                        mediaButtonPreferencesProvider = { latestMediaButtonPreferences },
+                        updateMediaButtonPreferences = ::refreshMediaButtonPreferences,
+                        clearMediaNotification = ::clearMediaNotification,
+                    ),
+                ).setMediaButtonPreferences(latestMediaButtonPreferences)
+                .setSessionActivity(createOpenPlayerPendingIntent())
+                .build()
         mediaSession = session
         addSession(session)
     }
 
     /** 统一返回当前 session，允许 App、系统和外部控制器连接到此 service。 */
-    override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaSession? {
-        return mediaSession
-    }
+    override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaSession? = mediaSession
 
     /**
      * 用户从最近任务划掉 App 时，音乐产品语义是播放中继续，非播放中停止后台 service。
@@ -100,11 +100,12 @@ class MusicPlaybackService : MediaSessionService() {
 
     /** 依据 shared 状态刷新 Media3 媒体按钮偏好。 */
     private fun refreshMediaButtonPreferences(state: MediaButtonState) {
-        latestMediaButtonPreferences = AndroidPlaybackMediaButtonFactory.mediaButtonPreferences(
-            shouldShowPauseButton = state.shouldShowPauseButton,
-            isFavorite = state.isFavorite,
-            playbackMode = state.playbackMode,
-        )
+        latestMediaButtonPreferences =
+            AndroidPlaybackMediaButtonFactory.mediaButtonPreferences(
+                shouldShowPauseButton = state.shouldShowPauseButton,
+                isFavorite = state.isFavorite,
+                playbackMode = state.playbackMode,
+            )
         mediaSession?.setMediaButtonPreferences(latestMediaButtonPreferences)
         if (state.playbackStatus == PlaybackStatus.Idle && !state.hasActivePlaybackSession) {
             clearMediaNotification()
@@ -112,14 +113,13 @@ class MusicPlaybackService : MediaSessionService() {
     }
 
     /** 创建 Media3 session activity，系统通知正文点击后回到当前播放页。 */
-    private fun createOpenPlayerPendingIntent(): PendingIntent {
-        return PendingIntent.getActivity(
+    private fun createOpenPlayerPendingIntent(): PendingIntent =
+        PendingIntent.getActivity(
             this,
             OPEN_PLAYER_REQUEST_CODE,
             MainActivity.createOpenPlayerIntent(context = this),
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
-    }
 
     /**
      * 当前没有活动歌曲时清空 Media3 播放列表，让默认系统媒体通知随 service 空闲自然撤下。

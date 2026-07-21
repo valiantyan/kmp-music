@@ -56,26 +56,28 @@ fun DesktopRail(
     modifier: Modifier = Modifier,
 ) {
     Column(
-        modifier = modifier
-            .width(DesktopMusicDimens.RailWidth)
-            .fillMaxHeight()
-            .background(Color(0xB3F8FBFC))
-            .border(width = 1.dp, color = DesktopMusicColors.Line)
-            .padding(top = 20.dp, start = 12.dp, end = 12.dp, bottom = 18.dp),
+        modifier =
+            modifier
+                .width(DesktopMusicDimens.RailWidth)
+                .fillMaxHeight()
+                .background(Color(0xB3F8FBFC))
+                .border(width = 1.dp, color = DesktopMusicColors.Line)
+                .padding(top = 20.dp, start = 12.dp, end = 12.dp, bottom = 18.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Box(
-            modifier = Modifier
-                .size(DesktopMusicDimens.BrandSize)
-                .clip(RoundedCornerShape(11.dp))
-                .background(
-                    Brush.linearGradient(
-                        listOf(
-                            Color(0xFF1DC6AD),
-                            Color(0xFF0CA58F),
+            modifier =
+                Modifier
+                    .size(DesktopMusicDimens.BrandSize)
+                    .clip(RoundedCornerShape(11.dp))
+                    .background(
+                        Brush.linearGradient(
+                            listOf(
+                                Color(0xFF1DC6AD),
+                                Color(0xFF0CA58F),
+                            ),
                         ),
                     ),
-                ),
             contentAlignment = Alignment.Center,
         ) {
             Text(
@@ -133,9 +135,10 @@ private fun DesktopRailItem(
 ) {
     val isActive: Boolean = destination == activeDestination
     Surface(
-        modifier = Modifier
-            .size(DesktopMusicDimens.RailItemSize)
-            .padding(bottom = 8.dp),
+        modifier =
+            Modifier
+                .size(DesktopMusicDimens.RailItemSize)
+                .padding(bottom = 8.dp),
         shape = RoundedCornerShape(14.dp),
         color = if (isActive) DesktopMusicColors.Accent.copy(alpha = 0.10f) else Color.Transparent,
         onClick = onClick,
@@ -162,13 +165,17 @@ private fun DesktopRailItem(
 }
 
 /** 桌面左侧 rail 需要把根页面与设置页映射成唯一选中态。 */
-fun MusicAppUiState.desktopRailDestination(): DesktopRailDestination {
-    return when (navigationState.secondaryScreen) {
-        SecondaryScreen.Settings -> DesktopRailDestination.Settings
-        else -> when (navigationState.rootTab) {
-            RootTab.Home -> DesktopRailDestination.Home
-            RootTab.Favorites -> DesktopRailDestination.Favorites
-            RootTab.Me -> DesktopRailDestination.Me
+fun MusicAppUiState.desktopRailDestination(): DesktopRailDestination =
+    when (navigationState.secondaryScreen) {
+        SecondaryScreen.Settings -> {
+            DesktopRailDestination.Settings
+        }
+
+        else -> {
+            when (navigationState.rootTab) {
+                RootTab.Home -> DesktopRailDestination.Home
+                RootTab.Favorites -> DesktopRailDestination.Favorites
+                RootTab.Me -> DesktopRailDestination.Me
+            }
         }
     }
-}

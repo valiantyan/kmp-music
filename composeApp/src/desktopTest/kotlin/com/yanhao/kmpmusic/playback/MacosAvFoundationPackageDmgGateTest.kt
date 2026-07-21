@@ -11,23 +11,24 @@ import kotlin.test.assertTrue
 class MacosAvFoundationPackageDmgGateTest {
     /** 验证 [packageDmg] 会先把 native bridge 放入 app resources。 */
     @Test
-    fun packageDmgStagesMacosAvFoundationBridgeIntoAppResources(): Unit {
+    fun packageDmgStagesMacosAvFoundationBridgeIntoAppResources() {
         val text: String = readProjectFile(relativePath = BUILD_FILE_PATH)
         assertContainsAll(
             text = text,
-            requiredSnippets = listOf(
-                "stageMacosAvFoundationBridgeIntoPackageApp",
-                "dependsOn(\"compileMacosAvFoundationBridge\", \"createDistributable\")",
-                "Contents/app/resources/\$macosAvFoundationBridgeBundleDirectory",
-                "task.name == \"packageDmg\"",
-                "dependsOn(stageMacosAvFoundationBridgeIntoPackageApp)",
-                "inputs.file(macosAvFoundationBundledBridgeLibrary)",
-                "stageMacosAvFoundationBridgeIntoReleasePackageApp",
-                "dependsOn(\"compileMacosAvFoundationBridge\", \"createReleaseDistributable\")",
-                "task.name == \"packageReleaseDmg\"",
-                "dependsOn(stageMacosAvFoundationBridgeIntoReleasePackageApp)",
-                "inputs.file(macosAvFoundationReleaseBundledBridgeLibrary)",
-            ),
+            requiredSnippets =
+                listOf(
+                    "stageMacosAvFoundationBridgeIntoPackageApp",
+                    "dependsOn(\"compileMacosAvFoundationBridge\", \"createDistributable\")",
+                    "Contents/app/resources/\$macosAvFoundationBridgeBundleDirectory",
+                    "task.name == \"packageDmg\"",
+                    "dependsOn(stageMacosAvFoundationBridgeIntoPackageApp)",
+                    "inputs.file(macosAvFoundationBundledBridgeLibrary)",
+                    "stageMacosAvFoundationBridgeIntoReleasePackageApp",
+                    "dependsOn(\"compileMacosAvFoundationBridge\", \"createReleaseDistributable\")",
+                    "task.name == \"packageReleaseDmg\"",
+                    "dependsOn(stageMacosAvFoundationBridgeIntoReleasePackageApp)",
+                    "inputs.file(macosAvFoundationReleaseBundledBridgeLibrary)",
+                ),
         )
     }
 
@@ -50,10 +51,11 @@ class MacosAvFoundationPackageDmgGateTest {
     private fun assertContainsAll(
         text: String,
         requiredSnippets: List<String>,
-    ): Unit {
-        val missingSnippets: List<String> = requiredSnippets.filterNot { snippet: String ->
-            text.contains(other = snippet)
-        }
+    ) {
+        val missingSnippets: List<String> =
+            requiredSnippets.filterNot { snippet: String ->
+                text.contains(other = snippet)
+            }
         assertTrue(
             actual = missingSnippets.isEmpty(),
             message = "$BUILD_FILE_PATH 缺少：${missingSnippets.joinToString(separator = "；")}",

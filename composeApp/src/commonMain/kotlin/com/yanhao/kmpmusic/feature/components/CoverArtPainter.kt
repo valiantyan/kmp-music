@@ -25,15 +25,13 @@ import org.jetbrains.compose.resources.ExperimentalResourceApi
  */
 @Composable
 @OptIn(ExperimentalResourceApi::class)
-internal fun coverArtResourceUri(coverArt: CoverArt): String {
-    return Res.getUri(coverArtResourcePath(coverArt = coverArt))
-}
+internal fun coverArtResourceUri(coverArt: CoverArt): String = Res.getUri(coverArtResourcePath(coverArt = coverArt))
 
 /**
  * 为迷你播放器旧调色板流程提供同步资源桥接，直到 Task 5 替换该位图读取链路。
  */
-internal fun miniPlayerPaletteCoverArtResource(coverArt: CoverArt): DrawableResource {
-    return when (coverArt) {
+internal fun miniPlayerPaletteCoverArtResource(coverArt: CoverArt): DrawableResource =
+    when (coverArt) {
         CoverArt.AlbumBestOfMe -> Res.drawable.album_best_of_me
         CoverArt.AlbumRiverYear -> Res.drawable.album_river_year
         CoverArt.AlbumTimeForest -> Res.drawable.album_time_forest
@@ -41,7 +39,6 @@ internal fun miniPlayerPaletteCoverArtResource(coverArt: CoverArt): DrawableReso
         CoverArt.CoverSummerWaltz -> Res.drawable.cover_summer_waltz
         CoverArt.HeroLocalMusic -> Res.drawable.hero_local_folder
     }
-}
 
 /**
  * Coil 封面图组件。扫描封面优先，加载失败时回退到应用内资源。
@@ -55,18 +52,20 @@ fun CoverArtImage(
     modifier: Modifier = Modifier,
     contentScale: ContentScale = ContentScale.Crop,
 ) {
-    val request: CoverArtImageRequest = remember(coverArt, coverImageUri) {
-        buildCoverArtImageRequest(
-            coverArt = coverArt,
-            coverImageUri = coverImageUri,
-        )
-    }
+    val request: CoverArtImageRequest =
+        remember(coverArt, coverImageUri) {
+            buildCoverArtImageRequest(
+                coverArt = coverArt,
+                coverImageUri = coverImageUri,
+            )
+        }
     val fallbackModel: String = Res.getUri(request.fallbackResourcePath)
-    val primaryModel: String = if (request.usesExternalCover) {
-        request.primaryModel
-    } else {
-        fallbackModel
-    }
+    val primaryModel: String =
+        if (request.usesExternalCover) {
+            request.primaryModel
+        } else {
+            fallbackModel
+        }
     var activeModel: String by remember(coverArt, coverImageUri) {
         mutableStateOf(primaryModel)
     }

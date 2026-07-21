@@ -40,19 +40,18 @@ internal class SearchResultController(
     /**
      * pending 或空搜索统一返回空结果，避免 UI 消费不该出现的全量数据。
      */
-    private fun emptySearchResult(): SearchResult {
-        return SearchResult(
+    private fun emptySearchResult(): SearchResult =
+        SearchResult(
             songs = emptyList(),
             albums = emptyList(),
             artists = emptyList(),
         )
-    }
 
     /**
      * 按搜索上下文选择数据源，保证收藏搜索不会回退到完整曲库。
      */
-    private fun searchSourceSongs(state: MusicAppUiState): List<Song> {
-        return when (state.searchContext) {
+    private fun searchSourceSongs(state: MusicAppUiState): List<Song> =
+        when (state.searchContext) {
             SearchContext.LocalLibrary -> {
                 if (state.localSongs.isNotEmpty()) {
                     state.localSongs
@@ -60,7 +59,9 @@ internal class SearchResultController(
                     musicLibraryRepository.getAllAvailableSongs()
                 }
             }
-            SearchContext.Favorites -> state.favoriteSongs
+
+            SearchContext.Favorites -> {
+                state.favoriteSongs
+            }
         }
-    }
 }

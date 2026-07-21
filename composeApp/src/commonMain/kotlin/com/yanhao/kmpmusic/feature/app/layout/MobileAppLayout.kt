@@ -38,38 +38,43 @@ fun MobileAppLayout(
     modifier: Modifier = Modifier,
 ) {
     BoxWithConstraints(
-        modifier = modifier
-            .fillMaxSize()
-            .background(color = MusicColors.PageBackground),
+        modifier =
+            modifier
+                .fillMaxSize()
+                .background(color = MusicColors.PageBackground),
         contentAlignment = Alignment.TopCenter,
     ) {
-        val appWidth: Dp = if (maxWidth < MusicDimens.AppMaxWidth) {
-            maxWidth
-        } else {
-            MusicDimens.AppMaxWidth
-        }
+        val appWidth: Dp =
+            if (maxWidth < MusicDimens.AppMaxWidth) {
+                maxWidth
+            } else {
+                MusicDimens.AppMaxWidth
+            }
         val visualScale: Float = (appWidth.value / MusicDimens.AppMaxWidth.value).coerceAtMost(maximumValue = 1f)
         val currentDensity: Density = LocalDensity.current
         CompositionLocalProvider(
             LocalMusicScale provides visualScale,
-            LocalDensity provides Density(
-                density = currentDensity.density,
-                fontScale = 1f,
-            ),
+            LocalDensity provides
+                Density(
+                    density = currentDensity.density,
+                    fontScale = 1f,
+                ),
         ) {
             Box(
-                modifier = Modifier
-                    .width(appWidth)
-                    .fillMaxHeight()
-                    .background(color = MaterialTheme.colorScheme.background),
+                modifier =
+                    Modifier
+                        .width(appWidth)
+                        .fillMaxHeight()
+                        .background(color = MaterialTheme.colorScheme.background),
             ) {
                 val fixedBarMode: MobileFixedBarMode = state.navigationState.chromeUnderlayFixedBarMode
                 val hasChromeOverlay: Boolean = state.navigationState.chromeOverlayScreen != null
-                val underlayModifier: Modifier = if (hasChromeOverlay) {
-                    Modifier.clearAndSetSemantics {}
-                } else {
-                    Modifier
-                }
+                val underlayModifier: Modifier =
+                    if (hasChromeOverlay) {
+                        Modifier.clearAndSetSemantics {}
+                    } else {
+                        Modifier
+                    }
                 MobileContentLayout(
                     state = state,
                     controller = controller,

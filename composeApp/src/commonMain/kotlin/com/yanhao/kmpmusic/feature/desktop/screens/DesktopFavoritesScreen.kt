@@ -49,15 +49,17 @@ fun DesktopFavoritesRootScreen(
     onArtistOpen: (Artist) -> Unit,
 ) {
     val likedSongs: List<Song> = songs.filter { song: Song -> song.isLiked }
-    val playAllLabel: String = rootPlayAllLabel(
-        songs = likedSongs,
-        currentSongId = currentSongId,
-        currentPlaybackStatus = currentPlaybackStatus,
-    )
+    val playAllLabel: String =
+        rootPlayAllLabel(
+            songs = likedSongs,
+            currentSongId = currentSongId,
+            currentPlaybackStatus = currentPlaybackStatus,
+        )
     Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState()),
+        modifier =
+            Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState()),
     ) {
         DesktopPageHeader(
             title = "收藏",
@@ -119,6 +121,7 @@ fun DesktopFavoritesRootScreen(
                     )
                 }
             }
+
             FavoriteSection.Albums -> {
                 DesktopSectionHeader(
                     title = "收藏的专辑",
@@ -129,6 +132,7 @@ fun DesktopFavoritesRootScreen(
                     onAlbumOpen = onAlbumOpen,
                 )
             }
+
             FavoriteSection.Artists -> {
                 DesktopSectionHeader(
                     title = "收藏的歌手",

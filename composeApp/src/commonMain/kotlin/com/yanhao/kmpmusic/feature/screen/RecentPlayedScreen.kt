@@ -4,8 +4,8 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
@@ -37,10 +37,11 @@ fun RecentPlayedScreen(
     modifier: Modifier = Modifier,
     contentPadding: PaddingValues = PaddingValues(),
 ) {
-    val displayModel: RecentPlayedPageDisplayModel = buildRecentPlayedPageDisplayModel(
-        songs = songs,
-        currentSongId = currentSongId,
-    )
+    val displayModel: RecentPlayedPageDisplayModel =
+        buildRecentPlayedPageDisplayModel(
+            songs = songs,
+            currentSongId = currentSongId,
+        )
     MobileSecondaryPage(
         title = "最近播放",
         onBack = onBack,
@@ -48,13 +49,15 @@ fun RecentPlayedScreen(
         modifier = modifier,
     ) {
         LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .weight(weight = 1f),
-            contentPadding = PaddingValues(
-                top = 12.dp,
-                bottom = contentPadding.calculateBottomPadding() + 40.dp,
-            ),
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .weight(weight = 1f),
+            contentPadding =
+                PaddingValues(
+                    top = 12.dp,
+                    bottom = contentPadding.calculateBottomPadding() + 40.dp,
+                ),
         ) {
             if (displayModel.songs.isEmpty()) {
                 item(key = "recent-played-empty", contentType = "recent-played-empty") {
@@ -104,24 +107,25 @@ internal data class RecentPlayedPageDisplayModel(
 internal fun buildRecentPlayedPageDisplayModel(
     songs: List<Song>,
     currentSongId: String? = null,
-): RecentPlayedPageDisplayModel {
-    return RecentPlayedPageDisplayModel(
-        songRows = buildRecentPlayedSongRowDisplayModels(
-            songs = songs,
-            currentSongId = currentSongId,
-        ),
+): RecentPlayedPageDisplayModel =
+    RecentPlayedPageDisplayModel(
+        songRows =
+            buildRecentPlayedSongRowDisplayModels(
+                songs = songs,
+                currentSongId = currentSongId,
+            ),
         emptyTitle = "暂无最近播放",
         emptyDetail = "播放歌曲后才会产生最近播放记录。",
     )
-}
 
 // 空态继续使用轻量文案，避免没有历史时出现白屏或误导成加载失败。
 @Composable
 private fun RecentPlayedPageEmptyState(displayModel: RecentPlayedPageDisplayModel) {
     Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = favoritesHorizontalPadding, vertical = 24.dp),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = favoritesHorizontalPadding, vertical = 24.dp),
         verticalArrangement = Arrangement.spacedBy(space = 8.dp),
     ) {
         Text(
@@ -159,6 +163,4 @@ private fun RecentPlayedPageSongRow(
 }
 
 // 最近播放页不展示专辑名，时长直接跟在歌手后面便于列表扫读。
-private fun formatRecentPlayedSongMeta(song: Song): String {
-    return "${song.artist} · ${song.duration}"
-}
+private fun formatRecentPlayedSongMeta(song: Song): String = "${song.artist} · ${song.duration}"

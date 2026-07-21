@@ -45,43 +45,46 @@ internal class MacosAvFoundationPlaybackBridge(
     override val events: Flow<ApplePlaybackBridgeEvent> = eventChannel.receiveAsFlow()
 
     /** 判断 native callback 当前是否仍可进入事件流。 */
-    internal fun canEmitCallbacks(): Boolean {
-        return !isReleased
-    }
+    internal fun canEmitCallbacks(): Boolean = !isReleased
 
     /** 准备当前媒体，初始化失败时直接返回失败 ack。 */
     override suspend fun prepare(request: ApplePlaybackBridgePrepareRequest): ApplePlaybackBridgeCommandAck {
-        val activeSession: MacosAvFoundationNativeBridgeSession = session
-            ?: return failedAck(error = unavailableError(songId = request.songId))
+        val activeSession: MacosAvFoundationNativeBridgeSession =
+            session
+                ?: return failedAck(error = unavailableError(songId = request.songId))
         return ackFromStatus(
-            status = activeSession.prepare(
-                songId = request.songId,
-                mediaUri = request.mediaUri,
-                generation = request.generation,
-                startPositionMs = request.startPositionMs,
-            ),
+            status =
+                activeSession.prepare(
+                    songId = request.songId,
+                    mediaUri = request.mediaUri,
+                    generation = request.generation,
+                    startPositionMs = request.startPositionMs,
+                ),
             songId = request.songId,
         )
     }
 
     /** 下发播放命令。 */
     override suspend fun play(generation: Long): ApplePlaybackBridgeCommandAck {
-        val activeSession: MacosAvFoundationNativeBridgeSession = session
-            ?: return failedAck(error = unavailableError(songId = null))
+        val activeSession: MacosAvFoundationNativeBridgeSession =
+            session
+                ?: return failedAck(error = unavailableError(songId = null))
         return ackFromStatus(status = activeSession.play(generation = generation), songId = null)
     }
 
     /** 下发暂停命令。 */
     override suspend fun pause(generation: Long): ApplePlaybackBridgeCommandAck {
-        val activeSession: MacosAvFoundationNativeBridgeSession = session
-            ?: return failedAck(error = unavailableError(songId = null))
+        val activeSession: MacosAvFoundationNativeBridgeSession =
+            session
+                ?: return failedAck(error = unavailableError(songId = null))
         return ackFromStatus(status = activeSession.pause(generation = generation), songId = null)
     }
 
     /** 下发 seek 命令。 */
     override suspend fun seekTo(request: ApplePlaybackBridgeSeekRequest): ApplePlaybackBridgeCommandAck {
-        val activeSession: MacosAvFoundationNativeBridgeSession = session
-            ?: return failedAck(error = unavailableError(songId = null))
+        val activeSession: MacosAvFoundationNativeBridgeSession =
+            session
+                ?: return failedAck(error = unavailableError(songId = null))
         return ackFromStatus(
             status = activeSession.seekTo(generation = request.generation, positionMs = request.positionMs),
             songId = null,
@@ -90,15 +93,17 @@ internal class MacosAvFoundationPlaybackBridge(
 
     /** 下发 stop 命令。 */
     override suspend fun stop(generation: Long): ApplePlaybackBridgeCommandAck {
-        val activeSession: MacosAvFoundationNativeBridgeSession = session
-            ?: return failedAck(error = unavailableError(songId = null))
+        val activeSession: MacosAvFoundationNativeBridgeSession =
+            session
+                ?: return failedAck(error = unavailableError(songId = null))
         return ackFromStatus(status = activeSession.stop(generation = generation), songId = null)
     }
 
     /** 设置 native 播放器音量。 */
     override suspend fun setVolume(volume: Float): ApplePlaybackBridgeCommandAck {
-        val activeSession: MacosAvFoundationNativeBridgeSession = session
-            ?: return failedAck(error = unavailableError(songId = null))
+        val activeSession: MacosAvFoundationNativeBridgeSession =
+            session
+                ?: return failedAck(error = unavailableError(songId = null))
         return ackFromStatus(status = activeSession.setVolume(volume = volume), songId = null)
     }
 
@@ -108,13 +113,17 @@ internal class MacosAvFoundationPlaybackBridge(
             return ApplePlaybackBridgeCommandAck.Accepted
         }
         isReleased = true
-        val activeSession: MacosAvFoundationNativeBridgeSession = session
-            ?: return ApplePlaybackBridgeCommandAck.Accepted
+        val activeSession: MacosAvFoundationNativeBridgeSession =
+            session
+                ?: return ApplePlaybackBridgeCommandAck.Accepted
         return ackFromStatus(status = activeSession.release(), songId = null)
     }
 
     /** 把 native 命令状态码映射成 bridge ack。 */
-    private fun ackFromStatus(status: Int, songId: String?): ApplePlaybackBridgeCommandAck {
+    private fun ackFromStatus(
+        status: Int,
+        songId: String?,
+    ): ApplePlaybackBridgeCommandAck {
         if (status == MACOS_AVFOUNDATION_NATIVE_STATUS_ACCEPTED) {
             return ApplePlaybackBridgeCommandAck.Accepted
         }
@@ -122,19 +131,21 @@ internal class MacosAvFoundationPlaybackBridge(
     }
 
     /** 生成失败 ack。 */
-    private fun failedAck(error: PlaybackError): ApplePlaybackBridgeCommandAck {
-        return ApplePlaybackBridgeCommandAck.Failed(error = error)
-    }
+    private fun failedAck(error: PlaybackError): ApplePlaybackBridgeCommandAck = ApplePlaybackBridgeCommandAck.Failed(error = error)
 
     /** 根据 native 状态码生成播放错误。 */
-    private fun errorFromStatus(status: Int, songId: String?): PlaybackError {
-        val type: PlaybackErrorType = when (status) {
-            MACOS_AVFOUNDATION_NATIVE_STATUS_MISSING_FILE -> PlaybackErrorType.MissingFile
-            MACOS_AVFOUNDATION_NATIVE_STATUS_UNSUPPORTED_FORMAT -> PlaybackErrorType.UnsupportedFormat
-            MACOS_AVFOUNDATION_NATIVE_STATUS_PERMISSION_DENIED -> PlaybackErrorType.PermissionDenied
-            MACOS_AVFOUNDATION_NATIVE_STATUS_ENGINE_UNAVAILABLE -> PlaybackErrorType.EngineUnavailable
-            else -> PlaybackErrorType.Unknown
-        }
+    private fun errorFromStatus(
+        status: Int,
+        songId: String?,
+    ): PlaybackError {
+        val type: PlaybackErrorType =
+            when (status) {
+                MACOS_AVFOUNDATION_NATIVE_STATUS_MISSING_FILE -> PlaybackErrorType.MissingFile
+                MACOS_AVFOUNDATION_NATIVE_STATUS_UNSUPPORTED_FORMAT -> PlaybackErrorType.UnsupportedFormat
+                MACOS_AVFOUNDATION_NATIVE_STATUS_PERMISSION_DENIED -> PlaybackErrorType.PermissionDenied
+                MACOS_AVFOUNDATION_NATIVE_STATUS_ENGINE_UNAVAILABLE -> PlaybackErrorType.EngineUnavailable
+                else -> PlaybackErrorType.Unknown
+            }
         return PlaybackError(
             type = type,
             songId = songId,
@@ -143,13 +154,12 @@ internal class MacosAvFoundationPlaybackBridge(
     }
 
     /** 构造 bridge 不可用错误。 */
-    private fun unavailableError(songId: String?): PlaybackError {
-        return PlaybackError(
+    private fun unavailableError(songId: String?): PlaybackError =
+        PlaybackError(
             type = PlaybackErrorType.EngineUnavailable,
             songId = songId,
             message = "macOS AVFoundation bridge 不可用",
         )
-    }
 
     companion object {
         /** 创建生产 bridge，默认加载 JNI dylib。 */
@@ -157,11 +167,10 @@ internal class MacosAvFoundationPlaybackBridge(
             libraryLoader: MacosAvFoundationNativeLibraryLoader = SystemMacosAvFoundationNativeLibraryLoader,
             sessionFactory: MacosAvFoundationNativeBridgeSessionFactory =
                 JniMacosAvFoundationNativeBridgeSessionFactory,
-        ): MacosAvFoundationPlaybackBridge {
-            return MacosAvFoundationPlaybackBridgeFactory.create(
+        ): MacosAvFoundationPlaybackBridge =
+            MacosAvFoundationPlaybackBridgeFactory.create(
                 libraryLoader = libraryLoader,
                 sessionFactory = sessionFactory,
             )
-        }
     }
 }

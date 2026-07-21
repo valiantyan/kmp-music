@@ -39,13 +39,12 @@ internal class PreferenceStateController(
     fun setLocalMusicAutoScanOnLaunchEnabled(
         state: MusicAppUiState,
         isEnabled: Boolean,
-    ): MusicAppUiState {
-        return updateLocalMusicDiscoveryPreferences(
+    ): MusicAppUiState =
+        updateLocalMusicDiscoveryPreferences(
             state = state,
         ) { preferences: LocalMusicDiscoveryPreferences ->
             preferences.copy(isAutoScanOnLaunchEnabled = isEnabled)
         }
-    }
 
     /**
      * 保存短音频过滤偏好，同时保留其他本地发现设置。
@@ -57,13 +56,12 @@ internal class PreferenceStateController(
     fun setLocalMusicShortAudioIgnored(
         state: MusicAppUiState,
         isIgnored: Boolean,
-    ): MusicAppUiState {
-        return updateLocalMusicDiscoveryPreferences(
+    ): MusicAppUiState =
+        updateLocalMusicDiscoveryPreferences(
             state = state,
         ) { preferences: LocalMusicDiscoveryPreferences ->
             preferences.copy(shouldIgnoreShortAudio = isIgnored)
         }
-    }
 
     /**
      * 保存系统文件夹排除偏好，同时保留其他本地发现设置。
@@ -75,13 +73,12 @@ internal class PreferenceStateController(
     fun setLocalMusicSystemFoldersExcluded(
         state: MusicAppUiState,
         isExcluded: Boolean,
-    ): MusicAppUiState {
-        return updateLocalMusicDiscoveryPreferences(
+    ): MusicAppUiState =
+        updateLocalMusicDiscoveryPreferences(
             state = state,
         ) { preferences: LocalMusicDiscoveryPreferences ->
             preferences.copy(shouldExcludeSystemFolders = isExcluded)
         }
-    }
 
     // 统一保留未修改字段，避免多个偏好入口各自复制保存逻辑。
     private fun updateLocalMusicDiscoveryPreferences(

@@ -6,6 +6,4 @@ package com.yanhao.kmpmusic.domain.playback
 internal actual fun <T> runSynchronizedBlock(
     lock: Any,
     block: () -> T,
-): T {
-    return kotlin.synchronized(lock = lock, block = block)
-}
+): T = kotlin.synchronized(lock = lock, block = block)

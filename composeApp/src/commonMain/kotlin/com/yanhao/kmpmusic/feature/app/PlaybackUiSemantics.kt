@@ -9,6 +9,7 @@ import com.yanhao.kmpmusic.domain.model.PlaybackStatus
  * 但底层还没有进入真实 [PlaybackStatus.Playing]，因此只影响 UI 控件，不改变播放状态语义。
  */
 internal val PlaybackStatus.shouldShowPauseControl: Boolean
-    get() = this == PlaybackStatus.Playing ||
-        this == PlaybackStatus.Loading ||
-        this == PlaybackStatus.Buffering
+    get() =
+        this == PlaybackStatus.Playing ||
+            this == PlaybackStatus.Loading ||
+            this == PlaybackStatus.Buffering

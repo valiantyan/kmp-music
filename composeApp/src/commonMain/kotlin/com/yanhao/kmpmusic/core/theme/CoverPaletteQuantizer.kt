@@ -67,15 +67,17 @@ private fun collectColorBuckets(pixels: IntArray): ColorBuckets {
 }
 
 // HSL 明度和饱和度用于过滤不适合当背景种子的色块。
-private fun ColorSwatch.isProminentCandidate(): Boolean {
-    return population >= MIN_PROMINENT_POPULATION &&
+private fun ColorSwatch.isProminentCandidate(): Boolean =
+    population >= MIN_PROMINENT_POPULATION &&
         hsl.saturation >= 0.12f &&
         hsl.lightness >= 0.22f &&
         hsl.lightness <= 0.78f
-}
 
 // 计算显著色分数，平衡占比、彩度和中间明度。
-private fun calculateSwatchScore(population: Float, hsl: HslColor): Float {
+private fun calculateSwatchScore(
+    population: Float,
+    hsl: HslColor,
+): Float {
     val lightnessPreference: Float = 1f - min(abs(hsl.lightness - 0.48f) / 0.42f, 1f)
     return population.toDouble().pow(0.60).toFloat() *
         (0.65f + hsl.saturation) *
@@ -83,7 +85,11 @@ private fun calculateSwatchScore(population: Float, hsl: HslColor): Float {
 }
 
 // 把 RGB 转成 HSL，方便用视觉明度和饱和度过滤候选色。
-private fun createHslColor(red: Float, green: Float, blue: Float): HslColor {
+private fun createHslColor(
+    red: Float,
+    green: Float,
+    blue: Float,
+): HslColor {
     val maxChannel: Float = max(red, max(green, blue))
     val minChannel: Float = min(red, min(green, blue))
     val lightness: Float = (maxChannel + minChannel) / 2f
@@ -91,11 +97,12 @@ private fun createHslColor(red: Float, green: Float, blue: Float): HslColor {
         return HslColor(saturation = 0f, lightness = lightness)
     }
     val delta: Float = maxChannel - minChannel
-    val saturation: Float = if (lightness > 0.5f) {
-        delta / (2f - maxChannel - minChannel)
-    } else {
-        delta / (maxChannel + minChannel)
-    }
+    val saturation: Float =
+        if (lightness > 0.5f) {
+            delta / (2f - maxChannel - minChannel)
+        } else {
+            delta / (maxChannel + minChannel)
+        }
     return HslColor(saturation = saturation, lightness = lightness)
 }
 
@@ -105,24 +112,29 @@ private fun createHslColor(red: Float, green: Float, blue: Float): HslColor {
 private class ColorBuckets {
     // 每个色桶的像素数量。
     private val counts: IntArray = IntArray(size = COLOR_BIN_COUNT)
+
     // 每个色桶的红色通道累加值。
     private val redSums: LongArray = LongArray(size = COLOR_BIN_COUNT)
+
     // 每个色桶的绿色通道累加值。
     private val greenSums: LongArray = LongArray(size = COLOR_BIN_COUNT)
+
     // 每个色桶的蓝色通道累加值。
     private val blueSums: LongArray = LongArray(size = COLOR_BIN_COUNT)
+
     // 参与统计的总像素数。
     var totalCount: Int = 0
         private set
 
     // 添加一个 ARGB 像素到对应量化色桶。
-    fun addPixel(pixel: Int): Unit {
+    fun addPixel(pixel: Int) {
         val red: Int = (pixel shr 16) and 0xFF
         val green: Int = (pixel shr 8) and 0xFF
         val blue: Int = pixel and 0xFF
-        val bucketIndex: Int = ((red shr COLOR_BIN_SHIFT) shl 8) or
-            ((green shr COLOR_BIN_SHIFT) shl 4) or
-            (blue shr COLOR_BIN_SHIFT)
+        val bucketIndex: Int =
+            ((red shr COLOR_BIN_SHIFT) shl 8) or
+                ((green shr COLOR_BIN_SHIFT) shl 4) or
+                (blue shr COLOR_BIN_SHIFT)
         counts[bucketIndex] += 1
         redSums[bucketIndex] += red.toLong()
         greenSums[bucketIndex] += green.toLong()
@@ -131,7 +143,10 @@ private class ColorBuckets {
     }
 
     // 从色桶创建可评分的色块，空桶返回 null。
-    fun createSwatch(bucketIndex: Int, total: Int): ColorSwatch? {
+    fun createSwatch(
+        bucketIndex: Int,
+        total: Int,
+    ): ColorSwatch? {
         val count: Int = counts[bucketIndex]
         if (count == 0) {
             return null

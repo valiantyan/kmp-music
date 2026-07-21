@@ -348,7 +348,10 @@ interface LocalSongDao {
 
     /** 标记指定来源下本次未扫描到的歌曲不可用。 */
     @Query("UPDATE local_song SET isAvailable = 0 WHERE sourceKind = :sourceKind AND id IN (:songIds)")
-    suspend fun markUnavailable(sourceKind: String, songIds: List<String>)
+    suspend fun markUnavailable(
+        sourceKind: String,
+        songIds: List<String>,
+    )
 
     /** 标记指定具体来源下本次未扫描到的歌曲不可用。 */
     @Query(

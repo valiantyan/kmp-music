@@ -16,23 +16,26 @@ class PersistentUserPreferencesRepositoryTest {
      * 保存偏好后，新仓库实例必须恢复同一份设置。
      */
     @Test
-    fun savePreferencesPersistsAcrossRepositoryInstances(): Unit {
+    fun savePreferencesPersistsAcrossRepositoryInstances() {
         val dao: FakeUserPreferenceDao = FakeUserPreferenceDao()
-        val repository: UserPreferencesRepository = PersistentUserPreferencesRepository(
-            userPreferenceDao = dao,
-            nowMillis = { 123L },
-        )
-        val preferences = LocalMusicDiscoveryPreferences(
-            isAutoScanOnLaunchEnabled = true,
-            shouldIgnoreShortAudio = false,
-            shouldExcludeSystemFolders = false,
-        )
+        val repository: UserPreferencesRepository =
+            PersistentUserPreferencesRepository(
+                userPreferenceDao = dao,
+                nowMillis = { 123L },
+            )
+        val preferences =
+            LocalMusicDiscoveryPreferences(
+                isAutoScanOnLaunchEnabled = true,
+                shouldIgnoreShortAudio = false,
+                shouldExcludeSystemFolders = false,
+            )
 
         repository.saveThemeMode(themeMode = ThemeMode.Dark)
         repository.saveLocalMusicDiscoveryPreferences(preferences = preferences)
-        val restoredRepository: UserPreferencesRepository = PersistentUserPreferencesRepository(
-            userPreferenceDao = dao,
-        )
+        val restoredRepository: UserPreferencesRepository =
+            PersistentUserPreferencesRepository(
+                userPreferenceDao = dao,
+            )
 
         assertEquals(expected = ThemeMode.Dark, actual = restoredRepository.getThemeMode())
         assertEquals(expected = preferences, actual = restoredRepository.getLocalMusicDiscoveryPreferences())
@@ -43,24 +46,26 @@ class PersistentUserPreferencesRepositoryTest {
      * 多项本地音频发现偏好覆盖保存应进入同一事务。
      */
     @Test
-    fun saveLocalMusicDiscoveryPreferencesRunsInsideWriteTransaction(): Unit {
+    fun saveLocalMusicDiscoveryPreferencesRunsInsideWriteTransaction() {
         val dao: FakeUserPreferenceDao = FakeUserPreferenceDao()
         var transactionCount: Int = 0
-        val repository: UserPreferencesRepository = PersistentUserPreferencesRepository(
-            userPreferenceDao = dao,
-            runInWriteTransaction = { block: suspend () -> Unit ->
-                transactionCount += 1
-                block()
-            },
-            nowMillis = { 456L },
-        )
+        val repository: UserPreferencesRepository =
+            PersistentUserPreferencesRepository(
+                userPreferenceDao = dao,
+                runInWriteTransaction = { block: suspend () -> Unit ->
+                    transactionCount += 1
+                    block()
+                },
+                nowMillis = { 456L },
+            )
 
         repository.saveLocalMusicDiscoveryPreferences(
-            preferences = LocalMusicDiscoveryPreferences(
-                isAutoScanOnLaunchEnabled = true,
-                shouldIgnoreShortAudio = true,
-                shouldExcludeSystemFolders = false,
-            ),
+            preferences =
+                LocalMusicDiscoveryPreferences(
+                    isAutoScanOnLaunchEnabled = true,
+                    shouldIgnoreShortAudio = true,
+                    shouldExcludeSystemFolders = false,
+                ),
         )
 
         assertEquals(expected = 1, actual = transactionCount)
@@ -72,9 +77,7 @@ class PersistentUserPreferencesRepositoryTest {
         private val rows: LinkedHashMap<String, UserPreferenceEntity> = linkedMapOf()
 
         /** 读取指定 key 的偏好值。 */
-        override suspend fun getValue(key: String): String? {
-            return rows[key]?.value
-        }
+        override suspend fun getValue(key: String): String? = rows[key]?.value
 
         /** 覆盖保存指定偏好。 */
         override suspend fun savePreference(entity: UserPreferenceEntity) {
@@ -82,8 +85,6 @@ class PersistentUserPreferencesRepositoryTest {
         }
 
         /** 读取已保存值，供测试断言具体落库内容。 */
-        fun getSavedValue(key: String): String? {
-            return rows[key]?.value
-        }
+        fun getSavedValue(key: String): String? = rows[key]?.value
     }
 }

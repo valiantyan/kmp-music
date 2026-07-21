@@ -35,35 +35,40 @@ internal fun buildMobileFixedPlayerBarLayoutMetrics(
     navigationBarHeight: Dp,
     integratesBottomNavigationInset: Boolean,
 ): MobileFixedPlayerBarLayoutMetrics {
-    val bottomNavigationInsetHeight: Dp = if (integratesBottomNavigationInset) {
-        navigationBarHeight
-    } else {
-        0.dp
-    }
-    val navigationBarUnderlayHeight: Dp = if (integratesBottomNavigationInset) {
-        0.dp
-    } else {
-        navigationBarHeight
-    }
-    val bottomNavigationContentHeight: Dp = if (integratesBottomNavigationInset) {
-        (bottomNavigationHeight - navigationBarHeight).coerceAtLeast(
-            minimumValue = MusicDimens.BottomNavIntegratedContentMinHeight,
-        )
-    } else {
-        bottomNavigationHeight
-    }
+    val bottomNavigationInsetHeight: Dp =
+        if (integratesBottomNavigationInset) {
+            navigationBarHeight
+        } else {
+            0.dp
+        }
+    val navigationBarUnderlayHeight: Dp =
+        if (integratesBottomNavigationInset) {
+            0.dp
+        } else {
+            navigationBarHeight
+        }
+    val bottomNavigationContentHeight: Dp =
+        if (integratesBottomNavigationInset) {
+            (bottomNavigationHeight - navigationBarHeight).coerceAtLeast(
+                minimumValue = MusicDimens.BottomNavIntegratedContentMinHeight,
+            )
+        } else {
+            bottomNavigationHeight
+        }
     val visibleBottomNavigationHeight: Dp = bottomNavigationContentHeight + bottomNavigationInsetHeight
-    val stackHeight: Dp = if (hasSong) {
-        miniPlayerHeight + visibleBottomNavigationHeight
-    } else {
-        visibleBottomNavigationHeight
-    }
+    val stackHeight: Dp =
+        if (hasSong) {
+            miniPlayerHeight + visibleBottomNavigationHeight
+        } else {
+            visibleBottomNavigationHeight
+        }
     val containerHeight: Dp = stackHeight + navigationBarUnderlayHeight
-    val miniPlayerOnlyOffset: Dp = if (hasSong) {
-        visibleBottomNavigationHeight
-    } else {
-        containerHeight
-    }
+    val miniPlayerOnlyOffset: Dp =
+        if (hasSong) {
+            visibleBottomNavigationHeight
+        } else {
+            containerHeight
+        }
     return MobileFixedPlayerBarLayoutMetrics(
         stackHeight = stackHeight,
         containerHeight = containerHeight,

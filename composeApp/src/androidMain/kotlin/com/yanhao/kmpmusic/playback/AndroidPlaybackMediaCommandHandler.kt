@@ -10,8 +10,9 @@ import androidx.media3.session.SessionResult
 internal object AndroidPlaybackMediaCommandHandler {
     /** 按 action 分类执行自定义命令，并把结果映射为 [SessionResult] code。 */
     fun handleCustomCommand(customAction: String): Int {
-        val actions: PlaybackMediaButtonActions = PlaybackMediaCommandDispatcher.current()
-            ?: return SessionResult.RESULT_ERROR_INVALID_STATE
+        val actions: PlaybackMediaButtonActions =
+            PlaybackMediaCommandDispatcher.current()
+                ?: return SessionResult.RESULT_ERROR_INVALID_STATE
         return when {
             PlaybackMediaCommandCatalog.isToggleFavoriteAction(customAction = customAction) -> {
                 actions.toggleFavorite()
@@ -27,7 +28,9 @@ internal object AndroidPlaybackMediaCommandHandler {
                 SessionResult.RESULT_ERROR_BAD_VALUE
             }
 
-            else -> SessionResult.RESULT_ERROR_NOT_SUPPORTED
+            else -> {
+                SessionResult.RESULT_ERROR_NOT_SUPPORTED
+            }
         }
     }
 }

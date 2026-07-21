@@ -13,13 +13,13 @@ import com.yanhao.kmpmusic.playback.ApplePlaybackBridgeEvent
 import com.yanhao.kmpmusic.playback.ApplePlaybackBridgePrepareRequest
 import com.yanhao.kmpmusic.playback.ApplePlaybackBridgeSeekRequest
 import com.yanhao.kmpmusic.playback.MacosAvFoundationPlaybackBridge
-import java.nio.file.Files
-import java.nio.file.Path
-import java.util.Collections
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
+import java.nio.file.Files
+import java.nio.file.Path
+import java.util.Collections
 
 /**
  * 单次重启恢复 smoke 进程的核心对象集合。
@@ -42,9 +42,10 @@ internal class RecordingApplePlaybackBridge(
     private val delegate: ApplePlaybackBridge,
 ) : ApplePlaybackBridge {
     // 已观察到的 prepare 请求。
-    private val prepareRequests: MutableList<ApplePlaybackBridgePrepareRequest> = Collections.synchronizedList(
-        mutableListOf(),
-    )
+    private val prepareRequests: MutableList<ApplePlaybackBridgePrepareRequest> =
+        Collections.synchronizedList(
+            mutableListOf(),
+        )
 
     override val events: Flow<ApplePlaybackBridgeEvent>
         get() = delegate.events
@@ -52,11 +53,10 @@ internal class RecordingApplePlaybackBridge(
     /** 查找匹配的 prepare 请求，供 smoke 在恢复点做断言。 */
     fun findPrepareRequest(
         predicate: (ApplePlaybackBridgePrepareRequest) -> Boolean,
-    ): ApplePlaybackBridgePrepareRequest? {
-        return synchronized(prepareRequests) {
+    ): ApplePlaybackBridgePrepareRequest? =
+        synchronized(prepareRequests) {
             prepareRequests.lastOrNull(predicate = predicate)
         }
-    }
 
     /** 记录后转发 prepare 请求。 */
     override suspend fun prepare(request: ApplePlaybackBridgePrepareRequest): ApplePlaybackBridgeCommandAck {
@@ -65,34 +65,22 @@ internal class RecordingApplePlaybackBridge(
     }
 
     /** 转发播放命令。 */
-    override suspend fun play(generation: Long): ApplePlaybackBridgeCommandAck {
-        return delegate.play(generation = generation)
-    }
+    override suspend fun play(generation: Long): ApplePlaybackBridgeCommandAck = delegate.play(generation = generation)
 
     /** 转发暂停命令。 */
-    override suspend fun pause(generation: Long): ApplePlaybackBridgeCommandAck {
-        return delegate.pause(generation = generation)
-    }
+    override suspend fun pause(generation: Long): ApplePlaybackBridgeCommandAck = delegate.pause(generation = generation)
 
     /** 转发 seek 命令。 */
-    override suspend fun seekTo(request: ApplePlaybackBridgeSeekRequest): ApplePlaybackBridgeCommandAck {
-        return delegate.seekTo(request = request)
-    }
+    override suspend fun seekTo(request: ApplePlaybackBridgeSeekRequest): ApplePlaybackBridgeCommandAck = delegate.seekTo(request = request)
 
     /** 转发停止命令。 */
-    override suspend fun stop(generation: Long): ApplePlaybackBridgeCommandAck {
-        return delegate.stop(generation = generation)
-    }
+    override suspend fun stop(generation: Long): ApplePlaybackBridgeCommandAck = delegate.stop(generation = generation)
 
     /** 转发音量命令。 */
-    override suspend fun setVolume(volume: Float): ApplePlaybackBridgeCommandAck {
-        return delegate.setVolume(volume = volume)
-    }
+    override suspend fun setVolume(volume: Float): ApplePlaybackBridgeCommandAck = delegate.setVolume(volume = volume)
 
     /** 释放真实 bridge。 */
-    override suspend fun release(): ApplePlaybackBridgeCommandAck {
-        return delegate.release()
-    }
+    override suspend fun release(): ApplePlaybackBridgeCommandAck = delegate.release()
 }
 
 /** 创建一段独立桌面会话，模拟一次新的 App 进程。 */
@@ -101,36 +89,41 @@ internal suspend fun createRestartResumeSmokeSession(
     seedSongs: List<Song>,
 ): RestartResumeSmokeSession {
     val sessionScope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
-    val playbackDatabase: PlaybackDatabase = createDesktopPlaybackDatabaseAtPath(
-        databasePath = databasePath.toString(),
-    )
+    val playbackDatabase: PlaybackDatabase =
+        createDesktopPlaybackDatabaseAtPath(
+            databasePath = databasePath.toString(),
+        )
     if (seedSongs.isNotEmpty()) {
         playbackDatabase.localSongDao().upsertSongs(
             songs = seedSongs.map { song: Song -> song.toRestartResumeLocalSongEntity() },
         )
     }
-    val bridge: RecordingApplePlaybackBridge = RecordingApplePlaybackBridge(
-        delegate = MacosAvFoundationPlaybackBridge.create(),
-    )
-    val audioRuntime: DesktopAudioRuntime = DesktopAudioRuntimeFactory.create(
-        sessionScope = sessionScope,
-        bridgeFactory = { bridge },
-    )
-    val controller: MusicAppController = createDesktopPlaybackController(
-        playbackDatabase = playbackDatabase,
-        audioPlayerEngine = audioRuntime.audioEngine,
-        controllerScope = sessionScope,
-    )
-    val runtime: DesktopPlaybackSessionRuntime = DesktopPlaybackSessionRuntime(
-        controller = controller,
-        sessionScope = sessionScope,
-        releaseAudioEngineAndAwait = {
-            audioRuntime.audioEngine.releaseAndAwait()
-        },
-        closePlaybackDatabase = {
-            playbackDatabase.close()
-        },
-    )
+    val bridge: RecordingApplePlaybackBridge =
+        RecordingApplePlaybackBridge(
+            delegate = MacosAvFoundationPlaybackBridge.create(),
+        )
+    val audioRuntime: DesktopAudioRuntime =
+        DesktopAudioRuntimeFactory.create(
+            sessionScope = sessionScope,
+            bridgeFactory = { bridge },
+        )
+    val controller: MusicAppController =
+        createDesktopPlaybackController(
+            playbackDatabase = playbackDatabase,
+            audioPlayerEngine = audioRuntime.audioEngine,
+            controllerScope = sessionScope,
+        )
+    val runtime: DesktopPlaybackSessionRuntime =
+        DesktopPlaybackSessionRuntime(
+            controller = controller,
+            sessionScope = sessionScope,
+            releaseAudioEngineAndAwait = {
+                audioRuntime.audioEngine.releaseAndAwait()
+            },
+            closePlaybackDatabase = {
+                playbackDatabase.close()
+            },
+        )
     return RestartResumeSmokeSession(runtime = runtime, controller = controller, bridge = bridge)
 }
 
@@ -139,8 +132,8 @@ internal fun createRestartResumeSmokeSong(
     id: String,
     mediaPath: Path,
     trackNumber: Int,
-): Song {
-    return Song(
+): Song =
+    Song(
         id = id,
         title = "macOS AVFoundation Restart Resume $trackNumber",
         artist = "KMP Music",
@@ -160,11 +153,10 @@ internal fun createRestartResumeSmokeSong(
         sizeBytes = mediaPath.toFile().length(),
         modifiedAt = mediaPath.toFile().lastModified(),
     )
-}
 
 /** 转成 Room 可恢复的本地歌曲记录。 */
-private fun Song.toRestartResumeLocalSongEntity(): LocalSongEntity {
-    return LocalSongEntity(
+private fun Song.toRestartResumeLocalSongEntity(): LocalSongEntity =
+    LocalSongEntity(
         id = id,
         sourceId = sourceId,
         sourceKind = sourceKind.value,
@@ -182,7 +174,6 @@ private fun Song.toRestartResumeLocalSongEntity(): LocalSongEntity {
         lastScannedAt = System.currentTimeMillis(),
         isAvailable = true,
     )
-}
 
 /** 清理上次 smoke 留下的 Room 主文件和 WAL 文件，保证每次从空库开始。 */
 internal fun deleteRestartResumeSmokeDatabaseFiles(databasePath: Path) {

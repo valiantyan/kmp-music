@@ -21,9 +21,10 @@ internal class DesktopSetQueueAckTracker {
 
     /** 完成单个确认，并从挂起集合中摘除，避免重复收尾。 */
     fun complete(ack: CompletableDeferred<Unit>) {
-        val shouldComplete: Boolean = synchronized(lock = lock) {
-            pendingAcks.remove(element = ack)
-        }
+        val shouldComplete: Boolean =
+            synchronized(lock = lock) {
+                pendingAcks.remove(element = ack)
+            }
         if (shouldComplete) {
             ack.complete(value = Unit)
         }
@@ -31,11 +32,12 @@ internal class DesktopSetQueueAckTracker {
 
     /** 统一完成所有遗留确认，确保命令循环退出时没有调用方失联。 */
     fun completeAll() {
-        val snapshot: List<CompletableDeferred<Unit>> = synchronized(lock = lock) {
-            val acks: List<CompletableDeferred<Unit>> = pendingAcks.toList()
-            pendingAcks.clear()
-            acks
-        }
+        val snapshot: List<CompletableDeferred<Unit>> =
+            synchronized(lock = lock) {
+                val acks: List<CompletableDeferred<Unit>> = pendingAcks.toList()
+                pendingAcks.clear()
+                acks
+            }
         snapshot.forEach { ack: CompletableDeferred<Unit> ->
             ack.complete(value = Unit)
         }

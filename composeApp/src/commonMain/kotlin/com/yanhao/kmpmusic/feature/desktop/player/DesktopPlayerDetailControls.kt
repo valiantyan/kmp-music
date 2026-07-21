@@ -38,20 +38,22 @@ internal fun DesktopPlayerProgress(
     playbackDurationMs: Long?,
     onSeek: (Long) -> Unit,
 ) {
-    val progressModel: DesktopPlaybackProgressDisplayModel = buildDesktopPlaybackProgressDisplayModel(
-        playbackPositionMs = playbackPositionMs,
-        playbackDurationMs = playbackDurationMs,
-        isPlaying = isPlaying,
-        fallbackDurationMs = song.durationMs,
-    )
+    val progressModel: DesktopPlaybackProgressDisplayModel =
+        buildDesktopPlaybackProgressDisplayModel(
+            playbackPositionMs = playbackPositionMs,
+            playbackDurationMs = playbackDurationMs,
+            isPlaying = isPlaying,
+            fallbackDurationMs = song.durationMs,
+        )
     DesktopThinSlider(
         value = progressModel.sliderValue,
         valueRange = progressModel.sliderRange,
         enabled = progressModel.isSeekEnabled,
         onValueChange = { value: Float -> onSeek(value.toLong()) },
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(28.dp),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .height(28.dp),
     )
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -76,9 +78,10 @@ internal fun DesktopPlayerControlRow(
 ) {
     val modeIcon: DesktopPlayerModeIcon = playbackMode.toDesktopPlayerModeIcon()
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(82.dp),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .height(82.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -123,22 +126,29 @@ internal fun DesktopPlayerControlRow(
 }
 
 // 播放模式映射集中在播放页内部，避免 UI 分支散落在控件调用处。
-private fun PlaybackMode.toDesktopPlayerModeIcon(): DesktopPlayerModeIcon {
-    return when (this) {
-        PlaybackMode.LoopAll -> DesktopPlayerModeIcon(
-            icon = Icons.Rounded.Repeat,
-            contentDescription = "顺序播放",
-        )
-        PlaybackMode.LoopOne -> DesktopPlayerModeIcon(
-            icon = Icons.Rounded.RepeatOne,
-            contentDescription = "单曲循环",
-        )
-        PlaybackMode.Shuffle -> DesktopPlayerModeIcon(
-            icon = Icons.Rounded.Shuffle,
-            contentDescription = "随机播放",
-        )
+private fun PlaybackMode.toDesktopPlayerModeIcon(): DesktopPlayerModeIcon =
+    when (this) {
+        PlaybackMode.LoopAll -> {
+            DesktopPlayerModeIcon(
+                icon = Icons.Rounded.Repeat,
+                contentDescription = "顺序播放",
+            )
+        }
+
+        PlaybackMode.LoopOne -> {
+            DesktopPlayerModeIcon(
+                icon = Icons.Rounded.RepeatOne,
+                contentDescription = "单曲循环",
+            )
+        }
+
+        PlaybackMode.Shuffle -> {
+            DesktopPlayerModeIcon(
+                icon = Icons.Rounded.Shuffle,
+                contentDescription = "随机播放",
+            )
+        }
     }
-}
 
 // 播放模式图标和文案作为一组返回，保证可访问文案随图标同步变化。
 private data class DesktopPlayerModeIcon(

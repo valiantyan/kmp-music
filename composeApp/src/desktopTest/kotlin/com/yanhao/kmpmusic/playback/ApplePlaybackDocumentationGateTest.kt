@@ -11,56 +11,60 @@ import kotlin.test.assertTrue
 class ApplePlaybackDocumentationGateTest {
     /** 验证 ADR 固化 Apple 原生播放路线和交付边界。 */
     @Test
-    fun documentsAppleNativePlaybackDecisionInAdr(): Unit {
+    fun documentsAppleNativePlaybackDecisionInAdr() {
         val text: String = readProjectFile(relativePath = APPLE_PLAYBACK_ADR_PATH)
         assertContainsAll(
             relativePath = APPLE_PLAYBACK_ADR_PATH,
             text = text,
-            requiredSnippets = listOf(
-                "macOS 从 `vlcj / LibVLC` 改为 Apple `AVFoundation`",
-                "iOS 与 macOS 统一到 Apple 原生播放方案",
-                "非 macOS Desktop 不承诺真实播放",
-                "验证方式",
-                "格式矩阵",
-                "docs/APPLE_PLATFORM_FORMAT_SUPPORT_MATRIX.md",
-            ),
+            requiredSnippets =
+                listOf(
+                    "macOS 从 `vlcj / LibVLC` 改为 Apple `AVFoundation`",
+                    "iOS 与 macOS 统一到 Apple 原生播放方案",
+                    "非 macOS Desktop 不承诺真实播放",
+                    "验证方式",
+                    "格式矩阵",
+                    "docs/APPLE_PLATFORM_FORMAT_SUPPORT_MATRIX.md",
+                ),
         )
     }
 
     /** 验证旧设计文件顶部明确声明不能继续作为当前实现依据。 */
     @Test
-    fun marksOldVlcjDesignAsSuperseded(): Unit {
+    fun marksOldVlcjDesignAsSuperseded() {
         val text: String = readProjectFile(relativePath = OLD_VLCJ_DESIGN_PATH)
         assertContainsAll(
             relativePath = OLD_VLCJ_DESIGN_PATH,
             text = text.take(n = 500),
-            requiredSnippets = listOf(
-                "`Superseded`",
-                "不能作为当前实现依据",
-                "Apple AVFoundation",
-                "docs/adr/0005-apple-platform-avfoundation-playback.md",
-            ),
+            requiredSnippets =
+                listOf(
+                    "`Superseded`",
+                    "不能作为当前实现依据",
+                    "Apple AVFoundation",
+                    "docs/adr/0005-apple-platform-avfoundation-playback.md",
+                ),
         )
     }
 
     /** 验证旧播放抽象审计不再把未来 Desktop 路线绑定到 vlcj。 */
     @Test
-    fun rewritesPlaybackAuditDesktopVlcjAssumptionsAsHistorical(): Unit {
+    fun rewritesPlaybackAuditDesktopVlcjAssumptionsAsHistorical() {
         val text: String = readProjectFile(relativePath = PLAYBACK_ABSTRACTION_AUDIT_PATH)
         assertContainsAll(
             relativePath = PLAYBACK_ABSTRACTION_AUDIT_PATH,
             text = text,
-            requiredSnippets = listOf(
-                "历史状态",
-                "Desktop 不能继续等同于 vlcj",
-                "Windows / Linux Desktop 真实播放需要重新设计",
-            ),
+            requiredSnippets =
+                listOf(
+                    "历史状态",
+                    "Desktop 不能继续等同于 vlcj",
+                    "Windows / Linux Desktop 真实播放需要重新设计",
+                ),
         )
-        val forbiddenSnippets: List<String> = listOf(
-            "未来 Windows 优先复用 Desktop vlcj engine",
-            "`DesktopVlcjAudioPlayerEngine` 继续复用",
-            "不重写 macOS vlcj 主链路",
-        )
+        val forbiddenSnippets: List<String> =
+            listOf(
+                "未来 Windows 优先复用 Desktop vlcj engine",
+                "`DesktopVlcjAudioPlayerEngine` 继续复用",
+                "不重写 macOS vlcj 主链路",
+            )
         assertContainsNone(
             relativePath = PLAYBACK_ABSTRACTION_AUDIT_PATH,
             text = text,
@@ -70,15 +74,16 @@ class ApplePlaybackDocumentationGateTest {
 
     /** 验证 README 不再把已有平台播放能力笼统写成全都未完成。 */
     @Test
-    fun avoidsReadmeRealPlaybackFutureOnlyStatement(): Unit {
+    fun avoidsReadmeRealPlaybackFutureOnlyStatement() {
         val text: String = readProjectFile(relativePath = "README.md")
         assertContainsNone(
             relativePath = "README.md",
             text = text,
-            forbiddenSnippets = listOf(
-                "真实音频播放、持久化和云同步仍是后续阶段的能力",
-                "iOS/Android/Desktop 各平台的完整播放适配",
-            ),
+            forbiddenSnippets =
+                listOf(
+                    "真实音频播放、持久化和云同步仍是后续阶段的能力",
+                    "iOS/Android/Desktop 各平台的完整播放适配",
+                ),
         )
     }
 
@@ -102,10 +107,11 @@ class ApplePlaybackDocumentationGateTest {
         relativePath: String,
         text: String,
         requiredSnippets: List<String>,
-    ): Unit {
-        val missingSnippets: List<String> = requiredSnippets.filterNot { snippet: String ->
-            text.contains(other = snippet)
-        }
+    ) {
+        val missingSnippets: List<String> =
+            requiredSnippets.filterNot { snippet: String ->
+                text.contains(other = snippet)
+            }
         assertTrue(
             actual = missingSnippets.isEmpty(),
             message = "$relativePath 缺少：${missingSnippets.joinToString(separator = "；")}",
@@ -117,10 +123,11 @@ class ApplePlaybackDocumentationGateTest {
         relativePath: String,
         text: String,
         forbiddenSnippets: List<String>,
-    ): Unit {
-        val violations: List<String> = forbiddenSnippets.filter { snippet: String ->
-            text.contains(other = snippet)
-        }
+    ) {
+        val violations: List<String> =
+            forbiddenSnippets.filter { snippet: String ->
+                text.contains(other = snippet)
+            }
         assertTrue(
             actual = violations.isEmpty(),
             message = "$relativePath 仍包含：${violations.joinToString(separator = "；")}",

@@ -23,24 +23,26 @@ internal fun ArtistDetailToolbar(
     modifier: Modifier = Modifier,
 ) {
     Box(
-        modifier = modifier
-            .fillMaxWidth()
-            .height(height = collapsedToolbarHeight),
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .height(height = collapsedToolbarHeight),
     ) {
         Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .graphicsLayer {
-                    alpha = scrollState.value.toolbarAlpha
-                }
-                .background(color = artistDetailToolbarColor),
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .graphicsLayer {
+                        alpha = scrollState.value.toolbarAlpha
+                    }.background(color = artistDetailToolbarColor),
         )
         MobileSecondaryToolbar(
             title = artistName,
             onBack = onBack,
-            modifier = Modifier
-                .align(alignment = Alignment.BottomCenter)
-                .fillMaxWidth(),
+            modifier =
+                Modifier
+                    .align(alignment = Alignment.BottomCenter)
+                    .fillMaxWidth(),
             backgroundAlpha = 0f,
             titleAlpha = scrollState.value.toolbarTitleAlpha,
         )

@@ -56,10 +56,11 @@ private fun HomeEmptyLibraryAggregationCard(
     onScan: () -> Unit,
 ) {
     Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(100.dp)
-            .padding(horizontal = 20.dp),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .height(100.dp)
+                .padding(horizontal = 20.dp),
         shape = RoundedCornerShape(size = 16.dp),
         color = Color.White,
         shadowElevation = 1.dp,
@@ -82,18 +83,20 @@ private fun HomeEmptyLibraryAggregationCard(
                 onClick = onScan,
             ) {
                 Text(
-                    text = localMusicScanActionLabel(
-                        scanState = scanState,
-                        platform = discoveryPlatform,
-                    ),
+                    text =
+                        localMusicScanActionLabel(
+                            scanState = scanState,
+                            platform = discoveryPlatform,
+                        ),
                     color = Color.White,
                     fontSize = 14.sp,
                     lineHeight = 16.sp,
                     fontWeight = FontWeight.Medium,
-                    modifier = Modifier.padding(
-                        horizontal = 14.dp,
-                        vertical = 8.dp,
-                    ),
+                    modifier =
+                        Modifier.padding(
+                            horizontal = 14.dp,
+                            vertical = 8.dp,
+                        ),
                 )
             }
         }

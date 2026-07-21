@@ -14,18 +14,20 @@ class FakeLocalMusicScannerTest {
      * 默认 fake 数据必须达到 500 首，便于收藏页列表滑动和增删压力测试。
      */
     @Test
-    fun scanBuildsFiveHundredDemoSongsForFavoritesStress(): Unit = runTest {
-        val scanner = FakeLocalMusicScanner()
+    fun scanBuildsFiveHundredDemoSongsForFavoritesStress(): Unit =
+        runTest {
+            val scanner = FakeLocalMusicScanner()
 
-        val result = scanner.scan(request = LocalMusicScanRequest.Refresh)
+            val result = scanner.scan(request = LocalMusicScanRequest.Refresh)
 
-        assertEquals(expected = 500, actual = result.discovered.size)
-        assertEquals(expected = 500, actual = result.sourceSummaries.single().songCount)
-        assertEquals(expected = 500, actual = scanner.demoFavoriteSongIds().size)
-        assertTrue(
-            actual = result.discovered
-                .map { metadata -> metadata.sourceKey }
-                .containsAll(elements = scanner.demoFavoriteSongIds()),
-        )
-    }
+            assertEquals(expected = 500, actual = result.discovered.size)
+            assertEquals(expected = 500, actual = result.sourceSummaries.single().songCount)
+            assertEquals(expected = 500, actual = scanner.demoFavoriteSongIds().size)
+            assertTrue(
+                actual =
+                    result.discovered
+                        .map { metadata -> metadata.sourceKey }
+                        .containsAll(elements = scanner.demoFavoriteSongIds()),
+            )
+        }
 }

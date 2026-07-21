@@ -3,9 +3,9 @@ package com.yanhao.kmpmusic
 import com.yanhao.kmpmusic.playback.ApplePlaybackBridge
 import com.yanhao.kmpmusic.playback.DesktopAppleAudioPlayerEngine
 import com.yanhao.kmpmusic.playback.MacosAvFoundationPlaybackBridge
-import kotlin.coroutines.CoroutineContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlin.coroutines.CoroutineContext
 
 internal data class DesktopAudioRuntime(
     // [audioEngine] 承担 macOS Desktop 真实播放职责，并在会话关闭时统一释放。
@@ -21,11 +21,12 @@ internal object DesktopAudioRuntimeFactory {
         bridgeFactory: () -> ApplePlaybackBridge = { MacosAvFoundationPlaybackBridge.create() },
         dispatcher: CoroutineContext = Dispatchers.Default,
     ): DesktopAudioRuntime {
-        val audioEngine: DesktopAppleAudioPlayerEngine = DesktopAppleAudioPlayerEngine(
-            bridge = bridgeFactory(),
-            scope = sessionScope,
-            dispatcher = dispatcher,
-        )
+        val audioEngine: DesktopAppleAudioPlayerEngine =
+            DesktopAppleAudioPlayerEngine(
+                bridge = bridgeFactory(),
+                scope = sessionScope,
+                dispatcher = dispatcher,
+            )
         return DesktopAudioRuntime(audioEngine = audioEngine)
     }
 }

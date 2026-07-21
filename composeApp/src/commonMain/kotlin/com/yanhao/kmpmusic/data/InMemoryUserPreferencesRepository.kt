@@ -23,9 +23,7 @@ class InMemoryUserPreferencesRepository : UserPreferencesRepository {
     }
 
     /** 获取本地音频发现偏好。 */
-    override fun getLocalMusicDiscoveryPreferences(): LocalMusicDiscoveryPreferences {
-        return localMusicDiscoveryPreferences
-    }
+    override fun getLocalMusicDiscoveryPreferences(): LocalMusicDiscoveryPreferences = localMusicDiscoveryPreferences
 
     /** 保存本地音频发现偏好。 */
     override fun saveLocalMusicDiscoveryPreferences(preferences: LocalMusicDiscoveryPreferences) {

@@ -28,7 +28,8 @@ internal class AndroidPlaybackMediaSessionCallback(
         controller: MediaSession.ControllerInfo,
     ): MediaSession.ConnectionResult {
         val builder: MediaSession.ConnectionResult.AcceptedResultBuilder =
-            MediaSession.ConnectionResult.AcceptedResultBuilder(session)
+            MediaSession.ConnectionResult
+                .AcceptedResultBuilder(session)
                 .setAvailableSessionCommands(PlaybackMediaCommandCatalog.availableSessionCommands())
         if (session.isMediaNotificationController(controller)) {
             builder.setMediaButtonPreferences(mediaButtonPreferencesProvider())
@@ -78,8 +79,9 @@ internal class AndroidPlaybackMediaSessionCallback(
         session: MediaSession,
         args: Bundle,
     ): ListenableFuture<SessionResult> {
-        val state: MediaButtonState = MediaButtonStateCodec.resolveUpdateButtonsState(args = args)
-            ?: return Futures.immediateFuture(SessionResult(SessionResult.RESULT_ERROR_BAD_VALUE))
+        val state: MediaButtonState =
+            MediaButtonStateCodec.resolveUpdateButtonsState(args = args)
+                ?: return Futures.immediateFuture(SessionResult(SessionResult.RESULT_ERROR_BAD_VALUE))
         updateMediaButtonPreferences(state)
         if (state.playbackStatus == PlaybackStatus.Idle && !state.hasActivePlaybackSession) {
             clearMediaNotification()
@@ -88,12 +90,11 @@ internal class AndroidPlaybackMediaSessionCallback(
     }
 
     // 判断标准 Player 命令是否属于队列导航，而不是普通进度拖动。
-    private fun shouldResumeAfterQueueNavigation(playerCommand: Int): Boolean {
-        return playerCommand == Player.COMMAND_SEEK_TO_PREVIOUS_MEDIA_ITEM ||
+    private fun shouldResumeAfterQueueNavigation(playerCommand: Int): Boolean =
+        playerCommand == Player.COMMAND_SEEK_TO_PREVIOUS_MEDIA_ITEM ||
             playerCommand == Player.COMMAND_SEEK_TO_PREVIOUS ||
             playerCommand == Player.COMMAND_SEEK_TO_NEXT_MEDIA_ITEM ||
             playerCommand == Player.COMMAND_SEEK_TO_NEXT
-    }
 
     // 只在 Player 允许播放/暂停命令时恢复播放，避免越权调用被 Media3 拒绝。
     private fun resumePlayerForQueueNavigation(session: MediaSession) {

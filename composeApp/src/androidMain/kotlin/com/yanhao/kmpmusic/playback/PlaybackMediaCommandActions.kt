@@ -24,9 +24,7 @@ object PlaybackMediaCommandDispatcher {
     }
 
     /** 返回当前按钮动作实现；尚未接线时返回 null。 */
-    fun current(): PlaybackMediaButtonActions? {
-        return actions
-    }
+    fun current(): PlaybackMediaButtonActions? = actions
 
     /** 清空当前动作实现，供 Android unit tests 隔离单例状态。 */
     internal fun clear() {

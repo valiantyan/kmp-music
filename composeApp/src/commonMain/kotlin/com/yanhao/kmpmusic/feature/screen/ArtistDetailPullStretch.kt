@@ -49,23 +49,24 @@ internal fun rememberArtistDetailPullStretchState(
     val pullStretch: Animatable<Float, AnimationVector1D> = remember { Animatable(initialValue = 0f) }
     val bottomBounce: Animatable<Float, AnimationVector1D> = remember { Animatable(initialValue = 0f) }
     val scope: CoroutineScope = rememberCoroutineScope()
-    val nestedScrollConnection: NestedScrollConnection = remember(
-        listState,
-        maxPullStretchPx,
-        maxBottomBouncePx,
-        pullStretch,
-        bottomBounce,
-        scope,
-    ) {
-        createArtistDetailPullStretchConnection(
-            listState = listState,
-            pullStretch = pullStretch,
-            bottomBounce = bottomBounce,
-            maxPullStretchPx = maxPullStretchPx,
-            maxBottomBouncePx = maxBottomBouncePx,
-            scope = scope,
-        )
-    }
+    val nestedScrollConnection: NestedScrollConnection =
+        remember(
+            listState,
+            maxPullStretchPx,
+            maxBottomBouncePx,
+            pullStretch,
+            bottomBounce,
+            scope,
+        ) {
+            createArtistDetailPullStretchConnection(
+                listState = listState,
+                pullStretch = pullStretch,
+                bottomBounce = bottomBounce,
+                maxPullStretchPx = maxPullStretchPx,
+                maxBottomBouncePx = maxBottomBouncePx,
+                scope = scope,
+            )
+        }
     return ArtistDetailPullStretchState(
         pullStretchHeight = with(density) { pullStretch.value.toDp() },
         bottomBounceOffset = with(density) { bottomBounce.value.toDp() },
@@ -101,15 +102,17 @@ private fun createArtistDetailPullStretchConnection(
             )
         }
 
-        override suspend fun onPreFling(available: Velocity): Velocity {
-            return resetBoundaryStretchAfterGesture(
+        override suspend fun onPreFling(available: Velocity): Velocity =
+            resetBoundaryStretchAfterGesture(
                 available = available,
                 pullStretch = pullStretch,
                 bottomBounce = bottomBounce,
             )
-        }
 
-        override suspend fun onPostFling(consumed: Velocity, available: Velocity): Velocity {
+        override suspend fun onPostFling(
+            consumed: Velocity,
+            available: Velocity,
+        ): Velocity {
             resetBoundaryStretchAfterGesture(
                 available = available,
                 pullStretch = pullStretch,
@@ -272,9 +275,10 @@ private suspend fun resetBoundaryAnimatable(
     }
     boundaryStretch.animateTo(
         targetValue = 0f,
-        animationSpec = spring(
-            dampingRatio = dampingRatio,
-            stiffness = Spring.StiffnessMediumLow,
-        ),
+        animationSpec =
+            spring(
+                dampingRatio = dampingRatio,
+                stiffness = Spring.StiffnessMediumLow,
+            ),
     )
 }

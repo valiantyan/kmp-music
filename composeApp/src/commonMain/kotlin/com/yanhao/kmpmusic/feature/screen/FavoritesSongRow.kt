@@ -47,9 +47,10 @@ internal fun FavoritesSongRow(
     modifier: Modifier = Modifier,
 ) {
     Surface(
-        modifier = modifier
-            .fillMaxWidth()
-            .height(height = favoritesSongRowHeight),
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .height(height = favoritesSongRowHeight),
         shape = RoundedCornerShape(size = favoritesSongRowRadius),
         color = Color.White,
         shadowElevation = 2.dp,
@@ -90,17 +91,19 @@ private fun FavoritesSongCover(
             coverArt = song.coverArt,
             coverImageUri = song.coverImageUri,
             contentDescription = "${song.title} 封面",
-            modifier = Modifier
-                .fillMaxSize()
-                .clip(shape = RoundedCornerShape(size = favoritesSongCoverRadius)),
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .clip(shape = RoundedCornerShape(size = favoritesSongCoverRadius)),
             contentScale = ContentScale.Crop,
         )
         if (isCurrentSong) {
             Box(
-                modifier = Modifier
-                    .align(alignment = Alignment.BottomEnd)
-                    .clip(shape = CircleShape)
-                    .padding(all = 4.dp),
+                modifier =
+                    Modifier
+                        .align(alignment = Alignment.BottomEnd)
+                        .clip(shape = CircleShape)
+                        .padding(all = 4.dp),
             ) {
                 PlayingGlyph(color = MusicColors.PlayingRed)
             }

@@ -17,10 +17,11 @@ class DesktopMeScreenTest {
      * 桌面最近播放摘要为空时仍显示查看全部入口和轻量空态，避免内容区留白。
      */
     @Test
-    fun desktopMeRecentPlayedSummaryShowsEmptyState(): Unit {
-        val model: DesktopMeRecentPlayedSummaryDisplayModel = buildDesktopMeRecentPlayedSummaryDisplayModel(
-            recentSongs = emptyList(),
-        )
+    fun desktopMeRecentPlayedSummaryShowsEmptyState() {
+        val model: DesktopMeRecentPlayedSummaryDisplayModel =
+            buildDesktopMeRecentPlayedSummaryDisplayModel(
+                recentSongs = emptyList(),
+            )
 
         assertEquals(expected = "最近播放", actual = model.title)
         assertEquals(expected = "查看全部", actual = model.actionLabel)
@@ -33,14 +34,16 @@ class DesktopMeScreenTest {
      * 桌面摘要只露出统一最近播放列表的前三首，完整列表由 workspace 最近播放页承载。
      */
     @Test
-    fun desktopMeRecentPlayedSummaryKeepsOnlyTopThreeSongs(): Unit {
-        val songs: List<Song> = (1..5).map { index: Int ->
-            testSong(id = "song-$index", title = "Song $index")
-        }
+    fun desktopMeRecentPlayedSummaryKeepsOnlyTopThreeSongs() {
+        val songs: List<Song> =
+            (1..5).map { index: Int ->
+                testSong(id = "song-$index", title = "Song $index")
+            }
 
-        val model: DesktopMeRecentPlayedSummaryDisplayModel = buildDesktopMeRecentPlayedSummaryDisplayModel(
-            recentSongs = songs,
-        )
+        val model: DesktopMeRecentPlayedSummaryDisplayModel =
+            buildDesktopMeRecentPlayedSummaryDisplayModel(
+                recentSongs = songs,
+            )
 
         assertEquals(
             expected = listOf("song-1", "song-2", "song-3"),
@@ -52,10 +55,11 @@ class DesktopMeScreenTest {
      * 摘要展示模型只使用调用方传入的过滤后列表，不自行回退到 demo、全库或陈旧历史。
      */
     @Test
-    fun desktopMeRecentPlayedSummaryUsesProvidedFilteredSongsOnly(): Unit {
-        val model: DesktopMeRecentPlayedSummaryDisplayModel = buildDesktopMeRecentPlayedSummaryDisplayModel(
-            recentSongs = listOf(testSong(id = "filtered-real-song", title = "Real Song")),
-        )
+    fun desktopMeRecentPlayedSummaryUsesProvidedFilteredSongsOnly() {
+        val model: DesktopMeRecentPlayedSummaryDisplayModel =
+            buildDesktopMeRecentPlayedSummaryDisplayModel(
+                recentSongs = listOf(testSong(id = "filtered-real-song", title = "Real Song")),
+            )
 
         assertEquals(
             expected = listOf("filtered-real-song"),
@@ -68,10 +72,11 @@ class DesktopMeScreenTest {
      * 当前切片只提供查看全部入口，不把摘要标题动作混成歌曲更多菜单。
      */
     @Test
-    fun desktopMeRecentPlayedSummaryKeepsViewAllSeparateFromSongActions(): Unit {
-        val model: DesktopMeRecentPlayedSummaryDisplayModel = buildDesktopMeRecentPlayedSummaryDisplayModel(
-            recentSongs = listOf(testSong(id = "song-1", title = "Song 1")),
-        )
+    fun desktopMeRecentPlayedSummaryKeepsViewAllSeparateFromSongActions() {
+        val model: DesktopMeRecentPlayedSummaryDisplayModel =
+            buildDesktopMeRecentPlayedSummaryDisplayModel(
+                recentSongs = listOf(testSong(id = "song-1", title = "Song 1")),
+            )
 
         assertEquals(expected = "查看全部", actual = model.actionLabel)
         assertFalse(actual = model.actionLabel.contains(other = "更多"))
@@ -83,13 +88,15 @@ class DesktopMeScreenTest {
      * 桌面最近播放摘要歌曲行本轮接入播放和更多入口，但查看全部仍保持独立标题动作。
      */
     @Test
-    fun desktopMeRecentPlayedSummaryRowsExposePlaybackAndMoreActions(): Unit {
-        val model: DesktopMeRecentPlayedSummaryDisplayModel = buildDesktopMeRecentPlayedSummaryDisplayModel(
-            recentSongs = listOf(
-                testSong(id = "song-1", title = "Song 1"),
-                testSong(id = "song-2", title = "Song 2"),
-            ),
-        )
+    fun desktopMeRecentPlayedSummaryRowsExposePlaybackAndMoreActions() {
+        val model: DesktopMeRecentPlayedSummaryDisplayModel =
+            buildDesktopMeRecentPlayedSummaryDisplayModel(
+                recentSongs =
+                    listOf(
+                        testSong(id = "song-1", title = "Song 1"),
+                        testSong(id = "song-2", title = "Song 2"),
+                    ),
+            )
 
         assertEquals(
             expected = listOf(true, true),
@@ -106,16 +113,18 @@ class DesktopMeScreenTest {
      * 桌面摘要只给当前播放歌曲附加播放中标识，避免 Top3 之外或非当前行误高亮。
      */
     @Test
-    fun desktopMeRecentPlayedSummaryMarksOnlyCurrentVisibleSong(): Unit {
-        val model: DesktopMeRecentPlayedSummaryDisplayModel = buildDesktopMeRecentPlayedSummaryDisplayModel(
-            recentSongs = listOf(
-                testSong(id = "song-1", title = "Song 1"),
-                testSong(id = "song-2", title = "Song 2"),
-                testSong(id = "song-3", title = "Song 3"),
-                testSong(id = "song-4", title = "Song 4"),
-            ),
-            currentSongId = "song-2",
-        )
+    fun desktopMeRecentPlayedSummaryMarksOnlyCurrentVisibleSong() {
+        val model: DesktopMeRecentPlayedSummaryDisplayModel =
+            buildDesktopMeRecentPlayedSummaryDisplayModel(
+                recentSongs =
+                    listOf(
+                        testSong(id = "song-1", title = "Song 1"),
+                        testSong(id = "song-2", title = "Song 2"),
+                        testSong(id = "song-3", title = "Song 3"),
+                        testSong(id = "song-4", title = "Song 4"),
+                    ),
+                currentSongId = "song-2",
+            )
 
         assertEquals(
             expected = listOf(false, true, false),
@@ -131,7 +140,7 @@ class DesktopMeScreenTest {
      * 桌面“我的”页设置菜单只显示三行静态入口，不能携带导航启用语义。
      */
     @Test
-    fun desktopMeStaticSettingsMenuShowsThreeNonNavigatingRows(): Unit {
+    fun desktopMeStaticSettingsMenuShowsThreeNonNavigatingRows() {
         val items: List<DesktopMeStaticSettingsMenuItemDisplayModel> = buildDesktopMeStaticSettingsMenuItemDisplayModels()
         assertEquals(
             expected = listOf("存储管理", "主题与外观", "关于"),
@@ -147,7 +156,7 @@ class DesktopMeScreenTest {
      * 桌面“我的”页必须显示扫描音乐入口，并把入口语义标记为桌面扫描动作。
      */
     @Test
-    fun desktopMeQuickActionsExposeScanMusicEntry(): Unit {
+    fun desktopMeQuickActionsExposeScanMusicEntry() {
         val actions: List<DesktopMeQuickActionDisplayModel> = buildDesktopMeQuickActionDisplayModels()
         val action: DesktopMeQuickActionDisplayModel = actions.single()
         assertEquals(expected = 1, actual = actions.size)
@@ -169,17 +178,19 @@ class DesktopMeScreenTest {
      * 桌面统计区只显示歌曲、歌单和听歌时长三项，避免回退到旧的专辑/歌手/收藏/最近播放组合。
      */
     @Test
-    fun desktopMeStatsUseSongPlaylistAndListeningHoursOnly(): Unit {
-        val stats: LibraryStats = LibraryStats(
-            songCount = 42,
-            albumCount = 7,
-            artistCount = 5,
-        )
+    fun desktopMeStatsUseSongPlaylistAndListeningHoursOnly() {
+        val stats: LibraryStats =
+            LibraryStats(
+                songCount = 42,
+                albumCount = 7,
+                artistCount = 5,
+            )
 
-        val models: List<DesktopMeStatDisplayModel> = buildDesktopMeStatDisplayModels(
-            libraryStats = stats,
-            localPlaylistCount = 0,
-        )
+        val models: List<DesktopMeStatDisplayModel> =
+            buildDesktopMeStatDisplayModels(
+                libraryStats = stats,
+                localPlaylistCount = 0,
+            )
 
         assertEquals(
             expected = listOf("歌曲", "歌单", "听歌时长"),
@@ -192,17 +203,19 @@ class DesktopMeScreenTest {
      * 歌曲数和歌单数必须跟随真实状态变化，只有听歌时长继续保持静态展示。
      */
     @Test
-    fun desktopMeStatsUseRealSongAndPlaylistCounts(): Unit {
-        val stats: LibraryStats = LibraryStats(
-            songCount = 128,
-            albumCount = 9,
-            artistCount = 4,
-        )
+    fun desktopMeStatsUseRealSongAndPlaylistCounts() {
+        val stats: LibraryStats =
+            LibraryStats(
+                songCount = 128,
+                albumCount = 9,
+                artistCount = 4,
+            )
 
-        val values: List<String> = buildDesktopMeStatDisplayModels(
-            libraryStats = stats,
-            localPlaylistCount = 3,
-        ).map { model: DesktopMeStatDisplayModel -> model.value }
+        val values: List<String> =
+            buildDesktopMeStatDisplayModels(
+                libraryStats = stats,
+                localPlaylistCount = 3,
+            ).map { model: DesktopMeStatDisplayModel -> model.value }
 
         assertEquals(
             expected = listOf("128", "3", "365"),
@@ -214,13 +227,14 @@ class DesktopMeScreenTest {
      * 只有歌单统计卡具备点击入口，避免歌曲或听歌时长误导航。
      */
     @Test
-    fun desktopMeStatsExposePlaylistNavigationActionOnly(): Unit {
+    fun desktopMeStatsExposePlaylistNavigationActionOnly() {
         val stats: LibraryStats = LibraryStats(songCount = 7)
 
-        val actions: List<DesktopMeStatAction?> = buildDesktopMeStatDisplayModels(
-            libraryStats = stats,
-            localPlaylistCount = 2,
-        ).map { model: DesktopMeStatDisplayModel -> model.action }
+        val actions: List<DesktopMeStatAction?> =
+            buildDesktopMeStatDisplayModels(
+                libraryStats = stats,
+                localPlaylistCount = 2,
+            ).map { model: DesktopMeStatDisplayModel -> model.action }
 
         assertEquals(
             expected = listOf(null, DesktopMeStatAction.OpenLocalPlaylists, null),
@@ -232,8 +246,8 @@ class DesktopMeScreenTest {
     private fun testSong(
         id: String,
         title: String,
-    ): Song {
-        return Song(
+    ): Song =
+        Song(
             id = id,
             title = title,
             artist = "Artist",
@@ -249,5 +263,4 @@ class DesktopMeScreenTest {
             sourceKind = LocalMusicSourceKind.DesktopFolder,
             localUri = "file:///$id.mp3",
         )
-    }
 }

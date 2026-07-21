@@ -7,47 +7,54 @@ import kotlin.test.assertEquals
 
 class CoverPaletteTest {
     @Test
-    fun selectCoverSeedColorUsesProminentChromaticColor(): Unit {
-        val pixels: IntArray = createPixels(
-            packedColor(red = 107, green = 150, blue = 168) to 70,
-            packedColor(red = 19, green = 23, blue = 27) to 30,
-        )
+    fun selectCoverSeedColorUsesProminentChromaticColor() {
+        val pixels: IntArray =
+            createPixels(
+                packedColor(red = 107, green = 150, blue = 168) to 70,
+                packedColor(red = 19, green = 23, blue = 27) to 30,
+            )
         val seedColor: Color = selectCoverSeedColor(pixels = pixels)
         assertEquals(expected = "#6B96A8", actual = seedColor.toHexColor())
     }
 
     @Test
-    fun selectCoverSeedColorFallsBackToDominantWhenTintIsTiny(): Unit {
-        val pixels: IntArray = createPixels(
-            packedColor(red = 70, green = 70, blue = 72) to 99,
-            packedColor(red = 92, green = 117, blue = 118) to 1,
-        )
+    fun selectCoverSeedColorFallsBackToDominantWhenTintIsTiny() {
+        val pixels: IntArray =
+            createPixels(
+                packedColor(red = 70, green = 70, blue = 72) to 99,
+                packedColor(red = 92, green = 117, blue = 118) to 1,
+            )
         val seedColor: Color = selectCoverSeedColor(pixels = pixels)
         assertEquals(expected = "#464648", actual = seedColor.toHexColor())
     }
 
     @Test
-    fun createMiniPlayerContainerColorKeepsCoverTintSubtle(): Unit {
-        val containerColor: Color = createMiniPlayerContainerColor(
-            seedColor = Color(red = 107, green = 150, blue = 168),
-        )
+    fun createMiniPlayerContainerColorKeepsCoverTintSubtle() {
+        val containerColor: Color =
+            createMiniPlayerContainerColor(
+                seedColor = Color(red = 107, green = 150, blue = 168),
+            )
         assertEquals(expected = "#E4ECEF", actual = containerColor.toHexColor())
     }
 
     @Test
-    fun createArtistDetailPaletteUsesSmokyRootAndReadableContentTint(): Unit {
-        val backgroundColor: Color = createArtistDetailBackgroundColor(
-            seedColor = Color(red = 107, green = 150, blue = 168),
-        )
-        val ambientColor: Color = createArtistDetailAmbientColor(
-            seedColor = Color(red = 107, green = 150, blue = 168),
-        )
-        val contentColor: Color = createArtistDetailContentColor(
-            seedColor = Color(red = 107, green = 150, blue = 168),
-        )
-        val heroScrimColor: Color = createArtistDetailHeroScrimColor(
-            seedColor = Color(red = 107, green = 150, blue = 168),
-        )
+    fun createArtistDetailPaletteUsesSmokyRootAndReadableContentTint() {
+        val backgroundColor: Color =
+            createArtistDetailBackgroundColor(
+                seedColor = Color(red = 107, green = 150, blue = 168),
+            )
+        val ambientColor: Color =
+            createArtistDetailAmbientColor(
+                seedColor = Color(red = 107, green = 150, blue = 168),
+            )
+        val contentColor: Color =
+            createArtistDetailContentColor(
+                seedColor = Color(red = 107, green = 150, blue = 168),
+            )
+        val heroScrimColor: Color =
+            createArtistDetailHeroScrimColor(
+                seedColor = Color(red = 107, green = 150, blue = 168),
+            )
 
         assertEquals(expected = "#2A3C44", actual = backgroundColor.toHexColor())
         assertEquals(expected = "#3C5560", actual = ambientColor.toHexColor())
@@ -56,10 +63,11 @@ class CoverPaletteTest {
     }
 
     @Test
-    fun createPlayerPageBackgroundColorKeepsStrongerCoverTint(): Unit {
-        val backgroundColor: Color = createPlayerPageBackgroundColor(
-            seedColor = Color(red = 107, green = 150, blue = 168),
-        )
+    fun createPlayerPageBackgroundColorKeepsStrongerCoverTint() {
+        val backgroundColor: Color =
+            createPlayerPageBackgroundColor(
+                seedColor = Color(red = 107, green = 150, blue = 168),
+            )
         assertEquals(expected = "#C4D5DD", actual = backgroundColor.toHexColor())
     }
 }
@@ -76,9 +84,11 @@ private fun createPixels(vararg entries: Pair<Int, Int>): IntArray {
 }
 
 // 生成 [ImageBitmap.readPixels] 使用的 ARGB packed int。
-private fun packedColor(red: Int, green: Int, blue: Int): Int {
-    return (0xFF shl 24) or (red shl 16) or (green shl 8) or blue
-}
+private fun packedColor(
+    red: Int,
+    green: Int,
+    blue: Int,
+): Int = (0xFF shl 24) or (red shl 16) or (green shl 8) or blue
 
 // 转成十六进制颜色，避免测试暴露 Compose [Color] 的内部浮点表示。
 private fun Color.toHexColor(): String {
@@ -89,6 +99,4 @@ private fun Color.toHexColor(): String {
 }
 
 // 按 UI 颜色常用格式输出两位十六进制通道值。
-private fun Int.toHexByte(): String {
-    return toString(radix = 16).padStart(length = 2, padChar = '0').uppercase()
-}
+private fun Int.toHexByte(): String = toString(radix = 16).padStart(length = 2, padChar = '0').uppercase()

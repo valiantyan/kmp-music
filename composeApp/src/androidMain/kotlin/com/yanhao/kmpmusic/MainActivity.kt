@@ -44,21 +44,24 @@ class MainActivity : ComponentActivity() {
     private var isFavoritesPerformanceHarnessOpen: Boolean by mutableStateOf(value = false)
 
     // Android 13+ 的通知权限请求器；播放服务仍保持惰性启动。
-    private val notificationPermissionLauncher = registerForActivityResult(
-        ActivityResultContracts.RequestPermission(),
-    ) {}
+    private val notificationPermissionLauncher =
+        registerForActivityResult(
+            ActivityResultContracts.RequestPermission(),
+        ) {}
 
     /** 初始化共享 Compose App，保留 Android 推荐的 edge-to-edge，并把避让交给 Compose inset。 */
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge(
-            statusBarStyle = SystemBarStyle.light(
-                scrim = android.graphics.Color.TRANSPARENT,
-                darkScrim = android.graphics.Color.TRANSPARENT,
-            ),
-            navigationBarStyle = SystemBarStyle.light(
-                scrim = android.graphics.Color.TRANSPARENT,
-                darkScrim = android.graphics.Color.TRANSPARENT,
-            ),
+            statusBarStyle =
+                SystemBarStyle.light(
+                    scrim = android.graphics.Color.TRANSPARENT,
+                    darkScrim = android.graphics.Color.TRANSPARENT,
+                ),
+            navigationBarStyle =
+                SystemBarStyle.light(
+                    scrim = android.graphics.Color.TRANSPARENT,
+                    darkScrim = android.graphics.Color.TRANSPARENT,
+                ),
         )
         super.onCreate(savedInstanceState)
         configureEdgeToEdgeSystemBars()
@@ -67,10 +70,11 @@ class MainActivity : ComponentActivity() {
         requestPlaybackNotificationPermissionIfNeeded()
         musicAppViewModel.attachPlaybackContext(context = applicationContext)
         musicAppViewModel.attachLocalMusicScanner(
-            scanner = AndroidMediaStoreScanner(
-                context = applicationContext,
-                requestAudioPermission = audioPermissionRequester::requestAudioPermission,
-            ),
+            scanner =
+                AndroidMediaStoreScanner(
+                    context = applicationContext,
+                    requestAudioPermission = audioPermissionRequester::requestAudioPermission,
+                ),
         )
         musicAppViewModel.attachPermissionSettingsOpener(
             opener = PermissionSettingsOpener(audioPermissionRequester::openAudioPermissionSettings),
@@ -80,8 +84,14 @@ class MainActivity : ComponentActivity() {
         handlePlaybackIntent(intent = intent)
         setContent {
             when {
-                isAlbumDetailPerformanceHarnessOpen -> AlbumDetailPerformanceHarness()
-                isFavoritesPerformanceHarnessOpen -> FavoritesPerformanceHarness()
+                isAlbumDetailPerformanceHarnessOpen -> {
+                    AlbumDetailPerformanceHarness()
+                }
+
+                isFavoritesPerformanceHarnessOpen -> {
+                    FavoritesPerformanceHarness()
+                }
+
                 else -> {
                     AndroidNavigationBarTransparencyEffect()
                     App(controller = musicAppViewModel.controller)
@@ -154,9 +164,7 @@ class MainActivity : ComponentActivity() {
     }
 
     /** 通过 manifest flags 判断当前安装包是否可调试，避免依赖 generated BuildConfig。 */
-    private fun isAppDebuggable(): Boolean {
-        return (applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0
-    }
+    private fun isAppDebuggable(): Boolean = (applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0
 
     /** Android 系统导航栏保持透明，让播放页关闭动画真实穿过底部系统栏区域。 */
     @Composable
@@ -206,10 +214,9 @@ class MainActivity : ComponentActivity() {
         /**
          * 创建媒体通知正文点击入口，复用现有任务栈并把意图交给 [MainActivity] 处理。
          */
-        fun createOpenPlayerIntent(context: Context): Intent {
-            return Intent(context, MainActivity::class.java)
+        fun createOpenPlayerIntent(context: Context): Intent =
+            Intent(context, MainActivity::class.java)
                 .setAction(ACTION_OPEN_PLAYER)
                 .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
-        }
     }
 }

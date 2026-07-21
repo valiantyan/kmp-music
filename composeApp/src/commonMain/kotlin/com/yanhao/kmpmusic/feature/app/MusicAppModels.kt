@@ -193,19 +193,35 @@ enum class MobileFixedBarMode(
  * 二级页面路由。
  */
 sealed interface SecondaryScreen {
-    data class Search(val context: SearchContext = SearchContext.LocalLibrary) : SecondaryScreen
+    data class Search(
+        val context: SearchContext = SearchContext.LocalLibrary,
+    ) : SecondaryScreen
+
     data object Player : SecondaryScreen
+
     data object AlbumDetail : SecondaryScreen
+
     data object ArtistDetail : SecondaryScreen
+
     data object Settings : SecondaryScreen
+
     data object About : SecondaryScreen
+
     data object Login : SecondaryScreen
+
     data object AudioScan : SecondaryScreen
+
     data object RecentPlayed : SecondaryScreen
+
     data object LocalPlaylists : SecondaryScreen
+
     data object LocalPlaylistManagement : SecondaryScreen
+
     data object LocalPlaylistDetail : SecondaryScreen
-    data class LocalMusic(val initialSection: LocalMusicSection = LocalMusicSection.Songs) : SecondaryScreen
+
+    data class LocalMusic(
+        val initialSection: LocalMusicSection = LocalMusicSection.Songs,
+    ) : SecondaryScreen
 }
 
 /**
@@ -242,65 +258,74 @@ data class NavigationState(
     /**
      * 当前需要压在底层 chrome 上方的页面；为空时说明当前页自身承载 chrome。
      */
-    val chromeOverlayScreen: SecondaryScreen? = secondaryScreen.takeIf {
-        fixedBarMode.coversUnderlyingChrome
-    }
+    val chromeOverlayScreen: SecondaryScreen? =
+        secondaryScreen.takeIf {
+            fixedBarMode.coversUnderlyingChrome
+        }
 
     /**
      * 覆盖页下方真正承载固定底栏的二级页；没有二级页时由一级页承载。
      */
-    val chromeUnderlaySecondaryScreen: SecondaryScreen? = if (chromeOverlayScreen == null) {
-        secondaryScreen
-    } else {
-        secondaryBackStack.lastOrNull()?.screen
-    }
+    val chromeUnderlaySecondaryScreen: SecondaryScreen? =
+        if (chromeOverlayScreen == null) {
+            secondaryScreen
+        } else {
+            secondaryBackStack.lastOrNull()?.screen
+        }
 
     /**
      * 覆盖页下方页面的滚动隔离 id，保证返回时不会丢失上一层状态。
      */
-    val chromeUnderlayEntryId: Int = if (chromeOverlayScreen == null) {
-        secondaryEntryId
-    } else {
-        secondaryBackStack.lastOrNull()?.entryId ?: 0
-    }
+    val chromeUnderlayEntryId: Int =
+        if (chromeOverlayScreen == null) {
+            secondaryEntryId
+        } else {
+            secondaryBackStack.lastOrNull()?.entryId ?: 0
+        }
 
     /**
      * 固定底栏按底层页面计算，避免无 chrome 覆盖页触发底栏下滑隐藏动画。
      */
-    val chromeUnderlayFixedBarMode: MobileFixedBarMode = mobileFixedBarModeFor(
-        screen = chromeUnderlaySecondaryScreen,
-    )
+    val chromeUnderlayFixedBarMode: MobileFixedBarMode =
+        mobileFixedBarModeFor(
+            screen = chromeUnderlaySecondaryScreen,
+        )
 
     /**
      * 当前页面滚动状态隔离 key，一级页按 Tab 保留，二级页每次进入都从顶部重新开始。
      */
-    val scrollStateKey: String = buildScrollStateKey(
-        rootTab = rootTab,
-        secondaryScreen = secondaryScreen,
-        entryId = secondaryEntryId,
-    )
+    val scrollStateKey: String =
+        buildScrollStateKey(
+            rootTab = rootTab,
+            secondaryScreen = secondaryScreen,
+            entryId = secondaryEntryId,
+        )
 
     /**
      * 底层页面滚动状态 key，供覆盖页打开时继续渲染上一层页面。
      */
-    val chromeUnderlayScrollStateKey: String = buildScrollStateKey(
-        rootTab = rootTab,
-        secondaryScreen = chromeUnderlaySecondaryScreen,
-        entryId = chromeUnderlayEntryId,
-    )
+    val chromeUnderlayScrollStateKey: String =
+        buildScrollStateKey(
+            rootTab = rootTab,
+            secondaryScreen = chromeUnderlaySecondaryScreen,
+            entryId = chromeUnderlayEntryId,
+        )
 }
 
 /**
  * 页面到手机端底部 chrome 的唯一归类入口。
  */
-private fun mobileFixedBarModeFor(screen: SecondaryScreen?): MobileFixedBarMode {
-    return when (screen) {
+private fun mobileFixedBarModeFor(screen: SecondaryScreen?): MobileFixedBarMode =
+    when (screen) {
         null -> MobileFixedBarMode.TopLevel
+
         SecondaryScreen.Player -> MobileFixedBarMode.Player
+
         SecondaryScreen.About,
         SecondaryScreen.AudioScan,
         SecondaryScreen.LocalPlaylistManagement,
         -> MobileFixedBarMode.SecondaryWithoutChrome
+
         is SecondaryScreen.Search,
         SecondaryScreen.AlbumDetail,
         SecondaryScreen.ArtistDetail,
@@ -312,7 +337,6 @@ private fun mobileFixedBarModeFor(screen: SecondaryScreen?): MobileFixedBarMode 
         is SecondaryScreen.LocalMusic,
         -> MobileFixedBarMode.SecondaryWithMiniPlayer
     }
-}
 
 /**
  * 构造页面滚动状态 key，一级页按 Tab，二级页按进入次数隔离。
@@ -321,18 +345,17 @@ private fun buildScrollStateKey(
     rootTab: RootTab,
     secondaryScreen: SecondaryScreen?,
     entryId: Int,
-): String {
-    return when (secondaryScreen) {
+): String =
+    when (secondaryScreen) {
         null -> "root:${rootTab.name}"
         else -> "secondary:${secondaryScreen.routeName()}:$entryId"
     }
-}
 
 /**
  * 二级页面稳定路由名，用于保存页面级 UI 状态，避免依赖平台反射能力。
  */
-private fun SecondaryScreen.routeName(): String {
-    return when (this) {
+private fun SecondaryScreen.routeName(): String =
+    when (this) {
         is SecondaryScreen.Search -> "Search:${context.name}"
         SecondaryScreen.Player -> "Player"
         SecondaryScreen.AlbumDetail -> "AlbumDetail"
@@ -347,7 +370,6 @@ private fun SecondaryScreen.routeName(): String {
         SecondaryScreen.LocalPlaylistDetail -> "LocalPlaylistDetail"
         is SecondaryScreen.LocalMusic -> "LocalMusic:${initialSection.name}"
     }
-}
 
 /**
  * 全局 UI 状态。
@@ -405,8 +427,9 @@ data class MusicAppUiState(
      * Desktop 顶部音乐搜索只在内容型一级页出现。
      */
     val shouldShowTitlebarMusicSearch: Boolean
-        get() = navigationState.secondaryScreen == null &&
-            (navigationState.rootTab == RootTab.Home || navigationState.rootTab == RootTab.Favorites)
+        get() =
+            navigationState.secondaryScreen == null &&
+                (navigationState.rootTab == RootTab.Home || navigationState.rootTab == RootTab.Favorites)
 
     val songs: List<Song>
         get() = localSongs.ifEmpty { homeLocalSongPreview }
@@ -439,30 +462,32 @@ data class MusicAppUiState(
         get() = selectedManagedLocalPlaylistIds.isNotEmpty()
 
     val detailSongs: List<Song>
-        get() = MusicLibraryProjector.buildDetailSongs(
-            queueSongsSnapshot = queueSongsSnapshot,
-            localSongs = localSongs,
-            homeLocalSongPreview = homeLocalSongPreview + selectedLocalPlaylistDetail.orEmptySongs(),
-            favoriteSongs = favoriteSongs,
-        )
+        get() =
+            MusicLibraryProjector.buildDetailSongs(
+                queueSongsSnapshot = queueSongsSnapshot,
+                localSongs = localSongs,
+                homeLocalSongPreview = homeLocalSongPreview + selectedLocalPlaylistDetail.orEmptySongs(),
+                favoriteSongs = favoriteSongs,
+            )
 
     /**
      * 当前搜索上下文对应的历史记录。
      */
-    fun searchHistoryFor(context: SearchContext = searchContext): List<String> {
-        return when (context) {
+    fun searchHistoryFor(context: SearchContext = searchContext): List<String> =
+        when (context) {
             SearchContext.LocalLibrary -> localLibrarySearchHistory
             SearchContext.Favorites -> favoritesSearchHistory
         }
-    }
 
     val detailAlbums: List<Album>
-        get() = (localAlbums + MusicLibraryProjector.buildAlbums(songs = detailSongs))
-            .distinctBy { album -> album.id }
+        get() =
+            (localAlbums + MusicLibraryProjector.buildAlbums(songs = detailSongs))
+                .distinctBy { album -> album.id }
 
     val detailArtists: List<Artist>
-        get() = (localArtists + MusicLibraryProjector.buildArtists(songs = detailSongs))
-            .distinctBy { artist -> artist.id }
+        get() =
+            (localArtists + MusicLibraryProjector.buildArtists(songs = detailSongs))
+                .distinctBy { artist -> artist.id }
 
     /**
      * 当前是否处于真实播放态，只用于业务判断，不能用来决定按钮图标。
@@ -485,28 +510,29 @@ data class MusicAppUiState(
     /**
      * 当前播放歌曲，没有真实播放时不显示迷你播放器。
      */
-    val currentSong: Song? = currentSongId?.let { songId ->
-        findKnownSong(songId = songId)
-    }
+    val currentSong: Song? =
+        currentSongId?.let { songId ->
+            findKnownSong(songId = songId)
+        }
 
     /**
      * 当前播放队列歌曲。
      */
-    val queueSongs: List<Song> = queueSongIds.mapNotNull { songId ->
-        findKnownSong(songId = songId)
-    }
+    val queueSongs: List<Song> =
+        queueSongIds.mapNotNull { songId ->
+            findKnownSong(songId = songId)
+        }
 
     /**
      * 在所有当前 UI 已知歌曲来源中按 id 找歌，供播放、队列和全局面板复用同一解析顺序。
      */
-    fun findKnownSong(songId: String): Song? {
-        return queueSongsSnapshot.firstOrNull { song -> song.id == songId }
+    fun findKnownSong(songId: String): Song? =
+        queueSongsSnapshot.firstOrNull { song -> song.id == songId }
             ?: localSongs.firstOrNull { song -> song.id == songId }
             ?: homeLocalSongPreview.firstOrNull { song -> song.id == songId }
             ?: selectedLocalPlaylistDetail?.songs?.firstOrNull { song -> song.id == songId }
             ?: recentSongs.firstOrNull { song -> song.id == songId }
             ?: favoriteSongs.firstOrNull { song -> song.id == songId }
-    }
 
     /**
      * 收藏专辑列表，直接由收藏歌曲投影，避免依赖全量本地曲库是否已加载。
@@ -545,6 +571,4 @@ data class MusicAppUiState(
 }
 
 // 未打开歌单详情时，详情歌曲来源为空列表，保持既有专辑/歌手投影口径。
-private fun LocalPlaylistDetailDisplayModel?.orEmptySongs(): List<Song> {
-    return this?.songs.orEmpty()
-}
+private fun LocalPlaylistDetailDisplayModel?.orEmptySongs(): List<Song> = this?.songs.orEmpty()

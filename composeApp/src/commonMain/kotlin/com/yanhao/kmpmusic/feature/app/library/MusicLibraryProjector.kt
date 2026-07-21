@@ -13,8 +13,9 @@ object MusicLibraryProjector {
     /**
      * 统一专辑分组规则，保证不同入口看到一致的专辑聚合结果。
      */
-    fun buildAlbums(songs: List<Song>): List<Album> {
-        return songs.groupBy { song: Song -> normalizeAlbumTitle(value = song.album) }
+    fun buildAlbums(songs: List<Song>): List<Album> =
+        songs
+            .groupBy { song: Song -> normalizeAlbumTitle(value = song.album) }
             .entries
             .map { entry: Map.Entry<String, List<Song>> ->
                 val normalizedAlbum: String = entry.key
@@ -30,15 +31,14 @@ object MusicLibraryProjector {
                     mood = "本地音乐",
                     year = "本地",
                 )
-            }
-            .sortedBy { album: Album -> album.id }
-    }
+            }.sortedBy { album: Album -> album.id }
 
     /**
      * 统一歌手分组规则，避免首页、收藏和详情页各自维护一份实现。
      */
-    fun buildArtists(songs: List<Song>): List<Artist> {
-        return songs.groupBy { song: Song -> normalizeArtistName(value = song.artist) }
+    fun buildArtists(songs: List<Song>): List<Artist> =
+        songs
+            .groupBy { song: Song -> normalizeArtistName(value = song.artist) }
             .entries
             .map { entry: Map.Entry<String, List<Song>> ->
                 val normalizedArtist: String = entry.key
@@ -53,17 +53,14 @@ object MusicLibraryProjector {
                     coverImageUri = firstSong.coverImageUri,
                     tag = "本地音乐",
                 )
-            }
-            .sortedBy { artist: Artist -> artist.id }
-    }
+            }.sortedBy { artist: Artist -> artist.id }
 
     // 歌手专辑数按同一组歌曲去重专辑名，保证首页和本地音乐分段口径一致。
-    private fun countArtistAlbums(songs: List<Song>): Int {
-        return songs
+    private fun countArtistAlbums(songs: List<Song>): Int =
+        songs
             .map { song: Song -> normalizeAlbumTitle(value = song.album) }
             .distinct()
             .size
-    }
 
     /**
      * 详情页需要优先保留当前队列里的实体，再按曲库、首页预览、收藏顺序补齐缺口。
@@ -73,8 +70,7 @@ object MusicLibraryProjector {
         localSongs: List<Song>,
         homeLocalSongPreview: List<Song>,
         favoriteSongs: List<Song>,
-    ): List<Song> {
-        return (queueSongsSnapshot + localSongs + homeLocalSongPreview + favoriteSongs)
+    ): List<Song> =
+        (queueSongsSnapshot + localSongs + homeLocalSongPreview + favoriteSongs)
             .distinctBy { song: Song -> song.id }
-    }
 }

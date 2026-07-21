@@ -79,9 +79,10 @@ private fun DesktopSongTableHeader(
     trailingDateLabel: String,
 ) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(DesktopMusicDimens.TableHeaderHeight),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .height(DesktopMusicDimens.TableHeaderHeight),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         if (showFavoriteColumn) {
@@ -96,27 +97,30 @@ private fun DesktopSongTableHeader(
         )
         Text(
             text = "标题",
-            modifier = Modifier
-                .weight(2.4f)
-                .padding(end = DesktopMusicDimens.TableColumnGap),
+            modifier =
+                Modifier
+                    .weight(2.4f)
+                    .padding(end = DesktopMusicDimens.TableColumnGap),
             color = Color(0xFF7D8795),
             fontSize = DesktopMusicType.TableHeader,
             fontWeight = FontWeight.SemiBold,
         )
         Text(
             text = "歌手",
-            modifier = Modifier
-                .weight(1.2f)
-                .padding(end = DesktopMusicDimens.TableColumnGap),
+            modifier =
+                Modifier
+                    .weight(1.2f)
+                    .padding(end = DesktopMusicDimens.TableColumnGap),
             color = Color(0xFF7D8795),
             fontSize = DesktopMusicType.TableHeader,
             fontWeight = FontWeight.SemiBold,
         )
         Text(
             text = "专辑",
-            modifier = Modifier
-                .weight(1.2f)
-                .padding(end = DesktopMusicDimens.TableColumnGap),
+            modifier =
+                Modifier
+                    .weight(1.2f)
+                    .padding(end = DesktopMusicDimens.TableColumnGap),
             color = Color(0xFF7D8795),
             fontSize = DesktopMusicType.TableHeader,
             fontWeight = FontWeight.SemiBold,
@@ -158,23 +162,26 @@ private fun DesktopSongTableRow(
 ) {
     val isCurrentSongPlaying: Boolean =
         isCurrentSong && currentPlaybackStatus.shouldShowPauseControl
-    val shouldToggleCurrentSong: Boolean = shouldToggleDesktopSongTableCurrentPlayback(
-        isCurrentSong = isCurrentSong,
-        currentPlaybackStatus = currentPlaybackStatus,
-    )
+    val shouldToggleCurrentSong: Boolean =
+        shouldToggleDesktopSongTableCurrentPlayback(
+            isCurrentSong = isCurrentSong,
+            currentPlaybackStatus = currentPlaybackStatus,
+        )
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(DesktopMusicDimens.TableRowHeight)
-            .background(if (isCurrentSong) DesktopMusicColors.Accent.copy(alpha = 0.10f) else Color.Transparent),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .height(DesktopMusicDimens.TableRowHeight)
+                .background(if (isCurrentSong) DesktopMusicColors.Accent.copy(alpha = 0.10f) else Color.Transparent),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         if (showFavoriteColumn) {
             Text(
                 text = if (song.isLiked) "♥" else "♡",
-                modifier = Modifier
-                    .width(36.dp)
-                    .clickable { onLike?.invoke(song.id) },
+                modifier =
+                    Modifier
+                        .width(36.dp)
+                        .clickable { onLike?.invoke(song.id) },
                 color = if (song.isLiked) DesktopMusicColors.PlayerRed else DesktopMusicColors.Muted,
             )
         }
@@ -194,7 +201,14 @@ private fun DesktopSongTableRow(
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
-                    text = if (isCurrentSongPlaying) "Ⅱ" else if (isCurrentSong) "▶" else (index + 1).toString(),
+                    text =
+                        if (isCurrentSongPlaying) {
+                            "Ⅱ"
+                        } else if (isCurrentSong) {
+                            "▶"
+                        } else {
+                            (index + 1).toString()
+                        },
                     color = if (isCurrentSong) DesktopMusicColors.PlayerRed else DesktopMusicColors.Muted,
                     fontSize = DesktopMusicType.Body,
                     fontWeight = if (isCurrentSong) FontWeight.Bold else FontWeight.Normal,
@@ -202,10 +216,11 @@ private fun DesktopSongTableRow(
             }
         }
         Row(
-            modifier = Modifier
-                .weight(2.4f)
-                .padding(end = DesktopMusicDimens.TableColumnGap)
-                .clickable { onSongPlay(song, songs) },
+            modifier =
+                Modifier
+                    .weight(2.4f)
+                    .padding(end = DesktopMusicDimens.TableColumnGap)
+                    .clickable { onSongPlay(song, songs) },
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -213,9 +228,10 @@ private fun DesktopSongTableRow(
                 coverArt = song.coverArt,
                 coverImageUri = song.coverImageUri,
                 contentDescription = "${song.title} 封面",
-                modifier = Modifier
-                    .size(DesktopMusicDimens.TableCoverSize)
-                    .clip(RoundedCornerShape(7.dp)),
+                modifier =
+                    Modifier
+                        .size(DesktopMusicDimens.TableCoverSize)
+                        .clip(RoundedCornerShape(7.dp)),
                 contentScale = ContentScale.Crop,
             )
             Text(
@@ -230,9 +246,10 @@ private fun DesktopSongTableRow(
         }
         Text(
             text = song.artist,
-            modifier = Modifier
-                .weight(1.2f)
-                .padding(end = DesktopMusicDimens.TableColumnGap),
+            modifier =
+                Modifier
+                    .weight(1.2f)
+                    .padding(end = DesktopMusicDimens.TableColumnGap),
             color = DesktopMusicColors.Ink,
             fontSize = DesktopMusicType.TableTitle,
             maxLines = 1,
@@ -240,9 +257,10 @@ private fun DesktopSongTableRow(
         )
         Text(
             text = song.album,
-            modifier = Modifier
-                .weight(1.2f)
-                .padding(end = DesktopMusicDimens.TableColumnGap),
+            modifier =
+                Modifier
+                    .weight(1.2f)
+                    .padding(end = DesktopMusicDimens.TableColumnGap),
             color = DesktopMusicColors.Ink,
             fontSize = DesktopMusicType.TableTitle,
             maxLines = 1,
@@ -255,10 +273,11 @@ private fun DesktopSongTableRow(
             fontSize = DesktopMusicType.Body,
         )
         Text(
-            text = desktopSongTableTrailingValue(
-                trailingDateLabel = trailingDateLabel,
-                song = song,
-            ),
+            text =
+                desktopSongTableTrailingValue(
+                    trailingDateLabel = trailingDateLabel,
+                    song = song,
+                ),
             modifier = Modifier.width(98.dp),
             color = DesktopMusicColors.Muted,
             fontSize = DesktopMusicType.Body,
@@ -296,13 +315,12 @@ internal fun shouldToggleDesktopSongTableCurrentPlayback(
 private fun desktopSongTableTrailingValue(
     trailingDateLabel: String,
     song: Song,
-): String {
-    return when (trailingDateLabel) {
+): String =
+    when (trailingDateLabel) {
         "收藏时间" -> "已收藏"
         "添加时间" -> song.modifiedAt?.let(::formatDesktopModifiedDate) ?: "最近添加"
         else -> "最近"
     }
-}
 
 private fun formatDesktopModifiedDate(timestampMillis: Long): String {
     val epochDay: Long = floorDivByDay(timestampMillis)
@@ -326,8 +344,9 @@ private fun civilDateFromEpochDay(epochDay: Long): CivilDate {
     val era: Long = if (shiftedDay >= 0L) shiftedDay else shiftedDay - 146_096L
     val eraIndex: Long = era / 146_097L
     val dayOfEra: Long = shiftedDay - eraIndex * 146_097L
-    val yearOfEra: Long = (
-        dayOfEra - dayOfEra / 1_460L + dayOfEra / 36_524L - dayOfEra / 146_096L
+    val yearOfEra: Long =
+        (
+            dayOfEra - dayOfEra / 1_460L + dayOfEra / 36_524L - dayOfEra / 146_096L
         ) / 365L
     val year: Long = yearOfEra + eraIndex * 400L
     val dayOfYear: Long = dayOfEra - (365L * yearOfEra + yearOfEra / 4L - yearOfEra / 100L)

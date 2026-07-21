@@ -14,5 +14,8 @@ interface SearchHistoryRepository {
     /**
      * 覆盖保存指定上下文的搜索历史。
      */
-    fun saveSearchHistory(context: SearchContext, history: List<String>)
+    fun saveSearchHistory(
+        context: SearchContext,
+        history: List<String>,
+    )
 }

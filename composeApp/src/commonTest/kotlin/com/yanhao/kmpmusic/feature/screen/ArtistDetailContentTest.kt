@@ -18,27 +18,30 @@ class ArtistDetailContentTest {
      * 播放入口下应展示当前歌手名下全部歌曲，并忽略轻微空白和英文大小写差异。
      */
     @Test
-    fun artistDetailContentUsesAllNormalizedArtistSongs(): Unit {
+    fun artistDetailContentUsesAllNormalizedArtistSongs() {
         val artist = testArtist(name = "Jay Chou")
-        val artistSongs: List<Song> = (1..7).map { index: Int ->
+        val artistSongs: List<Song> =
+            (1..7).map { index: Int ->
+                testSong(
+                    id = "artist:$index",
+                    title = "Artist Song $index",
+                    artist = if (index % 2 == 0) " jay   chou " else "JAY CHOU",
+                )
+            }
+        val otherSong: Song =
             testSong(
-                id = "artist:$index",
-                title = "Artist Song $index",
-                artist = if (index % 2 == 0) " jay   chou " else "JAY CHOU",
+                id = "other:1",
+                title = "Other Song",
+                artist = "Other Artist",
             )
-        }
-        val otherSong: Song = testSong(
-            id = "other:1",
-            title = "Other Song",
-            artist = "Other Artist",
-        )
 
-        val content: ArtistDetailContent = buildArtistDetailContent(
-            artist = artist,
-            songs = artistSongs + otherSong,
-            currentSongId = "artist:2",
-            currentPlaybackStatus = PlaybackStatus.Playing,
-        )
+        val content: ArtistDetailContent =
+            buildArtistDetailContent(
+                artist = artist,
+                songs = artistSongs + otherSong,
+                currentSongId = "artist:2",
+                currentPlaybackStatus = PlaybackStatus.Playing,
+            )
 
         assertEquals(expected = artistSongs.map { song: Song -> song.id }, actual = content.artistSongs.map { song: Song -> song.id })
         assertEquals(expected = "播放全部", actual = content.playAllText)
@@ -53,35 +56,37 @@ class ArtistDetailContentTest {
      * 当前歌曲再次点击应切换播放状态，其他歌曲点击才进入切歌逻辑。
      */
     @Test
-    fun currentArtistSongClickTogglesCurrentPlayback(): Unit {
+    fun currentArtistSongClickTogglesCurrentPlayback() {
         assertEquals(
             expected = ArtistDetailSongClickAction.ToggleCurrentPlayback,
-            actual = resolveArtistDetailSongClickAction(
-                isCurrentSong = true,
-                currentPlaybackStatus = PlaybackStatus.Playing,
-            ),
+            actual =
+                resolveArtistDetailSongClickAction(
+                    isCurrentSong = true,
+                    currentPlaybackStatus = PlaybackStatus.Playing,
+                ),
         )
         assertEquals(
             expected = ArtistDetailSongClickAction.ToggleCurrentPlayback,
-            actual = resolveArtistDetailSongClickAction(
-                isCurrentSong = true,
-                currentPlaybackStatus = PlaybackStatus.Paused,
-            ),
+            actual =
+                resolveArtistDetailSongClickAction(
+                    isCurrentSong = true,
+                    currentPlaybackStatus = PlaybackStatus.Paused,
+                ),
         )
         assertEquals(
             expected = ArtistDetailSongClickAction.PlaySong,
-            actual = resolveArtistDetailSongClickAction(
-                isCurrentSong = false,
-                currentPlaybackStatus = PlaybackStatus.Playing,
-            ),
+            actual =
+                resolveArtistDetailSongClickAction(
+                    isCurrentSong = false,
+                    currentPlaybackStatus = PlaybackStatus.Playing,
+                ),
         )
     }
-
 }
 
 // 构造歌手详情页内容测试使用的歌手。
-private fun testArtist(name: String): Artist {
-    return Artist(
+private fun testArtist(name: String): Artist =
+    Artist(
         id = "artist:${name.lowercase()}",
         name = name,
         songCount = 7,
@@ -89,15 +94,14 @@ private fun testArtist(name: String): Artist {
         coverArt = CoverArt.HeroLocalMusic,
         tag = "本地音乐",
     )
-}
 
 // 构造歌手详情页内容测试使用的歌曲。
 private fun testSong(
     id: String,
     title: String,
     artist: String,
-): Song {
-    return Song(
+): Song =
+    Song(
         id = id,
         title = title,
         artist = artist,
@@ -114,4 +118,3 @@ private fun testSong(
         sourceKind = LocalMusicSourceKind.FakeScanner,
         localUri = "fake://$id",
     )
-}

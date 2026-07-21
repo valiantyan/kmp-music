@@ -1,15 +1,15 @@
 package com.yanhao.kmpmusic.data
 
-import java.nio.file.Files
-import java.nio.file.Path
-import kotlin.test.Test
-import kotlin.test.assertContentEquals
-import kotlin.test.assertNull
 import org.jaudiotagger.audio.AudioFile
 import org.jaudiotagger.audio.generic.GenericAudioHeader
 import org.jaudiotagger.tag.Tag
 import org.jaudiotagger.tag.datatype.Artwork
 import org.jaudiotagger.tag.id3.ID3v24Tag
+import java.nio.file.Files
+import java.nio.file.Path
+import kotlin.test.Test
+import kotlin.test.assertContentEquals
+import kotlin.test.assertNull
 
 /**
  * 桌面封面提取测试，保护 macOS/Windows/Linux 扫描时不同音频格式的 artwork 读取能力。
@@ -21,13 +21,14 @@ class DesktopEmbeddedArtworkExtractorTest {
      * jaudiotagger 已解析出的封面字节必须进入扫描缓存链路，避免 UI 退回默认封面。
      */
     @Test
-    fun readEmbeddedArtworkBytesReturnsFirstArtworkBinaryData(): Unit {
+    fun readEmbeddedArtworkBytesReturnsFirstArtworkBinaryData() {
         val artworkBytes: ByteArray = byteArrayOf(1, 2, 3, 4)
         val audioFile: AudioFile = createAudioFileWithArtwork(artworkBytes = artworkBytes)
 
-        val extractedBytes: ByteArray? = with(extractor) {
-            audioFile.readEmbeddedArtworkBytes()
-        }
+        val extractedBytes: ByteArray? =
+            with(extractor) {
+                audioFile.readEmbeddedArtworkBytes()
+            }
 
         assertContentEquals(expected = artworkBytes, actual = extractedBytes)
     }
@@ -36,12 +37,13 @@ class DesktopEmbeddedArtworkExtractorTest {
      * 缺少真实图片字节时返回空结果，让上层继续使用本地音乐占位封面。
      */
     @Test
-    fun readEmbeddedArtworkBytesReturnsNullForEmptyArtwork(): Unit {
+    fun readEmbeddedArtworkBytesReturnsNullForEmptyArtwork() {
         val audioFile: AudioFile = createAudioFileWithArtwork(artworkBytes = ByteArray(size = 0))
 
-        val extractedBytes: ByteArray? = with(extractor) {
-            audioFile.readEmbeddedArtworkBytes()
-        }
+        val extractedBytes: ByteArray? =
+            with(extractor) {
+                audioFile.readEmbeddedArtworkBytes()
+            }
 
         assertNull(actual = extractedBytes)
     }

@@ -15,45 +15,45 @@ class FakeLocalMusicScanner(
     private val demoSongCount: Int = DEFAULT_DEMO_SONG_COUNT,
 ) : LocalMusicScanner {
     /** 返回真实形态的扫描元数据，不复用 seed repository 冒充平台扫描。 */
-    override suspend fun scan(request: LocalMusicScanRequest): LocalMusicScanResult {
-        return scan(
+    override suspend fun scan(request: LocalMusicScanRequest): LocalMusicScanResult =
+        scan(
             request = request,
             preferences = LocalMusicDiscoveryPreferences(),
         )
-    }
 
     /** 按本地音频发现偏好返回 fake 元数据，便于 common 测试覆盖过滤链路。 */
     override suspend fun scan(
         request: LocalMusicScanRequest,
         preferences: LocalMusicDiscoveryPreferences,
     ): LocalMusicScanResult {
-        val songs: List<MusicFileMetadata> = FakeLocalMusicDemoCatalog.buildMetadata(
-            demoSongCount = demoSongCount,
-        ).filter { metadata: MusicFileMetadata ->
-            LocalAudioFileRules.shouldIncludeByDuration(
-                durationMs = metadata.durationMs,
-                preferences = preferences,
-            )
-        }
+        val songs: List<MusicFileMetadata> =
+            FakeLocalMusicDemoCatalog
+                .buildMetadata(
+                    demoSongCount = demoSongCount,
+                ).filter { metadata: MusicFileMetadata ->
+                    LocalAudioFileRules.shouldIncludeByDuration(
+                        durationMs = metadata.durationMs,
+                        preferences = preferences,
+                    )
+                }
         return LocalMusicScanResult(
             discovered = songs,
-            sourceSummaries = listOf(
-                LocalMusicSourceSummary(
-                    sourceKind = LocalMusicSourceKind.FakeScanner,
-                    displayName = LocalMusicSourceKind.FakeScanner.displayName,
-                    songCount = songs.size,
-                    problemCount = 0,
-                    lastScannedAt = 1_782_043_200_000L,
+            sourceSummaries =
+                listOf(
+                    LocalMusicSourceSummary(
+                        sourceKind = LocalMusicSourceKind.FakeScanner,
+                        displayName = LocalMusicSourceKind.FakeScanner.displayName,
+                        songCount = songs.size,
+                        problemCount = 0,
+                        lastScannedAt = 1_782_043_200_000L,
+                    ),
                 ),
-            ),
             completedAt = 1_782_043_200_000L,
         )
     }
 
     /** 返回 fake 数据默认收藏 id，专供 common 演示和压力测试链路使用。 */
-    fun demoFavoriteSongIds(): Set<String> {
-        return FakeLocalMusicDemoCatalog.buildFavoriteSongIds(demoSongCount = demoSongCount)
-    }
+    fun demoFavoriteSongIds(): Set<String> = FakeLocalMusicDemoCatalog.buildFavoriteSongIds(demoSongCount = demoSongCount)
 
     companion object {
         /** 收藏页压力测试默认歌曲数。 */

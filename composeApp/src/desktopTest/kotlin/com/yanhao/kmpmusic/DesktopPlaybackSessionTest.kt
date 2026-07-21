@@ -14,11 +14,10 @@ import com.yanhao.kmpmusic.domain.persistence.RoomPlaybackSnapshotStore
 import com.yanhao.kmpmusic.domain.playback.AudioPlayerEngine
 import com.yanhao.kmpmusic.domain.playback.PlaybackEngineEvent
 import com.yanhao.kmpmusic.feature.app.MusicAppController
-import java.nio.file.Files
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers.Default
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Dispatchers.Default
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
@@ -31,185 +30,204 @@ import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.withTimeout
+import java.nio.file.Files
 import kotlin.test.Test
-import kotlin.test.assertFailsWith
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class DesktopPlaybackSessionTest {
     @Test
-    fun ensurePlaybackSnapshotRestoreRequestedRestoresPersistedSongOnlyOnce(): Unit = runBlocking {
-        val tempDir = Files.createTempDirectory("kmp-music-desktop-session-restore")
-        val playbackDatabase = createDesktopPlaybackDatabaseAtPath(
-            databasePath = tempDir.resolve("playback.db").toString(),
-        )
-        val sessionScope = CoroutineScope(SupervisorJob() + Default)
-        val audioEngine = RecordingAudioPlayerEngine()
-        val expectedSong = persistedSongEntity()
-        playbackDatabase.localSongDao().upsertSongs(songs = listOf(expectedSong))
-        RoomPlaybackSnapshotStore(
-            database = playbackDatabase,
-            nowMillis = { 1L },
-        ).saveSnapshot(
-            snapshot = PlaybackSnapshot(
-                playbackState = PlaybackState(
-                    currentSongId = expectedSong.id,
-                    status = PlaybackStatus.Playing,
-                    positionMs = 48_000L,
-                    durationMs = 180_000L,
-                ),
-                queueState = QueueState(
-                    songIds = listOf(expectedSong.id),
-                    currentIndex = 0,
-                    playbackMode = PlaybackMode.LoopAll,
-                ),
-                updatedAt = 1L,
-            ),
-        )
-        val controller = createDesktopPlaybackController(
-            playbackDatabase = playbackDatabase,
-            audioPlayerEngine = audioEngine,
-            controllerScope = sessionScope,
-            nowMillis = { 1L },
-        )
-        val runtime = DesktopPlaybackSessionRuntime(
-            controller = controller,
-            sessionScope = sessionScope,
-            releaseAudioEngineAndAwait = {},
-            closePlaybackDatabase = {
-                playbackDatabase.close()
-            },
-        )
+    fun ensurePlaybackSnapshotRestoreRequestedRestoresPersistedSongOnlyOnce(): Unit =
+        runBlocking {
+            val tempDir = Files.createTempDirectory("kmp-music-desktop-session-restore")
+            val playbackDatabase =
+                createDesktopPlaybackDatabaseAtPath(
+                    databasePath = tempDir.resolve("playback.db").toString(),
+                )
+            val sessionScope = CoroutineScope(SupervisorJob() + Default)
+            val audioEngine = RecordingAudioPlayerEngine()
+            val expectedSong = persistedSongEntity()
+            playbackDatabase.localSongDao().upsertSongs(songs = listOf(expectedSong))
+            RoomPlaybackSnapshotStore(
+                database = playbackDatabase,
+                nowMillis = { 1L },
+            ).saveSnapshot(
+                snapshot =
+                    PlaybackSnapshot(
+                        playbackState =
+                            PlaybackState(
+                                currentSongId = expectedSong.id,
+                                status = PlaybackStatus.Playing,
+                                positionMs = 48_000L,
+                                durationMs = 180_000L,
+                            ),
+                        queueState =
+                            QueueState(
+                                songIds = listOf(expectedSong.id),
+                                currentIndex = 0,
+                                playbackMode = PlaybackMode.LoopAll,
+                            ),
+                        updatedAt = 1L,
+                    ),
+            )
+            val controller =
+                createDesktopPlaybackController(
+                    playbackDatabase = playbackDatabase,
+                    audioPlayerEngine = audioEngine,
+                    controllerScope = sessionScope,
+                    nowMillis = { 1L },
+                )
+            val runtime =
+                DesktopPlaybackSessionRuntime(
+                    controller = controller,
+                    sessionScope = sessionScope,
+                    releaseAudioEngineAndAwait = {},
+                    closePlaybackDatabase = {
+                        playbackDatabase.close()
+                    },
+                )
 
-        runtime.ensurePlaybackSnapshotRestoreRequested()
-        runtime.ensurePlaybackSnapshotRestoreRequested()
-        withTimeout(timeMillis = 2_000L) {
-            while (audioEngine.setQueueCalls < 1) {
-                delay(timeMillis = 10L)
+            runtime.ensurePlaybackSnapshotRestoreRequested()
+            runtime.ensurePlaybackSnapshotRestoreRequested()
+            withTimeout(timeMillis = 2_000L) {
+                while (audioEngine.setQueueCalls < 1) {
+                    delay(timeMillis = 10L)
+                }
             }
-        }
 
-        assertEquals(expected = expectedSong.id, actual = controller.uiState.currentSongId)
-        assertEquals(expected = PlaybackStatus.Paused, actual = controller.uiState.playbackStatus)
-        assertEquals(expected = 48_000L, actual = controller.uiState.playbackPositionMs)
-        assertEquals(expected = listOf(expectedSong.id), actual = controller.uiState.queueSongIds)
-        assertEquals(expected = 1, actual = audioEngine.setQueueCalls)
+            assertEquals(expected = expectedSong.id, actual = controller.uiState.currentSongId)
+            assertEquals(expected = PlaybackStatus.Paused, actual = controller.uiState.playbackStatus)
+            assertEquals(expected = 48_000L, actual = controller.uiState.playbackPositionMs)
+            assertEquals(expected = listOf(expectedSong.id), actual = controller.uiState.queueSongIds)
+            assertEquals(expected = 1, actual = audioEngine.setQueueCalls)
 
-        runtime.close()
-    }
-
-    @Test
-    fun closeWaitsForPersistenceThenClosesDatabaseAfterCancellingSessionScope(): Unit = runTest {
-        val sessionScope = CoroutineScope(SupervisorJob() + StandardTestDispatcher(testScheduler))
-        val controller = MusicAppController(
-            controllerScope = sessionScope,
-        )
-        val order = mutableListOf<String>()
-        val persistStarted = CompletableDeferred<Unit>()
-        val allowPersistFinish = CompletableDeferred<Unit>()
-        val sessionJob = checkNotNull(sessionScope.coroutineContext[Job])
-        val runtime = DesktopPlaybackSessionRuntime(
-            controller = controller,
-            sessionScope = sessionScope,
-            releaseAudioEngineAndAwait = {
-                order += "release"
-            },
-            closePlaybackDatabase = {
-                val isCancelled = sessionScope.coroutineContext[Job]?.isCancelled == true
-                order += "close-db:$isCancelled"
-            },
-            persistPlaybackSnapshotForProcessTeardown = { _, _ ->
-                order += "persist-start"
-                persistStarted.complete(value = Unit)
-                allowPersistFinish.await()
-                order += "persist-end"
-            },
-        )
-
-        val closeJob = launch(context = Dispatchers.Default) {
-            runtime.close()
-            order += "close-returned"
-        }
-
-        persistStarted.await()
-
-        assertEquals(expected = listOf("release", "persist-start"), actual = order)
-        assertFalse(actual = closeJob.isCompleted)
-        assertTrue(actual = sessionScope.coroutineContext[Job]?.isCancelled == true)
-
-        allowPersistFinish.complete(value = Unit)
-        closeJob.join()
-
-        assertEquals(
-            expected = listOf("release", "persist-start", "persist-end", "close-db:true", "close-returned"),
-            actual = order,
-        )
-        assertTrue(actual = sessionJob.isCancelled)
-    }
-
-    @Test
-    fun closeStillPersistsSnapshotAndClosesDatabaseWhenAudioReleaseFails(): Unit = runTest {
-        val sessionScope = CoroutineScope(SupervisorJob() + StandardTestDispatcher(testScheduler))
-        val controller = MusicAppController(
-            controllerScope = sessionScope,
-        )
-        val order = mutableListOf<String>()
-        val runtime = DesktopPlaybackSessionRuntime(
-            controller = controller,
-            sessionScope = sessionScope,
-            releaseAudioEngineAndAwait = {
-                order += "release"
-                error("release failed")
-            },
-            closePlaybackDatabase = {
-                order += "close-db:${sessionScope.coroutineContext[Job]?.isCancelled == true}"
-            },
-            persistPlaybackSnapshotForProcessTeardown = { _, _ ->
-                order += "persist"
-            },
-        )
-
-        val failure = assertFailsWith<IllegalStateException> {
             runtime.close()
         }
 
-        assertEquals(expected = "release failed", actual = failure.message)
-        assertEquals(
-            expected = listOf("release", "persist", "close-db:true"),
-            actual = order,
-        )
-        assertTrue(actual = sessionScope.coroutineContext[Job]?.isCancelled == true)
-    }
+    @Test
+    fun closeWaitsForPersistenceThenClosesDatabaseAfterCancellingSessionScope(): Unit =
+        runTest {
+            val sessionScope = CoroutineScope(SupervisorJob() + StandardTestDispatcher(testScheduler))
+            val controller =
+                MusicAppController(
+                    controllerScope = sessionScope,
+                )
+            val order = mutableListOf<String>()
+            val persistStarted = CompletableDeferred<Unit>()
+            val allowPersistFinish = CompletableDeferred<Unit>()
+            val sessionJob = checkNotNull(sessionScope.coroutineContext[Job])
+            val runtime =
+                DesktopPlaybackSessionRuntime(
+                    controller = controller,
+                    sessionScope = sessionScope,
+                    releaseAudioEngineAndAwait = {
+                        order += "release"
+                    },
+                    closePlaybackDatabase = {
+                        val isCancelled = sessionScope.coroutineContext[Job]?.isCancelled == true
+                        order += "close-db:$isCancelled"
+                    },
+                    persistPlaybackSnapshotForProcessTeardown = { _, _ ->
+                        order += "persist-start"
+                        persistStarted.complete(value = Unit)
+                        allowPersistFinish.await()
+                        order += "persist-end"
+                    },
+                )
+
+            val closeJob =
+                launch(context = Dispatchers.Default) {
+                    runtime.close()
+                    order += "close-returned"
+                }
+
+            persistStarted.await()
+
+            assertEquals(expected = listOf("release", "persist-start"), actual = order)
+            assertFalse(actual = closeJob.isCompleted)
+            assertTrue(actual = sessionScope.coroutineContext[Job]?.isCancelled == true)
+
+            allowPersistFinish.complete(value = Unit)
+            closeJob.join()
+
+            assertEquals(
+                expected = listOf("release", "persist-start", "persist-end", "close-db:true", "close-returned"),
+                actual = order,
+            )
+            assertTrue(actual = sessionJob.isCancelled)
+        }
 
     @Test
-    fun closePersistsPositionAfterAudioReleaseDrainsUpdates(): Unit = runTest {
-        val sessionScope = CoroutineScope(SupervisorJob() + Default)
-        val controller = MusicAppController(
-            controllerScope = sessionScope,
-        )
-        val persistedPositions = mutableListOf<Long>()
-        controller.seekTo(positionMs = 12_000L)
-        val runtime = DesktopPlaybackSessionRuntime(
-            controller = controller,
-            sessionScope = sessionScope,
-            releaseAudioEngineAndAwait = {
-                controller.seekTo(positionMs = 77_000L)
-            },
-            closePlaybackDatabase = {},
-            persistPlaybackSnapshotForProcessTeardown = { positionMs, _ ->
-                persistedPositions += positionMs
-            },
-        )
+    fun closeStillPersistsSnapshotAndClosesDatabaseWhenAudioReleaseFails(): Unit =
+        runTest {
+            val sessionScope = CoroutineScope(SupervisorJob() + StandardTestDispatcher(testScheduler))
+            val controller =
+                MusicAppController(
+                    controllerScope = sessionScope,
+                )
+            val order = mutableListOf<String>()
+            val runtime =
+                DesktopPlaybackSessionRuntime(
+                    controller = controller,
+                    sessionScope = sessionScope,
+                    releaseAudioEngineAndAwait = {
+                        order += "release"
+                        error("release failed")
+                    },
+                    closePlaybackDatabase = {
+                        order += "close-db:${sessionScope.coroutineContext[Job]?.isCancelled == true}"
+                    },
+                    persistPlaybackSnapshotForProcessTeardown = { _, _ ->
+                        order += "persist"
+                    },
+                )
 
-        runtime.close()
+            val failure =
+                assertFailsWith<IllegalStateException> {
+                    runtime.close()
+                }
 
-        assertEquals(expected = listOf(77_000L), actual = persistedPositions)
-    }
+            assertEquals(expected = "release failed", actual = failure.message)
+            assertEquals(
+                expected = listOf("release", "persist", "close-db:true"),
+                actual = order,
+            )
+            assertTrue(actual = sessionScope.coroutineContext[Job]?.isCancelled == true)
+        }
 
-    private fun persistedSongEntity(): LocalSongEntity {
-        return LocalSongEntity(
+    @Test
+    fun closePersistsPositionAfterAudioReleaseDrainsUpdates(): Unit =
+        runTest {
+            val sessionScope = CoroutineScope(SupervisorJob() + Default)
+            val controller =
+                MusicAppController(
+                    controllerScope = sessionScope,
+                )
+            val persistedPositions = mutableListOf<Long>()
+            controller.seekTo(positionMs = 12_000L)
+            val runtime =
+                DesktopPlaybackSessionRuntime(
+                    controller = controller,
+                    sessionScope = sessionScope,
+                    releaseAudioEngineAndAwait = {
+                        controller.seekTo(positionMs = 77_000L)
+                    },
+                    closePlaybackDatabase = {},
+                    persistPlaybackSnapshotForProcessTeardown = { positionMs, _ ->
+                        persistedPositions += positionMs
+                    },
+                )
+
+            runtime.close()
+
+            assertEquals(expected = listOf(77_000L), actual = persistedPositions)
+        }
+
+    private fun persistedSongEntity(): LocalSongEntity =
+        LocalSongEntity(
             id = "desktopFolder:restored-song",
             sourceId = "restored-song",
             sourceKind = LocalMusicSourceKind.DesktopFolder.value,
@@ -226,7 +244,6 @@ class DesktopPlaybackSessionTest {
             lastScannedAt = 1L,
             isAvailable = true,
         )
-    }
 }
 
 private class RecordingAudioPlayerEngine : AudioPlayerEngine {

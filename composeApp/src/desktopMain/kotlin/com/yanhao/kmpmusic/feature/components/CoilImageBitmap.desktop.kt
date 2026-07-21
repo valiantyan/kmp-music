@@ -9,8 +9,7 @@ import org.jetbrains.skia.Image as SkiaImage
 /**
  * Desktop 端把 Coil 的 Skia Bitmap 包装成 Compose 可读位图，继续复用共享调色算法。
  */
-internal actual fun coilImageToImageBitmap(image: Image): ImageBitmap? {
-    return runCatching {
+internal actual fun coilImageToImageBitmap(image: Image): ImageBitmap? =
+    runCatching {
         SkiaImage.makeFromBitmap(image.toBitmap()).toComposeImageBitmap()
     }.getOrNull()
-}

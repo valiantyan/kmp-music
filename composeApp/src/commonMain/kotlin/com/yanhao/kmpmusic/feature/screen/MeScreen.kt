@@ -33,19 +33,22 @@ fun MeScreen(
     contentPadding: PaddingValues = PaddingValues(0.dp),
 ) {
     LazyColumn(
-        modifier = modifier
-            .fillMaxSize()
-            .background(color = meBackgroundColor),
-        contentPadding = PaddingValues(
-            top = contentPadding.calculateTopPadding() + meContentTopPadding,
-            bottom = contentPadding.calculateBottomPadding() + 40.dp,
-        ),
+        modifier =
+            modifier
+                .fillMaxSize()
+                .background(color = meBackgroundColor),
+        contentPadding =
+            PaddingValues(
+                top = contentPadding.calculateTopPadding() + meContentTopPadding,
+                bottom = contentPadding.calculateBottomPadding() + 40.dp,
+            ),
     ) {
         item(key = "me-figma-content", contentType = "me-figma-content") {
             Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = meHorizontalPadding),
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = meHorizontalPadding),
                 verticalArrangement = Arrangement.spacedBy(space = meSectionGap),
             ) {
                 MeProfileSection()

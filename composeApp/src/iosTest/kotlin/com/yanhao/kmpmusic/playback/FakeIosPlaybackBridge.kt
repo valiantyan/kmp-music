@@ -65,7 +65,10 @@ internal class FakeIosPlaybackBridge(
     }
 
     /** 注入准备完成事实。 */
-    fun emitPrepared(generation: Long, durationMs: Long?) {
+    fun emitPrepared(
+        generation: Long,
+        durationMs: Long?,
+    ) {
         eventChannel.trySend(
             IosPlaybackBridgeEvent.Prepared(
                 generation = generation,
@@ -75,7 +78,11 @@ internal class FakeIosPlaybackBridge(
     }
 
     /** 注入播放中事实。 */
-    fun emitPlaying(generation: Long, positionMs: Long, durationMs: Long?) {
+    fun emitPlaying(
+        generation: Long,
+        positionMs: Long,
+        durationMs: Long?,
+    ) {
         eventChannel.trySend(
             IosPlaybackBridgeEvent.Playing(
                 generation = generation,
@@ -86,7 +93,11 @@ internal class FakeIosPlaybackBridge(
     }
 
     /** 注入缓冲事实。 */
-    fun emitBuffering(generation: Long, positionMs: Long, durationMs: Long?) {
+    fun emitBuffering(
+        generation: Long,
+        positionMs: Long,
+        durationMs: Long?,
+    ) {
         eventChannel.trySend(
             IosPlaybackBridgeEvent.Buffering(
                 generation = generation,
@@ -97,7 +108,11 @@ internal class FakeIosPlaybackBridge(
     }
 
     /** 注入进度事实。 */
-    fun emitProgress(generation: Long, positionMs: Long, durationMs: Long?) {
+    fun emitProgress(
+        generation: Long,
+        positionMs: Long,
+        durationMs: Long?,
+    ) {
         eventChannel.trySend(
             IosPlaybackBridgeEvent.Progress(
                 generation = generation,
@@ -113,7 +128,11 @@ internal class FakeIosPlaybackBridge(
     }
 
     /** 注入系统中断开始事实。 */
-    fun emitInterruptionBegan(generation: Long, positionMs: Long, durationMs: Long?) {
+    fun emitInterruptionBegan(
+        generation: Long,
+        positionMs: Long,
+        durationMs: Long?,
+    ) {
         eventChannel.trySend(
             IosPlaybackBridgeEvent.InterruptionBegan(
                 generation = generation,
@@ -124,7 +143,10 @@ internal class FakeIosPlaybackBridge(
     }
 
     /** 注入系统中断结束事实。 */
-    fun emitInterruptionEnded(generation: Long, shouldResume: Boolean) {
+    fun emitInterruptionEnded(
+        generation: Long,
+        shouldResume: Boolean,
+    ) {
         eventChannel.trySend(
             IosPlaybackBridgeEvent.InterruptionEnded(
                 generation = generation,
@@ -134,7 +156,11 @@ internal class FakeIosPlaybackBridge(
     }
 
     /** 注入输出设备断开事实。 */
-    fun emitOutputDisconnected(generation: Long, positionMs: Long, durationMs: Long?) {
+    fun emitOutputDisconnected(
+        generation: Long,
+        positionMs: Long,
+        durationMs: Long?,
+    ) {
         eventChannel.trySend(
             IosPlaybackBridgeEvent.OutputDisconnected(
                 generation = generation,
@@ -145,7 +171,10 @@ internal class FakeIosPlaybackBridge(
     }
 
     /** 注入失败事实。 */
-    fun emitFailure(generation: Long, error: PlaybackError) {
+    fun emitFailure(
+        generation: Long,
+        error: PlaybackError,
+    ) {
         eventChannel.trySend(
             IosPlaybackBridgeEvent.Failed(
                 generation = generation,

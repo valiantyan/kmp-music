@@ -53,10 +53,11 @@ internal fun LazyListScope.homeAlbumGridItems(
         }
         return
     }
-    val currentAlbumTitle: String? = resolveCurrentAlbumTitle(
-        songs = songs,
-        currentSongId = currentSongId,
-    )
+    val currentAlbumTitle: String? =
+        resolveCurrentAlbumTitle(
+            songs = songs,
+            currentSongId = currentSongId,
+        )
     items(
         items = albums.chunked(size = 2),
         key = { rowAlbums: List<Album> -> rowAlbums.joinToString(separator = "|") { album: Album -> album.id } },
@@ -79,18 +80,20 @@ internal fun HomeAlbumRow(
     onAlbumOpen: (Album) -> Unit,
 ) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 20.dp),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp),
         horizontalArrangement = Arrangement.spacedBy(homeAlbumGridGap),
     ) {
         rowAlbums.forEach { album: Album ->
             HomeAlbumItem(
                 album = album,
-                isActive = isHomeAlbumActive(
-                    album = album,
-                    currentAlbumTitle = currentAlbumTitle,
-                ),
+                isActive =
+                    isHomeAlbumActive(
+                        album = album,
+                        currentAlbumTitle = currentAlbumTitle,
+                    ),
                 onAlbumOpen = onAlbumOpen,
                 modifier = Modifier.weight(weight = 1f),
             )
@@ -114,11 +117,12 @@ private fun HomeAlbumItem(
         modifier = modifier.clickable { onAlbumOpen(album) },
     ) {
         Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .aspectRatio(ratio = 1f)
-                .clip(shape = coverShape)
-                .background(color = homeAlbumCoverBackgroundColor),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .aspectRatio(ratio = 1f)
+                    .clip(shape = coverShape)
+                    .background(color = homeAlbumCoverBackgroundColor),
         ) {
             CoverArtImage(
                 coverArt = album.coverArt,
@@ -129,16 +133,18 @@ private fun HomeAlbumItem(
             )
             if (isActive) {
                 Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(color = homeActiveAlbumOverlayColor),
+                    modifier =
+                        Modifier
+                            .fillMaxSize()
+                            .background(color = homeActiveAlbumOverlayColor),
                 )
                 Box(
-                    modifier = Modifier
-                        .align(alignment = Alignment.BottomCenter)
-                        .fillMaxWidth()
-                        .height(height = homeAlbumActiveBorderHeight)
-                        .background(color = homeAccentColor),
+                    modifier =
+                        Modifier
+                            .align(alignment = Alignment.BottomCenter)
+                            .fillMaxWidth()
+                            .height(height = homeAlbumActiveBorderHeight)
+                            .background(color = homeAccentColor),
                 )
             }
         }
@@ -150,9 +156,10 @@ private fun HomeAlbumItem(
             fontWeight = FontWeight.Medium,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 10.dp),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(top = 10.dp),
         )
         Text(
             text = album.artist,

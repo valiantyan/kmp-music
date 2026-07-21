@@ -22,21 +22,21 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.runtime.saveable.rememberSaveableStateHolder
-import androidx.compose.material3.MaterialTheme
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
@@ -73,15 +73,17 @@ fun MobileContentLayout(
     modifier: Modifier = Modifier,
 ) {
     val bottomPadding: Dp = getContentBottomPadding(contentBottomSpace = fixedBarMode.contentBottomSpace)
-    val statusBarTopPadding: Dp = with(receiver = LocalDensity.current) {
-        WindowInsets.statusBars.getTop(density = this).toDp()
-    }
-    val pagePadding: PaddingValues = PaddingValues(
-        start = scaledDp(MusicDimens.PagePaddingHorizontal),
-        top = scaledDp(MusicDimens.PagePaddingTop),
-        end = scaledDp(MusicDimens.PagePaddingHorizontal),
-        bottom = bottomPadding,
-    )
+    val statusBarTopPadding: Dp =
+        with(receiver = LocalDensity.current) {
+            WindowInsets.statusBars.getTop(density = this).toDp()
+        }
+    val pagePadding: PaddingValues =
+        PaddingValues(
+            start = scaledDp(MusicDimens.PagePaddingHorizontal),
+            top = scaledDp(MusicDimens.PagePaddingTop),
+            end = scaledDp(MusicDimens.PagePaddingHorizontal),
+            bottom = bottomPadding,
+        )
     val saveableStateHolder = rememberSaveableStateHolder()
     saveableStateHolder.SaveableStateProvider(key = state.navigationState.chromeUnderlayScrollStateKey) {
         val secondaryScreen: SecondaryScreen? = state.navigationState.chromeUnderlaySecondaryScreen
@@ -97,19 +99,21 @@ fun MobileContentLayout(
             )
         } else {
             Box(
-                modifier = modifier
-                    .fillMaxSize()
-                    .navigationBarsPadding(),
+                modifier =
+                    modifier
+                        .fillMaxSize()
+                        .navigationBarsPadding(),
             ) {
                 MobileRootScreenRoute(
                     state = state,
                     controller = controller,
                     discoveryPlatform = discoveryPlatform,
                     modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(
-                        top = statusBarTopPadding,
-                        bottom = bottomPadding,
-                    ),
+                    contentPadding =
+                        PaddingValues(
+                            top = statusBarTopPadding,
+                            bottom = bottomPadding,
+                        ),
                 )
                 if (shouldRenderTopLevelStatusBarBackground(rootTab = state.navigationState.rootTab)) {
                     MobileTopLevelStatusBarBackground(
@@ -125,14 +129,14 @@ fun MobileContentLayout(
 /**
  * 首页和收藏页是滚动列表，需要白底状态栏挡住上滑内容；我的页保留沉浸式背景。
  */
-internal fun shouldRenderTopLevelStatusBarBackground(rootTab: RootTab): Boolean {
-    return when (rootTab) {
+internal fun shouldRenderTopLevelStatusBarBackground(rootTab: RootTab): Boolean =
+    when (rootTab) {
         RootTab.Home,
         RootTab.Favorites,
         -> true
+
         RootTab.Me -> false
     }
-}
 
 // 一级页允许内容全屏滚动，但状态栏区域必须始终保持白底，避免列表卡片穿到系统图标下方。
 @Composable
@@ -144,10 +148,11 @@ private fun MobileTopLevelStatusBarBackground(
         return
     }
     Box(
-        modifier = modifier
-            .fillMaxWidth()
-            .height(height = statusBarTopPadding)
-            .background(color = MusicColors.MobileToolbarBackground),
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .height(height = statusBarTopPadding)
+                .background(color = MusicColors.MobileToolbarBackground),
     )
 }
 
@@ -162,12 +167,13 @@ fun MobileChromeOverlay(
     onScanLocalMusic: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val pagePadding: PaddingValues = PaddingValues(
-        start = scaledDp(MusicDimens.PagePaddingHorizontal),
-        top = scaledDp(MusicDimens.PagePaddingTop),
-        end = scaledDp(MusicDimens.PagePaddingHorizontal),
-        bottom = getContentBottomPadding(contentBottomSpace = ContentBottomSpace.Fullscreen),
-    )
+    val pagePadding: PaddingValues =
+        PaddingValues(
+            start = scaledDp(MusicDimens.PagePaddingHorizontal),
+            top = scaledDp(MusicDimens.PagePaddingTop),
+            end = scaledDp(MusicDimens.PagePaddingHorizontal),
+            bottom = getContentBottomPadding(contentBottomSpace = ContentBottomSpace.Fullscreen),
+        )
     val saveableStateHolder = rememberSaveableStateHolder()
     var wasPlayerDismissedByDrag: Boolean by remember { mutableStateOf(value = false) }
     var retainedOverlayScrollStateKey: String? by remember { mutableStateOf(value = null) }
@@ -208,12 +214,13 @@ fun MobileChromeOverlay(
             Box(modifier = Modifier.fillMaxSize())
             return@AnimatedContent
         }
-        val overlaySaveableStateKey: String = resolveOverlaySaveableStateKey(
-            overlayScreen = overlayScreen,
-            targetOverlayScreen = targetOverlayScreen,
-            targetScrollStateKey = state.navigationState.scrollStateKey,
-            retainedOverlayScrollStateKey = retainedOverlayScrollStateKey,
-        )
+        val overlaySaveableStateKey: String =
+            resolveOverlaySaveableStateKey(
+                overlayScreen = overlayScreen,
+                targetOverlayScreen = targetOverlayScreen,
+                targetScrollStateKey = state.navigationState.scrollStateKey,
+                retainedOverlayScrollStateKey = retainedOverlayScrollStateKey,
+            )
         saveableStateHolder.SaveableStateProvider(key = overlaySaveableStateKey) {
             MobileOverlayScreenRoute(
                 overlayScreen = overlayScreen,
@@ -239,40 +246,42 @@ private fun AnimatedContentTransitionScope<SecondaryScreen?>.buildChromeOverlayT
     wasPlayerDismissedByDrag: Boolean,
     navigationBarBottomPx: Int,
 ): ContentTransform {
-    val enterTransition: EnterTransition = if (targetState == SecondaryScreen.Player) {
-        slideInVertically(
-            animationSpec = tween(durationMillis = MOBILE_PLAYER_OVERLAY_TRANSITION_MILLIS),
-            initialOffsetY = { fullHeight: Int ->
-                calculatePlayerOverlayExitOffsetY(
-                    fullHeight = fullHeight,
-                    navigationBarBottomPx = navigationBarBottomPx,
-                )
-            },
-        )
-    } else {
-        fadeIn(animationSpec = tween(durationMillis = 0))
-    }
-    val exitTransition: ExitTransition = if (initialState == SecondaryScreen.Player) {
-        if (shouldSkipPlayerExitTransitionAfterDrag(
-                initialScreen = initialState,
-                wasDismissedByDrag = wasPlayerDismissedByDrag,
-            )
-        ) {
-            ExitTransition.None
-        } else {
-            slideOutVertically(
+    val enterTransition: EnterTransition =
+        if (targetState == SecondaryScreen.Player) {
+            slideInVertically(
                 animationSpec = tween(durationMillis = MOBILE_PLAYER_OVERLAY_TRANSITION_MILLIS),
-                targetOffsetY = { fullHeight: Int ->
+                initialOffsetY = { fullHeight: Int ->
                     calculatePlayerOverlayExitOffsetY(
                         fullHeight = fullHeight,
                         navigationBarBottomPx = navigationBarBottomPx,
                     )
                 },
             )
+        } else {
+            fadeIn(animationSpec = tween(durationMillis = 0))
         }
-    } else {
-        fadeOut(animationSpec = tween(durationMillis = 0))
-    }
+    val exitTransition: ExitTransition =
+        if (initialState == SecondaryScreen.Player) {
+            if (shouldSkipPlayerExitTransitionAfterDrag(
+                    initialScreen = initialState,
+                    wasDismissedByDrag = wasPlayerDismissedByDrag,
+                )
+            ) {
+                ExitTransition.None
+            } else {
+                slideOutVertically(
+                    animationSpec = tween(durationMillis = MOBILE_PLAYER_OVERLAY_TRANSITION_MILLIS),
+                    targetOffsetY = { fullHeight: Int ->
+                        calculatePlayerOverlayExitOffsetY(
+                            fullHeight = fullHeight,
+                            navigationBarBottomPx = navigationBarBottomPx,
+                        )
+                    },
+                )
+            }
+        } else {
+            fadeOut(animationSpec = tween(durationMillis = 0))
+        }
     return (enterTransition togetherWith exitTransition).using(SizeTransform(clip = false))
 }
 
@@ -282,9 +291,7 @@ private fun AnimatedContentTransitionScope<SecondaryScreen?>.buildChromeOverlayT
 internal fun calculatePlayerOverlayExitOffsetY(
     fullHeight: Int,
     navigationBarBottomPx: Int,
-): Int {
-    return fullHeight + navigationBarBottomPx.coerceAtLeast(minimumValue = 0)
-}
+): Int = fullHeight + navigationBarBottomPx.coerceAtLeast(minimumValue = 0)
 
 /**
  * outgoing 覆盖页仍在转场时继续使用进入时的 key，避免播放页重组后 palette 回到白色默认值。
@@ -307,9 +314,7 @@ internal fun resolveOverlaySaveableStateKey(
 internal fun shouldSkipPlayerExitTransitionAfterDrag(
     initialScreen: SecondaryScreen?,
     wasDismissedByDrag: Boolean,
-): Boolean {
-    return wasDismissedByDrag && initialScreen == SecondaryScreen.Player
-}
+): Boolean = wasDismissedByDrag && initialScreen == SecondaryScreen.Player
 
 /**
  * 拖拽关闭后 [AnimatedContent] 会继续保留 outgoing content；此时必须阻止旧播放页重组回全屏。
@@ -318,11 +323,10 @@ internal fun shouldHidePlayerOverlayContentAfterDrag(
     overlayScreen: SecondaryScreen?,
     targetOverlayScreen: SecondaryScreen?,
     wasDismissedByDrag: Boolean,
-): Boolean {
-    return wasDismissedByDrag &&
+): Boolean =
+    wasDismissedByDrag &&
         overlayScreen == SecondaryScreen.Player &&
         targetOverlayScreen != SecondaryScreen.Player
-}
 
 /**
  * 覆盖层只承载无 chrome 页面；播放页全屏，普通页使用常规二级页内边距。
@@ -356,17 +360,19 @@ private fun MobileOverlayScreenRoute(
         return
     }
     val overlayInteractionSource: MutableInteractionSource = remember { MutableInteractionSource() }
-    val blockingModifier: Modifier = modifier
-        .fillMaxSize()
-        .clickable(
-            interactionSource = overlayInteractionSource,
-            indication = null,
-            onClick = {},
-        )
+    val blockingModifier: Modifier =
+        modifier
+            .fillMaxSize()
+            .clickable(
+                interactionSource = overlayInteractionSource,
+                indication = null,
+                onClick = {},
+            )
     if (shouldRenderOverlayScreenDirectly(overlayScreen = overlayScreen)) {
         Box(
-            modifier = blockingModifier
-                .background(MaterialTheme.colorScheme.background),
+            modifier =
+                blockingModifier
+                    .background(MaterialTheme.colorScheme.background),
         ) {
             MobileSecondaryScreenRoute(
                 secondaryScreen = overlayScreen,
@@ -381,16 +387,18 @@ private fun MobileOverlayScreenRoute(
         return
     }
     Box(
-        modifier = blockingModifier
-            .background(MaterialTheme.colorScheme.background),
+        modifier =
+            blockingModifier
+                .background(MaterialTheme.colorScheme.background),
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .statusBarsPadding()
-                .navigationBarsPadding()
-                .verticalScroll(rememberScrollState())
-                .padding(contentPadding),
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .statusBarsPadding()
+                    .navigationBarsPadding()
+                    .verticalScroll(rememberScrollState())
+                    .padding(contentPadding),
         ) {
             MobileSecondaryScreenRoute(
                 secondaryScreen = overlayScreen,
@@ -407,20 +415,18 @@ private fun MobileOverlayScreenRoute(
 /**
  * 已自行管理 Toolbar 和正文滚动的覆盖页不能再由外层重复包裹滚动容器。
  */
-internal fun shouldRenderOverlayScreenDirectly(overlayScreen: SecondaryScreen): Boolean {
-    return overlayScreen == SecondaryScreen.About ||
+internal fun shouldRenderOverlayScreenDirectly(overlayScreen: SecondaryScreen): Boolean =
+    overlayScreen == SecondaryScreen.About ||
         overlayScreen == SecondaryScreen.AudioScan ||
         overlayScreen == SecondaryScreen.LocalPlaylistManagement
-}
 
 /**
  * 根据固定底栏策略计算页面底部避让空间，避免隐藏播放器后留下空白。
  */
 @Composable
-private fun getContentBottomPadding(contentBottomSpace: ContentBottomSpace): Dp {
-    return when (contentBottomSpace) {
+private fun getContentBottomPadding(contentBottomSpace: ContentBottomSpace): Dp =
+    when (contentBottomSpace) {
         ContentBottomSpace.TopLevel -> scaledDp(MusicDimens.TopLevelContentBottom)
         ContentBottomSpace.SecondaryWithMiniPlayer -> scaledDp(MusicDimens.SecondaryContentBottom)
         ContentBottomSpace.Fullscreen -> scaledDp(MusicDimens.FullscreenContentBottom)
     }
-}

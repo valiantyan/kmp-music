@@ -118,10 +118,11 @@ fun DesktopContentRow(
             verticalAlignment = Alignment.Top,
         ) {
             Box(
-                modifier = Modifier
-                    .size(38.dp)
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(DesktopMusicColors.AccentSoft),
+                modifier =
+                    Modifier
+                        .size(38.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(DesktopMusicColors.AccentSoft),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(

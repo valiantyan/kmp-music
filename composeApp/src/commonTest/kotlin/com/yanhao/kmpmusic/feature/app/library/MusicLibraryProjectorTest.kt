@@ -7,12 +7,13 @@ import kotlin.test.assertEquals
 
 class MusicLibraryProjectorTest {
     @Test
-    fun albumsUseStableLowercaseTrimmedIdsAndPreserveFirstSongArtwork(): Unit {
-        val songs: List<Song> = listOf(
-            testSong(id = "1", title = "First", album = " River Year ", artist = "Trip", coverImageUri = "file://first.png"),
-            testSong(id = "2", title = "Second", album = "river year", artist = "Trip", coverImageUri = "file://second.png"),
-            testSong(id = "3", title = "Third", album = "Summer", artist = "Aki", coverImageUri = "file://third.png"),
-        )
+    fun albumsUseStableLowercaseTrimmedIdsAndPreserveFirstSongArtwork() {
+        val songs: List<Song> =
+            listOf(
+                testSong(id = "1", title = "First", album = " River Year ", artist = "Trip", coverImageUri = "file://first.png"),
+                testSong(id = "2", title = "Second", album = "river year", artist = "Trip", coverImageUri = "file://second.png"),
+                testSong(id = "3", title = "Third", album = "Summer", artist = "Aki", coverImageUri = "file://third.png"),
+            )
 
         val albums = MusicLibraryProjector.buildAlbums(songs = songs)
 
@@ -24,12 +25,13 @@ class MusicLibraryProjectorTest {
     }
 
     @Test
-    fun artistsUseStableLowercaseTrimmedIdsAndPreserveFirstSongArtwork(): Unit {
-        val songs: List<Song> = listOf(
-            testSong(id = "1", title = "First", album = "One", artist = " Trip ", coverImageUri = "file://first.png"),
-            testSong(id = "2", title = "Second", album = "Two", artist = "trip", coverImageUri = "file://second.png"),
-            testSong(id = "3", title = "Third", album = "Three", artist = "Aki", coverImageUri = "file://third.png"),
-        )
+    fun artistsUseStableLowercaseTrimmedIdsAndPreserveFirstSongArtwork() {
+        val songs: List<Song> =
+            listOf(
+                testSong(id = "1", title = "First", album = "One", artist = " Trip ", coverImageUri = "file://first.png"),
+                testSong(id = "2", title = "Second", album = "Two", artist = "trip", coverImageUri = "file://second.png"),
+                testSong(id = "3", title = "Third", album = "Three", artist = "Aki", coverImageUri = "file://third.png"),
+            )
 
         val artists = MusicLibraryProjector.buildArtists(songs = songs)
 
@@ -41,18 +43,19 @@ class MusicLibraryProjectorTest {
     }
 
     @Test
-    fun detailSongsDeduplicateBySongIdInQueueLocalHomeFavoriteOrder(): Unit {
+    fun detailSongsDeduplicateBySongIdInQueueLocalHomeFavoriteOrder() {
         val queue = listOf(testSong(id = "queue", title = "Queue"), testSong(id = "same", title = "Queue Same"))
         val local = listOf(testSong(id = "same", title = "Local Same"), testSong(id = "local", title = "Local"))
         val home = listOf(testSong(id = "home", title = "Home"))
         val favorites = listOf(testSong(id = "favorite", title = "Favorite"))
 
-        val detailSongs = MusicLibraryProjector.buildDetailSongs(
-            queueSongsSnapshot = queue,
-            localSongs = local,
-            homeLocalSongPreview = home,
-            favoriteSongs = favorites,
-        )
+        val detailSongs =
+            MusicLibraryProjector.buildDetailSongs(
+                queueSongsSnapshot = queue,
+                localSongs = local,
+                homeLocalSongPreview = home,
+                favoriteSongs = favorites,
+            )
 
         assertEquals(expected = listOf("queue", "same", "local", "home", "favorite"), actual = detailSongs.map { song -> song.id })
         assertEquals(expected = "Queue Same", actual = detailSongs[1].title)
@@ -64,8 +67,8 @@ class MusicLibraryProjectorTest {
         album: String = "Album",
         artist: String = "Artist",
         coverImageUri: String? = null,
-    ): Song {
-        return Song(
+    ): Song =
+        Song(
             id = id,
             title = title,
             artist = artist,
@@ -80,5 +83,4 @@ class MusicLibraryProjectorTest {
             trackNumber = 1,
             durationMs = 192_000L,
         )
-    }
 }

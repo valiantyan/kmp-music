@@ -14,24 +14,25 @@ class PlaybackDatabaseMigrationsTest {
      * 从版本 7 升级到版本 8 时应只新增歌单表，旧播放、收藏、搜索、曲库和偏好数据保留。
      */
     @Test
-    fun migrationSevenToEightCreatesPlaylistTablesAndKeepsExistingRows(): Unit = runTest {
-        BundledSQLiteDriver().open(fileName = ":memory:").use { connection: SQLiteConnection ->
-            createVersionSevenSchema(connection = connection)
-            insertVersionSevenSampleRows(connection = connection)
+    fun migrationSevenToEightCreatesPlaylistTablesAndKeepsExistingRows(): Unit =
+        runTest {
+            BundledSQLiteDriver().open(fileName = ":memory:").use { connection: SQLiteConnection ->
+                createVersionSevenSchema(connection = connection)
+                insertVersionSevenSampleRows(connection = connection)
 
-            PlaybackDatabaseMigrations.MIGRATION_7_8.migrate(connection = connection)
+                PlaybackDatabaseMigrations.MIGRATION_7_8.migrate(connection = connection)
 
-            assertEquals(expected = 1, actual = connection.countRows(tableName = "playback_snapshot"))
-            assertEquals(expected = 1, actual = connection.countRows(tableName = "playback_queue_item"))
-            assertEquals(expected = 1, actual = connection.countRows(tableName = "playback_history_item"))
-            assertEquals(expected = 1, actual = connection.countRows(tableName = "favorite_song"))
-            assertEquals(expected = 1, actual = connection.countRows(tableName = "local_song"))
-            assertEquals(expected = 1, actual = connection.countRows(tableName = "search_history"))
-            assertEquals(expected = 1, actual = connection.countRows(tableName = "user_preference"))
-            assertEquals(expected = 0, actual = connection.countRows(tableName = "local_playlist"))
-            assertEquals(expected = 0, actual = connection.countRows(tableName = "local_playlist_song"))
+                assertEquals(expected = 1, actual = connection.countRows(tableName = "playback_snapshot"))
+                assertEquals(expected = 1, actual = connection.countRows(tableName = "playback_queue_item"))
+                assertEquals(expected = 1, actual = connection.countRows(tableName = "playback_history_item"))
+                assertEquals(expected = 1, actual = connection.countRows(tableName = "favorite_song"))
+                assertEquals(expected = 1, actual = connection.countRows(tableName = "local_song"))
+                assertEquals(expected = 1, actual = connection.countRows(tableName = "search_history"))
+                assertEquals(expected = 1, actual = connection.countRows(tableName = "user_preference"))
+                assertEquals(expected = 0, actual = connection.countRows(tableName = "local_playlist"))
+                assertEquals(expected = 0, actual = connection.countRows(tableName = "local_playlist_song"))
+            }
         }
-    }
 
     // 建立与版本 7 schema 等价的最小样本库，避免迁移测试依赖生成代码。
     private fun createVersionSevenSchema(connection: SQLiteConnection) {

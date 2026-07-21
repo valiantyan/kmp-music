@@ -54,16 +54,18 @@ internal fun MeStatsSection(
         border = BorderStroke(width = 1.dp, color = meOutlineColor),
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(all = meStatsPadding),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(all = meStatsPadding),
             horizontalArrangement = Arrangement.spacedBy(space = 16.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            val items: List<MeStatItem> = buildMeStatItems(
-                libraryStats = libraryStats,
-                localPlaylistCount = localPlaylistCount,
-            )
+            val items: List<MeStatItem> =
+                buildMeStatItems(
+                    libraryStats = libraryStats,
+                    localPlaylistCount = localPlaylistCount,
+                )
             MeStatColumn(
                 item = items[0],
                 modifier = Modifier.weight(weight = 1f),
@@ -87,13 +89,12 @@ internal fun MeStatsSection(
 private fun buildMeStatItems(
     libraryStats: LibraryStats,
     localPlaylistCount: Int,
-): List<MeStatItem> {
-    return listOf(
+): List<MeStatItem> =
+    listOf(
         MeStatItem(value = libraryStats.songCount.toString(), label = "歌曲"),
         MeStatItem(value = localPlaylistCount.toString(), label = "歌单"),
         MeStatItem(value = "365", label = "听歌时长"),
     )
-}
 
 // 单个统计列保持居中层级；只有传入动作的列才具备点击语义。
 @Composable
@@ -103,15 +104,16 @@ private fun MeStatColumn(
     onClick: (() -> Unit)? = null,
     onClickLabel: String = "",
 ) {
-    val columnModifier: Modifier = if (onClick == null) {
-        modifier
-    } else {
-        modifier.clickable(
-            onClickLabel = onClickLabel,
-            role = Role.Button,
-            onClick = onClick,
-        )
-    }
+    val columnModifier: Modifier =
+        if (onClick == null) {
+            modifier
+        } else {
+            modifier.clickable(
+                onClickLabel = onClickLabel,
+                role = Role.Button,
+                onClick = onClick,
+            )
+        }
     Column(
         modifier = columnModifier,
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -137,9 +139,10 @@ private fun MeStatColumn(
 @Composable
 private fun MeStatsDivider() {
     Surface(
-        modifier = Modifier
-            .width(width = 1.dp)
-            .height(height = 32.dp),
+        modifier =
+            Modifier
+                .width(width = 1.dp)
+                .height(height = 32.dp),
         color = meDividerColor,
     ) {}
 }

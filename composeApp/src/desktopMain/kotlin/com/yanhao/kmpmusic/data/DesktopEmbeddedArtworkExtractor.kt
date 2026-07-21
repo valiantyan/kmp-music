@@ -1,9 +1,5 @@
 package com.yanhao.kmpmusic.data
 
-import java.io.IOException
-import java.nio.file.Files
-import java.nio.file.Path
-import java.security.MessageDigest
 import org.jaudiotagger.audio.AudioFile
 import org.jaudiotagger.audio.AudioFileIO
 import org.jaudiotagger.audio.exceptions.CannotReadException
@@ -11,6 +7,10 @@ import org.jaudiotagger.audio.exceptions.InvalidAudioFrameException
 import org.jaudiotagger.audio.exceptions.ReadOnlyFileException
 import org.jaudiotagger.tag.TagException
 import org.jaudiotagger.tag.datatype.Artwork
+import java.io.IOException
+import java.nio.file.Files
+import java.nio.file.Path
+import java.security.MessageDigest
 
 /**
  * Desktop 端从本地音频文件提取 embedded artwork，并缓存为 UI 可解码的图片文件。
@@ -77,17 +77,20 @@ internal class DesktopEmbeddedArtworkExtractor(
 }
 
 // 常见 MIME 类型转成真实图片扩展名，帮助桌面图片解码器识别缓存文件。
-private fun String?.toImageExtension(): String {
-    return when (this?.trim()?.lowercase()) {
+private fun String?.toImageExtension(): String =
+    when (this?.trim()?.lowercase()) {
         "image/jpeg",
         "image/jpg",
         -> ".jpg"
+
         "image/png" -> ".png"
+
         "image/gif" -> ".gif"
+
         "image/webp" -> ".webp"
+
         else -> ".art"
     }
-}
 
 // 使用 SHA-256 避免本地绝对路径直接出现在缓存文件名中。
 private fun String.toSha256(): String {

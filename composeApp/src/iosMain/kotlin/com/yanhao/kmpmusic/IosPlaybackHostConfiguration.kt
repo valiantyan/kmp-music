@@ -11,11 +11,12 @@ object IosPlaybackHostConfiguration {
     const val AUDIO_BACKGROUND_MODE: String = "audio"
 
     /** 当前 P0 不包含的系统播放专项能力，避免交接时误宣称已完成。 */
-    val excludedSystemPlaybackFeatures: List<String> = listOf(
-        "MPNowPlayingInfoCenter",
-        "MPRemoteCommandCenter",
-        "ControlCenterButtons",
-        "HeadsetRemoteCommands",
-        "ColdStartPlaybackResume",
-    )
+    val excludedSystemPlaybackFeatures: List<String> =
+        listOf(
+            "MPNowPlayingInfoCenter",
+            "MPRemoteCommandCenter",
+            "ControlCenterButtons",
+            "HeadsetRemoteCommands",
+            "ColdStartPlaybackResume",
+        )
 }

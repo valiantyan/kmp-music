@@ -41,10 +41,11 @@ internal fun AlbumDetailPlayAllButton(
     onClick: () -> Unit,
 ) {
     Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(start = 18.dp, top = 32.dp, end = 18.dp)
-            .height(height = 64.dp),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(start = 18.dp, top = 32.dp, end = 18.dp)
+                .height(height = 64.dp),
         shape = albumDetailActionShape,
         color = albumDetailActionColor.copy(alpha = if (enabled) 0.90f else 0.42f),
         enabled = enabled,
@@ -67,10 +68,11 @@ internal fun AlbumDetailPlayAllButton(
 @Composable
 private fun AlbumDetailPlayIcon() {
     Box(
-        modifier = Modifier
-            .size(size = 25.dp)
-            .clip(shape = CircleShape)
-            .background(color = Color.White),
+        modifier =
+            Modifier
+                .size(size = 25.dp)
+                .clip(shape = CircleShape)
+                .background(color = Color.White),
         contentAlignment = Alignment.Center,
     ) {
         Icon(
@@ -101,11 +103,12 @@ private fun AlbumDetailPlayAllText(text: String) {
 @Composable
 private fun AlbumDetailPlayAllDivider() {
     Box(
-        modifier = Modifier
-            .padding(start = 12.dp)
-            .width(width = 1.dp)
-            .height(height = 24.dp)
-            .background(color = Color.White.copy(alpha = 0.30f)),
+        modifier =
+            Modifier
+                .padding(start = 12.dp)
+                .width(width = 1.dp)
+                .height(height = 24.dp)
+                .background(color = Color.White.copy(alpha = 0.30f)),
     )
 }
 

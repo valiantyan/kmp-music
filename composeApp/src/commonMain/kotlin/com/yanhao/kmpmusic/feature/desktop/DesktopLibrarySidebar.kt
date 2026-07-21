@@ -49,11 +49,12 @@ fun DesktopLibrarySidebar(
     modifier: Modifier = Modifier,
 ) {
     Column(
-        modifier = modifier
-            .width(DesktopMusicDimens.LibrarySidebarWidth)
-            .fillMaxHeight()
-            .background(Color.White.copy(alpha = 0.62f))
-            .padding(horizontal = 22.dp, vertical = 28.dp),
+        modifier =
+            modifier
+                .width(DesktopMusicDimens.LibrarySidebarWidth)
+                .fillMaxHeight()
+                .background(Color.White.copy(alpha = 0.62f))
+                .padding(horizontal = 22.dp, vertical = 28.dp),
     ) {
         DesktopLibraryTabs(onSection = onSection)
         Spacer(modifier = Modifier.height(28.dp))
@@ -171,10 +172,11 @@ private fun DesktopLibraryStatRow(
     onClick: () -> Unit,
 ) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(26.dp)
-            .clickable(onClick = onClick),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .height(26.dp)
+                .clickable(onClick = onClick),
         horizontalArrangement = Arrangement.spacedBy(10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -240,10 +242,11 @@ private fun DesktopLibraryRecentSongs(
             return
         }
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .weight(1f)
-                .verticalScroll(state = rememberScrollState()),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+                    .verticalScroll(state = rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
             songs.forEach { song: Song ->
@@ -263,10 +266,11 @@ private fun DesktopLibraryRecentSongRow(
     onClick: () -> Unit,
 ) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(48.dp)
-            .clickable(onClick = onClick),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .height(48.dp)
+                .clickable(onClick = onClick),
         horizontalArrangement = Arrangement.spacedBy(10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -274,9 +278,10 @@ private fun DesktopLibraryRecentSongRow(
             coverArt = song.coverArt,
             coverImageUri = song.coverImageUri,
             contentDescription = "${song.title} 封面",
-            modifier = Modifier
-                .size(38.dp)
-                .clip(RoundedCornerShape(8.dp)),
+            modifier =
+                Modifier
+                    .size(38.dp)
+                    .clip(RoundedCornerShape(8.dp)),
             contentScale = ContentScale.Crop,
         )
         Column(

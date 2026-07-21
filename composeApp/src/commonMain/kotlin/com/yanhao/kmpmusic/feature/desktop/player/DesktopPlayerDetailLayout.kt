@@ -101,10 +101,11 @@ internal fun DesktopPlayerContent(
     onQueueIndexClick: (Int) -> Unit,
 ) {
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
-        val coverSize = (maxWidth * 0.36f).coerceIn(
-            minimumValue = 340.dp,
-            maximumValue = 520.dp,
-        )
+        val coverSize =
+            (maxWidth * 0.36f).coerceIn(
+                minimumValue = 340.dp,
+                maximumValue = 520.dp,
+            )
         Row(
             modifier = Modifier.fillMaxSize(),
             horizontalArrangement = Arrangement.spacedBy(72.dp),
@@ -114,15 +115,17 @@ internal fun DesktopPlayerContent(
                 coverArt = song.coverArt,
                 coverImageUri = song.coverImageUri,
                 contentDescription = "${song.title} 封面",
-                modifier = Modifier
-                    .size(coverSize)
-                    .clip(RoundedCornerShape(34.dp)),
+                modifier =
+                    Modifier
+                        .size(coverSize)
+                        .clip(RoundedCornerShape(34.dp)),
                 contentScale = ContentScale.Crop,
             )
             Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxHeight(),
+                modifier =
+                    Modifier
+                        .weight(1f)
+                        .fillMaxHeight(),
                 verticalArrangement = Arrangement.Center,
             ) {
                 DesktopPlayerMetadata(song = song)

@@ -9,13 +9,13 @@ import kotlin.test.assertTrue
  */
 class DesktopSearchScreenDisplayModelTest {
     @Test
-    fun pendingQueryKeepsDesktopResultsHidden(): Unit {
+    fun pendingQueryKeepsDesktopResultsHidden() {
         assertFalse(actual = shouldShowDesktopSearchResults(query = "雨", activeQuery = ""))
         assertFalse(actual = shouldShowDesktopSearchResults(query = "雨声", activeQuery = "雨"))
     }
 
     @Test
-    fun matchingActiveQueryShowsDesktopResults(): Unit {
+    fun matchingActiveQueryShowsDesktopResults() {
         assertTrue(actual = shouldShowDesktopSearchResults(query = "雨", activeQuery = "雨"))
     }
 }

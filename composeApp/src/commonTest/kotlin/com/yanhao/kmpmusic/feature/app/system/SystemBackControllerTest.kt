@@ -15,16 +15,18 @@ class SystemBackControllerTest {
      * 系统返回优先关闭权限弹窗，且不继续消费到二级页面。
      */
     @Test
-    fun systemBackClosesPermissionDialogFirst(): Unit {
-        val state: MusicAppUiState = NavigationStateController.navigateToSecondary(
-            state = baseState(),
-            screen = SecondaryScreen.Settings,
-        ).copy(
-            isPermissionSettingsDialogOpen = true,
-            isClearCacheDialogOpen = true,
-            isQueueOpen = true,
-            moreSongId = "song-1",
-        )
+    fun systemBackClosesPermissionDialogFirst() {
+        val state: MusicAppUiState =
+            NavigationStateController
+                .navigateToSecondary(
+                    state = baseState(),
+                    screen = SecondaryScreen.Settings,
+                ).copy(
+                    isPermissionSettingsDialogOpen = true,
+                    isClearCacheDialogOpen = true,
+                    isQueueOpen = true,
+                    moreSongId = "song-1",
+                )
         val result: SystemBackController.Result = SystemBackController.handleSystemBack(state = state)
         assertTrue(actual = result.wasHandled)
         assertFalse(actual = result.state.isPermissionSettingsDialogOpen)
@@ -37,11 +39,12 @@ class SystemBackControllerTest {
      * 没有弹窗和面板时，系统返回才回退二级页面。
      */
     @Test
-    fun systemBackReturnsFromSecondaryWhenNoOverlayExists(): Unit {
-        val state: MusicAppUiState = NavigationStateController.navigateToSecondary(
-            state = baseState(),
-            screen = SecondaryScreen.Settings,
-        )
+    fun systemBackReturnsFromSecondaryWhenNoOverlayExists() {
+        val state: MusicAppUiState =
+            NavigationStateController.navigateToSecondary(
+                state = baseState(),
+                screen = SecondaryScreen.Settings,
+            )
         val result: SystemBackController.Result = SystemBackController.handleSystemBack(state = state)
         assertTrue(actual = result.wasHandled)
         assertNull(actual = result.state.navigationState.secondaryScreen)
@@ -51,15 +54,17 @@ class SystemBackControllerTest {
      * 清缓存弹窗、单曲更多和队列都存在时，返回键每次只关闭当前最高优先级对象。
      */
     @Test
-    fun systemBackClosesCacheDialogMorePanelAndQueueInOrder(): Unit {
-        val state: MusicAppUiState = NavigationStateController.navigateToSecondary(
-            state = baseState(),
-            screen = SecondaryScreen.Settings,
-        ).copy(
-            isClearCacheDialogOpen = true,
-            moreSongId = "song-1",
-            isQueueOpen = true,
-        )
+    fun systemBackClosesCacheDialogMorePanelAndQueueInOrder() {
+        val state: MusicAppUiState =
+            NavigationStateController
+                .navigateToSecondary(
+                    state = baseState(),
+                    screen = SecondaryScreen.Settings,
+                ).copy(
+                    isClearCacheDialogOpen = true,
+                    moreSongId = "song-1",
+                    isQueueOpen = true,
+                )
         val afterCacheDialog: SystemBackController.Result = SystemBackController.handleSystemBack(state = state)
         val afterMorePanel: SystemBackController.Result = SystemBackController.handleSystemBack(state = afterCacheDialog.state)
         val afterQueue: SystemBackController.Result = SystemBackController.handleSystemBack(state = afterMorePanel.state)
@@ -78,7 +83,7 @@ class SystemBackControllerTest {
      * 顶层页面没有可关闭对象时，系统返回不消费事件。
      */
     @Test
-    fun systemBackDoesNotHandleTopLevelIdleState(): Unit {
+    fun systemBackDoesNotHandleTopLevelIdleState() {
         val result: SystemBackController.Result = SystemBackController.handleSystemBack(state = baseState())
         assertFalse(actual = result.wasHandled)
     }
@@ -87,11 +92,10 @@ class SystemBackControllerTest {
 /**
  * 构造系统返回测试所需的最小状态，避免引入与返回优先级无关的噪音。
  */
-private fun baseState(): MusicAppUiState {
-    return MusicAppUiState(
+private fun baseState(): MusicAppUiState =
+    MusicAppUiState(
         likedSongIds = emptySet(),
         currentSongId = null,
         playbackStatus = PlaybackStatus.Idle,
         queueSongIds = emptyList(),
     )
-}

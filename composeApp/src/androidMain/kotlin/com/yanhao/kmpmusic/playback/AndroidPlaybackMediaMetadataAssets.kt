@@ -32,16 +32,21 @@ internal object AndroidPlaybackMediaMetadataAssets {
             context.assets.open(coverArt.assetPath()).use { input ->
                 input.readBytes()
             }
-        }.getOrNull()?.also { artworkData: ByteArray ->
-            artworkDataCache[coverArt] = artworkData
-        }?.copyOf()
+        }.getOrNull()
+            ?.also { artworkData: ByteArray ->
+                artworkDataCache[coverArt] = artworkData
+            }?.copyOf()
     }
 
     // 系统媒体通知不能读取 Compose 自绘状态，因此这里把真实封面 URI 转成 Media3 metadata 字节。
-    private fun readCoverImageUri(context: Context, coverImageUri: String?): ByteArray? {
-        val normalizedCoverImageUri: String = coverImageUri?.trim()?.takeIf { uri: String ->
-            uri.isNotEmpty()
-        } ?: return null
+    private fun readCoverImageUri(
+        context: Context,
+        coverImageUri: String?,
+    ): ByteArray? {
+        val normalizedCoverImageUri: String =
+            coverImageUri?.trim()?.takeIf { uri: String ->
+                uri.isNotEmpty()
+            } ?: return null
         return runCatching {
             context.contentResolver.openInputStream(Uri.parse(normalizedCoverImageUri))?.use { input ->
                 input.readBytes()
@@ -51,14 +56,15 @@ internal object AndroidPlaybackMediaMetadataAssets {
 
     // 将 domain 封面枚举映射到 Android assets 中的 Compose 资源路径。
     private fun CoverArt.assetPath(): String {
-        val fileName: String = when (this) {
-            CoverArt.AlbumBestOfMe -> "album_best_of_me.png"
-            CoverArt.AlbumRiverYear -> "album_river_year.png"
-            CoverArt.AlbumTimeForest -> "album_time_forest.png"
-            CoverArt.CoverSeaDream -> "cover_sea_dream.png"
-            CoverArt.CoverSummerWaltz -> "cover_summer_waltz.png"
-            CoverArt.HeroLocalMusic -> "hero_local_folder.png"
-        }
+        val fileName: String =
+            when (this) {
+                CoverArt.AlbumBestOfMe -> "album_best_of_me.png"
+                CoverArt.AlbumRiverYear -> "album_river_year.png"
+                CoverArt.AlbumTimeForest -> "album_time_forest.png"
+                CoverArt.CoverSeaDream -> "cover_sea_dream.png"
+                CoverArt.CoverSummerWaltz -> "cover_summer_waltz.png"
+                CoverArt.HeroLocalMusic -> "hero_local_folder.png"
+            }
         return "composeResources/kmpmusic.composeapp.generated.resources/drawable/$fileName"
     }
 }

@@ -7,13 +7,13 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -35,8 +35,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.LastBaseline
 import androidx.compose.ui.text.font.FontWeight
@@ -81,10 +81,11 @@ fun AppHeader(
             }
             Text(
                 text = title,
-                style = MaterialTheme.typography.headlineLarge.copy(
-                    fontSize = scaledSp(34.sp),
-                    lineHeight = scaledSp(38.sp),
-                ),
+                style =
+                    MaterialTheme.typography.headlineLarge.copy(
+                        fontSize = scaledSp(34.sp),
+                        lineHeight = scaledSp(38.sp),
+                    ),
                 color = MaterialTheme.colorScheme.onBackground,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
@@ -116,10 +117,11 @@ fun AppHeader(
             if (actionLabel != null && onAction != null) {
                 Text(
                     text = actionLabel,
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(999.dp))
-                        .clickable(onClick = onAction)
-                        .padding(horizontal = scaledDp(12.dp), vertical = scaledDp(8.dp)),
+                    modifier =
+                        Modifier
+                            .clip(RoundedCornerShape(999.dp))
+                            .clickable(onClick = onAction)
+                            .padding(horizontal = scaledDp(12.dp), vertical = scaledDp(8.dp)),
                     color = MusicColors.Accent,
                     fontSize = scaledSp(15.sp),
                     lineHeight = scaledSp(18.sp),
@@ -170,18 +172,20 @@ fun SectionTitle(
             Text(
                 text = title,
                 modifier = Modifier.alignBy(LastBaseline),
-                style = MaterialTheme.typography.titleLarge.copy(
-                    fontSize = scaledSp(21.sp),
-                    lineHeight = scaledSp(25.sp),
-                ),
+                style =
+                    MaterialTheme.typography.titleLarge.copy(
+                        fontSize = scaledSp(21.sp),
+                        lineHeight = scaledSp(25.sp),
+                    ),
                 color = MaterialTheme.colorScheme.onBackground,
             )
             if (meta != null) {
                 Text(
                     text = meta,
-                    modifier = Modifier
-                        .padding(start = scaledDp(8.dp))
-                        .alignBy(LastBaseline),
+                    modifier =
+                        Modifier
+                            .padding(start = scaledDp(8.dp))
+                            .alignBy(LastBaseline),
                     color = MusicColors.Muted,
                     fontSize = scaledSp(15.sp),
                     lineHeight = scaledSp(18.sp),
@@ -236,15 +240,17 @@ fun SongRow(
     val coverSize: Dp = scaledDp(if (dense) MusicDimens.DenseSongCoverSize else MusicDimens.SongCoverSize)
     val coverShape: RoundedCornerShape = RoundedCornerShape(scaledDp(8.dp))
     val coverShadowElevation: Dp = if (dense) 0.dp else scaledDp(10.dp)
-    val isCurrentSongPlaying: Boolean = isSongRowPlaying(
-        isCurrentSong = isCurrentSong,
-        currentPlaybackStatus = currentPlaybackStatus,
-    )
-    val shouldToggleCurrentSong: Boolean = canSongRowToggleCurrentPlayback(
-        isCurrentSong = isCurrentSong,
-        currentPlaybackStatus = currentPlaybackStatus,
-        onCurrentSongToggle = onCurrentSongToggle,
-    )
+    val isCurrentSongPlaying: Boolean =
+        isSongRowPlaying(
+            isCurrentSong = isCurrentSong,
+            currentPlaybackStatus = currentPlaybackStatus,
+        )
+    val shouldToggleCurrentSong: Boolean =
+        canSongRowToggleCurrentPlayback(
+            isCurrentSong = isCurrentSong,
+            currentPlaybackStatus = currentPlaybackStatus,
+            onCurrentSongToggle = onCurrentSongToggle,
+        )
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(scaledDp(if (dense) 9.dp else 12.dp)),
@@ -259,20 +265,20 @@ fun SongRow(
                 coverArt = song.coverArt,
                 coverImageUri = song.coverImageUri,
                 contentDescription = "${song.title} 封面",
-                modifier = Modifier
-                    .size(coverSize)
-                    .then(
-                        if (coverShadowElevation > 0.dp) {
-                            Modifier.shadow(
-                                elevation = coverShadowElevation,
-                                shape = coverShape,
-                                clip = false,
-                            )
-                        } else {
-                            Modifier
-                        },
-                    )
-                    .clip(coverShape),
+                modifier =
+                    Modifier
+                        .size(coverSize)
+                        .then(
+                            if (coverShadowElevation > 0.dp) {
+                                Modifier.shadow(
+                                    elevation = coverShadowElevation,
+                                    shape = coverShape,
+                                    clip = false,
+                                )
+                            } else {
+                                Modifier
+                            },
+                        ).clip(coverShape),
                 contentScale = ContentScale.Crop,
             )
             Column(verticalArrangement = Arrangement.spacedBy(scaledDp(4.dp))) {
@@ -354,9 +360,7 @@ fun SongRow(
 private fun isSongRowPlaying(
     isCurrentSong: Boolean,
     currentPlaybackStatus: PlaybackStatus?,
-): Boolean {
-    return isCurrentSong && currentPlaybackStatus?.shouldShowPauseControl == true
-}
+): Boolean = isCurrentSong && currentPlaybackStatus?.shouldShowPauseControl == true
 
 // 当前歌曲的活动/暂停态复用全局控制器切换，错误态走行级播放用于重试。
 private fun canSongRowToggleCurrentPlayback(
@@ -386,11 +390,12 @@ fun AlbumCard(
             coverArt = album.coverArt,
             coverImageUri = album.coverImageUri,
             contentDescription = "${album.title} 专辑封面",
-            modifier = Modifier
-                .fillMaxWidth()
-                .aspectRatio(ratio = 1f)
-                .shadow(elevation = scaledDp(12.dp), shape = RoundedCornerShape(scaledDp(MusicDimens.AlbumRadius)), clip = false)
-                .clip(RoundedCornerShape(scaledDp(MusicDimens.AlbumRadius))),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .aspectRatio(ratio = 1f)
+                    .shadow(elevation = scaledDp(12.dp), shape = RoundedCornerShape(scaledDp(MusicDimens.AlbumRadius)), clip = false)
+                    .clip(RoundedCornerShape(scaledDp(MusicDimens.AlbumRadius))),
             contentScale = ContentScale.Crop,
         )
         Spacer(modifier = Modifier.height(scaledDp(MusicDimens.AlbumTextTopGap)))
@@ -460,25 +465,27 @@ fun PrimaryPill(
     modifier: Modifier = Modifier,
 ) {
     Surface(
-        modifier = modifier
-            .height(scaledDp(46.dp))
-            .defaultMinSize(minWidth = scaledDp(118.dp)),
+        modifier =
+            modifier
+                .height(scaledDp(46.dp))
+                .defaultMinSize(minWidth = scaledDp(118.dp)),
         shape = RoundedCornerShape(scaledDp(20.dp)),
         color = Color.Transparent,
         shadowElevation = scaledDp(8.dp),
         onClick = onClick,
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(scaledDp(46.dp))
-                .background(
-                    brush = Brush.linearGradient(
-                        colors = listOf(MusicColors.Accent, MusicColors.AccentDeep),
-                    ),
-                    shape = RoundedCornerShape(scaledDp(20.dp)),
-                )
-                .padding(horizontal = scaledDp(20.dp)),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .height(scaledDp(46.dp))
+                    .background(
+                        brush =
+                            Brush.linearGradient(
+                                colors = listOf(MusicColors.Accent, MusicColors.AccentDeep),
+                            ),
+                        shape = RoundedCornerShape(scaledDp(20.dp)),
+                    ).padding(horizontal = scaledDp(20.dp)),
             horizontalArrangement = Arrangement.Center,
             verticalAlignment = Alignment.CenterVertically,
         ) {

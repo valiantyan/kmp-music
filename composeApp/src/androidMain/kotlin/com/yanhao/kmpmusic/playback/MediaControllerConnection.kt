@@ -7,8 +7,8 @@ import androidx.media3.common.util.UnstableApi
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
 import com.google.common.util.concurrent.ListenableFuture
-import kotlin.coroutines.resume
 import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlin.coroutines.resume
 
 /**
  * 官方 [MediaController] 连接管理器，统一处理 SessionToken 绑定和断线重连。
@@ -30,12 +30,13 @@ internal class MediaControllerConnection(
         private set
 
     // 监听 controller 断开，避免后续命令继续使用失效对象。
-    private val controllerListener: MediaController.Listener = object : MediaController.Listener {
-        /** controller 断开时清空缓存，让下一次命令重新绑定 service。 */
-        override fun onDisconnected(controller: MediaController) {
-            handleControllerDisconnected(controller = controller)
+    private val controllerListener: MediaController.Listener =
+        object : MediaController.Listener {
+            /** controller 断开时清空缓存，让下一次命令重新绑定 service。 */
+            override fun onDisconnected(controller: MediaController) {
+                handleControllerDisconnected(controller = controller)
+            }
         }
-    }
 
     /**
      * 注入 Android applicationContext，供 [MediaController] 绑定 [MusicPlaybackService]。
@@ -98,16 +99,18 @@ internal class MediaControllerConnection(
         controllerFuture?.let { future: ListenableFuture<MediaController> ->
             return future
         }
-        val sessionToken = SessionToken(
-            context,
-            ComponentName(context, MusicPlaybackService::class.java),
-        )
-        val future: ListenableFuture<MediaController> = MediaController.Builder(
-            context,
-            sessionToken,
-        )
-            .setListener(controllerListener)
-            .buildAsync()
+        val sessionToken =
+            SessionToken(
+                context,
+                ComponentName(context, MusicPlaybackService::class.java),
+            )
+        val future: ListenableFuture<MediaController> =
+            MediaController
+                .Builder(
+                    context,
+                    sessionToken,
+                ).setListener(controllerListener)
+                .buildAsync()
         controllerFuture = future
         future.addListener(
             {
@@ -131,8 +134,7 @@ internal class MediaControllerConnection(
             .onSuccess { controller: MediaController ->
                 attachController(controller = controller)
                 onSuccess(controller)
-            }
-            .onFailure {
+            }.onFailure {
                 controllerFuture = null
                 onFailure()
             }

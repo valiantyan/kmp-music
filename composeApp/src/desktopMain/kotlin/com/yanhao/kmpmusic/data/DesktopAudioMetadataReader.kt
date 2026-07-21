@@ -1,7 +1,5 @@
 package com.yanhao.kmpmusic.data
 
-import java.io.IOException
-import java.nio.file.Path
 import org.jaudiotagger.audio.AudioFile
 import org.jaudiotagger.audio.AudioFileIO
 import org.jaudiotagger.audio.AudioHeader
@@ -12,6 +10,8 @@ import org.jaudiotagger.tag.FieldKey
 import org.jaudiotagger.tag.KeyNotFoundException
 import org.jaudiotagger.tag.Tag
 import org.jaudiotagger.tag.TagException
+import java.io.IOException
+import java.nio.file.Path
 
 /**
  * 桌面端音频元数据，scanner 用它对齐 Android MediaStore 的字段语义。
@@ -35,8 +35,8 @@ internal class DesktopAudioMetadataReader {
     /**
      * 读取常见音频格式的标题、歌手、专辑和时长；读取失败时返回空元数据让 scanner 继续兜底。
      */
-    fun readMetadata(audioPath: Path): DesktopAudioMetadata {
-        return try {
+    fun readMetadata(audioPath: Path): DesktopAudioMetadata =
+        try {
             val audioFile: AudioFile = AudioFileIO.read(audioPath.toFile())
             audioFile.toDesktopAudioMetadata()
         } catch (cannotReadException: CannotReadException) {
@@ -52,27 +52,26 @@ internal class DesktopAudioMetadataReader {
         } catch (runtimeException: RuntimeException) {
             DesktopAudioMetadata()
         }
-    }
 
     // 把 jaudiotagger 的格式模型收敛为应用自己的平台无关扫描元数据。
-    internal fun AudioFile.toDesktopAudioMetadata(): DesktopAudioMetadata {
-        return DesktopAudioMetadata(
+    internal fun AudioFile.toDesktopAudioMetadata(): DesktopAudioMetadata =
+        DesktopAudioMetadata(
             title = tag.readKnownText(fieldKey = FieldKey.TITLE),
             artist = tag.readKnownText(fieldKey = FieldKey.ARTIST),
             album = tag.readKnownText(fieldKey = FieldKey.ALBUM),
             durationMs = audioHeader.readDurationMs(),
         )
-    }
 
     // 统一清理空字符串和异常标签，避免 common 层把脏标签当成真实曲库维度。
     private fun Tag?.readKnownText(fieldKey: FieldKey): String? {
-        val value: String = try {
-            this?.getFirst(fieldKey)?.trim().orEmpty()
-        } catch (keyNotFoundException: KeyNotFoundException) {
-            return null
-        } catch (unsupportedOperationException: UnsupportedOperationException) {
-            return null
-        }
+        val value: String =
+            try {
+                this?.getFirst(fieldKey)?.trim().orEmpty()
+            } catch (keyNotFoundException: KeyNotFoundException) {
+                return null
+            } catch (unsupportedOperationException: UnsupportedOperationException) {
+                return null
+            }
         if (value.isBlank()) {
             return null
         }

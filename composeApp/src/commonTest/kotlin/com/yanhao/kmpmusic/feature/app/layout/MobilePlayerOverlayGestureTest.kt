@@ -11,11 +11,12 @@ import kotlin.test.assertTrue
  */
 class MobilePlayerOverlayGestureTest {
     @Test
-    fun calculatePlayerDragOffsetAccumulatesDownwardDrag(): Unit {
-        val offsetPx: Float = calculatePlayerDragOffset(
-            currentOffsetPx = 120f,
-            dragDeltaPx = 80f,
-        )
+    fun calculatePlayerDragOffsetAccumulatesDownwardDrag() {
+        val offsetPx: Float =
+            calculatePlayerDragOffset(
+                currentOffsetPx = 120f,
+                dragDeltaPx = 80f,
+            )
         assertEquals(
             expected = 200f,
             actual = offsetPx,
@@ -23,11 +24,12 @@ class MobilePlayerOverlayGestureTest {
     }
 
     @Test
-    fun calculatePlayerDragOffsetClampsUpwardDragAtZero(): Unit {
-        val offsetPx: Float = calculatePlayerDragOffset(
-            currentOffsetPx = 32f,
-            dragDeltaPx = -80f,
-        )
+    fun calculatePlayerDragOffsetClampsUpwardDragAtZero() {
+        val offsetPx: Float =
+            calculatePlayerDragOffset(
+                currentOffsetPx = 32f,
+                dragDeltaPx = -80f,
+            )
         assertEquals(
             expected = 0f,
             actual = offsetPx,
@@ -35,43 +37,48 @@ class MobilePlayerOverlayGestureTest {
     }
 
     @Test
-    fun isPlayerOverlayDismissDragRequiresAtLeastHalfScreen(): Unit {
+    fun isPlayerOverlayDismissDragRequiresAtLeastHalfScreen() {
         assertFalse(
-            actual = isPlayerOverlayDismissDrag(
-                dragOffsetPx = 499f,
-                screenHeightPx = 1_000f,
-            ),
+            actual =
+                isPlayerOverlayDismissDrag(
+                    dragOffsetPx = 499f,
+                    screenHeightPx = 1_000f,
+                ),
         )
         assertTrue(
-            actual = isPlayerOverlayDismissDrag(
-                dragOffsetPx = 500f,
-                screenHeightPx = 1_000f,
-            ),
+            actual =
+                isPlayerOverlayDismissDrag(
+                    dragOffsetPx = 500f,
+                    screenHeightPx = 1_000f,
+                ),
         )
         assertTrue(
-            actual = isPlayerOverlayDismissDrag(
+            actual =
+                isPlayerOverlayDismissDrag(
+                    dragOffsetPx = 640f,
+                    screenHeightPx = 1_000f,
+                ),
+        )
+    }
+
+    @Test
+    fun isPlayerOverlayDismissDragRejectsInvalidHeight() {
+        assertFalse(
+            actual =
+                isPlayerOverlayDismissDrag(
+                    dragOffsetPx = 500f,
+                    screenHeightPx = 0f,
+                ),
+        )
+    }
+
+    @Test
+    fun calculatePlayerDismissTargetOffsetContinuesToFullScreenHeight() {
+        val targetOffsetPx: Float =
+            calculatePlayerDismissTargetOffset(
                 dragOffsetPx = 640f,
                 screenHeightPx = 1_000f,
-            ),
-        )
-    }
-
-    @Test
-    fun isPlayerOverlayDismissDragRejectsInvalidHeight(): Unit {
-        assertFalse(
-            actual = isPlayerOverlayDismissDrag(
-                dragOffsetPx = 500f,
-                screenHeightPx = 0f,
-            ),
-        )
-    }
-
-    @Test
-    fun calculatePlayerDismissTargetOffsetContinuesToFullScreenHeight(): Unit {
-        val targetOffsetPx: Float = calculatePlayerDismissTargetOffset(
-            dragOffsetPx = 640f,
-            screenHeightPx = 1_000f,
-        )
+            )
         assertEquals(
             expected = 1_000f,
             actual = targetOffsetPx,
@@ -79,11 +86,12 @@ class MobilePlayerOverlayGestureTest {
     }
 
     @Test
-    fun calculatePlayerDismissTargetOffsetKeepsOvershootOffscreen(): Unit {
-        val targetOffsetPx: Float = calculatePlayerDismissTargetOffset(
-            dragOffsetPx = 1_120f,
-            screenHeightPx = 1_000f,
-        )
+    fun calculatePlayerDismissTargetOffsetKeepsOvershootOffscreen() {
+        val targetOffsetPx: Float =
+            calculatePlayerDismissTargetOffset(
+                dragOffsetPx = 1_120f,
+                screenHeightPx = 1_000f,
+            )
         assertEquals(
             expected = 1_120f,
             actual = targetOffsetPx,
@@ -91,11 +99,12 @@ class MobilePlayerOverlayGestureTest {
     }
 
     @Test
-    fun calculatePlayerDismissDistanceIncludesNavigationBarArea(): Unit {
-        val dismissDistancePx: Float = calculatePlayerDismissDistance(
-            contentHeightPx = 1_000f,
-            navigationBarBottomPx = 96f,
-        )
+    fun calculatePlayerDismissDistanceIncludesNavigationBarArea() {
+        val dismissDistancePx: Float =
+            calculatePlayerDismissDistance(
+                contentHeightPx = 1_000f,
+                navigationBarBottomPx = 96f,
+            )
         assertEquals(
             expected = 1_096f,
             actual = dismissDistancePx,
@@ -103,30 +112,33 @@ class MobilePlayerOverlayGestureTest {
     }
 
     @Test
-    fun calculatePlayerDismissDistanceIgnoresInvalidInsets(): Unit {
+    fun calculatePlayerDismissDistanceIgnoresInvalidInsets() {
         assertEquals(
             expected = 1_000f,
-            actual = calculatePlayerDismissDistance(
-                contentHeightPx = 1_000f,
-                navigationBarBottomPx = -24f,
-            ),
+            actual =
+                calculatePlayerDismissDistance(
+                    contentHeightPx = 1_000f,
+                    navigationBarBottomPx = -24f,
+                ),
         )
         assertEquals(
             expected = 0f,
-            actual = calculatePlayerDismissDistance(
-                contentHeightPx = 0f,
-                navigationBarBottomPx = 96f,
-            ),
+            actual =
+                calculatePlayerDismissDistance(
+                    contentHeightPx = 0f,
+                    navigationBarBottomPx = 96f,
+                ),
         )
     }
 
     @Test
-    fun calculatePlayerDismissSettleMillisUsesRemainingDistance(): Unit {
-        val durationMillis: Int = calculatePlayerDismissSettleMillis(
-            currentOffsetPx = 500f,
-            targetOffsetPx = 1_000f,
-            screenHeightPx = 1_000f,
-        )
+    fun calculatePlayerDismissSettleMillisUsesRemainingDistance() {
+        val durationMillis: Int =
+            calculatePlayerDismissSettleMillis(
+                currentOffsetPx = 500f,
+                targetOffsetPx = 1_000f,
+                screenHeightPx = 1_000f,
+            )
         assertEquals(
             expected = 160,
             actual = durationMillis,
@@ -134,12 +146,13 @@ class MobilePlayerOverlayGestureTest {
     }
 
     @Test
-    fun calculatePlayerDismissSettleMillisSkipsWhenAlreadyOffscreen(): Unit {
-        val durationMillis: Int = calculatePlayerDismissSettleMillis(
-            currentOffsetPx = 1_120f,
-            targetOffsetPx = 1_120f,
-            screenHeightPx = 1_000f,
-        )
+    fun calculatePlayerDismissSettleMillisSkipsWhenAlreadyOffscreen() {
+        val durationMillis: Int =
+            calculatePlayerDismissSettleMillis(
+                currentOffsetPx = 1_120f,
+                targetOffsetPx = 1_120f,
+                screenHeightPx = 1_000f,
+            )
         assertEquals(
             expected = 0,
             actual = durationMillis,
@@ -147,11 +160,12 @@ class MobilePlayerOverlayGestureTest {
     }
 
     @Test
-    fun calculatePlayerOverlayExitOffsetYIncludesNavigationBarArea(): Unit {
-        val offsetY: Int = calculatePlayerOverlayExitOffsetY(
-            fullHeight = 1_000,
-            navigationBarBottomPx = 96,
-        )
+    fun calculatePlayerOverlayExitOffsetYIncludesNavigationBarArea() {
+        val offsetY: Int =
+            calculatePlayerOverlayExitOffsetY(
+                fullHeight = 1_000,
+                navigationBarBottomPx = 96,
+            )
         assertEquals(
             expected = 1_096,
             actual = offsetY,
@@ -159,11 +173,12 @@ class MobilePlayerOverlayGestureTest {
     }
 
     @Test
-    fun calculatePlayerOverlayExitOffsetYIgnoresInvalidInset(): Unit {
-        val offsetY: Int = calculatePlayerOverlayExitOffsetY(
-            fullHeight = 1_000,
-            navigationBarBottomPx = -96,
-        )
+    fun calculatePlayerOverlayExitOffsetYIgnoresInvalidInset() {
+        val offsetY: Int =
+            calculatePlayerOverlayExitOffsetY(
+                fullHeight = 1_000,
+                navigationBarBottomPx = -96,
+            )
         assertEquals(
             expected = 1_000,
             actual = offsetY,
@@ -171,74 +186,98 @@ class MobilePlayerOverlayGestureTest {
     }
 
     @Test
-    fun shouldSkipPlayerExitTransitionAfterDragOnlyForDraggedPlayerExit(): Unit {
+    fun shouldSkipPlayerExitTransitionAfterDragOnlyForDraggedPlayerExit() {
         assertTrue(
-            actual = shouldSkipPlayerExitTransitionAfterDrag(
-                initialScreen = SecondaryScreen.Player,
-                wasDismissedByDrag = true,
-            ),
+            actual =
+                shouldSkipPlayerExitTransitionAfterDrag(
+                    initialScreen = SecondaryScreen.Player,
+                    wasDismissedByDrag = true,
+                ),
         )
         assertFalse(
-            actual = shouldSkipPlayerExitTransitionAfterDrag(
-                initialScreen = SecondaryScreen.Player,
-                wasDismissedByDrag = false,
-            ),
+            actual =
+                shouldSkipPlayerExitTransitionAfterDrag(
+                    initialScreen = SecondaryScreen.Player,
+                    wasDismissedByDrag = false,
+                ),
         )
         assertFalse(
-            actual = shouldSkipPlayerExitTransitionAfterDrag(
-                initialScreen = SecondaryScreen.About,
-                wasDismissedByDrag = true,
-            ),
+            actual =
+                shouldSkipPlayerExitTransitionAfterDrag(
+                    initialScreen = SecondaryScreen.About,
+                    wasDismissedByDrag = true,
+                ),
         )
     }
 
     @Test
-    fun shouldHidePlayerOverlayContentAfterDragOnlyForOutgoingPlayer(): Unit {
+    fun shouldHidePlayerOverlayContentAfterDragOnlyForOutgoingPlayer() {
         assertTrue(
-            actual = shouldHidePlayerOverlayContentAfterDrag(
-                overlayScreen = SecondaryScreen.Player,
-                targetOverlayScreen = null,
-                wasDismissedByDrag = true,
-            ),
+            actual =
+                shouldHidePlayerOverlayContentAfterDrag(
+                    overlayScreen = SecondaryScreen.Player,
+                    targetOverlayScreen = null,
+                    wasDismissedByDrag = true,
+                ),
         )
         assertTrue(
-            actual = shouldHidePlayerOverlayContentAfterDrag(
-                overlayScreen = SecondaryScreen.Player,
-                targetOverlayScreen = SecondaryScreen.LocalMusic(),
-                wasDismissedByDrag = true,
-            ),
+            actual =
+                shouldHidePlayerOverlayContentAfterDrag(
+                    overlayScreen = SecondaryScreen.Player,
+                    targetOverlayScreen = SecondaryScreen.LocalMusic(),
+                    wasDismissedByDrag = true,
+                ),
         )
         assertFalse(
-            actual = shouldHidePlayerOverlayContentAfterDrag(
+            actual =
+                shouldHidePlayerOverlayContentAfterDrag(
+                    overlayScreen = SecondaryScreen.Player,
+                    targetOverlayScreen = SecondaryScreen.Player,
+                    wasDismissedByDrag = true,
+                ),
+        )
+        assertFalse(
+            actual =
+                shouldHidePlayerOverlayContentAfterDrag(
+                    overlayScreen = SecondaryScreen.About,
+                    targetOverlayScreen = null,
+                    wasDismissedByDrag = true,
+                ),
+        )
+        assertFalse(
+            actual =
+                shouldHidePlayerOverlayContentAfterDrag(
+                    overlayScreen = SecondaryScreen.Player,
+                    targetOverlayScreen = null,
+                    wasDismissedByDrag = false,
+                ),
+        )
+    }
+
+    @Test
+    fun resolveOverlaySaveableStateKeyUsesTargetKeyForCurrentOverlay() {
+        val stateKey: String =
+            resolveOverlaySaveableStateKey(
                 overlayScreen = SecondaryScreen.Player,
                 targetOverlayScreen = SecondaryScreen.Player,
-                wasDismissedByDrag = true,
-            ),
+                targetScrollStateKey = "secondary:Player:2",
+                retainedOverlayScrollStateKey = "secondary:Player:1",
+            )
+        assertEquals(
+            expected = "secondary:Player:2",
+            actual = stateKey,
         )
-        assertFalse(
-            actual = shouldHidePlayerOverlayContentAfterDrag(
-                overlayScreen = SecondaryScreen.About,
-                targetOverlayScreen = null,
-                wasDismissedByDrag = true,
-            ),
-        )
-        assertFalse(
-            actual = shouldHidePlayerOverlayContentAfterDrag(
+    }
+
+    @Test
+    fun resolveOverlaySaveableStateKeyKeepsRetainedKeyForOutgoingOverlay() {
+        val stateKey: String =
+            resolveOverlaySaveableStateKey(
                 overlayScreen = SecondaryScreen.Player,
                 targetOverlayScreen = null,
-                wasDismissedByDrag = false,
-            ),
-        )
-    }
-
-    @Test
-    fun resolveOverlaySaveableStateKeyUsesTargetKeyForCurrentOverlay(): Unit {
-        val stateKey: String = resolveOverlaySaveableStateKey(
-            overlayScreen = SecondaryScreen.Player,
-            targetOverlayScreen = SecondaryScreen.Player,
-            targetScrollStateKey = "secondary:Player:2",
-            retainedOverlayScrollStateKey = "secondary:Player:1",
-        )
+                targetScrollStateKey = "root:Home",
+                retainedOverlayScrollStateKey = "secondary:Player:2",
+            )
         assertEquals(
             expected = "secondary:Player:2",
             actual = stateKey,
@@ -246,27 +285,14 @@ class MobilePlayerOverlayGestureTest {
     }
 
     @Test
-    fun resolveOverlaySaveableStateKeyKeepsRetainedKeyForOutgoingOverlay(): Unit {
-        val stateKey: String = resolveOverlaySaveableStateKey(
-            overlayScreen = SecondaryScreen.Player,
-            targetOverlayScreen = null,
-            targetScrollStateKey = "root:Home",
-            retainedOverlayScrollStateKey = "secondary:Player:2",
-        )
-        assertEquals(
-            expected = "secondary:Player:2",
-            actual = stateKey,
-        )
-    }
-
-    @Test
-    fun resolveOverlaySaveableStateKeyFallsBackWhenRetainedKeyIsMissing(): Unit {
-        val stateKey: String = resolveOverlaySaveableStateKey(
-            overlayScreen = SecondaryScreen.Player,
-            targetOverlayScreen = null,
-            targetScrollStateKey = "root:Home",
-            retainedOverlayScrollStateKey = null,
-        )
+    fun resolveOverlaySaveableStateKeyFallsBackWhenRetainedKeyIsMissing() {
+        val stateKey: String =
+            resolveOverlaySaveableStateKey(
+                overlayScreen = SecondaryScreen.Player,
+                targetOverlayScreen = null,
+                targetScrollStateKey = "root:Home",
+                retainedOverlayScrollStateKey = null,
+            )
         assertEquals(
             expected = "root:Home",
             actual = stateKey,
@@ -277,7 +303,7 @@ class MobilePlayerOverlayGestureTest {
      * 自行管理 Toolbar 和正文滚动的覆盖页应直接渲染，避免被外层滚动容器二次包裹。
      */
     @Test
-    fun shouldRenderOverlayScreenDirectlyForSelfManagedPages(): Unit {
+    fun shouldRenderOverlayScreenDirectlyForSelfManagedPages() {
         assertTrue(
             actual = shouldRenderOverlayScreenDirectly(overlayScreen = SecondaryScreen.About),
         )

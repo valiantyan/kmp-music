@@ -9,10 +9,10 @@ import android.provider.MediaStore
 import android.util.Log
 import com.yanhao.kmpmusic.AndroidAudioPermissionResult
 import com.yanhao.kmpmusic.domain.model.LocalMusicDiscoveryPreferences
+import com.yanhao.kmpmusic.domain.model.LocalMusicScanCoverage
 import com.yanhao.kmpmusic.domain.model.LocalMusicScanError
 import com.yanhao.kmpmusic.domain.model.LocalMusicScanErrorType
 import com.yanhao.kmpmusic.domain.model.LocalMusicScanException
-import com.yanhao.kmpmusic.domain.model.LocalMusicScanCoverage
 import com.yanhao.kmpmusic.domain.model.LocalMusicScanRequest
 import com.yanhao.kmpmusic.domain.model.LocalMusicScanResult
 import com.yanhao.kmpmusic.domain.model.LocalMusicSourceKind
@@ -34,20 +34,21 @@ internal class AndroidMediaStoreScanner(
     private val contentResolver: ContentResolver = context.contentResolver
 
     // MediaStore 游标到 common 元数据的映射器。
-    private val metadataReader: AndroidMediaStoreMetadataReader = AndroidMediaStoreMetadataReader(
-        artworkExtractor = AndroidEmbeddedArtworkExtractor(
-            context = context,
-            cacheDirectory = context.cacheDir,
-        ),
-    )
+    private val metadataReader: AndroidMediaStoreMetadataReader =
+        AndroidMediaStoreMetadataReader(
+            artworkExtractor =
+                AndroidEmbeddedArtworkExtractor(
+                    context = context,
+                    cacheDirectory = context.cacheDir,
+                ),
+        )
 
     /** 执行 Android MediaStore 扫描，并把权限或查询失败映射为 common 错误。 */
-    override suspend fun scan(request: LocalMusicScanRequest): LocalMusicScanResult {
-        return scan(
+    override suspend fun scan(request: LocalMusicScanRequest): LocalMusicScanResult =
+        scan(
             request = request,
             preferences = LocalMusicDiscoveryPreferences(),
         )
-    }
 
     /** 执行 Android MediaStore 扫描，并应用用户本地音频发现偏好。 */
     override suspend fun scan(
@@ -75,39 +76,44 @@ internal class AndroidMediaStoreScanner(
         try {
             Log.d(TAG, "开始查询 Android MediaStore 音频")
             val collectionUri: Uri = getAudioCollectionUri()
-            val cursor: Cursor = contentResolver.query(
-                collectionUri,
-                AUDIO_PROJECTION,
-                AUDIO_SELECTION,
-                null,
-                "${MediaStore.Audio.Media.DATE_MODIFIED} DESC",
-            ) ?: throw LocalMusicScanException(error = buildUnknownError(message = "系统媒体库没有返回查询结果"))
+            val cursor: Cursor =
+                contentResolver.query(
+                    collectionUri,
+                    AUDIO_PROJECTION,
+                    AUDIO_SELECTION,
+                    null,
+                    "${MediaStore.Audio.Media.DATE_MODIFIED} DESC",
+                ) ?: throw LocalMusicScanException(error = buildUnknownError(message = "系统媒体库没有返回查询结果"))
             cursor.use { mediaCursor: Cursor ->
-                val discovered: List<MusicFileMetadata> = metadataReader.readMetadata(
-                    cursor = mediaCursor,
-                    collectionUri = collectionUri,
-                ).filter { metadata: MusicFileMetadata ->
-                    LocalAudioFileRules.shouldIncludeByDuration(
-                        durationMs = metadata.durationMs,
-                        preferences = preferences,
-                    )
-                }
+                val discovered: List<MusicFileMetadata> =
+                    metadataReader
+                        .readMetadata(
+                            cursor = mediaCursor,
+                            collectionUri = collectionUri,
+                        ).filter { metadata: MusicFileMetadata ->
+                            LocalAudioFileRules.shouldIncludeByDuration(
+                                durationMs = metadata.durationMs,
+                                preferences = preferences,
+                            )
+                        }
                 val completedAt: Long = nowMillis()
                 Log.d(TAG, "Android MediaStore 音频查询完成，发现 ${discovered.size} 首歌曲")
                 return LocalMusicScanResult(
                     discovered = discovered,
-                    sourceSummaries = listOf(
-                        LocalMusicSourceSummary(
-                            sourceKind = LocalMusicSourceKind.AndroidMediaStore,
-                            displayName = LocalMusicSourceKind.AndroidMediaStore.displayName,
-                            songCount = discovered.size,
-                            problemCount = 0,
-                            lastScannedAt = completedAt,
+                    sourceSummaries =
+                        listOf(
+                            LocalMusicSourceSummary(
+                                sourceKind = LocalMusicSourceKind.AndroidMediaStore,
+                                displayName = LocalMusicSourceKind.AndroidMediaStore.displayName,
+                                songCount = discovered.size,
+                                problemCount = 0,
+                                lastScannedAt = completedAt,
+                            ),
                         ),
-                    ),
-                    completedCoverage = listOf(
-                        LocalMusicScanCoverage.SourceKind(sourceKind = LocalMusicSourceKind.AndroidMediaStore),
-                    ),
+                    completedCoverage =
+                        listOf(
+                            LocalMusicScanCoverage.SourceKind(sourceKind = LocalMusicSourceKind.AndroidMediaStore),
+                        ),
                     completedAt = completedAt,
                 )
             }
@@ -135,49 +141,47 @@ internal class AndroidMediaStoreScanner(
     }
 
     // 构造权限拒绝错误，供控制器进入统一错误态。
-    private fun buildPermissionDeniedError(): LocalMusicScanError {
-        return LocalMusicScanError(
+    private fun buildPermissionDeniedError(): LocalMusicScanError =
+        LocalMusicScanError(
             type = LocalMusicScanErrorType.PermissionDenied,
             message = "需要音频权限后才能扫描本机歌曲",
             sourceKind = LocalMusicSourceKind.AndroidMediaStore,
         )
-    }
 
     // 构造永久拒绝错误，让 common UI 提示用户回到系统权限设置。
-    private fun buildPermissionSettingsError(): LocalMusicScanError {
-        return LocalMusicScanError(
+    private fun buildPermissionSettingsError(): LocalMusicScanError =
+        LocalMusicScanError(
             type = LocalMusicScanErrorType.PermissionPermanentlyDenied,
             message = "请到系统设置开启音频权限",
             sourceKind = LocalMusicSourceKind.AndroidMediaStore,
         )
-    }
 
     // 构造未知扫描错误，保留平台边界内的异常上下文。
-    private fun buildUnknownError(message: String): LocalMusicScanError {
-        return LocalMusicScanError(
+    private fun buildUnknownError(message: String): LocalMusicScanError =
+        LocalMusicScanError(
             type = LocalMusicScanErrorType.Unknown,
             message = message,
             sourceKind = LocalMusicSourceKind.AndroidMediaStore,
         )
-    }
 }
 
 // Android scanner 日志标签。
 private const val TAG = "AndroidMediaStoreScanner"
 
 // MediaStore 只读取构建曲库快照所需字段，避免把 UI 绑定到平台游标。
-private val AUDIO_PROJECTION: Array<String> = arrayOf(
-    MediaStore.Audio.Media._ID,
-    MediaStore.Audio.Media.DISPLAY_NAME,
-    MediaStore.Audio.Media.TITLE,
-    MediaStore.Audio.Media.ARTIST,
-    MediaStore.Audio.Media.ALBUM,
-    MediaStore.Audio.Media.ALBUM_ID,
-    MediaStore.Audio.Media.DURATION,
-    MediaStore.Audio.Media.MIME_TYPE,
-    MediaStore.Audio.Media.SIZE,
-    MediaStore.Audio.Media.DATE_MODIFIED,
-)
+private val AUDIO_PROJECTION: Array<String> =
+    arrayOf(
+        MediaStore.Audio.Media._ID,
+        MediaStore.Audio.Media.DISPLAY_NAME,
+        MediaStore.Audio.Media.TITLE,
+        MediaStore.Audio.Media.ARTIST,
+        MediaStore.Audio.Media.ALBUM,
+        MediaStore.Audio.Media.ALBUM_ID,
+        MediaStore.Audio.Media.DURATION,
+        MediaStore.Audio.Media.MIME_TYPE,
+        MediaStore.Audio.Media.SIZE,
+        MediaStore.Audio.Media.DATE_MODIFIED,
+    )
 
 // P0 使用系统音乐标记过滤铃声、通知音等非歌曲条目。
 private const val AUDIO_SELECTION = "${MediaStore.Audio.Media.IS_MUSIC} != 0"

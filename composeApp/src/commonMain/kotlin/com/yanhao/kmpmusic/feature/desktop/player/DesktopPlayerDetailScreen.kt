@@ -42,31 +42,34 @@ fun DesktopPlayerDetailScreen(
 ) {
     val palette: PlayerPagePalette = rememberDesktopPlayerPagePalette(song = song)
     Box(
-        modifier = modifier
-            .background(palette.backgroundColor)
-            .background(
-                Brush.radialGradient(
-                    colors = listOf(
-                        palette.ambientColor.copy(alpha = if (song == null) 0.22f else 0.48f),
-                        palette.backgroundColor,
+        modifier =
+            modifier
+                .background(palette.backgroundColor)
+                .background(
+                    Brush.radialGradient(
+                        colors =
+                            listOf(
+                                palette.ambientColor.copy(alpha = if (song == null) 0.22f else 0.48f),
+                                palette.backgroundColor,
+                            ),
+                        center = Offset(x = 320f, y = 260f),
+                        radius = 980f,
                     ),
-                    center = Offset(x = 320f, y = 260f),
-                    radius = 980f,
-                ),
-            )
-            .background(
-                Brush.linearGradient(
-                    colors = listOf(
-                        Color.White.copy(alpha = 0.16f),
-                        Color.White.copy(alpha = 0.58f),
+                ).background(
+                    Brush.linearGradient(
+                        colors =
+                            listOf(
+                                Color.White.copy(alpha = 0.16f),
+                                Color.White.copy(alpha = 0.58f),
+                            ),
                     ),
                 ),
-            ),
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(start = 72.dp, top = 28.dp, end = 72.dp, bottom = 48.dp),
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .padding(start = 72.dp, top = 28.dp, end = 72.dp, bottom = 48.dp),
         ) {
             DesktopPlayerTopBar(onBack = onBack)
             Spacer(modifier = Modifier.height(42.dp))
@@ -75,9 +78,10 @@ fun DesktopPlayerDetailScreen(
             } else {
                 DesktopPlayerContent(
                     song = song,
-                    queueRows = buildPlayerQueueRowStates(
-                        queueSongs = queueSongs,
-                    ),
+                    queueRows =
+                        buildPlayerQueueRowStates(
+                            queueSongs = queueSongs,
+                        ),
                     isPlaying = isPlaying,
                     playbackPositionMs = playbackPositionMs,
                     playbackDurationMs = playbackDurationMs,

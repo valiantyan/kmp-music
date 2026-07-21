@@ -65,26 +65,28 @@ internal fun buildDesktopRecentPlayedPageDisplayModel(
     songs: List<Song>,
     currentSongId: String? = null,
 ): DesktopRecentPlayedPageDisplayModel {
-    val rows: List<DesktopRecentPlayedSongDisplayModel> = songs.mapIndexed { index: Int, song: Song ->
-        val isCurrentSong: Boolean = song.id == currentSongId
-        DesktopRecentPlayedSongDisplayModel(
-            song = song,
-            indexLabel = (index + 1).toString(),
-            title = song.title,
-            artist = song.artist,
-            album = song.album,
-            duration = song.duration,
-            isCurrentSong = isCurrentSong,
-            playingIndicatorLabel = if (isCurrentSong) "播放中" else null,
-            hasPlaybackAction = true,
-            hasMoreAction = true,
-        )
-    }
-    val eyebrow: String = if (rows.isEmpty()) {
-        "播放歌曲后会生成最近播放歌曲列表"
-    } else {
-        "完整最近播放歌曲列表 · ${rows.size} 首"
-    }
+    val rows: List<DesktopRecentPlayedSongDisplayModel> =
+        songs.mapIndexed { index: Int, song: Song ->
+            val isCurrentSong: Boolean = song.id == currentSongId
+            DesktopRecentPlayedSongDisplayModel(
+                song = song,
+                indexLabel = (index + 1).toString(),
+                title = song.title,
+                artist = song.artist,
+                album = song.album,
+                duration = song.duration,
+                isCurrentSong = isCurrentSong,
+                playingIndicatorLabel = if (isCurrentSong) "播放中" else null,
+                hasPlaybackAction = true,
+                hasMoreAction = true,
+            )
+        }
+    val eyebrow: String =
+        if (rows.isEmpty()) {
+            "播放歌曲后会生成最近播放歌曲列表"
+        } else {
+            "完整最近播放歌曲列表 · ${rows.size} 首"
+        }
     return DesktopRecentPlayedPageDisplayModel(
         title = "最近播放",
         eyebrow = eyebrow,

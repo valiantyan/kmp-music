@@ -53,18 +53,25 @@ internal class IosAvFoundationPlaybackBridge(
 ) : IosPlaybackBridge {
     // native 事件通道，交给 engine 做 generation 过滤和 common 事件归一化。
     private val eventChannel: Channel<IosPlaybackBridgeEvent> = Channel(capacity = Channel.UNLIMITED)
+
     // 当前媒体代号，通知回调通过该值归因。
     private var generation: Long = 0L
+
     // 当前媒体标识，失败映射需要带回 songId。
     private var songId: String? = null
+
     // 当前 item 观察器 token，切歌或 release 时必须移除。
     private val itemObserverTokens: MutableList<Any> = mutableListOf()
+
     // audio session 观察器 token，release 时必须移除。
     private val audioSessionObserverTokens: MutableList<Any> = mutableListOf()
+
     // AVPlayer 周期进度观察器 token，切歌、停止或 release 时必须移除。
     private var timeObserverToken: Any? = null
+
     // 当前是否已经释放。
     private var isReleased: Boolean = false
+
     // 当前媒体的最后已知进度。
     private var lastPositionMs: Long = 0L
 
@@ -80,8 +87,9 @@ internal class IosAvFoundationPlaybackBridge(
         if (isReleased) {
             return IosPlaybackBridgeCommandAck.Failed(error = buildEngineUnavailableError(songId = request.songId))
         }
-        val url: NSURL = NSURL.URLWithString(URLString = request.mediaUri)
-            ?: return IosPlaybackBridgeCommandAck.Failed(error = buildUnsupportedUriError(songId = request.songId))
+        val url: NSURL =
+            NSURL.URLWithString(URLString = request.mediaUri)
+                ?: return IosPlaybackBridgeCommandAck.Failed(error = buildUnsupportedUriError(songId = request.songId))
         removeObservers()
         generation = request.generation
         songId = request.songId
@@ -195,54 +203,62 @@ internal class IosAvFoundationPlaybackBridge(
         activeGeneration: Long,
         activeSongId: String,
     ) {
-        itemObserverTokens += addNotificationObserver(
-            name = AVPlayerItemDidPlayToEndTimeNotification,
-            item = item,
-        ) {
-            eventChannel.trySend(element = IosPlaybackBridgeEvent.Ended(generation = activeGeneration))
-        }
-        itemObserverTokens += addNotificationObserver(
-            name = AVPlayerItemFailedToPlayToEndTimeNotification,
-            item = item,
-        ) {
-            eventChannel.trySend(
-                element = IosPlaybackBridgeEvent.Failed(
-                    generation = activeGeneration,
-                    error = buildUnknownError(
-                        songId = activeSongId,
-                        message = "iOS AVPlayer 播放到结束前失败",
-                    ),
-                ),
-            )
-        }
-        itemObserverTokens += addNotificationObserver(
-            name = AVPlayerItemPlaybackStalledNotification,
-            item = item,
-        ) {
-            eventChannel.trySend(
-                element = IosPlaybackBridgeEvent.Buffering(
-                    generation = activeGeneration,
-                    positionMs = currentPositionMs(),
-                    durationMs = durationOf(item = item),
-                ),
-            )
-        }
+        itemObserverTokens +=
+            addNotificationObserver(
+                name = AVPlayerItemDidPlayToEndTimeNotification,
+                item = item,
+            ) {
+                eventChannel.trySend(element = IosPlaybackBridgeEvent.Ended(generation = activeGeneration))
+            }
+        itemObserverTokens +=
+            addNotificationObserver(
+                name = AVPlayerItemFailedToPlayToEndTimeNotification,
+                item = item,
+            ) {
+                eventChannel.trySend(
+                    element =
+                        IosPlaybackBridgeEvent.Failed(
+                            generation = activeGeneration,
+                            error =
+                                buildUnknownError(
+                                    songId = activeSongId,
+                                    message = "iOS AVPlayer 播放到结束前失败",
+                                ),
+                        ),
+                )
+            }
+        itemObserverTokens +=
+            addNotificationObserver(
+                name = AVPlayerItemPlaybackStalledNotification,
+                item = item,
+            ) {
+                eventChannel.trySend(
+                    element =
+                        IosPlaybackBridgeEvent.Buffering(
+                            generation = activeGeneration,
+                            positionMs = currentPositionMs(),
+                            durationMs = durationOf(item = item),
+                        ),
+                )
+            }
     }
 
     // 安装 audio session 中断和输出路线变化观察器。
     private fun installAudioSessionObservers() {
-        audioSessionObserverTokens += addNotificationObserver(
-            name = AVAudioSessionInterruptionNotification,
-            item = null,
-        ) { notification: NSNotification? ->
-            handleInterruptionNotification(notification = notification)
-        }
-        audioSessionObserverTokens += addNotificationObserver(
-            name = AVAudioSessionRouteChangeNotification,
-            item = null,
-        ) { notification: NSNotification? ->
-            handleRouteChangeNotification(notification = notification)
-        }
+        audioSessionObserverTokens +=
+            addNotificationObserver(
+                name = AVAudioSessionInterruptionNotification,
+                item = null,
+            ) { notification: NSNotification? ->
+                handleInterruptionNotification(notification = notification)
+            }
+        audioSessionObserverTokens +=
+            addNotificationObserver(
+                name = AVAudioSessionRouteChangeNotification,
+                item = null,
+            ) { notification: NSNotification? ->
+                handleRouteChangeNotification(notification = notification)
+            }
     }
 
     // 安装 AVPlayer 周期进度观察器，保证真实播放期间持续回流进度。
@@ -251,19 +267,21 @@ internal class IosAvFoundationPlaybackBridge(
         activeGeneration: Long,
     ) {
         removeTimeObserver()
-        timeObserverToken = player.addPeriodicTimeObserverForInterval(
-            interval = timeFromMillis(positionMs = 1_000L),
-            queue = null,
-        ) { time: CValue<CMTime> ->
-            lastPositionMs = millisFromTime(time = time)
-            eventChannel.trySend(
-                element = IosPlaybackBridgeEvent.Progress(
-                    generation = activeGeneration,
-                    positionMs = lastPositionMs,
-                    durationMs = durationOf(item = item),
-                ),
-            )
-        }
+        timeObserverToken =
+            player.addPeriodicTimeObserverForInterval(
+                interval = timeFromMillis(positionMs = 1_000L),
+                queue = null,
+            ) { time: CValue<CMTime> ->
+                lastPositionMs = millisFromTime(time = time)
+                eventChannel.trySend(
+                    element =
+                        IosPlaybackBridgeEvent.Progress(
+                            generation = activeGeneration,
+                            positionMs = lastPositionMs,
+                            durationMs = durationOf(item = item),
+                        ),
+                )
+            }
     }
 
     // 通过 Foundation 通知中心注册观察器。
@@ -271,14 +289,13 @@ internal class IosAvFoundationPlaybackBridge(
         name: String?,
         item: Any?,
         handler: (NSNotification?) -> Unit,
-    ): Any {
-        return notificationCenter.addObserverForName(
+    ): Any =
+        notificationCenter.addObserverForName(
             name = name,
             `object` = item,
             queue = NSOperationQueue.mainQueue,
             usingBlock = handler,
         )
-    }
 
     // 移除当前媒体相关观察器。
     private fun removeObservers() {
@@ -307,78 +324,87 @@ internal class IosAvFoundationPlaybackBridge(
     // 将系统中断通知归一化为平台内部事件。
     private fun handleInterruptionNotification(notification: NSNotification?) {
         val userInfo: Map<Any?, *> = notification?.userInfo ?: return
-        val type: Long = longValue(
-            dictionary = userInfo,
-            key = AVAudioSessionInterruptionTypeKey,
-        ) ?: return
+        val type: Long =
+            longValue(
+                dictionary = userInfo,
+                key = AVAudioSessionInterruptionTypeKey,
+            ) ?: return
         when (type) {
-            IOS_INTERRUPTION_TYPE_BEGAN -> eventChannel.trySend(
-                element = IosPlaybackBridgeEvent.InterruptionBegan(
-                    generation = generation,
-                    positionMs = currentPositionMs(),
-                    durationMs = durationOf(item = player.currentItem),
-                ),
-            )
-            IOS_INTERRUPTION_TYPE_ENDED -> eventChannel.trySend(
-                element = IosPlaybackBridgeEvent.InterruptionEnded(
-                    generation = generation,
-                    shouldResume = shouldResumeAfterInterruption(userInfo = userInfo),
-                ),
-            )
+            IOS_INTERRUPTION_TYPE_BEGAN -> {
+                eventChannel.trySend(
+                    element =
+                        IosPlaybackBridgeEvent.InterruptionBegan(
+                            generation = generation,
+                            positionMs = currentPositionMs(),
+                            durationMs = durationOf(item = player.currentItem),
+                        ),
+                )
+            }
+
+            IOS_INTERRUPTION_TYPE_ENDED -> {
+                eventChannel.trySend(
+                    element =
+                        IosPlaybackBridgeEvent.InterruptionEnded(
+                            generation = generation,
+                            shouldResume = shouldResumeAfterInterruption(userInfo = userInfo),
+                        ),
+                )
+            }
         }
     }
 
     // 将旧输出设备不可用的路线变化归一化为输出断开事件。
     private fun handleRouteChangeNotification(notification: NSNotification?) {
         val userInfo: Map<Any?, *> = notification?.userInfo ?: return
-        val reason: Long = longValue(
-            dictionary = userInfo,
-            key = AVAudioSessionRouteChangeReasonKey,
-        ) ?: return
+        val reason: Long =
+            longValue(
+                dictionary = userInfo,
+                key = AVAudioSessionRouteChangeReasonKey,
+            ) ?: return
         if (reason != IOS_ROUTE_CHANGE_REASON_OLD_DEVICE_UNAVAILABLE) {
             return
         }
         eventChannel.trySend(
-            element = IosPlaybackBridgeEvent.OutputDisconnected(
-                generation = generation,
-                positionMs = currentPositionMs(),
-                durationMs = durationOf(item = player.currentItem),
-            ),
+            element =
+                IosPlaybackBridgeEvent.OutputDisconnected(
+                    generation = generation,
+                    positionMs = currentPositionMs(),
+                    durationMs = durationOf(item = player.currentItem),
+                ),
         )
     }
 
     // 判断系统是否提示中断结束后可恢复播放。
     private fun shouldResumeAfterInterruption(userInfo: Map<Any?, *>): Boolean {
-        val option: Long = longValue(
-            dictionary = userInfo,
-            key = AVAudioSessionInterruptionOptionKey,
-        ) ?: return false
+        val option: Long =
+            longValue(
+                dictionary = userInfo,
+                key = AVAudioSessionInterruptionOptionKey,
+            ) ?: return false
         return option and IOS_INTERRUPTION_OPTION_SHOULD_RESUME != 0L
     }
 
     // 从 notification userInfo 里读取 NSNumber 的 Long 值。
-    private fun longValue(dictionary: Map<Any?, *>, key: String?): Long? {
+    private fun longValue(
+        dictionary: Map<Any?, *>,
+        key: String?,
+    ): Long? {
         val number: NSNumber = dictionary[key] as? NSNumber ?: return null
         return number.longLongValue
     }
 
     // 判断命令是否仍属于当前 generation。
-    private fun isGenerationCurrent(generation: Long): Boolean {
-        return !isReleased && generation == this.generation
-    }
+    private fun isGenerationCurrent(generation: Long): Boolean = !isReleased && generation == this.generation
 
     // 构造毫秒精度 CMTime。
-    private fun timeFromMillis(positionMs: Long): CValue<CMTime> {
-        return CMTimeMake(
+    private fun timeFromMillis(positionMs: Long): CValue<CMTime> =
+        CMTimeMake(
             value = positionMs.coerceAtLeast(minimumValue = 0L),
             timescale = 1_000,
         )
-    }
 
     // 读取当前播放进度，无法读取时回退到上一帧进度。
-    private fun currentPositionMs(): Long {
-        return millisFromTime(time = player.currentTime())
-    }
+    private fun currentPositionMs(): Long = millisFromTime(time = player.currentTime())
 
     // 将 CMTime 转成毫秒，无法读取时回退到上一帧进度。
     private fun millisFromTime(time: CValue<CMTime>): Long {
@@ -401,29 +427,29 @@ internal class IosAvFoundationPlaybackBridge(
     }
 
     // 构造不可播放 URI 错误。
-    private fun buildUnsupportedUriError(songId: String): PlaybackError {
-        return PlaybackError(
+    private fun buildUnsupportedUriError(songId: String): PlaybackError =
+        PlaybackError(
             type = PlaybackErrorType.UnsupportedFormat,
             songId = songId,
             message = "iOS AVFoundation 无法解析当前音频来源",
         )
-    }
 
     // 构造 bridge 已释放错误。
-    private fun buildEngineUnavailableError(songId: String): PlaybackError {
-        return PlaybackError(
+    private fun buildEngineUnavailableError(songId: String): PlaybackError =
+        PlaybackError(
             type = PlaybackErrorType.EngineUnavailable,
             songId = songId,
             message = "iOS AVFoundation 播放器已经释放",
         )
-    }
 
     // 构造未知播放错误。
-    private fun buildUnknownError(songId: String?, message: String): PlaybackError {
-        return PlaybackError(
+    private fun buildUnknownError(
+        songId: String?,
+        message: String,
+    ): PlaybackError =
+        PlaybackError(
             type = PlaybackErrorType.Unknown,
             songId = songId,
             message = message,
         )
-    }
 }

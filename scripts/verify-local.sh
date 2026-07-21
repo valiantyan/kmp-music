@@ -9,7 +9,7 @@ usage() {
 Usage: ./scripts/verify-local.sh [mode]
 
 Modes:
-  default, quick       Run Android Kotlin compile and desktop tests.
+  default, quick       Run formatting check, Android Kotlin compile, and desktop tests.
   android              Run Android Kotlin compile only.
   android-unit         Run Android JVM unit tests.
   apk                  Build the Android debug APK.
@@ -44,7 +44,7 @@ main() {
 
   case "$mode" in
     default|quick)
-      run_gradle :composeApp:compileDebugKotlinAndroid :composeApp:desktopTest
+      run_gradle spotlessCheck :composeApp:compileDebugKotlinAndroid :composeApp:desktopTest
       ;;
     android)
       run_gradle :composeApp:compileDebugKotlinAndroid

@@ -21,22 +21,24 @@ class PersistentFavoritesRepository(
 
     /** 切换单首歌曲收藏状态，并把结果同步写入 [favoriteSongDao]。 */
     override fun toggleSong(songId: String): Set<String> {
-        likedSongIds = if (likedSongIds.contains(element = songId)) {
-            runBlocking {
-                favoriteSongDao.deleteFavorite(songId = songId)
+        likedSongIds =
+            if (likedSongIds.contains(element = songId)) {
+                runBlocking {
+                    favoriteSongDao.deleteFavorite(songId = songId)
+                }
+                likedSongIds - songId
+            } else {
+                runBlocking {
+                    favoriteSongDao.saveFavorite(
+                        entity =
+                            FavoriteSongEntity(
+                                songId = songId,
+                                updatedAt = nowMillis(),
+                            ),
+                    )
+                }
+                likedSongIds + songId
             }
-            likedSongIds - songId
-        } else {
-            runBlocking {
-                favoriteSongDao.saveFavorite(
-                    entity = FavoriteSongEntity(
-                        songId = songId,
-                        updatedAt = nowMillis(),
-                    ),
-                )
-            }
-            likedSongIds + songId
-        }
         return likedSongIds
     }
 
@@ -50,10 +52,11 @@ class PersistentFavoritesRepository(
             }
             songIdsToSave.forEach { songId: String ->
                 favoriteSongDao.saveFavorite(
-                    entity = FavoriteSongEntity(
-                        songId = songId,
-                        updatedAt = nowMillis(),
-                    ),
+                    entity =
+                        FavoriteSongEntity(
+                            songId = songId,
+                            updatedAt = nowMillis(),
+                        ),
                 )
             }
         }
@@ -64,8 +67,6 @@ class PersistentFavoritesRepository(
         /**
          * 从 [favoriteSongDao] 读取已保存的收藏集合，供仓库初始化时恢复状态。
          */
-        suspend fun loadInitialLikedSongIds(favoriteSongDao: FavoriteSongDao): Set<String> {
-            return favoriteSongDao.getFavoriteSongIds().toSet()
-        }
+        suspend fun loadInitialLikedSongIds(favoriteSongDao: FavoriteSongDao): Set<String> = favoriteSongDao.getFavoriteSongIds().toSet()
     }
 }

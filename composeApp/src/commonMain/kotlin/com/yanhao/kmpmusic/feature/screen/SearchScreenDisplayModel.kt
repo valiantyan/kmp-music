@@ -68,38 +68,34 @@ internal fun shouldShowSearchPendingState(
 /** 只有存在真实搜索历史时才显示历史区，输入搜索时也保留历史入口。 */
 internal fun shouldShowSearchHistorySection(
     history: List<String>,
-): Boolean {
-    return history.isNotEmpty()
-}
+): Boolean = history.isNotEmpty()
 
 /** 将旧的 [SearchScope.All] 兼容到新版 Figma 的默认“歌曲”tab。 */
-internal fun visibleSearchResultTab(scope: SearchScope): SearchResultTab {
-    return when (scope) {
+internal fun visibleSearchResultTab(scope: SearchScope): SearchResultTab =
+    when (scope) {
         SearchScope.All,
         SearchScope.Songs,
         -> SearchResultTab.Songs
+
         SearchScope.Albums -> SearchResultTab.Albums
+
         SearchScope.Artists -> SearchResultTab.Artists
     }
-}
 
 /** 搜索历史 chips 只来自真实历史，不再用设计稿示例兜底。 */
-internal fun visibleSearchHistoryChips(history: List<String>): List<String> {
-    return history
-}
+internal fun visibleSearchHistoryChips(history: List<String>): List<String> = history
 
 /** 将搜索结果拆成可懒加载的稳定行，避免结果项过多时首帧组合卡顿。 */
 internal fun buildSearchResultLazyRows(
     selectedTab: SearchResultTab,
     result: SearchResult,
-): List<SearchResultLazyRow> {
-    return when (selectedTab) {
+): List<SearchResultLazyRow> =
+    when (selectedTab) {
         SearchResultTab.Songs -> buildSongResultRows(songs = result.songs)
         SearchResultTab.Albums -> buildAlbumResultRows(albums = result.albums)
         SearchResultTab.Artists -> buildArtistResultRows(artists = result.artists)
         SearchResultTab.Playlists -> listOf(SearchResultLazyRow.Message(text = "当前版本暂不支持歌单搜索"))
     }
-}
 
 /** 只有结果区真正可见时才构建行模型，避免空词或 pending 防抖时处理全量曲库。 */
 internal fun buildVisibleSearchResultLazyRows(
@@ -118,32 +114,39 @@ internal fun buildVisibleSearchResultLazyRows(
 }
 
 // 每个搜索结果行使用数据身份做 key，减少输入和滚动时的节点重建。
-internal fun searchResultLazyRowKey(row: SearchResultLazyRow): String {
-    return when (row) {
-        is SearchResultLazyRow.HomeSongItem -> "search-home-song-${row.song.id}"
-        is SearchResultLazyRow.HomeAlbumRow -> row.albums.joinToString(
-            prefix = "search-home-album-row-",
-            separator = "|",
-        ) { album: Album -> album.id }
-        is SearchResultLazyRow.HomeArtistItem -> "search-home-artist-${row.artist.id}"
-        is SearchResultLazyRow.Message -> "search-message-${row.text}"
+internal fun searchResultLazyRowKey(row: SearchResultLazyRow): String =
+    when (row) {
+        is SearchResultLazyRow.HomeSongItem -> {
+            "search-home-song-${row.song.id}"
+        }
+
+        is SearchResultLazyRow.HomeAlbumRow -> {
+            row.albums.joinToString(
+                prefix = "search-home-album-row-",
+                separator = "|",
+            ) { album: Album -> album.id }
+        }
+
+        is SearchResultLazyRow.HomeArtistItem -> {
+            "search-home-artist-${row.artist.id}"
+        }
+
+        is SearchResultLazyRow.Message -> {
+            "search-message-${row.text}"
+        }
     }
-}
 
 // contentType 按行形态分组，帮助 LazyColumn 复用相同类型的 Compose 节点。
-internal fun searchResultLazyRowContentType(row: SearchResultLazyRow): String {
-    return when (row) {
+internal fun searchResultLazyRowContentType(row: SearchResultLazyRow): String =
+    when (row) {
         is SearchResultLazyRow.HomeSongItem -> "search-home-song"
         is SearchResultLazyRow.HomeAlbumRow -> "search-home-album-row"
         is SearchResultLazyRow.HomeArtistItem -> "search-home-artist"
         is SearchResultLazyRow.Message -> "search-message"
     }
-}
 
 // 搜索可见性只关心用户可见词，首尾空格不应触发新旧结果闪烁。
-private fun normalizeVisibleSearchQuery(value: String): String {
-    return value.trim()
-}
+private fun normalizeVisibleSearchQuery(value: String): String = value.trim()
 
 // 歌曲结果需要携带完整队列上下文，点击任意可见行都能从搜索结果队列播放。
 private fun buildSongResultRows(songs: List<Song>): List<SearchResultLazyRow> {

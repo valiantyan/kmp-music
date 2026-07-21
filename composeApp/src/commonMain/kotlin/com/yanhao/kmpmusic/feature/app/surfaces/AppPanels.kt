@@ -61,9 +61,10 @@ fun AppPanels(
         ModalBottomSheet(onDismissRequest = controller::closeQueue) {
             val queueSongs: List<Song> = state.queueSongs
             LazyColumn(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .navigationBarsPadding(),
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .navigationBarsPadding(),
                 contentPadding = PaddingValues(all = 21.dp),
                 verticalArrangement = Arrangement.spacedBy(14.dp),
             ) {
@@ -94,10 +95,11 @@ fun AppPanels(
         }
     }
     state.moreSongId?.let { songId ->
-        val song: Song? = resolveMorePanelSong(
-            state = state,
-            songId = songId,
-        )
+        val song: Song? =
+            resolveMorePanelSong(
+                state = state,
+                songId = songId,
+            )
         if (song != null) {
             SongMorePanel(
                 song = song,
@@ -142,18 +144,17 @@ internal object SongMorePanelDesignSpec {
     /**
      * Android 底部弹层默认先停在半屏锚点，避免简单操作面板一打开就顶到高位。
      */
-    fun resolveInitialHeight(viewportHeight: Dp): Dp {
-        return viewportHeight * initialHeightFraction
-    }
+    fun resolveInitialHeight(viewportHeight: Dp): Dp = viewportHeight * initialHeightFraction
 
     /**
      * Android 展开态保留顶部余量，不让底部弹层覆盖整屏和状态栏区域。
      */
     fun resolveMaxHeight(viewportHeight: Dp): Dp {
-        val preferredMaxHeight: Dp = maxOf(
-            a = viewportHeight - maxHeightTopMargin,
-            b = minMaxHeight,
-        )
+        val preferredMaxHeight: Dp =
+            maxOf(
+                a = viewportHeight - maxHeightTopMargin,
+                b = minMaxHeight,
+            )
         return minOf(
             a = viewportHeight,
             b = preferredMaxHeight,
@@ -172,9 +173,7 @@ internal enum class SongMoreFavoriteVisualState {
 /**
  * 只有非歌单详情来源能看到添加入口，避免本次切片扩大成歌单内管理流程。
  */
-internal fun canShowAddToPlaylistAction(state: MusicAppUiState): Boolean {
-    return state.moreSongSourceContext != SongMoreSourceContext.LocalPlaylistDetail
-}
+internal fun canShowAddToPlaylistAction(state: MusicAppUiState): Boolean = state.moreSongSourceContext != SongMoreSourceContext.LocalPlaylistDetail
 
 /**
  * 解析更多面板收藏入口状态，兼容全局收藏集合和歌曲对象自身的同步字段。
@@ -182,13 +181,12 @@ internal fun canShowAddToPlaylistAction(state: MusicAppUiState): Boolean {
 internal fun resolveSongMoreFavoriteVisualState(
     state: MusicAppUiState,
     song: Song,
-): SongMoreFavoriteVisualState {
-    return if (state.likedSongIds.contains(element = song.id) || song.isLiked) {
+): SongMoreFavoriteVisualState =
+    if (state.likedSongIds.contains(element = song.id) || song.isLiked) {
         SongMoreFavoriteVisualState.Liked
     } else {
         SongMoreFavoriteVisualState.Unliked
     }
-}
 
 /**
  * 根据全局 [MusicAppUiState.moreSongId] 找到现有单曲更多面板要展示的歌曲，
@@ -197,9 +195,7 @@ internal fun resolveSongMoreFavoriteVisualState(
 internal fun resolveMorePanelSong(
     state: MusicAppUiState,
     songId: String,
-): Song? {
-    return state.findKnownSong(songId = songId)
-}
+): Song? = state.findKnownSong(songId = songId)
 
 /**
  * 按 Figma 节点 990:1150 渲染单曲更多面板。
@@ -215,10 +211,11 @@ private fun SongMorePanel(
     ModalBottomSheet(
         onDismissRequest = controller::closeMore,
         sheetState = sheetState,
-        shape = RoundedCornerShape(
-            topStart = SongMorePanelDesignSpec.cornerRadius,
-            topEnd = SongMorePanelDesignSpec.cornerRadius,
-        ),
+        shape =
+            RoundedCornerShape(
+                topStart = SongMorePanelDesignSpec.cornerRadius,
+                topEnd = SongMorePanelDesignSpec.cornerRadius,
+            ),
         containerColor = Color.White,
         scrimColor = MusicColors.DialogText.copy(alpha = 0.4f),
         dragHandle = null,
@@ -226,10 +223,11 @@ private fun SongMorePanel(
         BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
             val sheetMaxHeight: Dp = SongMorePanelDesignSpec.resolveMaxHeight(viewportHeight = maxHeight)
             Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(height = sheetMaxHeight)
-                    .navigationBarsPadding(),
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .height(height = sheetMaxHeight)
+                        .navigationBarsPadding(),
             ) {
                 SongMoreDragHandle()
                 SongMoreHeader(songTitle = song.title)
@@ -247,23 +245,25 @@ private fun SongMorePanel(
 @Composable
 private fun SongMoreDragHandle() {
     Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(color = Color.White)
-            .padding(
-                top = SongMorePanelDesignSpec.handleTopPadding,
-                bottom = SongMorePanelDesignSpec.handleBottomPadding,
-            ),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .background(color = Color.White)
+                .padding(
+                    top = SongMorePanelDesignSpec.handleTopPadding,
+                    bottom = SongMorePanelDesignSpec.handleBottomPadding,
+                ),
         contentAlignment = Alignment.Center,
     ) {
         Box(
-            modifier = Modifier
-                .width(width = SongMorePanelDesignSpec.handleWidth)
-                .height(height = SongMorePanelDesignSpec.handleHeight)
-                .background(
-                    color = MusicColors.DialogText.copy(alpha = 0.2f),
-                    shape = RoundedCornerShape(percent = 50),
-                ),
+            modifier =
+                Modifier
+                    .width(width = SongMorePanelDesignSpec.handleWidth)
+                    .height(height = SongMorePanelDesignSpec.handleHeight)
+                    .background(
+                        color = MusicColors.DialogText.copy(alpha = 0.2f),
+                        shape = RoundedCornerShape(percent = 50),
+                    ),
         )
     }
 }
@@ -273,14 +273,15 @@ private fun SongMoreDragHandle() {
 private fun SongMoreHeader(songTitle: String) {
     Column(modifier = Modifier.background(color = Color.White)) {
         Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(
-                    start = SongMorePanelDesignSpec.headerHorizontalPadding,
-                    top = SongMorePanelDesignSpec.headerTopPadding,
-                    end = SongMorePanelDesignSpec.headerHorizontalPadding,
-                    bottom = SongMorePanelDesignSpec.headerBottomPadding,
-                ),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(
+                        start = SongMorePanelDesignSpec.headerHorizontalPadding,
+                        top = SongMorePanelDesignSpec.headerTopPadding,
+                        end = SongMorePanelDesignSpec.headerHorizontalPadding,
+                        bottom = SongMorePanelDesignSpec.headerBottomPadding,
+                    ),
             contentAlignment = Alignment.Center,
         ) {
             Text(
@@ -305,17 +306,19 @@ private fun SongMoreActionList(
     state: MusicAppUiState,
     controller: MusicAppController,
 ) {
-    val favoriteVisualState: SongMoreFavoriteVisualState = resolveSongMoreFavoriteVisualState(
-        state = state,
-        song = song,
-    )
+    val favoriteVisualState: SongMoreFavoriteVisualState =
+        resolveSongMoreFavoriteVisualState(
+            state = state,
+            song = song,
+        )
     Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(
-                horizontal = SongMorePanelDesignSpec.contentHorizontalPadding,
-                vertical = SongMorePanelDesignSpec.contentVerticalPadding,
-            ),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(
+                    horizontal = SongMorePanelDesignSpec.contentHorizontalPadding,
+                    vertical = SongMorePanelDesignSpec.contentVerticalPadding,
+                ),
     ) {
         Spacer(modifier = Modifier.height(height = SongMorePanelDesignSpec.itemTopPadding))
         Column(verticalArrangement = Arrangement.spacedBy(space = SongMorePanelDesignSpec.itemGap)) {
@@ -346,20 +349,18 @@ private fun SongMoreActionList(
 }
 
 // 将收藏状态映射为面板文案，避免在组合函数中散落分支。
-private fun SongMoreFavoriteVisualState.resolveFavoriteActionLabel(): String {
-    return when (this) {
+private fun SongMoreFavoriteVisualState.resolveFavoriteActionLabel(): String =
+    when (this) {
         SongMoreFavoriteVisualState.Liked -> "已收藏"
         SongMoreFavoriteVisualState.Unliked -> "加入收藏"
     }
-}
 
 // 将收藏状态映射为面板图标，已收藏使用填充心形，未收藏使用描边心形。
-private fun SongMoreFavoriteVisualState.resolveFavoriteActionIcon(): ImageVector {
-    return when (this) {
+private fun SongMoreFavoriteVisualState.resolveFavoriteActionIcon(): ImageVector =
+    when (this) {
         SongMoreFavoriteVisualState.Liked -> Icons.Rounded.Favorite
         SongMoreFavoriteVisualState.Unliked -> Icons.Rounded.FavoriteBorder
     }
-}
 
 /**
  * 更多操作面板中的单行动作，视觉对齐 Figma 节点 990:1150 的浅灰行项。
@@ -371,20 +372,22 @@ private fun BottomSheetAction(
     onClick: () -> Unit,
 ) {
     Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .heightIn(min = SongMorePanelDesignSpec.itemHeight),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .heightIn(min = SongMorePanelDesignSpec.itemHeight),
         shape = RoundedCornerShape(size = SongMorePanelDesignSpec.itemRadius),
         color = MusicColors.DialogDivider.copy(alpha = 0.5f),
         onClick = onClick,
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(
-                    horizontal = SongMorePanelDesignSpec.itemHorizontalPadding,
-                    vertical = SongMorePanelDesignSpec.itemVerticalPadding,
-                ),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(
+                        horizontal = SongMorePanelDesignSpec.itemHorizontalPadding,
+                        vertical = SongMorePanelDesignSpec.itemVerticalPadding,
+                    ),
             horizontalArrangement = Arrangement.spacedBy(space = SongMorePanelDesignSpec.itemContentGap),
             verticalAlignment = Alignment.CenterVertically,
         ) {

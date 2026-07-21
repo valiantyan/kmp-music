@@ -37,9 +37,10 @@ internal class PlaybackSnapshotWriter(
      * 异步写入当前快照，并把任务纳入 pending 集合供后续等待。
      */
     internal fun saveAsync(): Deferred<Unit> {
-        val job: Deferred<Unit> = snapshotWriteScope.async(start = CoroutineStart.UNDISPATCHED) {
-            saveCurrentSnapshot()
-        }
+        val job: Deferred<Unit> =
+            snapshotWriteScope.async(start = CoroutineStart.UNDISPATCHED) {
+                saveCurrentSnapshot()
+            }
         runSynchronizedBlock(lock = pendingWritesLock) {
             pendingWrites += job
         }
@@ -78,9 +79,10 @@ internal class PlaybackSnapshotWriter(
      */
     internal suspend fun awaitPendingWrites() {
         while (true) {
-            val pendingJobs: List<Deferred<Unit>> = runSynchronizedBlock(lock = pendingWritesLock) {
-                pendingWrites.toList()
-            }
+            val pendingJobs: List<Deferred<Unit>> =
+                runSynchronizedBlock(lock = pendingWritesLock) {
+                    pendingWrites.toList()
+                }
             if (pendingJobs.isEmpty()) {
                 return
             }
@@ -93,11 +95,12 @@ internal class PlaybackSnapshotWriter(
      */
     private suspend fun saveCurrentSnapshot() {
         playbackSnapshotStore.saveSnapshot(
-            snapshot = PlaybackSnapshot(
-                playbackState = playbackRepository.getPlaybackState(),
-                queueState = playbackRepository.getQueueState(),
-                updatedAt = nowMillis(),
-            ),
+            snapshot =
+                PlaybackSnapshot(
+                    playbackState = playbackRepository.getPlaybackState(),
+                    queueState = playbackRepository.getQueueState(),
+                    updatedAt = nowMillis(),
+                ),
         )
     }
 }

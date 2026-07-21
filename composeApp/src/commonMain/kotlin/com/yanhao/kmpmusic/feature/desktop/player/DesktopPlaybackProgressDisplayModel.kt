@@ -28,20 +28,22 @@ internal fun buildDesktopPlaybackProgressDisplayModel(
 ): DesktopPlaybackProgressDisplayModel {
     val safePositionMs: Long = playbackPositionMs.coerceAtLeast(minimumValue = 0L)
     val knownDurationMs: Long = (playbackDurationMs ?: fallbackDurationMs)?.coerceAtLeast(minimumValue = 0L) ?: 0L
-    val displayDurationMs: Long = resolveDesktopPlaybackDisplayDuration(
-        positionMs = safePositionMs,
-        durationMs = knownDurationMs,
-        isPlaying = isPlaying,
-    )
+    val displayDurationMs: Long =
+        resolveDesktopPlaybackDisplayDuration(
+            positionMs = safePositionMs,
+            durationMs = knownDurationMs,
+            isPlaying = isPlaying,
+        )
     val isSeekEnabled: Boolean = displayDurationMs > 0L
     return DesktopPlaybackProgressDisplayModel(
         positionMs = safePositionMs,
         durationMs = displayDurationMs,
-        sliderValue = if (isSeekEnabled) {
-            safePositionMs.coerceAtMost(maximumValue = displayDurationMs).toFloat()
-        } else {
-            0f
-        },
+        sliderValue =
+            if (isSeekEnabled) {
+                safePositionMs.coerceAtMost(maximumValue = displayDurationMs).toFloat()
+            } else {
+                0f
+            },
         sliderRange = 0f..displayDurationMs.coerceAtLeast(minimumValue = 1L).toFloat(),
         isSeekEnabled = isSeekEnabled,
     )

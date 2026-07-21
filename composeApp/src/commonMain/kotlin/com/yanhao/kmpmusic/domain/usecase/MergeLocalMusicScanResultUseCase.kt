@@ -40,38 +40,41 @@ class MergeLocalMusicScanResultUseCaseImpl : MergeLocalMusicScanResultUseCase {
     override operator fun invoke(request: MergeLocalMusicScanResultRequest): LibrarySnapshot {
         val removedSourceKeys: Set<String> = request.scanResult.removedSourceKeys
         val previousSongsById: Map<String, Song> = request.previousSnapshot.songs.associateBy { song -> song.id }
-        val discoveredSongs: List<Song> = request.scanResult.discovered
-            .filter { metadata -> metadata.localUri.isNotBlank() }
-            .filterNot { metadata -> removedSourceKeys.contains(element = metadata.sourceKey) }
-            .mapIndexed { index, metadata ->
-                metadata.toSong(
-                    index = index,
-                    previousSong = previousSongsById[metadata.sourceKey],
-                    likedSongIds = request.likedSongIds,
+        val discoveredSongs: List<Song> =
+            request.scanResult.discovered
+                .filter { metadata -> metadata.localUri.isNotBlank() }
+                .filterNot { metadata -> removedSourceKeys.contains(element = metadata.sourceKey) }
+                .mapIndexed { index, metadata ->
+                    metadata.toSong(
+                        index = index,
+                        previousSong = previousSongsById[metadata.sourceKey],
+                        likedSongIds = request.likedSongIds,
+                    )
+                }.sortedWith(
+                    comparator =
+                        compareByDescending<Song> { song -> song.modifiedAt ?: Long.MIN_VALUE }
+                            .thenBy { song -> song.title.lowercase() },
                 )
-            }
-            .sortedWith(
-                comparator = compareByDescending<Song> { song -> song.modifiedAt ?: Long.MIN_VALUE }
-                    .thenBy { song -> song.title.lowercase() },
-            )
         val albums: List<Album> = buildAlbums(songs = discoveredSongs)
         val artists: List<Artist> = buildArtists(songs = discoveredSongs)
-        val summary: LocalMusicLastScanSummary = LocalMusicLastScanSummary(
-            addedCount = discoveredSongs.count { song -> !previousSongsById.containsKey(key = song.id) },
-            updatedCount = discoveredSongs.count { song -> previousSongsById.containsKey(key = song.id) },
-            removedCount = removedSourceKeys.size,
-            problemCount = request.scanResult.failed.size,
-            completedAt = request.scanResult.completedAt,
-        )
+        val summary: LocalMusicLastScanSummary =
+            LocalMusicLastScanSummary(
+                addedCount = discoveredSongs.count { song -> !previousSongsById.containsKey(key = song.id) },
+                updatedCount = discoveredSongs.count { song -> previousSongsById.containsKey(key = song.id) },
+                removedCount = removedSourceKeys.size,
+                problemCount = request.scanResult.failed.size,
+                completedAt = request.scanResult.completedAt,
+            )
         return LibrarySnapshot(
             songs = discoveredSongs,
             albums = albums,
             artists = artists,
-            stats = LibraryStats(
-                songCount = discoveredSongs.size,
-                albumCount = albums.size,
-                artistCount = artists.size,
-            ),
+            stats =
+                LibraryStats(
+                    songCount = discoveredSongs.size,
+                    albumCount = albums.size,
+                    artistCount = artists.size,
+                ),
             sources = request.scanResult.sourceSummaries,
             scanState = LocalMusicScanState.Done(summary = summary),
             lastScanSummary = summary,
@@ -85,10 +88,11 @@ class MergeLocalMusicScanResultUseCaseImpl : MergeLocalMusicScanResultUseCase {
         previousSong: Song?,
         likedSongIds: Set<String>,
     ): Song {
-        val safeTitle: String = title?.takeIf { value -> value.isNotBlank() } ?: fileName.substringBeforeLast(
-            delimiter = ".",
-            missingDelimiterValue = fileName,
-        )
+        val safeTitle: String =
+            title?.takeIf { value -> value.isNotBlank() } ?: fileName.substringBeforeLast(
+                delimiter = ".",
+                missingDelimiterValue = fileName,
+            )
         val safeArtist: String = artist?.takeIf { value -> value.isNotBlank() } ?: "未知歌手"
         val safeAlbum: String = album?.takeIf { value -> value.isNotBlank() } ?: "未知专辑"
         val songId: String = sourceKey
@@ -124,8 +128,9 @@ class MergeLocalMusicScanResultUseCaseImpl : MergeLocalMusicScanResultUseCase {
     }
 
     // 从歌曲按专辑名称聚合首页和详情页共用的专辑模型。
-    private fun buildAlbums(songs: List<Song>): List<Album> {
-        return songs.groupBy { song: Song -> normalizeAlbumTitle(value = song.album) }
+    private fun buildAlbums(songs: List<Song>): List<Album> =
+        songs
+            .groupBy { song: Song -> normalizeAlbumTitle(value = song.album) }
             .values
             .map { albumSongs: List<Song> ->
                 val firstSong: Song = albumSongs.first()
@@ -139,13 +144,12 @@ class MergeLocalMusicScanResultUseCaseImpl : MergeLocalMusicScanResultUseCase {
                     mood = "本地音乐",
                     year = "本地",
                 )
-            }
-            .sortedBy { album -> album.title.lowercase() }
-    }
+            }.sortedBy { album -> album.title.lowercase() }
 
     // 从歌曲按歌手名称聚合收藏页、搜索页和详情页共用的歌手模型。
-    private fun buildArtists(songs: List<Song>): List<Artist> {
-        return songs.groupBy { song -> normalizeArtistName(value = song.artist) }
+    private fun buildArtists(songs: List<Song>): List<Artist> =
+        songs
+            .groupBy { song -> normalizeArtistName(value = song.artist) }
             .entries
             .map { entry ->
                 val normalizedArtist: String = entry.key
@@ -160,17 +164,14 @@ class MergeLocalMusicScanResultUseCaseImpl : MergeLocalMusicScanResultUseCase {
                     coverImageUri = firstSong.coverImageUri,
                     tag = "本地音乐",
                 )
-            }
-            .sortedBy { artist -> artist.name.lowercase() }
-    }
+            }.sortedBy { artist -> artist.name.lowercase() }
 
     // 歌手专辑数由扫描歌曲聚合得到，避免后续 UI 再按页面重复计算。
-    private fun countArtistAlbums(songs: List<Song>): Int {
-        return songs
+    private fun countArtistAlbums(songs: List<Song>): Int =
+        songs
             .map { song: Song -> normalizeAlbumTitle(value = song.album) }
             .distinct()
             .size
-    }
 
     // 将毫秒时长转换为 UI 已有的 m:ss 文案。
     private fun formatDuration(durationMs: Long?): String {

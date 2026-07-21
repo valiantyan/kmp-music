@@ -5,28 +5,60 @@ package com.yanhao.kmpmusic.playback
  */
 interface MacosAvFoundationNativeBridgeCallback {
     /** 回传当前媒体已准备完成。 */
-    fun onPrepared(generation: Long, durationMs: Long, hasDuration: Boolean)
+    fun onPrepared(
+        generation: Long,
+        durationMs: Long,
+        hasDuration: Boolean,
+    )
 
     /** 回传当前媒体正在缓冲。 */
-    fun onBuffering(generation: Long, positionMs: Long, durationMs: Long, hasDuration: Boolean)
+    fun onBuffering(
+        generation: Long,
+        positionMs: Long,
+        durationMs: Long,
+        hasDuration: Boolean,
+    )
 
     /** 回传当前媒体进入播放中。 */
-    fun onPlaying(generation: Long, positionMs: Long, durationMs: Long, hasDuration: Boolean)
+    fun onPlaying(
+        generation: Long,
+        positionMs: Long,
+        durationMs: Long,
+        hasDuration: Boolean,
+    )
 
     /** 回传当前媒体进入暂停。 */
-    fun onPaused(generation: Long, positionMs: Long, durationMs: Long, hasDuration: Boolean)
+    fun onPaused(
+        generation: Long,
+        positionMs: Long,
+        durationMs: Long,
+        hasDuration: Boolean,
+    )
 
     /** 回传当前媒体进度。 */
-    fun onProgress(generation: Long, positionMs: Long, durationMs: Long, hasDuration: Boolean)
+    fun onProgress(
+        generation: Long,
+        positionMs: Long,
+        durationMs: Long,
+        hasDuration: Boolean,
+    )
 
     /** 回传当前媒体自然结束。 */
     fun onEnded(generation: Long)
 
     /** 回传当前媒体播放失败。 */
-    fun onFailed(generation: Long, errorType: Int, songId: String?, message: String)
+    fun onFailed(
+        generation: Long,
+        errorType: Int,
+        songId: String?,
+        message: String,
+    )
 
     /** 回传 bridge 初始化失败。 */
-    fun onInitializationFailed(errorType: Int, message: String)
+    fun onInitializationFailed(
+        errorType: Int,
+        message: String,
+    )
 }
 
 /**
@@ -34,7 +66,12 @@ interface MacosAvFoundationNativeBridgeCallback {
  */
 interface MacosAvFoundationNativeBridgeSession {
     /** 准备当前 generation 的媒体。 */
-    fun prepare(songId: String, mediaUri: String, generation: Long, startPositionMs: Long): Int
+    fun prepare(
+        songId: String,
+        mediaUri: String,
+        generation: Long,
+        startPositionMs: Long,
+    ): Int
 
     /** 播放当前 generation。 */
     fun play(generation: Long): Int
@@ -43,7 +80,10 @@ interface MacosAvFoundationNativeBridgeSession {
     fun pause(generation: Long): Int
 
     /** 跳转当前 generation 的进度。 */
-    fun seekTo(generation: Long, positionMs: Long): Int
+    fun seekTo(
+        generation: Long,
+        positionMs: Long,
+    ): Int
 
     /** 停止当前 generation。 */
     fun stop(generation: Long): Int
@@ -124,23 +164,39 @@ object MacosAvFoundationNativeBindings {
 
     /** 播放当前媒体。 */
     @JvmStatic
-    external fun play(handle: Long, generation: Long): Int
+    external fun play(
+        handle: Long,
+        generation: Long,
+    ): Int
 
     /** 暂停当前媒体。 */
     @JvmStatic
-    external fun pause(handle: Long, generation: Long): Int
+    external fun pause(
+        handle: Long,
+        generation: Long,
+    ): Int
 
     /** 跳转当前媒体进度。 */
     @JvmStatic
-    external fun seekTo(handle: Long, generation: Long, positionMs: Long): Int
+    external fun seekTo(
+        handle: Long,
+        generation: Long,
+        positionMs: Long,
+    ): Int
 
     /** 停止当前媒体。 */
     @JvmStatic
-    external fun stop(handle: Long, generation: Long): Int
+    external fun stop(
+        handle: Long,
+        generation: Long,
+    ): Int
 
     /** 设置音量。 */
     @JvmStatic
-    external fun setVolume(handle: Long, volume: Float): Int
+    external fun setVolume(
+        handle: Long,
+        volume: Float,
+    ): Int
 
     /** 释放 native bridge。 */
     @JvmStatic

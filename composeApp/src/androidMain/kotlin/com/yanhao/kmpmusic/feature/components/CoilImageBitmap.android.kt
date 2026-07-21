@@ -8,8 +8,7 @@ import coil3.toBitmap
 /**
  * Android 端直接复用 Bitmap 桥接到 Compose 位图，避免重复解码。
  */
-internal actual fun coilImageToImageBitmap(image: Image): ImageBitmap? {
-    return runCatching {
+internal actual fun coilImageToImageBitmap(image: Image): ImageBitmap? =
+    runCatching {
         image.toBitmap().asImageBitmap()
     }.getOrNull()
-}

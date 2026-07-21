@@ -48,8 +48,8 @@ internal data class DesktopMeStaticSettingsMenuItemDisplayModel(
 /**
  * 构造桌面“我的”页静态设置菜单；这些行不能接入旧设置、关于或来源管理路由。
  */
-internal fun buildDesktopMeStaticSettingsMenuItemDisplayModels(): List<DesktopMeStaticSettingsMenuItemDisplayModel> {
-    return listOf(
+internal fun buildDesktopMeStaticSettingsMenuItemDisplayModels(): List<DesktopMeStaticSettingsMenuItemDisplayModel> =
+    listOf(
         DesktopMeStaticSettingsMenuItemDisplayModel(
             icon = Icons.Rounded.Storage,
             title = "存储管理",
@@ -69,7 +69,6 @@ internal fun buildDesktopMeStaticSettingsMenuItemDisplayModels(): List<DesktopMe
             isNavigationEnabled = false,
         ),
     )
-}
 
 /**
  * 静态设置菜单复用桌面卡片层级，但行本身不声明点击回调。

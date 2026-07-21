@@ -64,9 +64,10 @@ internal const val DETAIL_HERO_COVER_BORDER_ALPHA = 0.30f
 @Composable
 internal fun AlbumDetailHeader(album: Album) {
     Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(top = 24.dp),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(top = 24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         AlbumDetailCover(album = album)
@@ -79,9 +80,10 @@ internal fun AlbumDetailHeader(album: Album) {
             textAlign = TextAlign.Center,
             maxLines = 2,
             overflow = TextOverflow.Ellipsis,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(start = 20.dp, top = 32.dp, end = 20.dp),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(start = 20.dp, top = 32.dp, end = 20.dp),
         )
         Text(
             text = album.artist,
@@ -92,9 +94,10 @@ internal fun AlbumDetailHeader(album: Album) {
             textAlign = TextAlign.Center,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 20.dp),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp),
         )
     }
 }
@@ -107,36 +110,39 @@ private fun AlbumDetailCover(album: Album) {
         contentAlignment = Alignment.Center,
     ) {
         Box(
-            modifier = Modifier
-                .align(alignment = Alignment.BottomCenter)
-                .offset(y = detailHeroCoverGlowOffsetY)
-                .size(width = detailHeroCoverGlowWidth, height = detailHeroCoverGlowHeight)
-                .blur(radius = detailHeroCoverGlowBlurRadius)
-                .background(
-                    color = albumDetailActionColor.copy(alpha = 0.20f),
-                    shape = detailHeroCoverShape,
-                ),
+            modifier =
+                Modifier
+                    .align(alignment = Alignment.BottomCenter)
+                    .offset(y = detailHeroCoverGlowOffsetY)
+                    .size(width = detailHeroCoverGlowWidth, height = detailHeroCoverGlowHeight)
+                    .blur(radius = detailHeroCoverGlowBlurRadius)
+                    .background(
+                        color = albumDetailActionColor.copy(alpha = 0.20f),
+                        shape = detailHeroCoverShape,
+                    ),
         )
         Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .clip(shape = detailHeroCoverShape)
-                .border(
-                    border = BorderStroke(
-                        width = detailHeroCoverBorderWidth,
-                        color = Color.White.copy(alpha = DETAIL_HERO_COVER_BORDER_ALPHA),
-                    ),
-                    shape = detailHeroCoverShape,
-                )
-                .padding(all = detailHeroCoverPadding),
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .clip(shape = detailHeroCoverShape)
+                    .border(
+                        border =
+                            BorderStroke(
+                                width = detailHeroCoverBorderWidth,
+                                color = Color.White.copy(alpha = DETAIL_HERO_COVER_BORDER_ALPHA),
+                            ),
+                        shape = detailHeroCoverShape,
+                    ).padding(all = detailHeroCoverPadding),
         ) {
             CoverArtImage(
                 coverArt = album.coverArt,
                 coverImageUri = album.coverImageUri,
                 contentDescription = "${album.title} 专辑封面",
-                modifier = Modifier
-                    .fillMaxSize()
-                    .clip(shape = detailHeroCoverInnerShape),
+                modifier =
+                    Modifier
+                        .fillMaxSize()
+                        .clip(shape = detailHeroCoverInnerShape),
                 contentScale = ContentScale.Crop,
             )
         }

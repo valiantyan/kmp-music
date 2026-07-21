@@ -19,8 +19,12 @@ enum class LocalMusicSourceKind(
  */
 sealed interface LocalMusicScanRequest {
     data object InitialScan : LocalMusicScanRequest
+
     data object Refresh : LocalMusicScanRequest
-    data class Source(val sourceKind: LocalMusicSourceKind) : LocalMusicScanRequest
+
+    data class Source(
+        val sourceKind: LocalMusicSourceKind,
+    ) : LocalMusicScanRequest
 }
 
 /**
@@ -228,9 +232,10 @@ data class LocalMusicScanResult(
             if (failed.isNotEmpty()) {
                 return LocalMusicScanDeletionAuthority.None
             }
-            val hasCoveredSource: Boolean = completedCoverage.any { coverage: LocalMusicScanCoverage ->
-                coverage is LocalMusicScanCoverage.SourceKind || coverage is LocalMusicScanCoverage.ConcreteSource
-            }
+            val hasCoveredSource: Boolean =
+                completedCoverage.any { coverage: LocalMusicScanCoverage ->
+                    coverage is LocalMusicScanCoverage.SourceKind || coverage is LocalMusicScanCoverage.ConcreteSource
+                }
             if (hasCoveredSource) {
                 return LocalMusicScanDeletionAuthority.CoveredSourcesOnly
             }
@@ -243,19 +248,27 @@ data class LocalMusicScanResult(
  */
 sealed interface LocalMusicScanState {
     data object Idle : LocalMusicScanState
+
     data object WaitingForPermission : LocalMusicScanState
+
     data class Importing(
         val progress: LocalMusicScanProgress,
         val previousSummary: LocalMusicLastScanSummary? = null,
     ) : LocalMusicScanState
+
     data class Scanning(
         val progress: LocalMusicScanProgress,
         val previousSummary: LocalMusicLastScanSummary? = null,
     ) : LocalMusicScanState
-    data class Done(val summary: LocalMusicLastScanSummary) : LocalMusicScanState
+
+    data class Done(
+        val summary: LocalMusicLastScanSummary,
+    ) : LocalMusicScanState
+
     data class Cancelled(
         val summary: LocalMusicLastScanSummary,
     ) : LocalMusicScanState
+
     data class Error(
         val error: LocalMusicScanError,
         val summary: LocalMusicLastScanSummary? = null,
@@ -288,15 +301,16 @@ data class LibrarySnapshot(
         /**
          * 无来源时的空曲库快照，保证页面可以安全渲染入口状态。
          */
-        val Empty: LibrarySnapshot = LibrarySnapshot(
-            songs = emptyList(),
-            albums = emptyList(),
-            artists = emptyList(),
-            stats = LibraryStats(),
-            sources = emptyList(),
-            scanState = LocalMusicScanState.Idle,
-            lastScanSummary = null,
-            problems = emptyList(),
-        )
+        val Empty: LibrarySnapshot =
+            LibrarySnapshot(
+                songs = emptyList(),
+                albums = emptyList(),
+                artists = emptyList(),
+                stats = LibraryStats(),
+                sources = emptyList(),
+                scanState = LocalMusicScanState.Idle,
+                lastScanSummary = null,
+                problems = emptyList(),
+            )
     }
 }

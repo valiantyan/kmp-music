@@ -60,17 +60,19 @@ internal class PlaybackRestoreGate(
         if (playbackSnapshotHydrationJob?.isActive == true) {
             return
         }
-        val request: PendingPlaybackSnapshotRequest = pendingPlaybackSnapshotRequest
-            ?: playbackRestoreOrchestrator.createPendingRequest()
-            ?: run {
-                pendingPlaybackSnapshotRequest = null
+        val request: PendingPlaybackSnapshotRequest =
+            pendingPlaybackSnapshotRequest
+                ?: playbackRestoreOrchestrator.createPendingRequest()
+                ?: run {
+                    pendingPlaybackSnapshotRequest = null
+                    return
+                }
+        pendingPlaybackSnapshotRequest = request
+        val activeJob: Job =
+            currentCoroutineContext()[Job] ?: run {
+                hydratePendingPlaybackSnapshot(request = request)
                 return
             }
-        pendingPlaybackSnapshotRequest = request
-        val activeJob: Job = currentCoroutineContext()[Job] ?: run {
-            hydratePendingPlaybackSnapshot(request = request)
-            return
-        }
         playbackSnapshotHydrationJob = activeJob
         try {
             hydratePendingPlaybackSnapshot(request = request)
@@ -93,8 +95,9 @@ internal class PlaybackRestoreGate(
             val activeJob: Job = coroutineContext[Job] ?: return@launch
             playbackSnapshotHydrationJob = activeJob
             try {
-                val request: PendingPlaybackSnapshotRequest = pendingPlaybackSnapshotRequest
-                    ?: return@launch
+                val request: PendingPlaybackSnapshotRequest =
+                    pendingPlaybackSnapshotRequest
+                        ?: return@launch
                 hydratePendingPlaybackSnapshot(request = request)
             } finally {
                 if (playbackSnapshotHydrationJob == activeJob) {
@@ -119,17 +122,18 @@ internal class PlaybackRestoreGate(
      */
     private suspend fun hydratePendingPlaybackSnapshot(request: PendingPlaybackSnapshotRequest) {
         val generationAtStart: Long = playbackSnapshotHydrationGeneration
-        val result: PlaybackRestoreOrchestrator.Result = playbackRestoreOrchestrator.restore(
-            state = stateHost.getState(),
-            preferredSongs = stateHost.getPreferredKnownSongs(),
-            pendingRequest = request,
-            isRequestCurrent = { currentRequest: PendingPlaybackSnapshotRequest ->
-                isPendingPlaybackSnapshotRequestCurrent(
-                    request = currentRequest,
-                    generation = generationAtStart,
-                )
-            },
-        )
+        val result: PlaybackRestoreOrchestrator.Result =
+            playbackRestoreOrchestrator.restore(
+                state = stateHost.getState(),
+                preferredSongs = stateHost.getPreferredKnownSongs(),
+                pendingRequest = request,
+                isRequestCurrent = { currentRequest: PendingPlaybackSnapshotRequest ->
+                    isPendingPlaybackSnapshotRequestCurrent(
+                        request = currentRequest,
+                        generation = generationAtStart,
+                    )
+                },
+            )
         playbackFactMutationMutex.withLock {
             if (!isPendingPlaybackSnapshotRequestCurrent(request = request, generation = generationAtStart)) {
                 return
@@ -154,10 +158,9 @@ internal class PlaybackRestoreGate(
     private fun isPendingPlaybackSnapshotRequestCurrent(
         request: PendingPlaybackSnapshotRequest,
         generation: Long,
-    ): Boolean {
-        return pendingPlaybackSnapshotRequest == request &&
+    ): Boolean =
+        pendingPlaybackSnapshotRequest == request &&
             playbackSnapshotHydrationGeneration == generation
-    }
 
     // 用户显式改变播放事实后，旧恢复请求必须作废，避免晚到结果覆盖最新意图。
     private fun clearPendingPlaybackSnapshotRequest() {

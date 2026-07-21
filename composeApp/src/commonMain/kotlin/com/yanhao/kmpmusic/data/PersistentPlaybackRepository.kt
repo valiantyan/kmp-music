@@ -30,27 +30,30 @@ class PersistentPlaybackRepository(
     private var runtimePlaybackState: PlaybackState? = null
 
     /** 读取最近一次播放状态，冷启动时以暂停态恢复，避免自动播放。 */
-    override fun getPlaybackState(): PlaybackState = runBlocking {
-        getRuntimePlaybackState()
-    }
+    override fun getPlaybackState(): PlaybackState =
+        runBlocking {
+            getRuntimePlaybackState()
+        }
 
     /** 保存当前播放状态，并保留已知队列位置和播放模式。 */
     override fun savePlaybackState(state: PlaybackState) {
         runBlocking {
             val queueState: QueueState = readQueueState()
-            val snapshotEntity: PlaybackSnapshotEntity = state.toEntity(
-                queueState = queueState,
-                updatedAt = nowMillis(),
-            )
+            val snapshotEntity: PlaybackSnapshotEntity =
+                state.toEntity(
+                    queueState = queueState,
+                    updatedAt = nowMillis(),
+                )
             playbackSnapshotDao.saveSnapshot(entity = snapshotEntity)
             runtimePlaybackState = state
         }
     }
 
     /** 读取持久化播放队列。 */
-    override fun getQueueState(): QueueState = runBlocking {
-        readQueueState()
-    }
+    override fun getQueueState(): QueueState =
+        runBlocking {
+            readQueueState()
+        }
 
     /** 覆盖保存播放队列，同时保留当前播放快照中的歌曲与进度。 */
     override fun saveQueueState(state: QueueState) {
@@ -60,23 +63,26 @@ class PersistentPlaybackRepository(
                 playbackQueueDao.insertAll(items = state.toEntities())
                 val playbackState: PlaybackState = getRuntimePlaybackState()
                 playbackSnapshotDao.saveSnapshot(
-                    entity = playbackState.toEntity(
-                        queueState = state,
-                        updatedAt = nowMillis(),
-                    ),
+                    entity =
+                        playbackState.toEntity(
+                            queueState = state,
+                            updatedAt = nowMillis(),
+                        ),
                 )
             }
         }
     }
 
     /** 读取真实最近播放历史。 */
-    override fun getPlaybackHistory(): PlaybackHistory = runBlocking {
-        PlaybackHistory(
-            songIds = playbackHistoryDao.getHistoryItems().map { entity: PlaybackHistoryItemEntity ->
-                entity.songId
-            },
-        )
-    }
+    override fun getPlaybackHistory(): PlaybackHistory =
+        runBlocking {
+            PlaybackHistory(
+                songIds =
+                    playbackHistoryDao.getHistoryItems().map { entity: PlaybackHistoryItemEntity ->
+                        entity.songId
+                    },
+            )
+        }
 
     /** 覆盖保存真实最近播放历史。 */
     override fun savePlaybackHistory(history: PlaybackHistory) {
@@ -92,9 +98,10 @@ class PersistentPlaybackRepository(
     private suspend fun readQueueState(): QueueState {
         val queueItems: List<PlaybackQueueItemEntity> = playbackQueueDao.getQueueItems()
         val snapshot: PlaybackSnapshotEntity? = playbackSnapshotDao.getSnapshot()
-        val mode: PlaybackMode = snapshot?.playbackMode?.let { name: String ->
-            PlaybackMode.entries.firstOrNull { mode: PlaybackMode -> mode.name == name }
-        } ?: PlaybackMode.LoopAll
+        val mode: PlaybackMode =
+            snapshot?.playbackMode?.let { name: String ->
+                PlaybackMode.entries.firstOrNull { mode: PlaybackMode -> mode.name == name }
+            } ?: PlaybackMode.LoopAll
         return QueueState(
             songIds = queueItems.map { item: PlaybackQueueItemEntity -> item.songId },
             currentIndex = snapshot?.currentIndex ?: queueItems.firstOrNull()?.position ?: 0,
@@ -128,8 +135,8 @@ class PersistentPlaybackRepository(
     private fun PlaybackState.toEntity(
         queueState: QueueState,
         updatedAt: Long,
-    ): PlaybackSnapshotEntity {
-        return PlaybackSnapshotEntity(
+    ): PlaybackSnapshotEntity =
+        PlaybackSnapshotEntity(
             currentSongId = currentSongId,
             currentIndex = queueState.currentIndex,
             playbackMode = queueState.playbackMode.name,
@@ -137,28 +144,25 @@ class PersistentPlaybackRepository(
             durationMs = durationMs,
             updatedAt = updatedAt,
         )
-    }
 
     // 将队列顺序固化到数据库位置。
-    private fun QueueState.toEntities(): List<PlaybackQueueItemEntity> {
-        return songIds.mapIndexed { index: Int, songId: String ->
+    private fun QueueState.toEntities(): List<PlaybackQueueItemEntity> =
+        songIds.mapIndexed { index: Int, songId: String ->
             PlaybackQueueItemEntity(
                 position = index,
                 songId = songId,
             )
         }
-    }
 
     // 将最近播放顺序固化到数据库位置。
-    private fun PlaybackHistory.toEntities(updatedAt: Long): List<PlaybackHistoryItemEntity> {
-        return songIds.distinct().mapIndexed { index: Int, songId: String ->
+    private fun PlaybackHistory.toEntities(updatedAt: Long): List<PlaybackHistoryItemEntity> =
+        songIds.distinct().mapIndexed { index: Int, songId: String ->
             PlaybackHistoryItemEntity(
                 position = index,
                 songId = songId,
                 updatedAt = updatedAt,
             )
         }
-    }
 
     companion object {
         /**
@@ -167,8 +171,8 @@ class PersistentPlaybackRepository(
         fun create(
             playbackDatabase: PlaybackDatabase,
             nowMillis: () -> Long = { currentTimeMillis() },
-        ): PersistentPlaybackRepository {
-            return PersistentPlaybackRepository(
+        ): PersistentPlaybackRepository =
+            PersistentPlaybackRepository(
                 playbackSnapshotDao = playbackDatabase.playbackSnapshotDao(),
                 playbackQueueDao = playbackDatabase.playbackQueueDao(),
                 playbackHistoryDao = playbackDatabase.playbackHistoryDao(),
@@ -179,6 +183,5 @@ class PersistentPlaybackRepository(
                 },
                 nowMillis = nowMillis,
             )
-        }
     }
 }

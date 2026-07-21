@@ -60,9 +60,10 @@ internal fun DesktopLocalPlaylistListScreen(
     onPlaylistOpen: (String) -> Unit,
 ) {
     Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState()),
+        modifier =
+            Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState()),
     ) {
         DesktopPageHeader(
             title = "我的歌单",
@@ -95,9 +96,10 @@ internal fun DesktopLocalPlaylistManagementScreen(
     onDelete: () -> Unit,
 ) {
     Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState()),
+        modifier =
+            Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState()),
     ) {
         DesktopPageHeader(
             title = "管理歌单",
@@ -141,15 +143,17 @@ internal fun DesktopLocalPlaylistDetailScreen(
     onMore: (Song) -> Unit,
 ) {
     Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState()),
+        modifier =
+            Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState()),
     ) {
         DesktopPageHeader(
             title = detail?.name ?: "歌单不可用",
-            eyebrow = detail?.let { model: LocalPlaylistDetailDisplayModel ->
-                "${model.availableSongCount} 首可播放歌曲"
-            } ?: "没有找到歌单信息",
+            eyebrow =
+                detail?.let { model: LocalPlaylistDetailDisplayModel ->
+                    "${model.availableSongCount} 首可播放歌曲"
+                } ?: "没有找到歌单信息",
         ) {
             DesktopPrimaryButton(text = "返回", onClick = onBack)
             DesktopPrimaryButton(
@@ -253,10 +257,11 @@ private fun DesktopLocalPlaylistCard(
                 coverArt = playlist.coverArt,
                 coverImageUri = playlist.coverImageUri,
                 contentDescription = "${playlist.name} 歌单封面",
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .aspectRatio(1f)
-                    .clip(RoundedCornerShape(12.dp)),
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .aspectRatio(1f)
+                        .clip(RoundedCornerShape(12.dp)),
                 contentScale = ContentScale.Crop,
             )
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -290,9 +295,10 @@ private fun DesktopLocalPlaylistManagementRow(
     onPlaylistToggle: (String) -> Unit,
 ) {
     Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { onPlaylistToggle(playlist.id) },
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .clickable { onPlaylistToggle(playlist.id) },
         shape = RoundedCornerShape(18.dp),
         color = Color.White.copy(alpha = 0.78f),
         border = BorderStroke(width = 1.dp, color = DesktopMusicColors.Line),
@@ -307,9 +313,10 @@ private fun DesktopLocalPlaylistManagementRow(
                 coverArt = playlist.coverArt,
                 coverImageUri = playlist.coverImageUri,
                 contentDescription = "${playlist.name} 歌单封面",
-                modifier = Modifier
-                    .size(size = 64.dp)
-                    .clip(RoundedCornerShape(12.dp)),
+                modifier =
+                    Modifier
+                        .size(size = 64.dp)
+                        .clip(RoundedCornerShape(12.dp)),
                 contentScale = ContentScale.Crop,
             )
             Column(
@@ -346,17 +353,17 @@ private fun DesktopLocalPlaylistManagementRow(
 @Composable
 private fun DesktopLocalPlaylistSelectionMark(isSelected: Boolean) {
     Box(
-        modifier = Modifier
-            .size(size = 24.dp)
-            .background(
-                color = if (isSelected) DesktopMusicColors.AccentDeep else Color.Transparent,
-                shape = CircleShape,
-            )
-            .border(
-                width = 2.dp,
-                color = if (isSelected) DesktopMusicColors.AccentDeep else DesktopMusicColors.Muted,
-                shape = CircleShape,
-            ),
+        modifier =
+            Modifier
+                .size(size = 24.dp)
+                .background(
+                    color = if (isSelected) DesktopMusicColors.AccentDeep else Color.Transparent,
+                    shape = CircleShape,
+                ).border(
+                    width = 2.dp,
+                    color = if (isSelected) DesktopMusicColors.AccentDeep else DesktopMusicColors.Muted,
+                    shape = CircleShape,
+                ),
         contentAlignment = Alignment.Center,
     ) {
         if (isSelected) {
@@ -392,10 +399,11 @@ private fun DesktopLocalPlaylistDetailSummary(
                 coverArt = detail.coverArt,
                 coverImageUri = detail.coverImageUri,
                 contentDescription = "${detail.name} 歌单封面",
-                modifier = Modifier
-                    .height(96.dp)
-                    .aspectRatio(1f)
-                    .clip(RoundedCornerShape(14.dp)),
+                modifier =
+                    Modifier
+                        .height(96.dp)
+                        .aspectRatio(1f)
+                        .clip(RoundedCornerShape(14.dp)),
                 contentScale = ContentScale.Crop,
             )
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {

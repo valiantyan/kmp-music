@@ -29,17 +29,19 @@ internal fun ArtistDetailExpandedTitle(
         fontWeight = FontWeight.SemiBold,
         maxLines = 2,
         overflow = TextOverflow.Ellipsis,
-        style = TextStyle(
-            shadow = Shadow(
-                color = Color.Black.copy(alpha = 0.38f),
-                blurRadius = 10f,
+        style =
+            TextStyle(
+                shadow =
+                    Shadow(
+                        color = Color.Black.copy(alpha = 0.38f),
+                        blurRadius = 10f,
+                    ),
             ),
-        ),
-        modifier = Modifier
-            .fillMaxWidth()
-            .graphicsLayer {
-                alpha = scrollState.value.expandedContentAlpha
-            }
-            .padding(start = 20.dp, end = 20.dp, bottom = 22.dp),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .graphicsLayer {
+                    alpha = scrollState.value.expandedContentAlpha
+                }.padding(start = 20.dp, end = 20.dp, bottom = 22.dp),
     )
 }

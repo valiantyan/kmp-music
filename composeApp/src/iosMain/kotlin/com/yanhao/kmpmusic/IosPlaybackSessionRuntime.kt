@@ -26,8 +26,9 @@ internal class IosPlaybackSessionRuntime(
     private val releaseAudioSession: () -> Unit,
 ) {
     // [sessionScope] 必须带 Job，关闭时才能等待长生命周期协程完整收口。
-    private val sessionJob: Job = sessionScope.coroutineContext[Job]
-        ?: error("IosPlaybackSessionRuntime 需要带 Job 的会话作用域")
+    private val sessionJob: Job =
+        sessionScope.coroutineContext[Job]
+            ?: error("IosPlaybackSessionRuntime 需要带 Job 的会话作用域")
 
     // 保护宿主和 Compose 入口可能并发触发的一次性状态。
     private val stateLock: NSRecursiveLock = NSRecursiveLock()
@@ -40,13 +41,14 @@ internal class IosPlaybackSessionRuntime(
 
     /** 首次 UI 接入时请求快照恢复；重复调用不会打断正在播放的会话。 */
     fun ensurePlaybackSnapshotRestoreRequested() {
-        val shouldRequestRestore: Boolean = withStateLock {
-            if (hasRequestedPlaybackRestore || isClosed) {
-                return@withStateLock false
+        val shouldRequestRestore: Boolean =
+            withStateLock {
+                if (hasRequestedPlaybackRestore || isClosed) {
+                    return@withStateLock false
+                }
+                hasRequestedPlaybackRestore = true
+                true
             }
-            hasRequestedPlaybackRestore = true
-            true
-        }
         if (!shouldRequestRestore) {
             return
         }
@@ -57,13 +59,14 @@ internal class IosPlaybackSessionRuntime(
 
     /** 关闭 iOS 播放会话，按播放器、audio session、协程作用域的顺序收口。 */
     fun close() {
-        val shouldClose: Boolean = withStateLock {
-            if (isClosed) {
-                return@withStateLock false
+        val shouldClose: Boolean =
+            withStateLock {
+                if (isClosed) {
+                    return@withStateLock false
+                }
+                isClosed = true
+                true
             }
-            isClosed = true
-            true
-        }
         if (!shouldClose) {
             return
         }

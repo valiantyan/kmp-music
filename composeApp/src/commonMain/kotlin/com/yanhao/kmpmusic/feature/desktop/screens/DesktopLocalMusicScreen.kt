@@ -32,14 +32,14 @@ import com.yanhao.kmpmusic.feature.desktop.components.DesktopContentRowFolderIco
 import com.yanhao.kmpmusic.feature.desktop.components.DesktopContentRowSyncIcon
 import com.yanhao.kmpmusic.feature.desktop.components.DesktopPageHeader
 import com.yanhao.kmpmusic.feature.desktop.components.DesktopPrimaryButton
-import com.yanhao.kmpmusic.feature.desktop.components.DesktopSectionHeader
 import com.yanhao.kmpmusic.feature.desktop.components.DesktopSectionEmptyMessage
+import com.yanhao.kmpmusic.feature.desktop.components.DesktopSectionHeader
 import com.yanhao.kmpmusic.feature.desktop.components.DesktopSegmentedControl
 import com.yanhao.kmpmusic.feature.desktop.components.DesktopSongTable
+import com.yanhao.kmpmusic.feature.screen.LocalMusicDiscoveryPlatform
 import com.yanhao.kmpmusic.feature.screen.cancelledScanResultDetail
 import com.yanhao.kmpmusic.feature.screen.cancelledScanResultTitle
 import com.yanhao.kmpmusic.feature.screen.formatLocalMusicScanDate
-import com.yanhao.kmpmusic.feature.screen.LocalMusicDiscoveryPlatform
 import com.yanhao.kmpmusic.feature.screen.localMusicScanActionLabel
 import com.yanhao.kmpmusic.feature.screen.localMusicSourceKindLabel
 
@@ -70,61 +70,76 @@ internal fun DesktopLocalMusicScreen(
         mutableStateOf(value = initialSection)
     }
     Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState()),
+        modifier =
+            Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState()),
     ) {
         DesktopPageHeader(
             title = "本地音乐",
-            eyebrow = section.desktopLocalMusicSubtitle(
-                songCount = songs.size,
-                albumCount = albums.size,
-                artistCount = artists.size,
-                sourceCount = sources.size,
-                problemCount = problems.size,
-            ),
+            eyebrow =
+                section.desktopLocalMusicSubtitle(
+                    songCount = songs.size,
+                    albumCount = albums.size,
+                    artistCount = artists.size,
+                    sourceCount = sources.size,
+                    problemCount = problems.size,
+                ),
         ) {
             DesktopPrimaryButton(text = "返回", onClick = onBack)
             DesktopPrimaryButton(
-                text = localMusicScanActionLabel(
-                    scanState = scanState,
-                    platform = LocalMusicDiscoveryPlatform.Desktop,
-                ),
+                text =
+                    localMusicScanActionLabel(
+                        scanState = scanState,
+                        platform = LocalMusicDiscoveryPlatform.Desktop,
+                    ),
                 onClick = onScan,
             )
         }
         DesktopSegmentedControl(
-            labels = LocalMusicSection.entries.map { sectionEntry: LocalMusicSection ->
-                sectionEntry.desktopLabel()
-            },
+            labels =
+                LocalMusicSection.entries.map { sectionEntry: LocalMusicSection ->
+                    sectionEntry.desktopLabel()
+                },
             selectedIndex = LocalMusicSection.entries.indexOf(section),
             onSelect = { index: Int -> section = LocalMusicSection.entries[index] },
         )
         Spacer(modifier = Modifier.height(18.dp))
         when (section) {
-            LocalMusicSection.Songs -> DesktopSongTable(
-                songs = songs,
-                currentSongId = currentSongId,
-                currentPlaybackStatus = currentPlaybackStatus,
-                showFavoriteColumn = false,
-                trailingDateLabel = "添加时间",
-                onSongPlay = onSongPlay,
-                onCurrentSongToggle = {},
-                onMore = onMore,
-            )
-            LocalMusicSection.Albums -> DesktopLocalAlbumSection(
-                albums = albums,
-                onAlbumOpen = onAlbumOpen,
-            )
-            LocalMusicSection.Artists -> DesktopLocalArtistSection(
-                artists = artists,
-                onArtistOpen = onArtistOpen,
-            )
-            LocalMusicSection.Sources -> DesktopLocalSourcesSection(
-                sources = sources,
-                problems = problems,
-                scanState = scanState,
-            )
+            LocalMusicSection.Songs -> {
+                DesktopSongTable(
+                    songs = songs,
+                    currentSongId = currentSongId,
+                    currentPlaybackStatus = currentPlaybackStatus,
+                    showFavoriteColumn = false,
+                    trailingDateLabel = "添加时间",
+                    onSongPlay = onSongPlay,
+                    onCurrentSongToggle = {},
+                    onMore = onMore,
+                )
+            }
+
+            LocalMusicSection.Albums -> {
+                DesktopLocalAlbumSection(
+                    albums = albums,
+                    onAlbumOpen = onAlbumOpen,
+                )
+            }
+
+            LocalMusicSection.Artists -> {
+                DesktopLocalArtistSection(
+                    artists = artists,
+                    onArtistOpen = onArtistOpen,
+                )
+            }
+
+            LocalMusicSection.Sources -> {
+                DesktopLocalSourcesSection(
+                    sources = sources,
+                    problems = problems,
+                    scanState = scanState,
+                )
+            }
         }
     }
 }
@@ -196,8 +211,9 @@ private fun DesktopLocalSourcesSection(
                 DesktopContentRow(
                     icon = DesktopContentRowFolderIcon,
                     title = source.displayName,
-                    subtitle = "${localMusicSourceKindLabel(sourceKind = source.sourceKind, platform = LocalMusicDiscoveryPlatform.Desktop)} · " +
-                        "${source.songCount} 首歌曲 · ${source.problemCount} 个问题",
+                    subtitle =
+                        "${localMusicSourceKindLabel(sourceKind = source.sourceKind, platform = LocalMusicDiscoveryPlatform.Desktop)} · " +
+                            "${source.songCount} 首歌曲 · ${source.problemCount} 个问题",
                     extraContent = {
                         Text(
                             text = source.lastScannedAt?.let(::formatDesktopSourceScanDate) ?: "尚未记录扫描时间",
@@ -220,8 +236,9 @@ private fun DesktopLocalSourcesSection(
                 DesktopContentRow(
                     icon = DesktopContentRowSyncIcon,
                     title = problem.fileName,
-                    subtitle = "${localMusicSourceKindLabel(sourceKind = problem.sourceKind, platform = LocalMusicDiscoveryPlatform.Desktop)} · " +
-                        problem.error.type.name,
+                    subtitle =
+                        "${localMusicSourceKindLabel(sourceKind = problem.sourceKind, platform = LocalMusicDiscoveryPlatform.Desktop)} · " +
+                            problem.error.type.name,
                     extraContent = {
                         Text(
                             text = problem.error.message,
@@ -236,14 +253,13 @@ private fun DesktopLocalSourcesSection(
 }
 
 /** 本地音乐分段中文名与桌面分段控件保持一致。 */
-private fun LocalMusicSection.desktopLabel(): String {
-    return when (this) {
+private fun LocalMusicSection.desktopLabel(): String =
+    when (this) {
         LocalMusicSection.Songs -> "歌曲"
         LocalMusicSection.Albums -> "专辑"
         LocalMusicSection.Artists -> "歌手"
         LocalMusicSection.Sources -> "来源"
     }
-}
 
 /** 桌面本地音乐页根据当前分段生成副标题，避免不同入口共享同一误导文案。 */
 private fun LocalMusicSection.desktopLocalMusicSubtitle(
@@ -252,16 +268,13 @@ private fun LocalMusicSection.desktopLocalMusicSubtitle(
     artistCount: Int,
     sourceCount: Int,
     problemCount: Int,
-): String {
-    return when (this) {
+): String =
+    when (this) {
         LocalMusicSection.Songs -> "已收录 $songCount 首可播放歌曲"
         LocalMusicSection.Albums -> "已聚合 $albumCount 张专辑"
         LocalMusicSection.Artists -> "已识别 $artistCount 位歌手"
         LocalMusicSection.Sources -> "来源 $sourceCount 个，问题 $problemCount 个"
     }
-}
 
 /** 来源摘要里的扫描时间只需要稳定日期文本，不依赖组件文件内的私有实现。 */
-private fun formatDesktopSourceScanDate(timestampMillis: Long): String {
-    return formatLocalMusicScanDate(timestampMillis = timestampMillis)
-}
+private fun formatDesktopSourceScanDate(timestampMillis: Long): String = formatLocalMusicScanDate(timestampMillis = timestampMillis)

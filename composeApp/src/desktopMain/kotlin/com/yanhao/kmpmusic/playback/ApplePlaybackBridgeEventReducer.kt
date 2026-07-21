@@ -23,10 +23,14 @@ internal sealed interface ApplePlaybackBridgeAction {
     ) : ApplePlaybackBridgeAction
 
     /** 在 prepared 后兑现待播放意图。 */
-    data class Play(val generation: Long) : ApplePlaybackBridgeAction
+    data class Play(
+        val generation: Long,
+    ) : ApplePlaybackBridgeAction
 
     /** 在 prepared 后兑现待暂停意图。 */
-    data class Pause(val generation: Long) : ApplePlaybackBridgeAction
+    data class Pause(
+        val generation: Long,
+    ) : ApplePlaybackBridgeAction
 }
 
 /**
@@ -87,23 +91,29 @@ internal class ApplePlaybackBridgeEventReducer {
         val events: MutableList<PlaybackEngineEvent> = mutableListOf()
         val seekMs: Long = snapshot.pendingSeekMs ?: 0L
         if (seekMs > 0L) {
-            bridgeActions += ApplePlaybackBridgeAction.SeekTo(
-                generation = snapshot.generation,
-                positionMs = seekMs,
-            )
-            events += PlaybackEngineEvent.ProgressChanged(
-                positionMs = seekMs,
-                durationMs = event.durationMs ?: fallbackDurationMs,
-            )
+            bridgeActions +=
+                ApplePlaybackBridgeAction.SeekTo(
+                    generation = snapshot.generation,
+                    positionMs = seekMs,
+                )
+            events +=
+                PlaybackEngineEvent.ProgressChanged(
+                    positionMs = seekMs,
+                    durationMs = event.durationMs ?: fallbackDurationMs,
+                )
         }
         when (snapshot.playbackControlIntent) {
             DesktopPlaybackControlIntent.Play -> {
                 bridgeActions += ApplePlaybackBridgeAction.Play(generation = snapshot.generation)
             }
+
             DesktopPlaybackControlIntent.Pause -> {
                 bridgeActions += ApplePlaybackBridgeAction.Pause(generation = snapshot.generation)
             }
-            DesktopPlaybackControlIntent.None -> Unit
+
+            DesktopPlaybackControlIntent.None -> {
+                Unit
+            }
         }
         return ApplePlaybackBridgeEventReduction(
             events = events,
@@ -121,13 +131,14 @@ internal class ApplePlaybackBridgeEventReducer {
             return ApplePlaybackBridgeEventReduction()
         }
         return ApplePlaybackBridgeEventReduction(
-            events = listOf(
-                PlaybackEngineEvent.StatusChanged(
-                    status = PlaybackStatus.Buffering,
-                    positionMs = event.positionMs,
-                    durationMs = event.durationMs,
+            events =
+                listOf(
+                    PlaybackEngineEvent.StatusChanged(
+                        status = PlaybackStatus.Buffering,
+                        positionMs = event.positionMs,
+                        durationMs = event.durationMs,
+                    ),
                 ),
-            ),
         )
     }
 
@@ -140,13 +151,14 @@ internal class ApplePlaybackBridgeEventReducer {
             return ApplePlaybackBridgeEventReduction()
         }
         return ApplePlaybackBridgeEventReduction(
-            events = listOf(
-                PlaybackEngineEvent.StatusChanged(
-                    status = PlaybackStatus.Playing,
-                    positionMs = event.positionMs,
-                    durationMs = event.durationMs,
+            events =
+                listOf(
+                    PlaybackEngineEvent.StatusChanged(
+                        status = PlaybackStatus.Playing,
+                        positionMs = event.positionMs,
+                        durationMs = event.durationMs,
+                    ),
                 ),
-            ),
         )
     }
 
@@ -159,60 +171,59 @@ internal class ApplePlaybackBridgeEventReducer {
             return ApplePlaybackBridgeEventReduction()
         }
         return ApplePlaybackBridgeEventReduction(
-            events = listOf(
-                PlaybackEngineEvent.StatusChanged(
-                    status = PlaybackStatus.Paused,
-                    positionMs = event.positionMs,
-                    durationMs = event.durationMs,
+            events =
+                listOf(
+                    PlaybackEngineEvent.StatusChanged(
+                        status = PlaybackStatus.Paused,
+                        positionMs = event.positionMs,
+                        durationMs = event.durationMs,
+                    ),
                 ),
-            ),
         )
     }
 
     /** 进度回调只更新共享进度事实，不改写播放状态。 */
-    private fun reduceProgress(event: ApplePlaybackBridgeEvent.Progress): ApplePlaybackBridgeEventReduction {
-        return ApplePlaybackBridgeEventReduction(
-            events = listOf(
-                PlaybackEngineEvent.ProgressChanged(
-                    positionMs = event.positionMs,
-                    durationMs = event.durationMs,
+    private fun reduceProgress(event: ApplePlaybackBridgeEvent.Progress): ApplePlaybackBridgeEventReduction =
+        ApplePlaybackBridgeEventReduction(
+            events =
+                listOf(
+                    PlaybackEngineEvent.ProgressChanged(
+                        positionMs = event.positionMs,
+                        durationMs = event.durationMs,
+                    ),
                 ),
-            ),
         )
-    }
 
     /** 自然结束后把推进规则交回 [PlaybackCoordinator]。 */
-    private fun reduceEnded(): ApplePlaybackBridgeEventReduction {
-        return ApplePlaybackBridgeEventReduction(events = listOf(PlaybackEngineEvent.Ended))
-    }
+    private fun reduceEnded(): ApplePlaybackBridgeEventReduction = ApplePlaybackBridgeEventReduction(events = listOf(PlaybackEngineEvent.Ended))
 
     /** 失败后让当前代立刻失效，避免同代旧回调继续推进状态机。 */
-    private fun reduceFailed(event: ApplePlaybackBridgeEvent.Failed): ApplePlaybackBridgeEventReduction {
-        return ApplePlaybackBridgeEventReduction(
+    private fun reduceFailed(event: ApplePlaybackBridgeEvent.Failed): ApplePlaybackBridgeEventReduction =
+        ApplePlaybackBridgeEventReduction(
             events = listOf(PlaybackEngineEvent.Failed(error = event.error)),
-            stateUpdates = listOf(
-                ApplePlaybackEngineStateUpdate.AdvanceGeneration,
-                ApplePlaybackEngineStateUpdate.ResetPlaybackFlags,
-            ),
+            stateUpdates =
+                listOf(
+                    ApplePlaybackEngineStateUpdate.AdvanceGeneration,
+                    ApplePlaybackEngineStateUpdate.ResetPlaybackFlags,
+                ),
         )
-    }
 
     /** 初始化失败不归因到具体媒体，但仍统一进入共享失败策略。 */
     private fun reduceInitializationFailed(
         event: ApplePlaybackBridgeEvent.InitializationFailed,
-    ): ApplePlaybackBridgeEventReduction {
-        return ApplePlaybackBridgeEventReduction(
+    ): ApplePlaybackBridgeEventReduction =
+        ApplePlaybackBridgeEventReduction(
             events = listOf(PlaybackEngineEvent.Failed(error = event.error)),
-            stateUpdates = listOf(
-                ApplePlaybackEngineStateUpdate.AdvanceGeneration,
-                ApplePlaybackEngineStateUpdate.ResetPlaybackFlags,
-            ),
+            stateUpdates =
+                listOf(
+                    ApplePlaybackEngineStateUpdate.AdvanceGeneration,
+                    ApplePlaybackEngineStateUpdate.ResetPlaybackFlags,
+                ),
         )
-    }
 
     /** 读取带 generation 事件的代号，初始化失败由调用方单独处理。 */
-    private fun generationOf(event: ApplePlaybackBridgeEvent): Long? {
-        return when (event) {
+    private fun generationOf(event: ApplePlaybackBridgeEvent): Long? =
+        when (event) {
             is ApplePlaybackBridgeEvent.Prepared -> event.generation
             is ApplePlaybackBridgeEvent.Buffering -> event.generation
             is ApplePlaybackBridgeEvent.Playing -> event.generation
@@ -222,5 +233,4 @@ internal class ApplePlaybackBridgeEventReducer {
             is ApplePlaybackBridgeEvent.Failed -> event.generation
             is ApplePlaybackBridgeEvent.InitializationFailed -> null
         }
-    }
 }

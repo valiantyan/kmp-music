@@ -15,7 +15,7 @@ class RecentPlayedScreenTest {
      * 空列表时必须说明最近播放来自真实播放行为，避免用户把空态理解成加载失败。
      */
     @Test
-    fun emptyRecentPlayedDisplayModelExplainsPlaybackCreatesHistory(): Unit {
+    fun emptyRecentPlayedDisplayModelExplainsPlaybackCreatesHistory() {
         val model: RecentPlayedPageDisplayModel = buildRecentPlayedPageDisplayModel(songs = emptyList())
 
         assertTrue(actual = model.songs.isEmpty())
@@ -27,17 +27,19 @@ class RecentPlayedScreenTest {
      * 最近播放页展示调用方传入的完整过滤后列表，不复用摘要区 Top3 截断规则。
      */
     @Test
-    fun nonEmptyRecentPlayedDisplayModelKeepsEveryProvidedSong(): Unit {
-        val songs: List<Song> = (1..5).map { index: Int ->
-            testSong(
-                id = "song-$index",
-                title = "Song $index",
-            )
-        }
+    fun nonEmptyRecentPlayedDisplayModelKeepsEveryProvidedSong() {
+        val songs: List<Song> =
+            (1..5).map { index: Int ->
+                testSong(
+                    id = "song-$index",
+                    title = "Song $index",
+                )
+            }
 
-        val model: RecentPlayedPageDisplayModel = buildRecentPlayedPageDisplayModel(
-            songs = songs,
-        )
+        val model: RecentPlayedPageDisplayModel =
+            buildRecentPlayedPageDisplayModel(
+                songs = songs,
+            )
 
         assertEquals(
             expected = listOf("song-1", "song-2", "song-3", "song-4", "song-5"),
@@ -49,10 +51,11 @@ class RecentPlayedScreenTest {
      * 展示模型只保留统一过滤后的入参，不自行扫描全库、拼 demo 或解析历史项。
      */
     @Test
-    fun recentPlayedDisplayModelUsesProvidedFilteredSongsOnly(): Unit {
-        val model: RecentPlayedPageDisplayModel = buildRecentPlayedPageDisplayModel(
-            songs = listOf(testSong(id = "filtered-song", title = "Filtered Song")),
-        )
+    fun recentPlayedDisplayModelUsesProvidedFilteredSongsOnly() {
+        val model: RecentPlayedPageDisplayModel =
+            buildRecentPlayedPageDisplayModel(
+                songs = listOf(testSong(id = "filtered-song", title = "Filtered Song")),
+            )
 
         assertEquals(
             expected = listOf("filtered-song"),
@@ -65,18 +68,20 @@ class RecentPlayedScreenTest {
      * 最近播放页完整列表只标记当前播放歌曲，其他歌曲保持普通行状态。
      */
     @Test
-    fun recentPlayedPageDisplayModelMarksOnlyCurrentSong(): Unit {
-        val songs: List<Song> = (1..5).map { index: Int ->
-            testSong(
-                id = "song-$index",
-                title = "Song $index",
-            )
-        }
+    fun recentPlayedPageDisplayModelMarksOnlyCurrentSong() {
+        val songs: List<Song> =
+            (1..5).map { index: Int ->
+                testSong(
+                    id = "song-$index",
+                    title = "Song $index",
+                )
+            }
 
-        val model: RecentPlayedPageDisplayModel = buildRecentPlayedPageDisplayModel(
-            songs = songs,
-            currentSongId = "song-4",
-        )
+        val model: RecentPlayedPageDisplayModel =
+            buildRecentPlayedPageDisplayModel(
+                songs = songs,
+                currentSongId = "song-4",
+            )
 
         assertEquals(
             expected = listOf(false, false, false, true, false),
@@ -94,13 +99,15 @@ class RecentPlayedScreenTest {
      * 完整最近播放页每个歌曲行都显示三点更多入口，并继续复用统一行状态。
      */
     @Test
-    fun recentPlayedPageDisplayModelShowsMoreActionForSongRows(): Unit {
-        val model: RecentPlayedPageDisplayModel = buildRecentPlayedPageDisplayModel(
-            songs = listOf(
-                testSong(id = "song-1", title = "Song 1"),
-                testSong(id = "song-2", title = "Song 2"),
-            ),
-        )
+    fun recentPlayedPageDisplayModelShowsMoreActionForSongRows() {
+        val model: RecentPlayedPageDisplayModel =
+            buildRecentPlayedPageDisplayModel(
+                songs =
+                    listOf(
+                        testSong(id = "song-1", title = "Song 1"),
+                        testSong(id = "song-2", title = "Song 2"),
+                    ),
+            )
 
         assertEquals(
             expected = listOf(true, true),
@@ -112,8 +119,8 @@ class RecentPlayedScreenTest {
     private fun testSong(
         id: String,
         title: String,
-    ): Song {
-        return Song(
+    ): Song =
+        Song(
             id = id,
             title = title,
             artist = "Artist",
@@ -127,5 +134,4 @@ class RecentPlayedScreenTest {
             trackNumber = 1,
             durationMs = 180_000L,
         )
-    }
 }

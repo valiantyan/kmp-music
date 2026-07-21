@@ -19,53 +19,65 @@ class FavoriteStateSynchronizer(
     /**
      * 切换单曲收藏后，统一回写所有共享歌曲来源，避免 UI 出现同 songId 多份状态不一致。
      */
-    fun toggleFavorite(state: MusicAppUiState, songId: String): MusicAppUiState {
+    fun toggleFavorite(
+        state: MusicAppUiState,
+        songId: String,
+    ): MusicAppUiState {
         val likedSongIds: Set<String> = toggleFavoriteUseCase(songId = songId)
         val isLiked: Boolean = likedSongIds.contains(element = songId)
-        val homePreview: List<Song> = state.homeLocalSongPreview.updateFavoriteFlag(
-            songId = songId,
-            isLiked = isLiked,
-        )
-        val localSongs: List<Song> = state.localSongs.updateFavoriteFlag(
-            songId = songId,
-            isLiked = isLiked,
-        )
-        val queueSnapshot: List<Song> = state.queueSongsSnapshot.updateFavoriteFlag(
-            songId = songId,
-            isLiked = isLiked,
-        )
-        val selectedLocalPlaylistDetail: LocalPlaylistDetailDisplayModel? = state.selectedLocalPlaylistDetail
-        val updatedLocalPlaylistDetail: LocalPlaylistDetailDisplayModel? = selectedLocalPlaylistDetail?.copy(
-            songs = selectedLocalPlaylistDetail.songs.updateFavoriteFlag(
+        val homePreview: List<Song> =
+            state.homeLocalSongPreview.updateFavoriteFlag(
                 songId = songId,
                 isLiked = isLiked,
-            ),
-        )
-        val preferredSongs: List<Song> = homePreview +
-            localSongs +
-            queueSnapshot +
-            updatedLocalPlaylistDetail.orEmptySongs() +
-            state.favoriteSongs
-        val favoriteSongs: List<Song> = resolveFavoriteSongs(
-            likedSongIds = likedSongIds,
-            songId = songId,
-            isLiked = isLiked,
-            currentFavoriteSongs = state.favoriteSongs,
-            preferredSongs = preferredSongs,
-        )
-        val stateWithUpdatedCollections: MusicAppUiState = state.copy(
-            likedSongIds = likedSongIds,
-            homeLocalSongPreview = homePreview,
-            localSongs = localSongs,
-            favoriteSongs = favoriteSongs,
-            queueSongsSnapshot = queueSnapshot,
-            selectedLocalPlaylistDetail = updatedLocalPlaylistDetail,
-        )
+            )
+        val localSongs: List<Song> =
+            state.localSongs.updateFavoriteFlag(
+                songId = songId,
+                isLiked = isLiked,
+            )
+        val queueSnapshot: List<Song> =
+            state.queueSongsSnapshot.updateFavoriteFlag(
+                songId = songId,
+                isLiked = isLiked,
+            )
+        val selectedLocalPlaylistDetail: LocalPlaylistDetailDisplayModel? = state.selectedLocalPlaylistDetail
+        val updatedLocalPlaylistDetail: LocalPlaylistDetailDisplayModel? =
+            selectedLocalPlaylistDetail?.copy(
+                songs =
+                    selectedLocalPlaylistDetail.songs.updateFavoriteFlag(
+                        songId = songId,
+                        isLiked = isLiked,
+                    ),
+            )
+        val preferredSongs: List<Song> =
+            homePreview +
+                localSongs +
+                queueSnapshot +
+                updatedLocalPlaylistDetail.orEmptySongs() +
+                state.favoriteSongs
+        val favoriteSongs: List<Song> =
+            resolveFavoriteSongs(
+                likedSongIds = likedSongIds,
+                songId = songId,
+                isLiked = isLiked,
+                currentFavoriteSongs = state.favoriteSongs,
+                preferredSongs = preferredSongs,
+            )
+        val stateWithUpdatedCollections: MusicAppUiState =
+            state.copy(
+                likedSongIds = likedSongIds,
+                homeLocalSongPreview = homePreview,
+                localSongs = localSongs,
+                favoriteSongs = favoriteSongs,
+                queueSongsSnapshot = queueSnapshot,
+                selectedLocalPlaylistDetail = updatedLocalPlaylistDetail,
+            )
         return stateWithUpdatedCollections.copy(
-            recentSongs = recentSongsBuilder(
-                stateWithUpdatedCollections,
-                localSongs.ifEmpty { homePreview },
-            ),
+            recentSongs =
+                recentSongsBuilder(
+                    stateWithUpdatedCollections,
+                    localSongs.ifEmpty { homePreview },
+                ),
         )
     }
 
@@ -83,10 +95,11 @@ class FavoriteStateSynchronizer(
         if (!isLiked) {
             return currentFavoriteSongs.filterNot { song: Song -> song.id == songId }
         }
-        val knownFavoriteSongs: List<Song> = buildKnownFavoriteSongs(
-            likedSongIds = likedSongIds,
-            preferredSongs = preferredSongs,
-        )
+        val knownFavoriteSongs: List<Song> =
+            buildKnownFavoriteSongs(
+                likedSongIds = likedSongIds,
+                preferredSongs = preferredSongs,
+            )
         if (knownFavoriteSongs.size == likedSongIds.size) {
             return knownFavoriteSongs
         }
@@ -97,17 +110,19 @@ class FavoriteStateSynchronizer(
     private fun buildKnownFavoriteSongs(
         likedSongIds: Set<String>,
         preferredSongs: List<Song>,
-    ): List<Song> {
-        return preferredSongs
+    ): List<Song> =
+        preferredSongs
             .asSequence()
             .filter { song: Song -> likedSongIds.contains(element = song.id) }
             .distinctBy { song: Song -> song.id }
             .map { song: Song -> song.copy(isLiked = true) }
             .toList()
-    }
 
     // 只复制被切换的一首歌，减少 500 条列表连续操作时的对象分配。
-    private fun List<Song>.updateFavoriteFlag(songId: String, isLiked: Boolean): List<Song> {
+    private fun List<Song>.updateFavoriteFlag(
+        songId: String,
+        isLiked: Boolean,
+    ): List<Song> {
         val songIndex: Int = indexOfFirst { song: Song -> song.id == songId }
         if (songIndex < 0 || this[songIndex].isLiked == isLiked) {
             return this
@@ -118,7 +133,5 @@ class FavoriteStateSynchronizer(
     }
 
     // 歌单详情未打开时不额外扩展收藏候选。
-    private fun LocalPlaylistDetailDisplayModel?.orEmptySongs(): List<Song> {
-        return this?.songs.orEmpty()
-    }
+    private fun LocalPlaylistDetailDisplayModel?.orEmptySongs(): List<Song> = this?.songs.orEmpty()
 }

@@ -27,30 +27,34 @@ import kotlin.test.assertTrue
 
 class MusicAppPlaybackUiStateSynchronizerTest {
     @Test
-    fun syncPlaybackStateProjectsPlaybackAndQueueIntoUiState(): Unit {
+    fun syncPlaybackStateProjectsPlaybackAndQueueIntoUiState() {
         val playbackRepository: InMemoryPlaybackRepository = InMemoryPlaybackRepository()
         playbackRepository.saveQueueState(
-            state = QueueState(
-                songIds = listOf("song-1", "song-2"),
-                currentIndex = 1,
-                playbackMode = PlaybackMode.Shuffle,
-            ),
+            state =
+                QueueState(
+                    songIds = listOf("song-1", "song-2"),
+                    currentIndex = 1,
+                    playbackMode = PlaybackMode.Shuffle,
+                ),
         )
         playbackRepository.savePlaybackHistory(history = PlaybackHistory(songIds = listOf("song-2")))
-        val synchronizer: PlaybackUiStateSynchronizer = PlaybackUiStateSynchronizer(
-            playbackRepository = playbackRepository,
-            recentSongsBuilder = { _, _ -> listOf(testSong(id = "song-2")) },
-        )
+        val synchronizer: PlaybackUiStateSynchronizer =
+            PlaybackUiStateSynchronizer(
+                playbackRepository = playbackRepository,
+                recentSongsBuilder = { _, _ -> listOf(testSong(id = "song-2")) },
+            )
 
-        val nextState: MusicAppUiState = synchronizer.syncPlaybackState(
-            state = testState(),
-            playbackState = PlaybackState(
-                currentSongId = "song-2",
-                status = PlaybackStatus.Playing,
-                positionMs = 12_000L,
-                durationMs = 180_000L,
-            ),
-        )
+        val nextState: MusicAppUiState =
+            synchronizer.syncPlaybackState(
+                state = testState(),
+                playbackState =
+                    PlaybackState(
+                        currentSongId = "song-2",
+                        status = PlaybackStatus.Playing,
+                        positionMs = 12_000L,
+                        durationMs = 180_000L,
+                    ),
+            )
 
         assertEquals(expected = "song-2", actual = nextState.currentSongId)
         assertEquals(expected = PlaybackStatus.Playing, actual = nextState.playbackStatus)
@@ -60,11 +64,12 @@ class MusicAppPlaybackUiStateSynchronizerTest {
     }
 
     @Test
-    fun controllerInitialStateHasNoPlaybackBeforeUserActionEvenWhenLibraryPreviewExists(): Unit {
-        val controller = MusicAppController(
-            musicLibraryRepository = PreviewMusicLibraryRepository(),
-            controllerScope = CoroutineScope(SupervisorJob() + Dispatchers.Unconfined),
-        )
+    fun controllerInitialStateHasNoPlaybackBeforeUserActionEvenWhenLibraryPreviewExists() {
+        val controller =
+            MusicAppController(
+                musicLibraryRepository = PreviewMusicLibraryRepository(),
+                controllerScope = CoroutineScope(SupervisorJob() + Dispatchers.Unconfined),
+            )
         val state: MusicAppUiState = controller.uiState
 
         assertNull(actual = state.currentSongId)
@@ -77,34 +82,37 @@ class MusicAppPlaybackUiStateSynchronizerTest {
     }
 
     @Test
-    fun idleStatusWithCurrentQueueKeepsPlaybackSessionActive(): Unit {
-        val state: MusicAppUiState = MusicAppUiState(
-            likedSongIds = emptySet(),
-            currentSongId = "song-1",
-            playbackStatus = PlaybackStatus.Idle,
-            queueSongIds = listOf("song-1", "song-2"),
-        )
+    fun idleStatusWithCurrentQueueKeepsPlaybackSessionActive() {
+        val state: MusicAppUiState =
+            MusicAppUiState(
+                likedSongIds = emptySet(),
+                currentSongId = "song-1",
+                playbackStatus = PlaybackStatus.Idle,
+                queueSongIds = listOf("song-1", "song-2"),
+            )
 
         assertTrue(actual = state.hasActivePlaybackSession)
     }
 
     @Test
-    fun emptyIdleStatusHasNoActivePlaybackSession(): Unit {
+    fun emptyIdleStatusHasNoActivePlaybackSession() {
         val state: MusicAppUiState = testState()
 
         assertFalse(actual = state.hasActivePlaybackSession)
     }
 
     @Test
-    fun loadingAndBufferingExposePauseControlWithoutChangingPlayingState(): Unit {
-        val loadingState: MusicAppUiState = testState().copy(
-            currentSongId = "song-1",
-            playbackStatus = PlaybackStatus.Loading,
-            queueSongIds = listOf("song-1"),
-        )
-        val bufferingState: MusicAppUiState = loadingState.copy(
-            playbackStatus = PlaybackStatus.Buffering,
-        )
+    fun loadingAndBufferingExposePauseControlWithoutChangingPlayingState() {
+        val loadingState: MusicAppUiState =
+            testState().copy(
+                currentSongId = "song-1",
+                playbackStatus = PlaybackStatus.Loading,
+                queueSongIds = listOf("song-1"),
+            )
+        val bufferingState: MusicAppUiState =
+            loadingState.copy(
+                playbackStatus = PlaybackStatus.Buffering,
+            )
 
         assertFalse(actual = loadingState.isPlaying)
         assertFalse(actual = bufferingState.isPlaying)
@@ -112,17 +120,16 @@ class MusicAppPlaybackUiStateSynchronizerTest {
         assertTrue(actual = bufferingState.shouldShowPauseControl)
     }
 
-    private fun testState(): MusicAppUiState {
-        return MusicAppUiState(
+    private fun testState(): MusicAppUiState =
+        MusicAppUiState(
             likedSongIds = emptySet(),
             currentSongId = null,
             playbackStatus = PlaybackStatus.Idle,
             queueSongIds = emptyList(),
         )
-    }
 
-    private fun testSong(id: String): Song {
-        return Song(
+    private fun testSong(id: String): Song =
+        Song(
             id = id,
             title = id,
             artist = "Artist",
@@ -136,27 +143,27 @@ class MusicAppPlaybackUiStateSynchronizerTest {
             trackNumber = 1,
             durationMs = 180_000L,
         )
-    }
 }
 
 private class PreviewMusicLibraryRepository : MusicLibraryRepository {
-    private val previewSong: Song = Song(
-        id = "preview-song",
-        title = "Preview Song",
-        artist = "Artist",
-        album = "Album",
-        duration = "03:00",
-        coverArt = CoverArt.HeroLocalMusic,
-        isLiked = false,
-        lastPlayed = "",
-        quality = "Lossless",
-        lyric = "",
-        trackNumber = 1,
-        durationMs = 180_000L,
-    )
+    private val previewSong: Song =
+        Song(
+            id = "preview-song",
+            title = "Preview Song",
+            artist = "Artist",
+            album = "Album",
+            duration = "03:00",
+            coverArt = CoverArt.HeroLocalMusic,
+            isLiked = false,
+            lastPlayed = "",
+            quality = "Lossless",
+            lyric = "",
+            trackNumber = 1,
+            durationMs = 180_000L,
+        )
 
-    override fun getSnapshot(): LibrarySnapshot {
-        return LibrarySnapshot(
+    override fun getSnapshot(): LibrarySnapshot =
+        LibrarySnapshot(
             songs = listOf(previewSong),
             albums = emptyList(),
             artists = emptyList(),
@@ -166,29 +173,18 @@ private class PreviewMusicLibraryRepository : MusicLibraryRepository {
             lastScanSummary = null,
             problems = emptyList(),
         )
-    }
 
-    override fun getHomePreview(limit: Int): List<Song> {
-        return listOf(previewSong).take(n = limit)
-    }
+    override fun getHomePreview(limit: Int): List<Song> = listOf(previewSong).take(n = limit)
 
-    override fun getAllAvailableSongs(): List<Song> {
-        return listOf(previewSong)
-    }
+    override fun getAllAvailableSongs(): List<Song> = listOf(previewSong)
 
-    override fun getAvailableSongsByIds(songIds: List<String>): List<Song> {
-        return listOf(previewSong).filter { song: Song -> songIds.contains(element = song.id) }
-    }
+    override fun getAvailableSongsByIds(songIds: List<String>): List<Song> = listOf(previewSong).filter { song: Song -> songIds.contains(element = song.id) }
 
-    override fun getLibraryStats(): LibraryStats {
-        return LibraryStats(songCount = 1)
-    }
+    override fun getLibraryStats(): LibraryStats = LibraryStats(songCount = 1)
 
     override fun applyScanResult(
         request: LocalMusicScanRequest,
         scanResult: LocalMusicScanResult,
         likedSongIds: Set<String>,
-    ): LibrarySnapshot {
-        return getSnapshot()
-    }
+    ): LibrarySnapshot = getSnapshot()
 }

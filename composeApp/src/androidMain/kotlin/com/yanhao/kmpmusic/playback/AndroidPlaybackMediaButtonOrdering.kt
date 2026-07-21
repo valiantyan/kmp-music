@@ -20,33 +20,35 @@ internal object AndroidPlaybackMediaButtonOrdering {
         showPauseButton: Boolean,
     ): ImmutableList<CommandButton> {
         val orderedButtons: ImmutableList.Builder<CommandButton> = ImmutableList.builder()
-        mediaButtonPreferences.firstOrNull(PlaybackMediaCommandCatalog::isToggleFavoriteButton)
+        mediaButtonPreferences
+            .firstOrNull(PlaybackMediaCommandCatalog::isToggleFavoriteButton)
             ?.let { favoriteButton: CommandButton -> orderedButtons.add(favoriteButton) }
-        val previousButton: CommandButton = mediaButtonPreferences.firstOrNull { commandButton: CommandButton ->
-            commandButton.hasPreviousCommand()
-        } ?: AndroidPlaybackMediaButtonFactory.createPreviousButton()
+        val previousButton: CommandButton =
+            mediaButtonPreferences.firstOrNull { commandButton: CommandButton ->
+                commandButton.hasPreviousCommand()
+            } ?: AndroidPlaybackMediaButtonFactory.createPreviousButton()
         orderedButtons.add(previousButton)
         orderedButtons.add(
             AndroidPlaybackMediaButtonFactory.createPlayPauseButton(shouldShowPauseButton = showPauseButton),
         )
-        val nextButton: CommandButton = mediaButtonPreferences.firstOrNull { commandButton: CommandButton ->
-            commandButton.hasNextCommand()
-        } ?: AndroidPlaybackMediaButtonFactory.createNextButton()
+        val nextButton: CommandButton =
+            mediaButtonPreferences.firstOrNull { commandButton: CommandButton ->
+                commandButton.hasNextCommand()
+            } ?: AndroidPlaybackMediaButtonFactory.createNextButton()
         orderedButtons.add(nextButton)
-        mediaButtonPreferences.firstOrNull(PlaybackMediaCommandCatalog::isPlaybackModeButton)
+        mediaButtonPreferences
+            .firstOrNull(PlaybackMediaCommandCatalog::isPlaybackModeButton)
             ?.let { playbackModeButton: CommandButton -> orderedButtons.add(playbackModeButton) }
         return orderedButtons.build()
     }
 
     // 判断按钮是否承载上一首命令，用于固定展开态按钮集合。
-    private fun CommandButton.hasPreviousCommand(): Boolean {
-        return playerCommand == Player.COMMAND_SEEK_TO_PREVIOUS ||
+    private fun CommandButton.hasPreviousCommand(): Boolean =
+        playerCommand == Player.COMMAND_SEEK_TO_PREVIOUS ||
             playerCommand == Player.COMMAND_SEEK_TO_PREVIOUS_MEDIA_ITEM
-    }
 
     // 判断按钮是否承载下一首命令，用于固定展开态按钮集合。
-    private fun CommandButton.hasNextCommand(): Boolean {
-        return playerCommand == Player.COMMAND_SEEK_TO_NEXT ||
+    private fun CommandButton.hasNextCommand(): Boolean =
+        playerCommand == Player.COMMAND_SEEK_TO_NEXT ||
             playerCommand == Player.COMMAND_SEEK_TO_NEXT_MEDIA_ITEM
-    }
 }

@@ -16,9 +16,10 @@ import kotlinx.coroutines.flow.receiveAsFlow
  */
 class FakeAudioPlayerEngine : AudioPlayerEngine {
     // 对外事件流的内部实现，使用队列语义保证共享测试中的时序稳定。
-    private val eventChannel: Channel<PlaybackEngineEvent> = Channel(
-        capacity = Channel.UNLIMITED,
-    )
+    private val eventChannel: Channel<PlaybackEngineEvent> =
+        Channel(
+            capacity = Channel.UNLIMITED,
+        )
 
     // 当前引擎持有的媒体队列。
     private var queue: List<PlayableMedia> = emptyList()
@@ -54,10 +55,11 @@ class FakeAudioPlayerEngine : AudioPlayerEngine {
             return
         }
         currentIndex = startIndex.coerceIn(minimumValue = 0, maximumValue = items.lastIndex)
-        val media: PlayableMedia = queue.getOrNull(index = currentIndex) ?: run {
-            emitMissingQueueFailure()
-            return
-        }
+        val media: PlayableMedia =
+            queue.getOrNull(index = currentIndex) ?: run {
+                emitMissingQueueFailure()
+                return
+            }
         eventChannel.trySend(
             PlaybackEngineEvent.CurrentMediaChanged(
                 songId = media.songId,
@@ -163,14 +165,18 @@ class FakeAudioPlayerEngine : AudioPlayerEngine {
      * @param songId 出错歌曲标识。
      * @param message 失败信息。
      */
-    fun emitFailure(songId: String, message: String = "播放失败") {
+    fun emitFailure(
+        songId: String,
+        message: String = "播放失败",
+    ) {
         eventChannel.trySend(
             PlaybackEngineEvent.Failed(
-                error = PlaybackError(
-                    type = PlaybackErrorType.Unknown,
-                    songId = songId,
-                    message = message,
-                ),
+                error =
+                    PlaybackError(
+                        type = PlaybackErrorType.Unknown,
+                        songId = songId,
+                        message = message,
+                    ),
             ),
         )
     }
@@ -179,11 +185,12 @@ class FakeAudioPlayerEngine : AudioPlayerEngine {
     private fun emitMissingQueueFailure() {
         eventChannel.trySend(
             PlaybackEngineEvent.Failed(
-                error = PlaybackError(
-                    type = PlaybackErrorType.MissingFile,
-                    songId = null,
-                    message = "播放队列为空",
-                ),
+                error =
+                    PlaybackError(
+                        type = PlaybackErrorType.MissingFile,
+                        songId = null,
+                        message = "播放队列为空",
+                    ),
             ),
         )
     }

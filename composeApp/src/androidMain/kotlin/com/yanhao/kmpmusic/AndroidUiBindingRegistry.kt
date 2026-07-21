@@ -1,9 +1,9 @@
 package com.yanhao.kmpmusic
 
+import com.yanhao.kmpmusic.domain.model.LocalMusicDiscoveryPreferences
 import com.yanhao.kmpmusic.domain.model.LocalMusicScanError
 import com.yanhao.kmpmusic.domain.model.LocalMusicScanErrorType
 import com.yanhao.kmpmusic.domain.model.LocalMusicScanException
-import com.yanhao.kmpmusic.domain.model.LocalMusicDiscoveryPreferences
 import com.yanhao.kmpmusic.domain.model.LocalMusicScanRequest
 import com.yanhao.kmpmusic.domain.model.LocalMusicScanResult
 import com.yanhao.kmpmusic.domain.model.LocalMusicSourceKind
@@ -64,20 +64,17 @@ private class MutableLocalMusicScanner : LocalMusicScanner {
     private var scanner: LocalMusicScanner = MissingAndroidLocalMusicScanner()
 
     /** 将扫描请求转发给当前已注入的 Android scanner。 */
-    override suspend fun scan(request: LocalMusicScanRequest): LocalMusicScanResult {
-        return scanner.scan(request = request)
-    }
+    override suspend fun scan(request: LocalMusicScanRequest): LocalMusicScanResult = scanner.scan(request = request)
 
     /** 将带偏好的扫描请求转发给当前已注入的 Android scanner。 */
     override suspend fun scan(
         request: LocalMusicScanRequest,
         preferences: LocalMusicDiscoveryPreferences,
-    ): LocalMusicScanResult {
-        return scanner.scan(
+    ): LocalMusicScanResult =
+        scanner.scan(
             request = request,
             preferences = preferences,
         )
-    }
 
     /** 替换当前 Activity 绑定的 scanner。 */
     fun replace(scanner: LocalMusicScanner) {
@@ -118,13 +115,13 @@ private class MutablePermissionSettingsOpener : PermissionSettingsOpener {
  */
 private class MissingAndroidLocalMusicScanner : LocalMusicScanner {
     /** 返回明确错误，避免静默回退到 fake scanner。 */
-    override suspend fun scan(request: LocalMusicScanRequest): LocalMusicScanResult {
+    override suspend fun scan(request: LocalMusicScanRequest): LocalMusicScanResult =
         throw LocalMusicScanException(
-            error = LocalMusicScanError(
-                type = LocalMusicScanErrorType.Unknown,
-                message = "Android 本地音乐扫描器尚未初始化",
-                sourceKind = LocalMusicSourceKind.AndroidMediaStore,
-            ),
+            error =
+                LocalMusicScanError(
+                    type = LocalMusicScanErrorType.Unknown,
+                    message = "Android 本地音乐扫描器尚未初始化",
+                    sourceKind = LocalMusicSourceKind.AndroidMediaStore,
+                ),
         )
-    }
 }

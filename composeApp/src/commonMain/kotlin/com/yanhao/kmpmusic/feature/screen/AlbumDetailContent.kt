@@ -71,10 +71,11 @@ internal fun buildAlbumDetailContent(
     album: Album,
     songs: List<Song>,
 ): AlbumDetailContent {
-    val albumSongs: List<Song> = buildAlbumDetailSongs(
-        album = album,
-        songs = songs,
-    )
+    val albumSongs: List<Song> =
+        buildAlbumDetailSongs(
+            album = album,
+            songs = songs,
+        )
     return buildAlbumDetailContent(albumSongs = albumSongs)
 }
 
@@ -84,22 +85,20 @@ internal fun buildAlbumDetailContent(
 internal fun buildAlbumDetailSongs(
     album: Album,
     songs: List<Song>,
-): List<Song> {
-    return songs
+): List<Song> =
+    songs
         .filter { song: Song -> isSongInAlbum(song = song, album = album) }
         .sortedBy { song: Song -> albumTrackSortKey(song = song) }
-}
 
 /**
  * 根据稳定专辑队列构建内容文案，不在这里预构建 500 条行状态。
  */
-internal fun buildAlbumDetailContent(albumSongs: List<Song>): AlbumDetailContent {
-    return AlbumDetailContent(
+internal fun buildAlbumDetailContent(albumSongs: List<Song>): AlbumDetailContent =
+    AlbumDetailContent(
         albumSongs = albumSongs,
         playAllText = "播放全部",
         playAllCountText = "${albumSongs.size}首",
     )
-}
 
 /**
  * 判断行主体点击应切歌还是切换当前播放状态。
@@ -127,11 +126,10 @@ private fun albumTrackSortKey(song: Song): Int {
 }
 
 // 与全局播放控制保持一致：正在启动、缓冲和播放中都可通过当前歌曲行暂停。
-private fun shouldShowAlbumDetailPauseControl(currentPlaybackStatus: PlaybackStatus): Boolean {
-    return currentPlaybackStatus == PlaybackStatus.Loading ||
+private fun shouldShowAlbumDetailPauseControl(currentPlaybackStatus: PlaybackStatus): Boolean =
+    currentPlaybackStatus == PlaybackStatus.Loading ||
         currentPlaybackStatus == PlaybackStatus.Buffering ||
         currentPlaybackStatus == PlaybackStatus.Playing
-}
 
 // 专辑详情页遵循全局规则：当前歌曲在列表中使用红色文本，并显示辅助标识。
 internal fun buildAlbumDetailSongRowState(

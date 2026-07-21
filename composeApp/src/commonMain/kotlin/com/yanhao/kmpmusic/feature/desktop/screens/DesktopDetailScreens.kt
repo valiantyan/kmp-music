@@ -28,18 +28,21 @@ internal fun DesktopAlbumDetailScreen(
     onSongPlay: (Song, List<Song>) -> Unit,
     onMore: (Song) -> Unit,
 ) {
-    val albumSongs: List<Song> = album?.let { selectedAlbum: Album ->
-        songs.filter { song: Song ->
-            isSongInAlbum(
-                song = song,
-                album = selectedAlbum,
-            )
-        }
-    }.orEmpty()
+    val albumSongs: List<Song> =
+        album
+            ?.let { selectedAlbum: Album ->
+                songs.filter { song: Song ->
+                    isSongInAlbum(
+                        song = song,
+                        album = selectedAlbum,
+                    )
+                }
+            }.orEmpty()
     Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState()),
+        modifier =
+            Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState()),
     ) {
         DesktopPageHeader(
             title = album?.title ?: "专辑不可用",
@@ -82,16 +85,20 @@ internal fun DesktopArtistDetailScreen(
     onSongPlay: (Song, List<Song>) -> Unit,
     onMore: (Song) -> Unit,
 ) {
-    val artistSongs: List<Song> = artist?.let { selectedArtist: Artist ->
-        songs.filter { song: Song -> song.artist == selectedArtist.name }
-    }.orEmpty()
-    val artistAlbumCount: Int = artist?.let { selectedArtist: Artist ->
-        albums.count { album: Album -> album.artist == selectedArtist.name }
-    } ?: 0
+    val artistSongs: List<Song> =
+        artist
+            ?.let { selectedArtist: Artist ->
+                songs.filter { song: Song -> song.artist == selectedArtist.name }
+            }.orEmpty()
+    val artistAlbumCount: Int =
+        artist?.let { selectedArtist: Artist ->
+            albums.count { album: Album -> album.artist == selectedArtist.name }
+        } ?: 0
     Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState()),
+        modifier =
+            Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState()),
     ) {
         DesktopPageHeader(
             title = artist?.name ?: "歌手不可用",
@@ -121,9 +128,10 @@ fun DesktopEmptyStateScreen(
     subtitle: String,
 ) {
     Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState()),
+        modifier =
+            Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState()),
     ) {
         DesktopPageHeader(
             title = title,

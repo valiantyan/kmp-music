@@ -14,15 +14,17 @@ object DesktopPlaybackSession {
     private val runtime: DesktopPlaybackSessionRuntime by lazy {
         val sessionScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
         val playbackDatabase: PlaybackDatabase = createDesktopPlaybackDatabase()
-        val audioRuntime: DesktopAudioRuntime = DesktopAudioRuntimeFactory.create(
-            sessionScope = sessionScope,
-        )
+        val audioRuntime: DesktopAudioRuntime =
+            DesktopAudioRuntimeFactory.create(
+                sessionScope = sessionScope,
+            )
         DesktopPlaybackSessionRuntime(
-            controller = createDesktopPlaybackController(
-                playbackDatabase = playbackDatabase,
-                audioPlayerEngine = audioRuntime.audioEngine,
-                controllerScope = sessionScope,
-            ),
+            controller =
+                createDesktopPlaybackController(
+                    playbackDatabase = playbackDatabase,
+                    audioPlayerEngine = audioRuntime.audioEngine,
+                    controllerScope = sessionScope,
+                ),
             sessionScope = sessionScope,
             releaseAudioEngineAndAwait = {
                 audioRuntime.audioEngine.releaseAndAwait()

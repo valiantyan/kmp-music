@@ -32,13 +32,12 @@ internal class AndroidPlaybackMediaNotificationProvider(
         playerCommands: Player.Commands,
         mediaButtonPreferences: ImmutableList<CommandButton>,
         showPauseButton: Boolean,
-    ): ImmutableList<CommandButton> {
-        return AndroidPlaybackMediaButtonOrdering.orderMediaButtons(
+    ): ImmutableList<CommandButton> =
+        AndroidPlaybackMediaButtonOrdering.orderMediaButtons(
             playerCommands = playerCommands,
             mediaButtonPreferences = mediaButtonPreferences,
             showPauseButton = showPauseButton,
         )
-    }
 
     /**
      * 把 [getMediaButtons] 的顺序原样写入通知，并声明紧凑态优先展示收藏、播放/暂停、下一首。
@@ -83,29 +82,30 @@ internal class AndroidPlaybackMediaNotificationProvider(
 
     // 紧凑态最多 3 个位置；收藏缺失时回退到上一首，避免兼容控制器出现空位。
     private fun ImmutableList<CommandButton>.resolveCompactViewIndices(): IntArray {
-        val firstIndex: Int = indexOfFirst(PlaybackMediaCommandCatalog::isToggleFavoriteButton)
-            .takeIf { index: Int -> index >= 0 }
-            ?: indexOfFirst { commandButton: CommandButton -> commandButton.hasPreviousCommand() }
-        val playPauseIndex: Int = indexOfFirst { commandButton: CommandButton ->
-            commandButton.playerCommand == Player.COMMAND_PLAY_PAUSE
-        }
-        val nextIndex: Int = indexOfFirst { commandButton: CommandButton ->
-            commandButton.hasNextCommand()
-        }
+        val firstIndex: Int =
+            indexOfFirst(PlaybackMediaCommandCatalog::isToggleFavoriteButton)
+                .takeIf { index: Int -> index >= 0 }
+                ?: indexOfFirst { commandButton: CommandButton -> commandButton.hasPreviousCommand() }
+        val playPauseIndex: Int =
+            indexOfFirst { commandButton: CommandButton ->
+                commandButton.playerCommand == Player.COMMAND_PLAY_PAUSE
+            }
+        val nextIndex: Int =
+            indexOfFirst { commandButton: CommandButton ->
+                commandButton.hasNextCommand()
+            }
         return listOf(firstIndex, playPauseIndex, nextIndex)
             .filter { index: Int -> index >= 0 }
             .toIntArray()
     }
 
     // 判断按钮是否承载上一首命令，用于紧凑态 fallback。
-    private fun CommandButton.hasPreviousCommand(): Boolean {
-        return playerCommand == Player.COMMAND_SEEK_TO_PREVIOUS ||
+    private fun CommandButton.hasPreviousCommand(): Boolean =
+        playerCommand == Player.COMMAND_SEEK_TO_PREVIOUS ||
             playerCommand == Player.COMMAND_SEEK_TO_PREVIOUS_MEDIA_ITEM
-    }
 
     // 判断按钮是否承载下一首命令，用于紧凑态第三位。
-    private fun CommandButton.hasNextCommand(): Boolean {
-        return playerCommand == Player.COMMAND_SEEK_TO_NEXT ||
+    private fun CommandButton.hasNextCommand(): Boolean =
+        playerCommand == Player.COMMAND_SEEK_TO_NEXT ||
             playerCommand == Player.COMMAND_SEEK_TO_NEXT_MEDIA_ITEM
-    }
 }

@@ -7,7 +7,7 @@ import kotlin.test.assertEquals
 
 class PlaybackHistoryRecorderTest {
     @Test
-    fun newSongIsPlacedAtFront(): Unit {
+    fun newSongIsPlacedAtFront() {
         val repository = InMemoryPlaybackRepository()
         repository.savePlaybackHistory(history = PlaybackHistory(songIds = listOf("b", "c")))
         val recorder = PlaybackHistoryRecorder(playbackRepository = repository)
@@ -18,7 +18,7 @@ class PlaybackHistoryRecorderTest {
     }
 
     @Test
-    fun duplicateSongMovesToFrontAndKeepsSingleEntry(): Unit {
+    fun duplicateSongMovesToFrontAndKeepsSingleEntry() {
         val repository = InMemoryPlaybackRepository()
         repository.savePlaybackHistory(history = PlaybackHistory(songIds = listOf("a", "b", "c")))
         val recorder = PlaybackHistoryRecorder(playbackRepository = repository)
@@ -29,7 +29,7 @@ class PlaybackHistoryRecorderTest {
     }
 
     @Test
-    fun historyKeepsAtMostFiftySongs(): Unit {
+    fun historyKeepsAtMostFiftySongs() {
         val repository = InMemoryPlaybackRepository()
         repository.savePlaybackHistory(
             history = PlaybackHistory(songIds = (1..55).map { index: Int -> "song-$index" }),

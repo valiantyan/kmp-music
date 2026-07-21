@@ -12,28 +12,46 @@ import platform.Foundation.NSUserDomainMask
 internal interface IosImportFileSystem {
     /** 从 [NSURL] 读取平台路径。 */
     fun path(url: NSURL): String?
+
     /** 从 [NSURL] 读取展示或诊断用绝对 URL。 */
     fun absoluteString(url: NSURL): String
+
     /** 从 [NSURL] 读取末级名称。 */
     fun lastPathComponent(url: NSURL): String?
+
     /** 列出目录下所有相对路径，返回空集合代表目录为空。 */
     fun listSubpaths(path: String): List<String>?
+
     /** 判断路径是否存在。 */
     fun fileExists(path: String): Boolean
+
     /** 判断路径是否可读。 */
     fun isReadableFile(path: String): Boolean
+
     /** 返回 App 沙盒内导入目录路径。 */
     fun sandboxImportDirectoryPath(): String?
+
     /** 确保目录存在，失败时返回 false。 */
     fun ensureDirectory(path: String): Boolean
+
     /** 把路径转换为 file URL 字符串。 */
     fun fileUrlString(path: String): String
+
     /** 复制文件到目标路径。 */
-    fun copyFile(sourcePath: String, destinationPath: String): Boolean
+    fun copyFile(
+        sourcePath: String,
+        destinationPath: String,
+    ): Boolean
+
     /** 原子提交临时文件到最终路径。 */
-    fun moveFile(sourcePath: String, destinationPath: String): Boolean
+    fun moveFile(
+        sourcePath: String,
+        destinationPath: String,
+    ): Boolean
+
     /** 删除路径，常用于清理临时文件。 */
     fun removeFile(path: String): Boolean
+
     /** 判断路径是否仍处在 App 沙盒边界内。 */
     fun isPathInAppSandbox(path: String): Boolean
 }
@@ -69,54 +87,56 @@ internal class NSFileManagerIosImportFileSystemImpl : IosImportFileSystem {
 
     /** 返回 App Documents 下的导入目录。 */
     override fun sandboxImportDirectoryPath(): String? {
-        val documentsUrl: NSURL = fileManager.URLsForDirectory(
-            directory = NSDocumentDirectory,
-            inDomains = NSUserDomainMask,
-        ).firstOrNull() as? NSURL ?: return null
+        val documentsUrl: NSURL =
+            fileManager
+                .URLsForDirectory(
+                    directory = NSDocumentDirectory,
+                    inDomains = NSUserDomainMask,
+                ).firstOrNull() as? NSURL ?: return null
         val documentsPath: String = documentsUrl.path ?: return null
         return "$documentsPath/$IOS_IMPORTED_AUDIO_DIRECTORY"
     }
 
     /** 确保目录存在。 */
-    override fun ensureDirectory(path: String): Boolean {
-        return fileManager.createDirectoryAtPath(
+    override fun ensureDirectory(path: String): Boolean =
+        fileManager.createDirectoryAtPath(
             path = path,
             withIntermediateDirectories = true,
             attributes = null,
             error = null,
         )
-    }
 
     /** 把路径转换成标准 file URL 字符串。 */
-    override fun fileUrlString(path: String): String {
-        return NSURL.fileURLWithPath(path = path).absoluteString ?: path
-    }
+    override fun fileUrlString(path: String): String = NSURL.fileURLWithPath(path = path).absoluteString ?: path
 
     /** 复制文件到目标路径。 */
-    override fun copyFile(sourcePath: String, destinationPath: String): Boolean {
-        return fileManager.copyItemAtPath(
+    override fun copyFile(
+        sourcePath: String,
+        destinationPath: String,
+    ): Boolean =
+        fileManager.copyItemAtPath(
             srcPath = sourcePath,
             toPath = destinationPath,
             error = null,
         )
-    }
 
     /** 移动临时文件到最终路径。 */
-    override fun moveFile(sourcePath: String, destinationPath: String): Boolean {
-        return fileManager.moveItemAtPath(
+    override fun moveFile(
+        sourcePath: String,
+        destinationPath: String,
+    ): Boolean =
+        fileManager.moveItemAtPath(
             srcPath = sourcePath,
             toPath = destinationPath,
             error = null,
         )
-    }
 
     /** 删除指定路径。 */
-    override fun removeFile(path: String): Boolean {
-        return fileManager.removeItemAtPath(
+    override fun removeFile(path: String): Boolean =
+        fileManager.removeItemAtPath(
             path = path,
             error = null,
         )
-    }
 
     /** 判断路径是否在 App 的导入目录内。 */
     override fun isPathInAppSandbox(path: String): Boolean {

@@ -35,11 +35,12 @@ class PlaybackActionController(
         song: Song,
         queueSongs: List<Song>,
     ): PreparedPlaySong {
-        val resolvedQueueSongs: List<Song> = resolvePlaybackQueueSongs(
-            state = state,
-            song = song,
-            queueSongs = queueSongs,
-        )
+        val resolvedQueueSongs: List<Song> =
+            resolvePlaybackQueueSongs(
+                state = state,
+                song = song,
+                queueSongs = queueSongs,
+            )
         return PreparedPlaySong(
             state = state.copy(queueSongsSnapshot = resolvedQueueSongs),
             song = song,
@@ -59,13 +60,12 @@ class PlaybackActionController(
     fun preparePlayRecentSong(
         state: MusicAppUiState,
         song: Song,
-    ): PreparedPlaySong {
-        return preparePlaySong(
+    ): PreparedPlaySong =
+        preparePlaySong(
             state = state,
             song = song,
             queueSongs = state.recentSongs,
         )
-    }
 
     /** 切换播放暂停。 */
     fun togglePlayback() {
@@ -92,7 +92,10 @@ class PlaybackActionController(
     }
 
     /** 按精确队列下标切歌。 */
-    fun skipToQueueIndex(index: Int, positionMs: Long = 0L) {
+    fun skipToQueueIndex(
+        index: Int,
+        positionMs: Long = 0L,
+    ) {
         playbackCoordinator.skipToQueueIndex(
             index = index,
             positionMs = positionMs,
@@ -104,13 +107,15 @@ class PlaybackActionController(
         playbackCoordinator.seekTo(positionMs = positionMs)
         controllerScope.launch {
             playbackSnapshotStore.saveSnapshot(
-                snapshot = PlaybackSnapshot(
-                    playbackState = playbackRepository.getPlaybackState().copy(
-                        positionMs = positionMs.coerceAtLeast(minimumValue = 0L),
+                snapshot =
+                    PlaybackSnapshot(
+                        playbackState =
+                            playbackRepository.getPlaybackState().copy(
+                                positionMs = positionMs.coerceAtLeast(minimumValue = 0L),
+                            ),
+                        queueState = playbackRepository.getQueueState(),
+                        updatedAt = nowMillis(),
                     ),
-                    queueState = playbackRepository.getQueueState(),
-                    updatedAt = nowMillis(),
-                ),
             )
         }
     }
@@ -131,7 +136,10 @@ class PlaybackActionController(
     }
 
     /** Android 播放 service 退出前补写最终暂停快照。 */
-    fun persistPlaybackSnapshotForServiceTeardown(positionMs: Long, durationMs: Long?) {
+    fun persistPlaybackSnapshotForServiceTeardown(
+        positionMs: Long,
+        durationMs: Long?,
+    ) {
         playbackCoordinator.persistSnapshotForServiceTeardown(
             positionMs = positionMs,
             durationMs = durationMs,
@@ -139,7 +147,10 @@ class PlaybackActionController(
     }
 
     /** Desktop 进程退出前同步固化最后进度。 */
-    suspend fun persistPlaybackSnapshotForProcessTeardown(positionMs: Long, durationMs: Long?) {
+    suspend fun persistPlaybackSnapshotForProcessTeardown(
+        positionMs: Long,
+        durationMs: Long?,
+    ) {
         playbackCoordinator.persistSnapshotForProcessTeardown(
             positionMs = positionMs,
             durationMs = durationMs,

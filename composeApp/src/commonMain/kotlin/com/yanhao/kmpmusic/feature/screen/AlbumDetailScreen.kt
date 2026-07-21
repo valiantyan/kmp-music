@@ -31,26 +31,29 @@ fun AlbumDetailScreen(
     modifier: Modifier = Modifier,
     contentPadding: PaddingValues = PaddingValues(),
 ) {
-    val albumSongs: List<Song> = remember(
-        album,
-        songs,
-    ) {
-        buildAlbumDetailSongs(
-            album = album,
-            songs = songs,
-        )
-    }
-    val content: AlbumDetailContent = remember(
-        albumSongs,
-    ) {
-        buildAlbumDetailContent(albumSongs = albumSongs)
-    }
-    val playAlbumSong: (Song) -> Unit = remember(
-        albumSongs,
-        onSongPlay,
-    ) {
-        { song: Song -> onSongPlay(song, albumSongs) }
-    }
+    val albumSongs: List<Song> =
+        remember(
+            album,
+            songs,
+        ) {
+            buildAlbumDetailSongs(
+                album = album,
+                songs = songs,
+            )
+        }
+    val content: AlbumDetailContent =
+        remember(
+            albumSongs,
+        ) {
+            buildAlbumDetailContent(albumSongs = albumSongs)
+        }
+    val playAlbumSong: (Song) -> Unit =
+        remember(
+            albumSongs,
+            onSongPlay,
+        ) {
+            { song: Song -> onSongPlay(song, albumSongs) }
+        }
     MobileSecondaryPage(
         title = album.title,
         onBack = onBack,
@@ -58,50 +61,53 @@ fun AlbumDetailScreen(
         modifier = modifier,
     ) {
         LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .weight(weight = 1f),
-            contentPadding = PaddingValues(
-                bottom = contentPadding.calculateBottomPadding() + 40.dp,
-            ),
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .weight(weight = 1f),
+            contentPadding =
+                PaddingValues(
+                    bottom = contentPadding.calculateBottomPadding() + 40.dp,
+                ),
         ) {
-        item(key = "album-header", contentType = "album-header") {
-            AlbumDetailHeader(album = album)
-        }
-        item(key = "album-play-all", contentType = "album-play-all") {
-            AlbumDetailPlayAllButton(
-                text = content.playAllText,
-                countText = content.playAllCountText,
-                enabled = content.albumSongs.isNotEmpty(),
-                onClick = {
-                    content.albumSongs.firstOrNull()?.let { song: Song ->
-                        onSongPlay(song, content.albumSongs)
-                    }
-                },
-            )
-        }
-        item(key = "album-song-list-top-gap", contentType = "album-gap") {
-            Spacer(modifier = Modifier.height(height = 32.dp))
-        }
-        itemsIndexed(
-            items = content.albumSongs,
-            key = { _: Int, song: Song -> song.id },
-            contentType = { _: Int, _: Song -> "album-detail-song" },
-        ) { index: Int, song: Song ->
-            val rowState: AlbumDetailSongRowState = buildAlbumDetailSongRowState(
-                index = index,
-                song = song,
-                isCurrentSong = song.id == currentSongId,
-            )
-            AlbumDetailSongRow(
-                rowState = rowState,
-                isCurrentSong = song.id == currentSongId,
-                currentPlaybackStatus = currentPlaybackStatus,
-                onSongPlay = playAlbumSong,
-                onCurrentSongToggle = onCurrentSongToggle,
-                onMore = onMore,
-            )
-        }
+            item(key = "album-header", contentType = "album-header") {
+                AlbumDetailHeader(album = album)
+            }
+            item(key = "album-play-all", contentType = "album-play-all") {
+                AlbumDetailPlayAllButton(
+                    text = content.playAllText,
+                    countText = content.playAllCountText,
+                    enabled = content.albumSongs.isNotEmpty(),
+                    onClick = {
+                        content.albumSongs.firstOrNull()?.let { song: Song ->
+                            onSongPlay(song, content.albumSongs)
+                        }
+                    },
+                )
+            }
+            item(key = "album-song-list-top-gap", contentType = "album-gap") {
+                Spacer(modifier = Modifier.height(height = 32.dp))
+            }
+            itemsIndexed(
+                items = content.albumSongs,
+                key = { _: Int, song: Song -> song.id },
+                contentType = { _: Int, _: Song -> "album-detail-song" },
+            ) { index: Int, song: Song ->
+                val rowState: AlbumDetailSongRowState =
+                    buildAlbumDetailSongRowState(
+                        index = index,
+                        song = song,
+                        isCurrentSong = song.id == currentSongId,
+                    )
+                AlbumDetailSongRow(
+                    rowState = rowState,
+                    isCurrentSong = song.id == currentSongId,
+                    currentPlaybackStatus = currentPlaybackStatus,
+                    onSongPlay = playAlbumSong,
+                    onCurrentSongToggle = onCurrentSongToggle,
+                    onMore = onMore,
+                )
+            }
         }
     }
 }

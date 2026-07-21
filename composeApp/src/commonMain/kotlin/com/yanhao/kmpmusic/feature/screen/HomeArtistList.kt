@@ -74,19 +74,21 @@ internal fun HomeArtistRow(
     onArtistOpen: (Artist) -> Unit,
 ) {
     Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(height = homeArtistRowHeight)
-            .padding(horizontal = 20.dp),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .height(height = homeArtistRowHeight)
+                .padding(horizontal = 20.dp),
         shape = RoundedCornerShape(size = 12.dp),
         color = Color.White,
         onClick = { onArtistOpen(artist) },
     ) {
         Row(
-            modifier = Modifier.padding(
-                horizontal = 16.dp,
-                vertical = homeArtistRowVerticalPadding,
-            ),
+            modifier =
+                Modifier.padding(
+                    horizontal = 16.dp,
+                    vertical = homeArtistRowVerticalPadding,
+                ),
             horizontalArrangement = Arrangement.spacedBy(space = 16.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -109,22 +111,23 @@ internal fun HomeArtistRow(
 @Composable
 private fun HomeArtistAvatar(artist: Artist) {
     Box(
-        modifier = Modifier
-            .size(size = homeArtistAvatarOuterSize)
-            .border(
-                width = homeArtistAvatarBorderWidth,
-                color = homeArtistAvatarBorderColor,
-                shape = CircleShape,
-            )
-            .padding(all = homeArtistAvatarInset),
+        modifier =
+            Modifier
+                .size(size = homeArtistAvatarOuterSize)
+                .border(
+                    width = homeArtistAvatarBorderWidth,
+                    color = homeArtistAvatarBorderColor,
+                    shape = CircleShape,
+                ).padding(all = homeArtistAvatarInset),
     ) {
         CoverArtImage(
             coverArt = artist.coverArt,
             coverImageUri = artist.coverImageUri,
             contentDescription = "${artist.name} 歌手头像",
-            modifier = Modifier
-                .fillMaxSize()
-                .clip(shape = CircleShape),
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .clip(shape = CircleShape),
             contentScale = ContentScale.Crop,
         )
     }

@@ -11,17 +11,18 @@ import kotlin.test.assertTrue
 class MacosAvFoundationRestorePositionGateTest {
     /** 验证 native [prepare] 等待 AVFoundation ready，并在初始 seek 完成后才回调 prepared。 */
     @Test
-    fun nativePrepareCompletesInitialSeekBeforePreparedCallback(): Unit {
+    fun nativePrepareCompletesInitialSeekBeforePreparedCallback() {
         val text: String = readProjectFile(relativePath = NATIVE_BRIDGE_FILE_PATH)
         assertContainsAll(
             text = text,
-            requiredSnippets = listOf(
-                "completePreparationWhenReadyForItem:item",
-                "AVPlayerItemStatusReadyToPlay",
-                "completeInitialSeekForItem:item",
-                "seekToTime:targetTime",
-                "emitPrepared:generation item:item",
-            ),
+            requiredSnippets =
+                listOf(
+                    "completePreparationWhenReadyForItem:item",
+                    "AVPlayerItemStatusReadyToPlay",
+                    "completeInitialSeekForItem:item",
+                    "seekToTime:targetTime",
+                    "emitPrepared:generation item:item",
+                ),
         )
     }
 
@@ -44,10 +45,11 @@ class MacosAvFoundationRestorePositionGateTest {
     private fun assertContainsAll(
         text: String,
         requiredSnippets: List<String>,
-    ): Unit {
-        val missingSnippets: List<String> = requiredSnippets.filterNot { snippet: String ->
-            text.contains(other = snippet)
-        }
+    ) {
+        val missingSnippets: List<String> =
+            requiredSnippets.filterNot { snippet: String ->
+                text.contains(other = snippet)
+            }
         assertTrue(
             actual = missingSnippets.isEmpty(),
             message = "$NATIVE_BRIDGE_FILE_PATH 缺少：${missingSnippets.joinToString(separator = "；")}",

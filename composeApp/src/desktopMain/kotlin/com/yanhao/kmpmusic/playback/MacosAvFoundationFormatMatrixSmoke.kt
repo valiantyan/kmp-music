@@ -17,7 +17,7 @@ import javax.sound.sampled.AudioSystem
  */
 internal object MacosAvFoundationFormatMatrixSmoke {
     /** 生成样本并检查矩阵中所有已支持格式，待验证格式只输出边界。 */
-    fun run(workDir: Path): Unit {
+    fun run(workDir: Path) {
         val samplesByFormat: Map<String, List<Path>> = prepareFormatMatrixSamples(workDir = workDir)
         AppleAudioFormatSupportMatrix.entries.forEach { support: AppleAudioFormatSupport ->
             if (!support.allowsScanning) {
@@ -33,45 +33,52 @@ internal object MacosAvFoundationFormatMatrixSmoke {
             }
         }
     }
+
     /** 生成格式矩阵 smoke 所需的短音频样本。 */
     private fun prepareFormatMatrixSamples(workDir: Path): Map<String, List<Path>> {
         Files.createDirectories(workDir)
         val sourceWavPath: Path = workDir.resolve("apple-format-matrix-source.wav")
         createSmokeWav(wavPath = sourceWavPath)
-        val mp3Path: Path = convertWavToMp3(
-            wavPath = sourceWavPath,
-            outputPath = workDir.resolve("apple-format-matrix.mp3"),
-        )
-        val m4aPath: Path = convertWav(
-            wavPath = sourceWavPath,
-            outputPath = workDir.resolve("apple-format-matrix-aac.m4a"),
-            fileFormat = "m4af",
-            dataFormat = "aac",
-        )
-        val aacPath: Path = convertWav(
-            wavPath = sourceWavPath,
-            outputPath = workDir.resolve("apple-format-matrix.aac"),
-            fileFormat = "adts",
-            dataFormat = "aac",
-        )
-        val flacPath: Path = convertWav(
-            wavPath = sourceWavPath,
-            outputPath = workDir.resolve("apple-format-matrix.flac"),
-            fileFormat = "flac",
-            dataFormat = null,
-        )
-        val aiffPath: Path = convertWav(
-            wavPath = sourceWavPath,
-            outputPath = workDir.resolve("apple-format-matrix.aiff"),
-            fileFormat = "AIFF",
-            dataFormat = "BEI16",
-        )
-        val alacPath: Path = convertWav(
-            wavPath = sourceWavPath,
-            outputPath = workDir.resolve("apple-format-matrix-alac.m4a"),
-            fileFormat = "m4af",
-            dataFormat = "alac",
-        )
+        val mp3Path: Path =
+            convertWavToMp3(
+                wavPath = sourceWavPath,
+                outputPath = workDir.resolve("apple-format-matrix.mp3"),
+            )
+        val m4aPath: Path =
+            convertWav(
+                wavPath = sourceWavPath,
+                outputPath = workDir.resolve("apple-format-matrix-aac.m4a"),
+                fileFormat = "m4af",
+                dataFormat = "aac",
+            )
+        val aacPath: Path =
+            convertWav(
+                wavPath = sourceWavPath,
+                outputPath = workDir.resolve("apple-format-matrix.aac"),
+                fileFormat = "adts",
+                dataFormat = "aac",
+            )
+        val flacPath: Path =
+            convertWav(
+                wavPath = sourceWavPath,
+                outputPath = workDir.resolve("apple-format-matrix.flac"),
+                fileFormat = "flac",
+                dataFormat = null,
+            )
+        val aiffPath: Path =
+            convertWav(
+                wavPath = sourceWavPath,
+                outputPath = workDir.resolve("apple-format-matrix.aiff"),
+                fileFormat = "AIFF",
+                dataFormat = "BEI16",
+            )
+        val alacPath: Path =
+            convertWav(
+                wavPath = sourceWavPath,
+                outputPath = workDir.resolve("apple-format-matrix-alac.m4a"),
+                fileFormat = "m4af",
+                dataFormat = "alac",
+            )
         return mapOf(
             "MP3" to listOf(mp3Path),
             "M4A/AAC" to listOf(m4aPath, aacPath),
@@ -80,6 +87,7 @@ internal object MacosAvFoundationFormatMatrixSmoke {
             "AIFF/ALAC" to listOf(aiffPath, alacPath),
         )
     }
+
     /** 使用 AVFoundation 的可播放性加载检查真实样本，不依赖旧第三方播放器结论。 */
     private fun checkAvFoundationPlayable(
         formatName: String,
@@ -88,11 +96,12 @@ internal object MacosAvFoundationFormatMatrixSmoke {
     ) {
         Files.createDirectories(moduleCacheDir)
         val script: String = buildAvFoundationPlayableScript(mediaPath = mediaPath)
-        val processBuilder: ProcessBuilder = ProcessBuilder(
-            "/usr/bin/swift",
-            "-e",
-            script,
-        ).redirectErrorStream(true)
+        val processBuilder: ProcessBuilder =
+            ProcessBuilder(
+                "/usr/bin/swift",
+                "-e",
+                script,
+            ).redirectErrorStream(true)
         processBuilder.environment()["CLANG_MODULE_CACHE_PATH"] = moduleCacheDir.toString()
         val process: Process = processBuilder.start()
         val output: String = process.inputStream.bufferedReader().readText()
@@ -105,19 +114,22 @@ internal object MacosAvFoundationFormatMatrixSmoke {
         }
         println("format-matrix: $formatName=支持，AVFoundation 可播放性检查样本：${mediaPath.fileName}")
     }
+
     /** 生成 Swift 脚本，调用 AVFoundation 的 isPlayable key。 */
     private fun buildAvFoundationPlayableScript(mediaPath: Path): String {
-        val escapedPath: String = mediaPath
-            .toAbsolutePath()
-            .toString()
-            .replace(oldValue = "\\", newValue = "\\\\")
-            .replace(oldValue = "\"", newValue = "\\\"")
+        val escapedPath: String =
+            mediaPath
+                .toAbsolutePath()
+                .toString()
+                .replace(oldValue = "\\", newValue = "\\\\")
+                .replace(oldValue = "\"", newValue = "\\\"")
         return "import AVFoundation; import Foundation; " +
             "let url = URL(fileURLWithPath: \"$escapedPath\"); " +
             "let asset = AVURLAsset(url: url); " +
             "let playable = try await asset.load(.isPlayable); " +
             "print(playable ? \"playable\" : \"not-playable\")"
     }
+
     /** 写入短正弦波 WAV，作为格式转换源文件。 */
     private fun createSmokeWav(wavPath: Path) {
         Files.deleteIfExists(wavPath)
@@ -136,28 +148,36 @@ internal object MacosAvFoundationFormatMatrixSmoke {
     }
 
     /** 生成 MP3 样本；macOS afconvert 当前可解码 MP3 但不一定能编码 MP3。 */
-    private fun convertWavToMp3(wavPath: Path, outputPath: Path): Path {
-        return runProcess(
-            command = mp3EncoderCommand(
-                wavPath = wavPath,
-                outputPath = outputPath,
-            ),
+    private fun convertWavToMp3(
+        wavPath: Path,
+        outputPath: Path,
+    ): Path =
+        runProcess(
+            command =
+                mp3EncoderCommand(
+                    wavPath = wavPath,
+                    outputPath = outputPath,
+                ),
             outputPath = outputPath,
             label = "MP3",
         )
-    }
 
     /** 选择当前机器可用的 MP3 编码器，样本只用于后续 AVFoundation 检查。 */
-    private fun mp3EncoderCommand(wavPath: Path, outputPath: Path): List<String> {
-        val ffmpegPath: Path? = listOf("/opt/homebrew/bin/ffmpeg", "/usr/local/bin/ffmpeg")
-            .map { candidate: String -> Paths.get(candidate) }
-            .firstOrNull { path: Path -> Files.isExecutable(path) }
+    private fun mp3EncoderCommand(
+        wavPath: Path,
+        outputPath: Path,
+    ): List<String> {
+        val ffmpegPath: Path? =
+            listOf("/opt/homebrew/bin/ffmpeg", "/usr/local/bin/ffmpeg")
+                .map { candidate: String -> Paths.get(candidate) }
+                .firstOrNull { path: Path -> Files.isExecutable(path) }
         if (ffmpegPath != null) {
             return listOf(ffmpegPath.toString(), "-y", "-hide_banner", "-loglevel", "error", "-i", wavPath.toString(), "-codec:a", "libmp3lame", "-b:a", "128k", outputPath.toString())
         }
-        val lamePath: Path? = listOf("/opt/homebrew/bin/lame", "/usr/local/bin/lame")
-            .map { candidate: String -> Paths.get(candidate) }
-            .firstOrNull { path: Path -> Files.isExecutable(path) }
+        val lamePath: Path? =
+            listOf("/opt/homebrew/bin/lame", "/usr/local/bin/lame")
+                .map { candidate: String -> Paths.get(candidate) }
+                .firstOrNull { path: Path -> Files.isExecutable(path) }
         if (lamePath != null) {
             return listOf(lamePath.toString(), "--silent", wavPath.toString(), outputPath.toString())
         }
@@ -182,7 +202,11 @@ internal object MacosAvFoundationFormatMatrixSmoke {
     }
 
     /** 执行样本生成命令，失败时保留命令输出作为诊断。 */
-    private fun runProcess(command: List<String>, outputPath: Path, label: String): Path {
+    private fun runProcess(
+        command: List<String>,
+        outputPath: Path,
+        label: String,
+    ): Path {
         Files.deleteIfExists(outputPath)
         try {
             val process: Process = ProcessBuilder(command).redirectErrorStream(true).start()

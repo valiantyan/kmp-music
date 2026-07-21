@@ -24,22 +24,26 @@ class MergeLocalMusicScanResultUseCaseTest {
      * 可播放歌曲应按 modifiedAt 降序进入快照，并保留收藏状态。
      */
     @Test
-    fun mergeCreatesPlayableSnapshotSortedByModifiedTime(): Unit {
-        val result: LocalMusicScanResult = LocalMusicScanResult(
-            discovered = listOf(
-                metadata(sourceId = "1", title = "旧歌", modifiedAt = 10L),
-                metadata(sourceId = "2", title = "新歌", modifiedAt = 20L),
-            ),
-            completedAt = 30L,
-        )
+    fun mergeCreatesPlayableSnapshotSortedByModifiedTime() {
+        val result: LocalMusicScanResult =
+            LocalMusicScanResult(
+                discovered =
+                    listOf(
+                        metadata(sourceId = "1", title = "旧歌", modifiedAt = 10L),
+                        metadata(sourceId = "2", title = "新歌", modifiedAt = 20L),
+                    ),
+                completedAt = 30L,
+            )
 
-        val snapshot: LibrarySnapshot = useCase(
-            request = MergeLocalMusicScanResultRequest(
-                previousSnapshot = LibrarySnapshot.Empty,
-                scanResult = result,
-                likedSongIds = setOf("fakeScanner:2"),
-            ),
-        )
+        val snapshot: LibrarySnapshot =
+            useCase(
+                request =
+                    MergeLocalMusicScanResultRequest(
+                        previousSnapshot = LibrarySnapshot.Empty,
+                        scanResult = result,
+                        likedSongIds = setOf("fakeScanner:2"),
+                    ),
+            )
 
         assertEquals(expected = listOf("新歌", "旧歌"), actual = snapshot.songs.map { song -> song.title })
         assertTrue(actual = snapshot.songs.first().isLiked)
@@ -52,29 +56,34 @@ class MergeLocalMusicScanResultUseCaseTest {
      * 失败条目不能进入首页本地歌曲列表，只能出现在问题列表。
      */
     @Test
-    fun mergeExcludesFailedEntriesFromSongs(): Unit {
-        val failed: LocalMusicProblem = LocalMusicProblem(
-            sourceKind = LocalMusicSourceKind.FakeScanner,
-            sourceId = "bad",
-            fileName = "broken.wav",
-            error = LocalMusicScanError(
-                type = LocalMusicScanErrorType.UnsupportedFormat,
-                message = "格式不支持",
+    fun mergeExcludesFailedEntriesFromSongs() {
+        val failed: LocalMusicProblem =
+            LocalMusicProblem(
                 sourceKind = LocalMusicSourceKind.FakeScanner,
                 sourceId = "bad",
-            ),
-        )
-        val snapshot: LibrarySnapshot = useCase(
-            request = MergeLocalMusicScanResultRequest(
-                previousSnapshot = LibrarySnapshot.Empty,
-                scanResult = LocalMusicScanResult(
-                    discovered = listOf(metadata(sourceId = "ok", title = "可播放", modifiedAt = 20L)),
-                    failed = listOf(failed),
-                    completedAt = 40L,
-                ),
-                likedSongIds = emptySet(),
-            ),
-        )
+                fileName = "broken.wav",
+                error =
+                    LocalMusicScanError(
+                        type = LocalMusicScanErrorType.UnsupportedFormat,
+                        message = "格式不支持",
+                        sourceKind = LocalMusicSourceKind.FakeScanner,
+                        sourceId = "bad",
+                    ),
+            )
+        val snapshot: LibrarySnapshot =
+            useCase(
+                request =
+                    MergeLocalMusicScanResultRequest(
+                        previousSnapshot = LibrarySnapshot.Empty,
+                        scanResult =
+                            LocalMusicScanResult(
+                                discovered = listOf(metadata(sourceId = "ok", title = "可播放", modifiedAt = 20L)),
+                                failed = listOf(failed),
+                                completedAt = 40L,
+                            ),
+                        likedSongIds = emptySet(),
+                    ),
+            )
 
         assertEquals(expected = listOf("可播放"), actual = snapshot.songs.map { song -> song.title })
         assertEquals(expected = 1, actual = snapshot.problems.size)
@@ -85,27 +94,31 @@ class MergeLocalMusicScanResultUseCaseTest {
      * 缺失元数据必须有稳定兜底，避免 UI 出现空标题或空专辑。
      */
     @Test
-    fun mergeUsesMetadataFallbacks(): Unit {
-        val snapshot: LibrarySnapshot = useCase(
-            request = MergeLocalMusicScanResultRequest(
-                previousSnapshot = LibrarySnapshot.Empty,
-                scanResult = LocalMusicScanResult(
-                    discovered = listOf(
-                        metadata(
-                            sourceId = "3",
-                            fileName = "untitled-track.mp3",
-                            title = null,
-                            artist = null,
-                            album = null,
-                            durationMs = null,
-                            modifiedAt = 50L,
-                        ),
+    fun mergeUsesMetadataFallbacks() {
+        val snapshot: LibrarySnapshot =
+            useCase(
+                request =
+                    MergeLocalMusicScanResultRequest(
+                        previousSnapshot = LibrarySnapshot.Empty,
+                        scanResult =
+                            LocalMusicScanResult(
+                                discovered =
+                                    listOf(
+                                        metadata(
+                                            sourceId = "3",
+                                            fileName = "untitled-track.mp3",
+                                            title = null,
+                                            artist = null,
+                                            album = null,
+                                            durationMs = null,
+                                            modifiedAt = 50L,
+                                        ),
+                                    ),
+                                completedAt = 50L,
+                            ),
+                        likedSongIds = emptySet(),
                     ),
-                    completedAt = 50L,
-                ),
-                likedSongIds = emptySet(),
-            ),
-        )
+            )
 
         val song: Song = snapshot.songs.single()
         assertEquals(expected = "untitled-track", actual = song.title)
@@ -118,25 +131,29 @@ class MergeLocalMusicScanResultUseCaseTest {
      * 扫描封面 URI 要随歌曲、专辑和歌手一起聚合，避免 UI 退回应用内占位图。
      */
     @Test
-    fun mergeKeepsScannedCoverImageUriAcrossLibraryModels(): Unit {
+    fun mergeKeepsScannedCoverImageUriAcrossLibraryModels() {
         val coverImageUri: String = "file:///tmp/song-cover.art"
-        val snapshot: LibrarySnapshot = useCase(
-            request = MergeLocalMusicScanResultRequest(
-                previousSnapshot = LibrarySnapshot.Empty,
-                scanResult = LocalMusicScanResult(
-                    discovered = listOf(
-                        metadata(
-                            sourceId = "cover",
-                            title = "有封面的歌",
-                            modifiedAt = 60L,
-                            coverImageUri = coverImageUri,
-                        ),
+        val snapshot: LibrarySnapshot =
+            useCase(
+                request =
+                    MergeLocalMusicScanResultRequest(
+                        previousSnapshot = LibrarySnapshot.Empty,
+                        scanResult =
+                            LocalMusicScanResult(
+                                discovered =
+                                    listOf(
+                                        metadata(
+                                            sourceId = "cover",
+                                            title = "有封面的歌",
+                                            modifiedAt = 60L,
+                                            coverImageUri = coverImageUri,
+                                        ),
+                                    ),
+                                completedAt = 60L,
+                            ),
+                        likedSongIds = emptySet(),
                     ),
-                    completedAt = 60L,
-                ),
-                likedSongIds = emptySet(),
-            ),
-        )
+            )
 
         assertEquals(expected = coverImageUri, actual = snapshot.songs.single().coverImageUri)
         assertEquals(expected = coverImageUri, actual = snapshot.albums.single().coverImageUri)
@@ -144,23 +161,27 @@ class MergeLocalMusicScanResultUseCaseTest {
     }
 
     @Test
-    fun mergeUsesLocalMusicPlaceholderWhenScannedCoverIsMissing(): Unit {
-        val snapshot: LibrarySnapshot = useCase(
-            request = MergeLocalMusicScanResultRequest(
-                previousSnapshot = LibrarySnapshot.Empty,
-                scanResult = LocalMusicScanResult(
-                    discovered = listOf(
-                        metadata(
-                            sourceId = "missing-cover",
-                            title = "没有内嵌封面的歌",
-                            modifiedAt = 70L,
-                        ),
+    fun mergeUsesLocalMusicPlaceholderWhenScannedCoverIsMissing() {
+        val snapshot: LibrarySnapshot =
+            useCase(
+                request =
+                    MergeLocalMusicScanResultRequest(
+                        previousSnapshot = LibrarySnapshot.Empty,
+                        scanResult =
+                            LocalMusicScanResult(
+                                discovered =
+                                    listOf(
+                                        metadata(
+                                            sourceId = "missing-cover",
+                                            title = "没有内嵌封面的歌",
+                                            modifiedAt = 70L,
+                                        ),
+                                    ),
+                                completedAt = 70L,
+                            ),
+                        likedSongIds = emptySet(),
                     ),
-                    completedAt = 70L,
-                ),
-                likedSongIds = emptySet(),
-            ),
-        )
+            )
 
         assertEquals(expected = CoverArt.HeroLocalMusic, actual = snapshot.songs.single().coverArt)
         assertEquals(expected = CoverArt.HeroLocalMusic, actual = snapshot.albums.single().coverArt)
@@ -171,27 +192,35 @@ class MergeLocalMusicScanResultUseCaseTest {
      * 扫描用例必须通过 scanner 和 repository 产出同一份曲库快照。
      */
     @Test
-    fun scanUseCaseStoresSnapshotInRepository(): Unit = kotlinx.coroutines.runBlocking {
-        val repository: com.yanhao.kmpmusic.data.InMemoryMusicLibraryRepository =
-            com.yanhao.kmpmusic.data.InMemoryMusicLibraryRepository()
-        val scanner: com.yanhao.kmpmusic.data.FakeLocalMusicScanner =
-            com.yanhao.kmpmusic.data.FakeLocalMusicScanner()
-        val scanUseCase: ScanLocalMusicUseCase = ScanLocalMusicUseCaseImpl(
-            localMusicScanner = scanner,
-            musicLibraryRepository = repository,
-        )
+    fun scanUseCaseStoresSnapshotInRepository(): Unit =
+        kotlinx.coroutines.runBlocking {
+            val repository: com.yanhao.kmpmusic.data.InMemoryMusicLibraryRepository =
+                com.yanhao.kmpmusic.data
+                    .InMemoryMusicLibraryRepository()
+            val scanner: com.yanhao.kmpmusic.data.FakeLocalMusicScanner =
+                com.yanhao.kmpmusic.data
+                    .FakeLocalMusicScanner()
+            val scanUseCase: ScanLocalMusicUseCase =
+                ScanLocalMusicUseCaseImpl(
+                    localMusicScanner = scanner,
+                    musicLibraryRepository = repository,
+                )
 
-        val snapshot: LibrarySnapshot = scanUseCase(
-            request = com.yanhao.kmpmusic.domain.model.LocalMusicScanRequest.Refresh,
-            likedSongIds = emptySet(),
-        )
+            val snapshot: LibrarySnapshot =
+                scanUseCase(
+                    request = com.yanhao.kmpmusic.domain.model.LocalMusicScanRequest.Refresh,
+                    likedSongIds = emptySet(),
+                )
 
-        assertEquals(expected = snapshot.songs, actual = repository.getSnapshot().songs)
-        assertTrue(actual = snapshot.songs.size >= 6)
-        assertTrue(actual = snapshot.songs.all { song ->
-            song.localUri.startsWith(prefix = "fake://local-audio/")
-        })
-    }
+            assertEquals(expected = snapshot.songs, actual = repository.getSnapshot().songs)
+            assertTrue(actual = snapshot.songs.size >= 6)
+            assertTrue(
+                actual =
+                    snapshot.songs.all { song ->
+                        song.localUri.startsWith(prefix = "fake://local-audio/")
+                    },
+            )
+        }
 
     // 构造平台无关扫描元数据，让测试只关注合并规则。
     private fun metadata(
@@ -203,8 +232,8 @@ class MergeLocalMusicScanResultUseCaseTest {
         fileName: String = "$sourceId.flac",
         modifiedAt: Long?,
         coverImageUri: String? = null,
-    ): MusicFileMetadata {
-        return MusicFileMetadata(
+    ): MusicFileMetadata =
+        MusicFileMetadata(
             sourceId = sourceId,
             sourceKind = LocalMusicSourceKind.FakeScanner,
             localUri = "fake://local-audio/$sourceId",
@@ -219,5 +248,4 @@ class MergeLocalMusicScanResultUseCaseTest {
             coverArt = CoverArt.CoverSeaDream,
             coverImageUri = coverImageUri,
         )
-    }
 }

@@ -18,10 +18,11 @@ class HomeFigmaTokensTest {
      * 普通首页歌曲行要跟收藏页一样使用白色卡片、阴影和收藏页文字层级。
      */
     @Test
-    fun normalRowStyleUsesFavoritesCardSurface(): Unit {
-        val style: HomeSongRowStyle = resolveHomeSongRowStyle(
-            isCurrentSong = false,
-        )
+    fun normalRowStyleUsesFavoritesCardSurface() {
+        val style: HomeSongRowStyle =
+            resolveHomeSongRowStyle(
+                isCurrentSong = false,
+            )
         assertEquals(expected = Color.White, actual = style.containerColor)
         assertNull(actual = style.border)
         assertEquals(expected = 2.dp, actual = style.shadowElevation)
@@ -34,10 +35,11 @@ class HomeFigmaTokensTest {
      * 当前歌曲行不再使用旧首页浅绿色背景，而是跟收藏页一致用红字和封面标识表达播放态。
      */
     @Test
-    fun currentRowStyleUsesFavoritesPlaybackMarker(): Unit {
-        val style: HomeSongRowStyle = resolveHomeSongRowStyle(
-            isCurrentSong = true,
-        )
+    fun currentRowStyleUsesFavoritesPlaybackMarker() {
+        val style: HomeSongRowStyle =
+            resolveHomeSongRowStyle(
+                isCurrentSong = true,
+            )
         assertEquals(expected = Color.White, actual = style.containerColor)
         assertNull(actual = style.border)
         assertEquals(expected = 2.dp, actual = style.shadowElevation)
@@ -50,7 +52,7 @@ class HomeFigmaTokensTest {
      * 专辑页签网格必须锁住 Figma 节点 `883:514` 的双列节奏和当前专辑标识。
      */
     @Test
-    fun albumGridTokensMatchFigmaNode(): Unit {
+    fun albumGridTokensMatchFigmaNode() {
         assertEquals(expected = Color(0xFFE1E3E4), actual = homeAlbumCoverBackgroundColor)
         assertEquals(expected = Color(0x1A006A62), actual = homeActiveAlbumOverlayColor)
         assertEquals(expected = 24.dp, actual = homeAlbumGridGap)
@@ -62,7 +64,7 @@ class HomeFigmaTokensTest {
      * 歌手页签列表必须锁住 Figma 节点 `886:592` 的圆形头像和列表节奏。
      */
     @Test
-    fun artistListTokensMatchFigmaNode(): Unit {
+    fun artistListTokensMatchFigmaNode() {
         assertEquals(expected = 84.dp, actual = homeArtistRowHeight)
         assertEquals(expected = 10.dp, actual = homeArtistRowVerticalPadding)
         assertEquals(expected = 0.dp, actual = homeArtistListGap)

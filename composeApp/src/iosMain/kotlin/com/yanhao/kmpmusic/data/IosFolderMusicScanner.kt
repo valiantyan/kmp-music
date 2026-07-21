@@ -44,12 +44,11 @@ class IosFolderMusicScanner internal constructor(
     )
 
     /** 弹出 iOS 文件夹选择器并扫描用户授权目录中的音频文件。 */
-    override suspend fun scan(request: LocalMusicScanRequest): LocalMusicScanResult {
-        return scan(
+    override suspend fun scan(request: LocalMusicScanRequest): LocalMusicScanResult =
+        scan(
             request = request,
             preferences = LocalMusicDiscoveryPreferences(),
         )
-    }
 
     /** 弹出 iOS 文件夹选择器并按偏好导入授权目录中的音频文件。 */
     override suspend fun scan(
@@ -69,11 +68,12 @@ class IosFolderMusicScanner internal constructor(
     private fun validateRequest(request: LocalMusicScanRequest) {
         if (request is LocalMusicScanRequest.Source && request.sourceKind != LocalMusicSourceKind.IosImportedFile) {
             throw LocalMusicScanException(
-                error = LocalMusicScanError(
-                    type = LocalMusicScanErrorType.FolderUnavailable,
-                    message = "当前 iOS 端只能导入用户选择的音频文件",
-                    sourceKind = LocalMusicSourceKind.IosImportedFile,
-                ),
+                error =
+                    LocalMusicScanError(
+                        type = LocalMusicScanErrorType.FolderUnavailable,
+                        message = "当前 iOS 端只能导入用户选择的音频文件",
+                        sourceKind = LocalMusicSourceKind.IosImportedFile,
+                    ),
             )
         }
     }

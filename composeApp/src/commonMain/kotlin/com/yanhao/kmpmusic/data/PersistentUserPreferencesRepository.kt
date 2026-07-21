@@ -18,11 +18,13 @@ class PersistentUserPreferencesRepository(
     private val nowMillis: () -> Long = { currentTimeMillis() },
 ) : UserPreferencesRepository {
     /** 读取主题偏好，遇到旧值或非法值时回退到浅色主题。 */
-    override fun getThemeMode(): ThemeMode = runBlocking {
-        userPreferenceDao.getValue(key = KEY_THEME_MODE)
-            ?.let { value: String -> ThemeMode.entries.firstOrNull { mode: ThemeMode -> mode.name == value } }
-            ?: ThemeMode.Light
-    }
+    override fun getThemeMode(): ThemeMode =
+        runBlocking {
+            userPreferenceDao
+                .getValue(key = KEY_THEME_MODE)
+                ?.let { value: String -> ThemeMode.entries.firstOrNull { mode: ThemeMode -> mode.name == value } }
+                ?: ThemeMode.Light
+        }
 
     /** 保存主题偏好。 */
     override fun saveThemeMode(themeMode: ThemeMode) {
@@ -35,23 +37,27 @@ class PersistentUserPreferencesRepository(
     }
 
     /** 读取本地音频发现偏好，未保存的字段使用产品默认值。 */
-    override fun getLocalMusicDiscoveryPreferences(): LocalMusicDiscoveryPreferences = runBlocking {
-        val defaults: LocalMusicDiscoveryPreferences = LocalMusicDiscoveryPreferences()
-        LocalMusicDiscoveryPreferences(
-            isAutoScanOnLaunchEnabled = readBoolean(
-                key = KEY_LOCAL_MUSIC_AUTO_SCAN_ON_LAUNCH,
-                defaultValue = defaults.isAutoScanOnLaunchEnabled,
-            ),
-            shouldIgnoreShortAudio = readBoolean(
-                key = KEY_LOCAL_MUSIC_IGNORE_SHORT_AUDIO,
-                defaultValue = defaults.shouldIgnoreShortAudio,
-            ),
-            shouldExcludeSystemFolders = readBoolean(
-                key = KEY_LOCAL_MUSIC_EXCLUDE_SYSTEM_FOLDERS,
-                defaultValue = defaults.shouldExcludeSystemFolders,
-            ),
-        )
-    }
+    override fun getLocalMusicDiscoveryPreferences(): LocalMusicDiscoveryPreferences =
+        runBlocking {
+            val defaults: LocalMusicDiscoveryPreferences = LocalMusicDiscoveryPreferences()
+            LocalMusicDiscoveryPreferences(
+                isAutoScanOnLaunchEnabled =
+                    readBoolean(
+                        key = KEY_LOCAL_MUSIC_AUTO_SCAN_ON_LAUNCH,
+                        defaultValue = defaults.isAutoScanOnLaunchEnabled,
+                    ),
+                shouldIgnoreShortAudio =
+                    readBoolean(
+                        key = KEY_LOCAL_MUSIC_IGNORE_SHORT_AUDIO,
+                        defaultValue = defaults.shouldIgnoreShortAudio,
+                    ),
+                shouldExcludeSystemFolders =
+                    readBoolean(
+                        key = KEY_LOCAL_MUSIC_EXCLUDE_SYSTEM_FOLDERS,
+                        defaultValue = defaults.shouldExcludeSystemFolders,
+                    ),
+            )
+        }
 
     /** 保存本地音频发现偏好，三项设置使用同一事务保持一致。 */
     override fun saveLocalMusicDiscoveryPreferences(preferences: LocalMusicDiscoveryPreferences) {
@@ -77,13 +83,12 @@ class PersistentUserPreferencesRepository(
     private suspend fun readBoolean(
         key: String,
         defaultValue: Boolean,
-    ): Boolean {
-        return when (userPreferenceDao.getValue(key = key)) {
+    ): Boolean =
+        when (userPreferenceDao.getValue(key = key)) {
             "true" -> true
             "false" -> false
             else -> defaultValue
         }
-    }
 
     // 覆盖保存单个 key/value 偏好记录。
     private suspend fun saveValue(
@@ -91,11 +96,12 @@ class PersistentUserPreferencesRepository(
         value: String,
     ) {
         userPreferenceDao.savePreference(
-            entity = UserPreferenceEntity(
-                key = key,
-                value = value,
-                updatedAt = nowMillis(),
-            ),
+            entity =
+                UserPreferenceEntity(
+                    key = key,
+                    value = value,
+                    updatedAt = nowMillis(),
+                ),
         )
     }
 
@@ -118,8 +124,8 @@ class PersistentUserPreferencesRepository(
         fun create(
             playbackDatabase: PlaybackDatabase,
             nowMillis: () -> Long = { currentTimeMillis() },
-        ): PersistentUserPreferencesRepository {
-            return PersistentUserPreferencesRepository(
+        ): PersistentUserPreferencesRepository =
+            PersistentUserPreferencesRepository(
                 userPreferenceDao = playbackDatabase.userPreferenceDao(),
                 runInWriteTransaction = { block: suspend () -> Unit ->
                     playbackDatabase.withWriteTransaction {
@@ -128,6 +134,5 @@ class PersistentUserPreferencesRepository(
                 },
                 nowMillis = nowMillis,
             )
-        }
     }
 }

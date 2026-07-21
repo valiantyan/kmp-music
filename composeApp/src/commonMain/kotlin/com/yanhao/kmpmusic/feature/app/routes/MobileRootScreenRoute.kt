@@ -1,7 +1,7 @@
 package com.yanhao.kmpmusic.feature.app.routes
 
-import androidx.compose.runtime.Composable
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.yanhao.kmpmusic.domain.model.SearchContext
@@ -26,57 +26,65 @@ fun MobileRootScreenRoute(
     contentPadding: PaddingValues = PaddingValues(0.dp),
 ) {
     when (state.navigationState.rootTab) {
-        RootTab.Home -> HomeScreen(
-            songs = state.songs,
-            albums = state.localAlbums,
-            artists = state.localArtists,
-            libraryStats = state.libraryStats,
-            scanState = state.scanState,
-            discoveryPlatform = discoveryPlatform,
-            selectedSection = state.homeContentSection,
-            currentSongId = state.currentSongId,
-            onSearch = controller::openSearch,
-            onScan = controller::openAudioScan,
-            onSection = controller::setHomeContentSection,
-            onSongPlay = { song: Song, queueSongs: List<Song> ->
-                controller.playSong(song = song, queueSongs = queueSongs)
-            },
-            onMore = controller::openMore,
-            onLike = controller::toggleFavorite,
-            onAlbumOpen = controller::openAlbum,
-            onArtistOpen = controller::openArtist,
-            modifier = modifier,
-            contentPadding = contentPadding,
-        )
-        RootTab.Favorites -> FavoritesScreen(
-            songs = state.favoriteSongs,
-            currentSongId = state.currentSongId,
-            section = state.favoriteSection,
-            onSection = controller::setFavoriteSection,
-            onSongPlay = { song: Song, queueSongs: List<Song> ->
-                controller.playSong(song = song, queueSongs = queueSongs)
-            },
-            onMore = controller::openMore,
-            onLike = controller::toggleFavorite,
-            onSearch = { controller.openSearch(context = SearchContext.Favorites) },
-            onAlbumOpen = controller::openAlbum,
-            onArtistOpen = controller::openArtist,
-            modifier = modifier,
-            contentPadding = contentPadding,
-        )
-        RootTab.Me -> MeScreen(
-            recentSongs = state.recentSongs,
-            currentSongId = state.currentSongId,
-            libraryStats = state.libraryStats,
-            localPlaylistCount = state.localPlaylistCount,
-            onScanMusic = controller::openAudioScan,
-            onSongsStatClick = controller::openHomeSongs,
-            onPlaylistsStatClick = controller::openLocalPlaylists,
-            onRecentPlayedViewAll = controller::openRecentPlayed,
-            onRecentSongPlay = controller::playRecentSong,
-            onRecentSongMore = controller::openMore,
-            modifier = modifier,
-            contentPadding = contentPadding,
-        )
+        RootTab.Home -> {
+            HomeScreen(
+                songs = state.songs,
+                albums = state.localAlbums,
+                artists = state.localArtists,
+                libraryStats = state.libraryStats,
+                scanState = state.scanState,
+                discoveryPlatform = discoveryPlatform,
+                selectedSection = state.homeContentSection,
+                currentSongId = state.currentSongId,
+                onSearch = controller::openSearch,
+                onScan = controller::openAudioScan,
+                onSection = controller::setHomeContentSection,
+                onSongPlay = { song: Song, queueSongs: List<Song> ->
+                    controller.playSong(song = song, queueSongs = queueSongs)
+                },
+                onMore = controller::openMore,
+                onLike = controller::toggleFavorite,
+                onAlbumOpen = controller::openAlbum,
+                onArtistOpen = controller::openArtist,
+                modifier = modifier,
+                contentPadding = contentPadding,
+            )
+        }
+
+        RootTab.Favorites -> {
+            FavoritesScreen(
+                songs = state.favoriteSongs,
+                currentSongId = state.currentSongId,
+                section = state.favoriteSection,
+                onSection = controller::setFavoriteSection,
+                onSongPlay = { song: Song, queueSongs: List<Song> ->
+                    controller.playSong(song = song, queueSongs = queueSongs)
+                },
+                onMore = controller::openMore,
+                onLike = controller::toggleFavorite,
+                onSearch = { controller.openSearch(context = SearchContext.Favorites) },
+                onAlbumOpen = controller::openAlbum,
+                onArtistOpen = controller::openArtist,
+                modifier = modifier,
+                contentPadding = contentPadding,
+            )
+        }
+
+        RootTab.Me -> {
+            MeScreen(
+                recentSongs = state.recentSongs,
+                currentSongId = state.currentSongId,
+                libraryStats = state.libraryStats,
+                localPlaylistCount = state.localPlaylistCount,
+                onScanMusic = controller::openAudioScan,
+                onSongsStatClick = controller::openHomeSongs,
+                onPlaylistsStatClick = controller::openLocalPlaylists,
+                onRecentPlayedViewAll = controller::openRecentPlayed,
+                onRecentSongPlay = controller::playRecentSong,
+                onRecentSongMore = controller::openMore,
+                modifier = modifier,
+                contentPadding = contentPadding,
+            )
+        }
     }
 }

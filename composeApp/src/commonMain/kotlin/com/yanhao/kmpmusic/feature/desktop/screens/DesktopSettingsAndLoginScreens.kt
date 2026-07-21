@@ -45,9 +45,10 @@ internal fun DesktopSettingsScreen(
     onClearCache: () -> Unit,
 ) {
     Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState()),
+        modifier =
+            Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState()),
     ) {
         DesktopPageHeader(
             title = "设置",
@@ -107,10 +108,11 @@ internal fun DesktopSettingsScreen(
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     DesktopPrimaryButton(text = "管理本地文件夹", onClick = onLocalMusicSources)
                     DesktopPrimaryButton(
-                        text = localMusicScanActionLabel(
-                            scanState = scanState,
-                            platform = LocalMusicDiscoveryPlatform.Desktop,
-                        ),
+                        text =
+                            localMusicScanActionLabel(
+                                scanState = scanState,
+                                platform = LocalMusicDiscoveryPlatform.Desktop,
+                            ),
                         onClick = onScan,
                     )
                 }
@@ -139,9 +141,10 @@ internal fun DesktopLoginScreen(
     onBack: () -> Unit,
 ) {
     Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState()),
+        modifier =
+            Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState()),
     ) {
         DesktopPageHeader(
             title = "登录音乐账号",

@@ -30,17 +30,19 @@ internal class AndroidAudioPermissionRequester(
     private var pendingPermission: String? = null
 
     // 记录用户已经经历过系统权限请求，避免把首次请求误判为永久拒绝。
-    private val permissionPreferences: SharedPreferences = activity.getSharedPreferences(
-        AUDIO_PERMISSION_PREFERENCES,
-        Context.MODE_PRIVATE,
-    )
+    private val permissionPreferences: SharedPreferences =
+        activity.getSharedPreferences(
+            AUDIO_PERMISSION_PREFERENCES,
+            Context.MODE_PRIVATE,
+        )
 
     // 系统权限启动器，只在 Activity 生命周期内使用。
-    private val permissionLauncher: ActivityResultLauncher<String> = activity.registerForActivityResult(
-        ActivityResultContracts.RequestPermission(),
-    ) { isGranted: Boolean ->
-        resumePendingRequest(isGranted = isGranted)
-    }
+    private val permissionLauncher: ActivityResultLauncher<String> =
+        activity.registerForActivityResult(
+            ActivityResultContracts.RequestPermission(),
+        ) { isGranted: Boolean ->
+            resumePendingRequest(isGranted = isGranted)
+        }
 
     /**
      * 检查或请求当前 Android 版本所需的音频读取权限。
@@ -100,11 +102,12 @@ internal class AndroidAudioPermissionRequester(
         val permission: String? = pendingPermission
         pendingContinuation = null
         pendingPermission = null
-        val result: AndroidAudioPermissionResult = when {
-            isGranted -> AndroidAudioPermissionResult.Granted
-            permission != null && shouldOpenSettingsAfterDenied(permission = permission) -> AndroidAudioPermissionResult.NeedsSettings
-            else -> AndroidAudioPermissionResult.Denied
-        }
+        val result: AndroidAudioPermissionResult =
+            when {
+                isGranted -> AndroidAudioPermissionResult.Granted
+                permission != null && shouldOpenSettingsAfterDenied(permission = permission) -> AndroidAudioPermissionResult.NeedsSettings
+                else -> AndroidAudioPermissionResult.Denied
+            }
         continuation.resume(result)
     }
 
@@ -117,14 +120,10 @@ internal class AndroidAudioPermissionRequester(
     }
 
     // 拒绝回调后再次判断，覆盖“本次拒绝后变成不再询问”的场景。
-    private fun shouldOpenSettingsAfterDenied(permission: String): Boolean {
-        return !activity.shouldShowRequestPermissionRationale(permission)
-    }
+    private fun shouldOpenSettingsAfterDenied(permission: String): Boolean = !activity.shouldShowRequestPermissionRationale(permission)
 
     // 持久化权限请求历史，进程重启后仍能识别系统不再弹窗的状态。
-    private fun hasRequestedPermission(permission: String): Boolean {
-        return permissionPreferences.getBoolean(permission, false)
-    }
+    private fun hasRequestedPermission(permission: String): Boolean = permissionPreferences.getBoolean(permission, false)
 
     // 写入权限请求历史，按权限名隔离 Android 版本差异。
     private fun markPermissionRequested(permission: String) {

@@ -62,9 +62,10 @@ private fun FavoritesPlayAllButton(
     modifier: Modifier = Modifier,
 ) {
     Surface(
-        modifier = modifier
-            .height(height = favoritesActionHeaderHeight)
-            .widthIn(min = 156.dp),
+        modifier =
+            modifier
+                .height(height = favoritesActionHeaderHeight)
+                .widthIn(min = 156.dp),
         shape = RoundedCornerShape(size = 16.dp),
         color = favoritesActionColor,
         shadowElevation = 1.dp,
@@ -106,10 +107,11 @@ private fun FavoritesSectionButton(
     onSection: (FavoriteSection) -> Unit,
 ) {
     Box(
-        modifier = Modifier
-            .size(size = favoritesSongActionSize)
-            .clip(shape = CircleShape)
-            .clickable { onSection(section.next()) },
+        modifier =
+            Modifier
+                .size(size = favoritesSongActionSize)
+                .clip(shape = CircleShape)
+                .clickable { onSection(section.next()) },
         contentAlignment = Alignment.Center,
     ) {
         Icon(
@@ -122,19 +124,17 @@ private fun FavoritesSectionButton(
 }
 
 // 收藏页右上角分段按钮按固定顺序循环，避免引入非 Figma 的 chip 行。
-private fun FavoriteSection.next(): FavoriteSection {
-    return when (this) {
+private fun FavoriteSection.next(): FavoriteSection =
+    when (this) {
         FavoriteSection.Songs -> FavoriteSection.Albums
         FavoriteSection.Albums -> FavoriteSection.Artists
         FavoriteSection.Artists -> FavoriteSection.Songs
     }
-}
 
 // 分段文案只用于无障碍描述，不在 Figma 页面中额外显示。
-private fun FavoriteSection.label(): String {
-    return when (this) {
+private fun FavoriteSection.label(): String =
+    when (this) {
         FavoriteSection.Songs -> "歌曲"
         FavoriteSection.Albums -> "专辑"
         FavoriteSection.Artists -> "歌手"
     }
-}

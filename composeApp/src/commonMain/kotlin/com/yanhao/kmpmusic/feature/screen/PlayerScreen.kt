@@ -49,14 +49,16 @@ fun PlayerScreen(
     modifier: Modifier = Modifier,
 ) {
     val duration: Long = playbackDurationMs ?: song.durationMs ?: 0L
-    val safeProgress: Float = calculatePlaybackProgress(
-        positionMs = playbackPositionMs,
-        durationMs = duration,
-    )
-    val palette: PlayerPagePalette = rememberPlayerPagePalette(
-        coverArt = song.coverArt,
-        coverImageUri = song.coverImageUri,
-    )
+    val safeProgress: Float =
+        calculatePlaybackProgress(
+            positionMs = playbackPositionMs,
+            durationMs = duration,
+        )
+    val palette: PlayerPagePalette =
+        rememberPlayerPagePalette(
+            coverArt = song.coverArt,
+            coverImageUri = song.coverImageUri,
+        )
     val backgroundColor: Color by animateColorAsState(
         targetValue = palette.backgroundColor,
         animationSpec = tween(durationMillis = PLAYER_SCREEN_COLOR_ANIMATION_MILLIS),
@@ -65,38 +67,43 @@ fun PlayerScreen(
     BoxWithConstraints(
         modifier = modifier.fillMaxSize(),
     ) {
-        val coverSize: Dp = calculatePlayerCoverSize(
-            viewportWidth = maxWidth,
-            viewportHeight = maxHeight,
-        )
-        val topSpacerHeight: Dp = minOf(
-            scaledDp(74.dp),
-            maxHeight * 0.08f,
-        )
-        val sectionSpacerHeight: Dp = minOf(
-            scaledDp(32.dp),
-            maxHeight * 0.035f,
-        )
-        val controlSpacerHeight: Dp = minOf(
-            scaledDp(28.dp),
-            maxHeight * 0.03f,
-        )
+        val coverSize: Dp =
+            calculatePlayerCoverSize(
+                viewportWidth = maxWidth,
+                viewportHeight = maxHeight,
+            )
+        val topSpacerHeight: Dp =
+            minOf(
+                scaledDp(74.dp),
+                maxHeight * 0.08f,
+            )
+        val sectionSpacerHeight: Dp =
+            minOf(
+                scaledDp(32.dp),
+                maxHeight * 0.035f,
+            )
+        val controlSpacerHeight: Dp =
+            minOf(
+                scaledDp(28.dp),
+                maxHeight * 0.03f,
+            )
         PlayerBackground(
             song = song,
             palette = palette,
             backgroundColor = backgroundColor,
         )
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .statusBarsPadding()
-                .navigationBarsPadding()
-                .padding(
-                    start = scaledDp(32.dp),
-                    top = scaledDp(12.dp),
-                    end = scaledDp(32.dp),
-                    bottom = scaledDp(28.dp),
-                ),
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .statusBarsPadding()
+                    .navigationBarsPadding()
+                    .padding(
+                        start = scaledDp(32.dp),
+                        top = scaledDp(12.dp),
+                        end = scaledDp(32.dp),
+                        bottom = scaledDp(28.dp),
+                    ),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             PlayerTopBar(onBack = onBack)
@@ -149,10 +156,11 @@ private fun calculatePlaybackProgress(
     if (durationMs <= 0L) {
         return 0f
     }
-    return positionMs.coerceIn(
-        minimumValue = 0L,
-        maximumValue = durationMs,
-    ).toFloat()
+    return positionMs
+        .coerceIn(
+            minimumValue = 0L,
+            maximumValue = durationMs,
+        ).toFloat()
 }
 
 // 封面尺寸跟随视口收敛，防止小屏把控制区挤出屏幕。
@@ -161,11 +169,12 @@ private fun calculatePlayerCoverSize(
     viewportWidth: Dp,
     viewportHeight: Dp,
 ): Dp {
-    val targetSize: Dp = minOf(
-        viewportWidth - scaledDp(96.dp),
-        viewportHeight * 0.32f,
-        scaledDp(292.dp),
-    )
+    val targetSize: Dp =
+        minOf(
+            viewportWidth - scaledDp(96.dp),
+            viewportHeight * 0.32f,
+            scaledDp(292.dp),
+        )
     return targetSize.coerceAtLeast(minimumValue = scaledDp(220.dp))
 }
 

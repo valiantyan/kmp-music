@@ -67,39 +67,42 @@ private fun ArtistDetailHeroImage(
     val density: Density = LocalDensity.current
     val stretchFraction: Float = calculateStretchFraction(layoutState = layoutState)
     Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(height = layoutState.heroImageHeight)
-            .clipToBounds()
-            .graphicsLayer {
-                compositingStrategy = CompositingStrategy.Offscreen
-                translationY = with(density) { scrollState.value.heroImageOffset.toPx() }
-            }
-            .drawWithContent {
-                drawContent()
-                drawRect(
-                    brush = Brush.verticalGradient(
-                        colorStops = arrayOf(
-                            0f to Color.White,
-                            ARTIST_DETAIL_HERO_FADE_START_FRACTION to Color.White,
-                            1f to Color.Transparent,
-                        ),
-                    ),
-                    blendMode = BlendMode.DstIn,
-                )
-            },
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .height(height = layoutState.heroImageHeight)
+                .clipToBounds()
+                .graphicsLayer {
+                    compositingStrategy = CompositingStrategy.Offscreen
+                    translationY = with(density) { scrollState.value.heroImageOffset.toPx() }
+                }.drawWithContent {
+                    drawContent()
+                    drawRect(
+                        brush =
+                            Brush.verticalGradient(
+                                colorStops =
+                                    arrayOf(
+                                        0f to Color.White,
+                                        ARTIST_DETAIL_HERO_FADE_START_FRACTION to Color.White,
+                                        1f to Color.Transparent,
+                                    ),
+                            ),
+                        blendMode = BlendMode.DstIn,
+                    )
+                },
     ) {
         CoverArtImage(
             coverArt = artist.coverArt,
             coverImageUri = artist.coverImageUri,
             contentDescription = "${artist.name} 歌手头图",
-            modifier = Modifier
-                .fillMaxSize()
-                .graphicsLayer {
-                    scaleX = 1f + stretchFraction * 0.16f
-                    scaleY = 1f + stretchFraction * 0.16f
-                    transformOrigin = TransformOrigin(pivotFractionX = 0.5f, pivotFractionY = 0f)
-                },
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .graphicsLayer {
+                        scaleX = 1f + stretchFraction * 0.16f
+                        scaleY = 1f + stretchFraction * 0.16f
+                        transformOrigin = TransformOrigin(pivotFractionX = 0.5f, pivotFractionY = 0f)
+                    },
             contentScale = ContentScale.Crop,
         )
         ArtistDetailHeroScrim(
@@ -116,39 +119,44 @@ private fun ArtistDetailHeroScrim(
     collapsedToolbarHeight: Dp,
 ) {
     Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(
-                brush = Brush.verticalGradient(
-                    colorStops = arrayOf(
-                        0f to artistDetailHeroTopScrimColor.copy(alpha = 0.50f),
-                        0.22f to Color.Transparent,
-                        0.58f to Color.Transparent,
-                        0.78f to palette.heroScrimColor.copy(alpha = 0.34f),
-                        1f to palette.heroScrimColor.copy(alpha = 0.48f),
-                    ),
+        modifier =
+            Modifier
+                .fillMaxSize()
+                .background(
+                    brush =
+                        Brush.verticalGradient(
+                            colorStops =
+                                arrayOf(
+                                    0f to artistDetailHeroTopScrimColor.copy(alpha = 0.50f),
+                                    0.22f to Color.Transparent,
+                                    0.58f to Color.Transparent,
+                                    0.78f to palette.heroScrimColor.copy(alpha = 0.34f),
+                                    1f to palette.heroScrimColor.copy(alpha = 0.48f),
+                                ),
+                        ),
                 ),
-            ),
     )
     Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(height = collapsedToolbarHeight + 72.dp)
-            .background(
-                brush = Brush.verticalGradient(
-                    colors = listOf(
-                        artistDetailHeroTopScrimColor.copy(alpha = 0.54f),
-                        Color.Transparent,
-                    ),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .height(height = collapsedToolbarHeight + 72.dp)
+                .background(
+                    brush =
+                        Brush.verticalGradient(
+                            colors =
+                                listOf(
+                                    artistDetailHeroTopScrimColor.copy(alpha = 0.54f),
+                                    Color.Transparent,
+                                ),
+                        ),
                 ),
-            ),
     )
 }
 
 // 把下拉高度归一化成图片缩放比例，最大值来自 [artistDetailMaxPullStretchHeight]。
-private fun calculateStretchFraction(layoutState: ArtistDetailLayoutState): Float {
-    return (layoutState.pullStretchHeight.value / artistDetailMaxPullStretchHeight.value).coerceIn(
+private fun calculateStretchFraction(layoutState: ArtistDetailLayoutState): Float =
+    (layoutState.pullStretchHeight.value / artistDetailMaxPullStretchHeight.value).coerceIn(
         minimumValue = 0f,
         maximumValue = 1f,
     )
-}

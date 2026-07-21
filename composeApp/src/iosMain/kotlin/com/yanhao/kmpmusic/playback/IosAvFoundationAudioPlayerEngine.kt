@@ -7,7 +7,6 @@ import com.yanhao.kmpmusic.domain.model.PlaybackMode
 import com.yanhao.kmpmusic.domain.model.PlaybackStatus
 import com.yanhao.kmpmusic.domain.playback.AudioPlayerEngine
 import com.yanhao.kmpmusic.domain.playback.PlaybackEngineEvent
-import kotlin.coroutines.CoroutineContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
@@ -20,6 +19,7 @@ import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlin.coroutines.CoroutineContext
 
 /**
  * iOS AVFoundation 播放引擎，使用单个原生播放器承接当前媒体，队列语义仍由 common 层拥有。
@@ -36,38 +36,53 @@ internal class IosAvFoundationAudioPlayerEngine(
 ) : AudioPlayerEngine {
     // 引擎内部生命周期，release 时会取消 bridge 事件订阅。
     private val engineJob: Job = SupervisorJob(parent = scope.coroutineContext[Job])
+
     // 引擎私有作用域，承接 native 回调重新串行化。
     private val engineScope: CoroutineScope = CoroutineScope(context = dispatcher + engineJob)
+
     // 向 common 协调器暴露的播放事实流。
     private val eventChannel: Channel<PlaybackEngineEvent> = Channel(capacity = Channel.UNLIMITED)
+
     // 串行保护队列、generation、准备态和释放态，避免 UI 命令与 native 回调并发改写。
     private val stateMutex: Mutex = Mutex()
+
     // iOS 当前播放队列，仅用于定位当前媒体，不让系统队列接管业务规则。
     private var queue: List<PlayableMedia> = emptyList()
+
     // 当前媒体下标，没有活动媒体时为 -1。
     private var currentIndex: Int = -1
+
     // 当前媒体代号，切歌、停止和失败都会推进，屏蔽旧回调。
     private var generation: Long = 0L
+
     // 当前 generation 是否已准备完成。
     private var isPrepared: Boolean = false
+
     // 当前代尚未兑现的 seek 请求，遵循 latest-wins。
     private var pendingSeekMs: Long? = null
+
     // 最近一次播放控制意图，用于 prepared 后兑现命令。
     private var playbackIntent: IosPlaybackControlIntent = IosPlaybackControlIntent.None
+
     // 最近一次播放模式；业务推进仍由 [PlaybackCoordinator] 处理。
     private var playbackMode: PlaybackMode = PlaybackMode.LoopAll
+
     // 系统中断结束时是否可恢复播放。
     private var shouldResumeAfterInterruption: Boolean = false
+
     // release 是否已开始，开始后丢弃后续命令和回调。
     private var isReleased: Boolean = false
+
     // 当前 release 任务，供会话退出前等待 native 资源收口。
     private var releaseJob: Job? = null
+
     // bridge 事件订阅任务，release 后取消以移除观察路径。
-    private val bridgeEventJob: Job = engineScope.launch {
-        bridge.events.collect { event: IosPlaybackBridgeEvent ->
-            handleBridgeEvent(event = event)
+    private val bridgeEventJob: Job =
+        engineScope.launch {
+            bridge.events.collect { event: IosPlaybackBridgeEvent ->
+                handleBridgeEvent(event = event)
+            }
         }
-    }
 
     /** 对外暴露 iOS 原生播放事实。 */
     override val events: Flow<PlaybackEngineEvent> = eventChannel.receiveAsFlow()
@@ -91,10 +106,11 @@ internal class IosAvFoundationAudioPlayerEngine(
                 eventChannel.trySend(element = PlaybackEngineEvent.Failed(error = buildEmptyQueueError()))
                 return
             }
-            currentIndex = startIndex.coerceIn(
-                minimumValue = 0,
-                maximumValue = items.lastIndex,
-            )
+            currentIndex =
+                startIndex.coerceIn(
+                    minimumValue = 0,
+                    maximumValue = items.lastIndex,
+                )
             playbackIntent = IosPlaybackControlIntent.None
             pendingSeekMs = startPositionMs.coerceAtLeast(minimumValue = 0L)
             prepareCurrentMedia(startPositionMs = pendingSeekMs ?: 0L)
@@ -207,11 +223,12 @@ internal class IosAvFoundationAudioPlayerEngine(
                 resetPlaybackFlags()
                 handleBridgeAck(ack = bridge.stop(generation = stoppedGeneration))
                 eventChannel.trySend(
-                    element = PlaybackEngineEvent.StatusChanged(
-                        status = PlaybackStatus.Idle,
-                        positionMs = 0L,
-                        durationMs = null,
-                    ),
+                    element =
+                        PlaybackEngineEvent.StatusChanged(
+                            status = PlaybackStatus.Idle,
+                            positionMs = 0L,
+                            durationMs = null,
+                        ),
                 )
             }
         }
@@ -222,19 +239,20 @@ internal class IosAvFoundationAudioPlayerEngine(
         if (releaseJob != null) {
             return
         }
-        releaseJob = scope.launch(context = dispatcher, start = CoroutineStart.UNDISPATCHED) {
-            stateMutex.withLock {
-                if (isReleased) {
-                    return@withLock
+        releaseJob =
+            scope.launch(context = dispatcher, start = CoroutineStart.UNDISPATCHED) {
+                stateMutex.withLock {
+                    if (isReleased) {
+                        return@withLock
+                    }
+                    isReleased = true
+                    resetPlaybackFlags()
+                    nextGeneration()
+                    bridgeEventJob.cancel()
+                    bridge.release()
+                    engineJob.cancel()
                 }
-                isReleased = true
-                resetPlaybackFlags()
-                nextGeneration()
-                bridgeEventJob.cancel()
-                bridge.release()
-                engineJob.cancel()
             }
-        }
     }
 
     /** 等待 release 完成，供 iOS 进程级会话退出前收口。 */
@@ -244,14 +262,10 @@ internal class IosAvFoundationAudioPlayerEngine(
     }
 
     // 当前下标是否指向有效媒体。
-    private fun isCurrentIndexValid(): Boolean {
-        return currentIndex in queue.indices
-    }
+    private fun isCurrentIndexValid(): Boolean = currentIndex in queue.indices
 
     // 读取当前媒体，避免重复手写越界逻辑。
-    private fun currentMedia(): PlayableMedia? {
-        return queue.getOrNull(index = currentIndex)
-    }
+    private fun currentMedia(): PlayableMedia? = queue.getOrNull(index = currentIndex)
 
     // 生成新媒体代号，并让旧回调自然失效。
     private fun nextGeneration(): Long {
@@ -275,28 +289,32 @@ internal class IosAvFoundationAudioPlayerEngine(
         val media: PlayableMedia = currentMedia() ?: return
         isPrepared = false
         eventChannel.trySend(
-            element = PlaybackEngineEvent.CurrentMediaChanged(
-                songId = media.songId,
-                index = currentIndex,
-                durationMs = media.durationMs,
-            ),
+            element =
+                PlaybackEngineEvent.CurrentMediaChanged(
+                    songId = media.songId,
+                    index = currentIndex,
+                    durationMs = media.durationMs,
+                ),
         )
         eventChannel.trySend(
-            element = PlaybackEngineEvent.StatusChanged(
-                status = PlaybackStatus.Loading,
-                positionMs = startPositionMs,
-                durationMs = media.durationMs,
-            ),
+            element =
+                PlaybackEngineEvent.StatusChanged(
+                    status = PlaybackStatus.Loading,
+                    positionMs = startPositionMs,
+                    durationMs = media.durationMs,
+                ),
         )
         handleBridgeAck(
-            ack = bridge.prepare(
-                request = IosPlaybackBridgePrepareRequest(
-                    songId = media.songId,
-                    mediaUri = media.audioSource.uri,
-                    generation = activeGeneration,
-                    startPositionMs = startPositionMs,
+            ack =
+                bridge.prepare(
+                    request =
+                        IosPlaybackBridgePrepareRequest(
+                            songId = media.songId,
+                            mediaUri = media.audioSource.uri,
+                            generation = activeGeneration,
+                            startPositionMs = startPositionMs,
+                        ),
                 ),
-            ),
         )
     }
 
@@ -314,36 +332,43 @@ internal class IosAvFoundationAudioPlayerEngine(
         handleBridgeAck(ack = bridge.pause(generation = generation))
         val media: PlayableMedia = currentMedia() ?: return
         eventChannel.trySend(
-            element = PlaybackEngineEvent.StatusChanged(
-                status = PlaybackStatus.Paused,
-                positionMs = pendingSeekMs ?: 0L,
-                durationMs = media.durationMs,
-            ),
+            element =
+                PlaybackEngineEvent.StatusChanged(
+                    status = PlaybackStatus.Paused,
+                    positionMs = pendingSeekMs ?: 0L,
+                    durationMs = media.durationMs,
+                ),
         )
     }
 
     // 执行当前代 seek 并回传共享进度事实。
     private suspend fun seekCurrent(positionMs: Long) {
         handleBridgeAck(
-            ack = bridge.seekTo(
-                request = IosPlaybackBridgeSeekRequest(
-                    generation = generation,
-                    positionMs = positionMs,
+            ack =
+                bridge.seekTo(
+                    request =
+                        IosPlaybackBridgeSeekRequest(
+                            generation = generation,
+                            positionMs = positionMs,
+                        ),
                 ),
-            ),
         )
         eventChannel.trySend(
-            element = PlaybackEngineEvent.ProgressChanged(
-                positionMs = positionMs,
-                durationMs = currentMedia()?.durationMs,
-            ),
+            element =
+                PlaybackEngineEvent.ProgressChanged(
+                    positionMs = positionMs,
+                    durationMs = currentMedia()?.durationMs,
+                ),
         )
     }
 
     // 统一处理 bridge 命令失败，不让调用方挂起或静默失败。
-    private fun handleBridgeAck(ack: IosPlaybackBridgeCommandAck): Boolean {
-        return when (ack) {
-            IosPlaybackBridgeCommandAck.Accepted -> true
+    private fun handleBridgeAck(ack: IosPlaybackBridgeCommandAck): Boolean =
+        when (ack) {
+            IosPlaybackBridgeCommandAck.Accepted -> {
+                true
+            }
+
             is IosPlaybackBridgeCommandAck.Failed -> {
                 eventChannel.trySend(element = PlaybackEngineEvent.Failed(error = ack.error))
                 nextGeneration()
@@ -351,7 +376,6 @@ internal class IosAvFoundationAudioPlayerEngine(
                 false
             }
         }
-    }
 
     // 把 native 回调按 generation 过滤后归一化为 common 播放事件。
     private suspend fun handleBridgeEvent(event: IosPlaybackBridgeEvent) {
@@ -388,10 +412,11 @@ internal class IosAvFoundationAudioPlayerEngine(
         }
         if (event.durationMs != null && seekMs == 0L) {
             eventChannel.trySend(
-                element = PlaybackEngineEvent.ProgressChanged(
-                    positionMs = 0L,
-                    durationMs = event.durationMs,
-                ),
+                element =
+                    PlaybackEngineEvent.ProgressChanged(
+                        positionMs = 0L,
+                        durationMs = event.durationMs,
+                    ),
             )
         }
     }
@@ -402,11 +427,12 @@ internal class IosAvFoundationAudioPlayerEngine(
         playbackIntent = IosPlaybackControlIntent.Pause
         handleBridgeAck(ack = bridge.pause(generation = generation))
         eventChannel.trySend(
-            element = PlaybackEngineEvent.StatusChanged(
-                status = PlaybackStatus.Paused,
-                positionMs = event.positionMs,
-                durationMs = event.durationMs ?: currentMedia()?.durationMs,
-            ),
+            element =
+                PlaybackEngineEvent.StatusChanged(
+                    status = PlaybackStatus.Paused,
+                    positionMs = event.positionMs,
+                    durationMs = event.durationMs ?: currentMedia()?.durationMs,
+                ),
         )
     }
 
@@ -425,11 +451,12 @@ internal class IosAvFoundationAudioPlayerEngine(
         shouldResumeAfterInterruption = false
         handleBridgeAck(ack = bridge.pause(generation = generation))
         eventChannel.trySend(
-            element = PlaybackEngineEvent.StatusChanged(
-                status = PlaybackStatus.Paused,
-                positionMs = event.positionMs,
-                durationMs = event.durationMs ?: currentMedia()?.durationMs,
-            ),
+            element =
+                PlaybackEngineEvent.StatusChanged(
+                    status = PlaybackStatus.Paused,
+                    positionMs = event.positionMs,
+                    durationMs = event.durationMs ?: currentMedia()?.durationMs,
+                ),
         )
     }
 
@@ -441,34 +468,37 @@ internal class IosAvFoundationAudioPlayerEngine(
     }
 
     // 回传状态事件。
-    private fun emitStatus(status: PlaybackStatus, event: IosPlaybackBridgeEvent) {
+    private fun emitStatus(
+        status: PlaybackStatus,
+        event: IosPlaybackBridgeEvent,
+    ) {
         eventChannel.trySend(
-            element = PlaybackEngineEvent.StatusChanged(
-                status = status,
-                positionMs = positionOf(event = event),
-                durationMs = durationOf(event = event) ?: currentMedia()?.durationMs,
-            ),
+            element =
+                PlaybackEngineEvent.StatusChanged(
+                    status = status,
+                    positionMs = positionOf(event = event),
+                    durationMs = durationOf(event = event) ?: currentMedia()?.durationMs,
+                ),
         )
     }
 
     // 回传进度事件。
     private fun emitProgress(event: IosPlaybackBridgeEvent.Progress) {
         eventChannel.trySend(
-            element = PlaybackEngineEvent.ProgressChanged(
-                positionMs = event.positionMs,
-                durationMs = event.durationMs ?: currentMedia()?.durationMs,
-            ),
+            element =
+                PlaybackEngineEvent.ProgressChanged(
+                    positionMs = event.positionMs,
+                    durationMs = event.durationMs ?: currentMedia()?.durationMs,
+                ),
         )
     }
 
     // 判断回调是否属于当前 generation。
-    private fun isCurrentEvent(event: IosPlaybackBridgeEvent): Boolean {
-        return generationOf(event = event) == generation
-    }
+    private fun isCurrentEvent(event: IosPlaybackBridgeEvent): Boolean = generationOf(event = event) == generation
 
     // 读取事件 generation。
-    private fun generationOf(event: IosPlaybackBridgeEvent): Long {
-        return when (event) {
+    private fun generationOf(event: IosPlaybackBridgeEvent): Long =
+        when (event) {
             is IosPlaybackBridgeEvent.Prepared -> event.generation
             is IosPlaybackBridgeEvent.Buffering -> event.generation
             is IosPlaybackBridgeEvent.Playing -> event.generation
@@ -480,59 +510,67 @@ internal class IosAvFoundationAudioPlayerEngine(
             is IosPlaybackBridgeEvent.InterruptionEnded -> event.generation
             is IosPlaybackBridgeEvent.OutputDisconnected -> event.generation
         }
-    }
 
     // 读取状态类事件的进度。
-    private fun positionOf(event: IosPlaybackBridgeEvent): Long {
-        return when (event) {
+    private fun positionOf(event: IosPlaybackBridgeEvent): Long =
+        when (event) {
             is IosPlaybackBridgeEvent.Buffering -> event.positionMs
+
             is IosPlaybackBridgeEvent.Playing -> event.positionMs
+
             is IosPlaybackBridgeEvent.Paused -> event.positionMs
+
             is IosPlaybackBridgeEvent.Progress -> event.positionMs
+
             is IosPlaybackBridgeEvent.InterruptionBegan -> event.positionMs
+
             is IosPlaybackBridgeEvent.OutputDisconnected -> event.positionMs
+
             is IosPlaybackBridgeEvent.Prepared,
             is IosPlaybackBridgeEvent.Ended,
             is IosPlaybackBridgeEvent.Failed,
             is IosPlaybackBridgeEvent.InterruptionEnded,
             -> pendingSeekMs ?: 0L
         }
-    }
 
     // 读取状态类事件的时长。
-    private fun durationOf(event: IosPlaybackBridgeEvent): Long? {
-        return when (event) {
+    private fun durationOf(event: IosPlaybackBridgeEvent): Long? =
+        when (event) {
             is IosPlaybackBridgeEvent.Buffering -> event.durationMs
+
             is IosPlaybackBridgeEvent.Playing -> event.durationMs
+
             is IosPlaybackBridgeEvent.Paused -> event.durationMs
+
             is IosPlaybackBridgeEvent.Progress -> event.durationMs
+
             is IosPlaybackBridgeEvent.InterruptionBegan -> event.durationMs
+
             is IosPlaybackBridgeEvent.OutputDisconnected -> event.durationMs
+
             is IosPlaybackBridgeEvent.Prepared -> event.durationMs
+
             is IosPlaybackBridgeEvent.Ended,
             is IosPlaybackBridgeEvent.Failed,
             is IosPlaybackBridgeEvent.InterruptionEnded,
             -> currentMedia()?.durationMs
         }
-    }
 
     // 空队列统一映射为缺失文件，复用 common 失败策略。
-    private fun buildEmptyQueueError(): PlaybackError {
-        return PlaybackError(
+    private fun buildEmptyQueueError(): PlaybackError =
+        PlaybackError(
             type = PlaybackErrorType.MissingFile,
             songId = null,
             message = "iOS 播放队列为空",
         )
-    }
 
     // audio session 配置失败统一映射为引擎不可用。
-    private fun buildAudioSessionError(): PlaybackError {
-        return PlaybackError(
+    private fun buildAudioSessionError(): PlaybackError =
+        PlaybackError(
             type = PlaybackErrorType.EngineUnavailable,
             songId = currentMedia()?.songId,
             message = "iOS 音频会话无法激活 playback category",
         )
-    }
 }
 
 /**

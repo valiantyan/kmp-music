@@ -206,10 +206,11 @@ data class PlaybackSnapshotIdentity(
 
 /** 把完整快照压缩成可比较身份，避免门面持有整份快照副本。 */
 val PlaybackSnapshot.identity: PlaybackSnapshotIdentity
-    get() = PlaybackSnapshotIdentity(
-        queueSongIds = queueState.songIds,
-        currentSongId = playbackState.currentSongId,
-        currentIndex = queueState.currentIndex,
-        positionMs = playbackState.positionMs,
-        updatedAt = updatedAt,
-    )
+    get() =
+        PlaybackSnapshotIdentity(
+            queueSongIds = queueState.songIds,
+            currentSongId = playbackState.currentSongId,
+            currentIndex = queueState.currentIndex,
+            positionMs = playbackState.positionMs,
+            updatedAt = updatedAt,
+        )

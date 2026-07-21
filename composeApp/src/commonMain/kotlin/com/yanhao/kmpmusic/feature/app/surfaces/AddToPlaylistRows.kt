@@ -68,11 +68,12 @@ internal fun ExistingPlaylistRow(
 @Composable
 internal fun AddToPlaylistDivider() {
     Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = AddToPlaylistDialogDesignSpec.horizontalPadding)
-            .height(height = AddToPlaylistDialogDesignSpec.dividerHeight)
-            .background(color = AddToPlaylistDialogDesignSpec.dividerColor),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = AddToPlaylistDialogDesignSpec.horizontalPadding)
+                .height(height = AddToPlaylistDialogDesignSpec.dividerHeight)
+                .background(color = AddToPlaylistDialogDesignSpec.dividerColor),
     )
 }
 
@@ -88,10 +89,11 @@ private fun AddToPlaylistOptionRow(
     isSelected: Boolean,
 ) {
     Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .height(height = rowHeight)
-            .padding(horizontal = AddToPlaylistDialogDesignSpec.horizontalPadding),
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .height(height = rowHeight)
+                .padding(horizontal = AddToPlaylistDialogDesignSpec.horizontalPadding),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Box(
@@ -140,9 +142,10 @@ private fun ExistingPlaylistCover(playlist: LocalPlaylistCardDisplayModel) {
         coverArt = playlist.coverArt,
         coverImageUri = playlist.coverImageUri,
         contentDescription = null,
-        modifier = Modifier
-            .size(size = AddToPlaylistDialogDesignSpec.playlistCoverSize)
-            .clip(shape = RoundedCornerShape(size = AddToPlaylistDialogDesignSpec.playlistCoverRadius)),
+        modifier =
+            Modifier
+                .size(size = AddToPlaylistDialogDesignSpec.playlistCoverSize)
+                .clip(shape = RoundedCornerShape(size = AddToPlaylistDialogDesignSpec.playlistCoverRadius)),
     )
 }
 
@@ -152,27 +155,31 @@ private fun ExistingPlaylistCover(playlist: LocalPlaylistCardDisplayModel) {
 @Composable
 private fun AddToPlaylistRadio(isSelected: Boolean) {
     Box(
-        modifier = Modifier
-            .size(size = AddToPlaylistDialogDesignSpec.radioSize)
-            .border(
-                border = BorderStroke(
-                    width = AddToPlaylistDialogDesignSpec.radioBorderWidth,
-                    color = if (isSelected) {
-                        AddToPlaylistDialogDesignSpec.actionColor
-                    } else {
-                        AddToPlaylistDialogDesignSpec.radioBorderColor
-                    },
+        modifier =
+            Modifier
+                .size(size = AddToPlaylistDialogDesignSpec.radioSize)
+                .border(
+                    border =
+                        BorderStroke(
+                            width = AddToPlaylistDialogDesignSpec.radioBorderWidth,
+                            color =
+                                if (isSelected) {
+                                    AddToPlaylistDialogDesignSpec.actionColor
+                                } else {
+                                    AddToPlaylistDialogDesignSpec.radioBorderColor
+                                },
+                        ),
+                    shape = CircleShape,
                 ),
-                shape = CircleShape,
-            ),
         contentAlignment = Alignment.Center,
     ) {
         if (isSelected) {
             Box(
-                modifier = Modifier
-                    .size(size = AddToPlaylistDialogDesignSpec.radioDotSize)
-                    .clip(shape = CircleShape)
-                    .background(color = AddToPlaylistDialogDesignSpec.actionColor),
+                modifier =
+                    Modifier
+                        .size(size = AddToPlaylistDialogDesignSpec.radioDotSize)
+                        .clip(shape = CircleShape)
+                        .background(color = AddToPlaylistDialogDesignSpec.actionColor),
             )
         }
     }

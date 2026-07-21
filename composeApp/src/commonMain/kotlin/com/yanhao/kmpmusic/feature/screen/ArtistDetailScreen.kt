@@ -49,51 +49,59 @@ fun ArtistDetailScreen(
     modifier: Modifier = Modifier,
     contentPadding: PaddingValues = PaddingValues(),
 ) {
-    val content: ArtistDetailContent = remember(
-        artist,
-        songs,
-        currentSongId,
-        currentPlaybackStatus,
-    ) {
-        buildArtistDetailContent(
-            artist = artist,
-            songs = songs,
-            currentSongId = currentSongId,
-            currentPlaybackStatus = currentPlaybackStatus,
-        )
-    }
+    val content: ArtistDetailContent =
+        remember(
+            artist,
+            songs,
+            currentSongId,
+            currentPlaybackStatus,
+        ) {
+            buildArtistDetailContent(
+                artist = artist,
+                songs = songs,
+                currentSongId = currentSongId,
+                currentPlaybackStatus = currentPlaybackStatus,
+            )
+        }
     val listState: LazyListState = rememberLazyListState()
     val density: Density = LocalDensity.current
-    val statusBarInset: Dp = with(density) {
-        WindowInsets.statusBars.getTop(density = this).toDp()
-    }
-    val palette: ArtistDetailPalette = rememberArtistDetailPalette(
-        coverArt = artist.coverArt,
-        coverImageUri = artist.coverImageUri,
-    )
+    val statusBarInset: Dp =
+        with(density) {
+            WindowInsets.statusBars.getTop(density = this).toDp()
+        }
+    val palette: ArtistDetailPalette =
+        rememberArtistDetailPalette(
+            coverArt = artist.coverArt,
+            coverImageUri = artist.coverImageUri,
+        )
     BoxWithConstraints(
-        modifier = modifier
-            .fillMaxSize()
-            .background(color = palette.backgroundColor),
+        modifier =
+            modifier
+                .fillMaxSize()
+                .background(color = palette.backgroundColor),
     ) {
-        val scrollSpec: ArtistDetailScrollSpec = createArtistDetailScrollSpec(
-            statusBarInset = statusBarInset,
-            viewportHeight = maxHeight,
-        )
-        val pullStretchState: ArtistDetailPullStretchState = rememberArtistDetailPullStretchState(
-            listState = listState,
-            maxPullStretchHeight = scrollSpec.maxPullStretchHeight,
-        )
-        val layoutState: ArtistDetailLayoutState = calculateArtistDetailLayoutState(
-            spec = scrollSpec,
-            pullOffset = pullStretchState.pullStretchHeight,
-        )
-        val scrollState: State<ArtistDetailScrollState> = rememberArtistDetailScrollState(
-            listState = listState,
-            density = density,
-            scrollSpec = scrollSpec,
-            pullOffset = layoutState.pullStretchHeight,
-        )
+        val scrollSpec: ArtistDetailScrollSpec =
+            createArtistDetailScrollSpec(
+                statusBarInset = statusBarInset,
+                viewportHeight = maxHeight,
+            )
+        val pullStretchState: ArtistDetailPullStretchState =
+            rememberArtistDetailPullStretchState(
+                listState = listState,
+                maxPullStretchHeight = scrollSpec.maxPullStretchHeight,
+            )
+        val layoutState: ArtistDetailLayoutState =
+            calculateArtistDetailLayoutState(
+                spec = scrollSpec,
+                pullOffset = pullStretchState.pullStretchHeight,
+            )
+        val scrollState: State<ArtistDetailScrollState> =
+            rememberArtistDetailScrollState(
+                listState = listState,
+                density = density,
+                scrollSpec = scrollSpec,
+                pullOffset = layoutState.pullStretchHeight,
+            )
         ArtistDetailBackground(
             artist = artist,
             palette = palette,
@@ -107,18 +115,19 @@ fun ArtistDetailScreen(
         )
         LazyColumn(
             state = listState,
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(top = layoutState.contentTopBarrier)
-                .clipToBounds()
-                .zIndex(zIndex = 1f)
-                .graphicsLayer {
-                    translationY = with(density) { -pullStretchState.bottomBounceOffset.toPx() }
-                }
-                .nestedScroll(connection = pullStretchState.nestedScrollConnection),
-            contentPadding = PaddingValues(
-                bottom = contentPadding.calculateBottomPadding(),
-            ),
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .padding(top = layoutState.contentTopBarrier)
+                    .clipToBounds()
+                    .zIndex(zIndex = 1f)
+                    .graphicsLayer {
+                        translationY = with(density) { -pullStretchState.bottomBounceOffset.toPx() }
+                    }.nestedScroll(connection = pullStretchState.nestedScrollConnection),
+            contentPadding =
+                PaddingValues(
+                    bottom = contentPadding.calculateBottomPadding(),
+                ),
         ) {
             item(key = "artist-content-spacer", contentType = "artist-detail-content-spacer") {
                 Spacer(modifier = Modifier.height(height = layoutState.contentGroupSpacerHeight))
@@ -181,8 +190,8 @@ private fun rememberArtistDetailScrollState(
     density: Density,
     scrollSpec: ArtistDetailScrollSpec,
     pullOffset: Dp,
-): State<ArtistDetailScrollState> {
-    return remember(
+): State<ArtistDetailScrollState> =
+    remember(
         listState,
         density,
         scrollSpec,
@@ -191,16 +200,16 @@ private fun rememberArtistDetailScrollState(
         derivedStateOf {
             calculateArtistDetailScrollState(
                 spec = scrollSpec,
-                scrollOffset = calculateArtistDetailScrollOffset(
-                    listState = listState,
-                    density = density,
-                    scrollSpec = scrollSpec,
-                ),
+                scrollOffset =
+                    calculateArtistDetailScrollOffset(
+                        listState = listState,
+                        density = density,
+                        scrollSpec = scrollSpec,
+                    ),
                 pullOffset = pullOffset,
             )
         }
     }
-}
 
 // 只需要折叠区间内的滚动距离，超过后模型会保持完全折叠。
 private fun calculateArtistDetailScrollOffset(
@@ -208,9 +217,10 @@ private fun calculateArtistDetailScrollOffset(
     density: Density,
     scrollSpec: ArtistDetailScrollSpec,
 ): Dp {
-    val firstVisibleItemScrollOffset: Dp = with(density) {
-        listState.firstVisibleItemScrollOffset.toDp()
-    }
+    val firstVisibleItemScrollOffset: Dp =
+        with(density) {
+            listState.firstVisibleItemScrollOffset.toDp()
+        }
     return calculateArtistDetailScrollOffsetFromListPosition(
         firstVisibleItemIndex = listState.firstVisibleItemIndex,
         firstVisibleItemScrollOffset = firstVisibleItemScrollOffset,

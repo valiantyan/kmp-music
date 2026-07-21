@@ -111,9 +111,10 @@ private fun PlayerPrimaryControlButton(
         shadowElevation = scaledDp(10.dp),
     ) {
         Box(
-            modifier = Modifier
-                .size(size = scaledDp(80.dp))
-                .background(color = Color.Transparent),
+            modifier =
+                Modifier
+                    .size(size = scaledDp(80.dp))
+                    .background(color = Color.Transparent),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
@@ -127,19 +128,17 @@ private fun PlayerPrimaryControlButton(
 }
 
 // 播放模式图标跟随现有枚举，不引入新的状态模型。
-private fun PlaybackMode.toPlayerModeIcon(): ImageVector {
-    return when (this) {
+private fun PlaybackMode.toPlayerModeIcon(): ImageVector =
+    when (this) {
         PlaybackMode.LoopAll -> Icons.Rounded.Repeat
         PlaybackMode.LoopOne -> Icons.Rounded.RepeatOne
         PlaybackMode.Shuffle -> Icons.Rounded.Shuffle
     }
-}
 
 // 播放模式描述保持无障碍文案和现有语义一致。
-private fun PlaybackMode.toPlayerModeDescription(): String {
-    return when (this) {
+private fun PlaybackMode.toPlayerModeDescription(): String =
+    when (this) {
         PlaybackMode.LoopAll -> "顺序播放"
         PlaybackMode.LoopOne -> "单曲循环"
         PlaybackMode.Shuffle -> "随机播放"
     }
-}

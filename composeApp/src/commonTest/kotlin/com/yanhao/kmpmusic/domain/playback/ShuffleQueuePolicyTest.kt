@@ -15,10 +15,11 @@ class ShuffleQueuePolicyTest {
     fun buildInitialRemainingExcludesCurrentIndex() {
         val policy = ShuffleQueuePolicy()
 
-        val remaining: List<Int> = policy.buildInitialRemaining(
-            queueSize = 4,
-            currentIndex = 2,
-        )
+        val remaining: List<Int> =
+            policy.buildInitialRemaining(
+                queueSize = 4,
+                currentIndex = 2,
+            )
 
         assertEquals(expected = listOf(0, 1, 3), actual = remaining)
     }
@@ -29,17 +30,19 @@ class ShuffleQueuePolicyTest {
     @Test
     fun migrateQueueStateForwardUpdatesHistoryAndRemaining() {
         val policy = ShuffleQueuePolicy()
-        val queueState: QueueState = buildQueueState(
-            currentIndex = 0,
-            shuffleHistory = emptyList(),
-            shuffleRemaining = listOf(1, 2, 3),
-        )
+        val queueState: QueueState =
+            buildQueueState(
+                currentIndex = 0,
+                shuffleHistory = emptyList(),
+                shuffleRemaining = listOf(1, 2, 3),
+            )
 
-        val migratedState: QueueState = policy.migrateQueueState(
-            queueState = queueState,
-            targetIndex = 2,
-            isMovingBackward = false,
-        )
+        val migratedState: QueueState =
+            policy.migrateQueueState(
+                queueState = queueState,
+                targetIndex = 2,
+                isMovingBackward = false,
+            )
 
         assertEquals(expected = 2, actual = migratedState.currentIndex)
         assertEquals(expected = listOf(0), actual = migratedState.shuffleHistory)
@@ -52,17 +55,19 @@ class ShuffleQueuePolicyTest {
     @Test
     fun migrateQueueStateBackwardUsesHistoryAndRestoresLeavingCurrentIndex() {
         val policy = ShuffleQueuePolicy()
-        val queueState: QueueState = buildQueueState(
-            currentIndex = 2,
-            shuffleHistory = listOf(0),
-            shuffleRemaining = listOf(1, 3),
-        )
+        val queueState: QueueState =
+            buildQueueState(
+                currentIndex = 2,
+                shuffleHistory = listOf(0),
+                shuffleRemaining = listOf(1, 3),
+            )
 
-        val migratedState: QueueState = policy.migrateQueueState(
-            queueState = queueState,
-            targetIndex = 0,
-            isMovingBackward = true,
-        )
+        val migratedState: QueueState =
+            policy.migrateQueueState(
+                queueState = queueState,
+                targetIndex = 0,
+                isMovingBackward = true,
+            )
 
         assertEquals(expected = 0, actual = migratedState.currentIndex)
         assertEquals(expected = emptyList(), actual = migratedState.shuffleHistory)
@@ -74,14 +79,16 @@ class ShuffleQueuePolicyTest {
      */
     @Test
     fun nextIndexStartsNewRoundWithoutImmediatelyRepeatingCurrentSong() {
-        val policy = ShuffleQueuePolicy(
-            randomIndex = { candidates: List<Int> -> candidates.first() },
-        )
-        val queueState: QueueState = buildQueueState(
-            currentIndex = 1,
-            shuffleHistory = listOf(0, 2),
-            shuffleRemaining = emptyList(),
-        )
+        val policy =
+            ShuffleQueuePolicy(
+                randomIndex = { candidates: List<Int> -> candidates.first() },
+            )
+        val queueState: QueueState =
+            buildQueueState(
+                currentIndex = 1,
+                shuffleHistory = listOf(0, 2),
+                shuffleRemaining = emptyList(),
+            )
 
         val nextIndex: Int = policy.nextIndex(queueState = queueState)
 
@@ -107,12 +114,11 @@ class ShuffleQueuePolicyTest {
         currentIndex: Int,
         shuffleHistory: List<Int>,
         shuffleRemaining: List<Int>,
-    ): QueueState {
-        return QueueState(
+    ): QueueState =
+        QueueState(
             songIds = listOf("song-0", "song-1", "song-2", "song-3"),
             currentIndex = currentIndex,
             shuffleHistory = shuffleHistory,
             shuffleRemaining = shuffleRemaining,
         )
-    }
 }

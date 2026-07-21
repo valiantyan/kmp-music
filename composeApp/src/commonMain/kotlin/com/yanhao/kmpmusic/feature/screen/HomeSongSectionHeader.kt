@@ -21,11 +21,12 @@ import com.yanhao.kmpmusic.domain.model.LocalMusicScanState
 @Composable
 internal fun HomeSongSectionHeader(songCountText: String) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(40.dp)
-            .padding(horizontal = 20.dp)
-            .padding(top = 8.dp),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .height(40.dp)
+                .padding(horizontal = 20.dp)
+                .padding(top = 8.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.Top,
     ) {
@@ -55,10 +56,11 @@ internal fun HomeEmptySongsCard(
     onScan: () -> Unit,
 ) {
     Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(100.dp)
-            .padding(horizontal = 20.dp),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .height(100.dp)
+                .padding(horizontal = 20.dp),
         shape = RoundedCornerShape(16.dp),
         color = Color.White,
         shadowElevation = 1.dp,
@@ -81,10 +83,11 @@ internal fun HomeEmptySongsCard(
                 onClick = onScan,
             ) {
                 Text(
-                    text = localMusicScanActionLabel(
-                        scanState = scanState,
-                        platform = discoveryPlatform,
-                    ),
+                    text =
+                        localMusicScanActionLabel(
+                            scanState = scanState,
+                            platform = discoveryPlatform,
+                        ),
                     color = Color.White,
                     fontSize = 14.sp,
                     lineHeight = 16.sp,

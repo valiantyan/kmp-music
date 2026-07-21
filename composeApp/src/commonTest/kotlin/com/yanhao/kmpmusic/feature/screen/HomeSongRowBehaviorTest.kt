@@ -9,67 +9,73 @@ import kotlin.test.assertEquals
  */
 class HomeSongRowBehaviorTest {
     @Test
-    fun currentActiveOrPausedSongUsesPlaybackToggleWhenHandlerExists(): Unit {
-        val toggleStatuses: List<PlaybackStatus> = listOf(
-            PlaybackStatus.Playing,
-            PlaybackStatus.Loading,
-            PlaybackStatus.Buffering,
-            PlaybackStatus.Paused,
-        )
+    fun currentActiveOrPausedSongUsesPlaybackToggleWhenHandlerExists() {
+        val toggleStatuses: List<PlaybackStatus> =
+            listOf(
+                PlaybackStatus.Playing,
+                PlaybackStatus.Loading,
+                PlaybackStatus.Buffering,
+                PlaybackStatus.Paused,
+            )
 
         toggleStatuses.forEach { status: PlaybackStatus ->
             assertEquals(
                 expected = HomeSongRowClickAction.ToggleCurrentPlayback,
-                actual = resolveHomeSongRowClickAction(
-                    isCurrentSong = true,
-                    currentPlaybackStatus = status,
-                    hasCurrentSongToggle = true,
-                ),
+                actual =
+                    resolveHomeSongRowClickAction(
+                        isCurrentSong = true,
+                        currentPlaybackStatus = status,
+                        hasCurrentSongToggle = true,
+                    ),
             )
         }
     }
 
     @Test
-    fun currentIdleEndedOrErrorSongFallsBackToPlay(): Unit {
-        val playStatuses: List<PlaybackStatus> = listOf(
-            PlaybackStatus.Idle,
-            PlaybackStatus.Ended,
-            PlaybackStatus.Error,
-        )
+    fun currentIdleEndedOrErrorSongFallsBackToPlay() {
+        val playStatuses: List<PlaybackStatus> =
+            listOf(
+                PlaybackStatus.Idle,
+                PlaybackStatus.Ended,
+                PlaybackStatus.Error,
+            )
 
         playStatuses.forEach { status: PlaybackStatus ->
             assertEquals(
                 expected = HomeSongRowClickAction.PlaySelectedSong,
-                actual = resolveHomeSongRowClickAction(
-                    isCurrentSong = true,
-                    currentPlaybackStatus = status,
-                    hasCurrentSongToggle = true,
-                ),
+                actual =
+                    resolveHomeSongRowClickAction(
+                        isCurrentSong = true,
+                        currentPlaybackStatus = status,
+                        hasCurrentSongToggle = true,
+                    ),
             )
         }
     }
 
     @Test
-    fun missingToggleHandlerKeepsHomeDefaultPlayBehavior(): Unit {
+    fun missingToggleHandlerKeepsHomeDefaultPlayBehavior() {
         assertEquals(
             expected = HomeSongRowClickAction.PlaySelectedSong,
-            actual = resolveHomeSongRowClickAction(
-                isCurrentSong = true,
-                currentPlaybackStatus = PlaybackStatus.Playing,
-                hasCurrentSongToggle = false,
-            ),
+            actual =
+                resolveHomeSongRowClickAction(
+                    isCurrentSong = true,
+                    currentPlaybackStatus = PlaybackStatus.Playing,
+                    hasCurrentSongToggle = false,
+                ),
         )
     }
 
     @Test
-    fun nonCurrentSongAlwaysPlaysSelectedSong(): Unit {
+    fun nonCurrentSongAlwaysPlaysSelectedSong() {
         assertEquals(
             expected = HomeSongRowClickAction.PlaySelectedSong,
-            actual = resolveHomeSongRowClickAction(
-                isCurrentSong = false,
-                currentPlaybackStatus = PlaybackStatus.Playing,
-                hasCurrentSongToggle = true,
-            ),
+            actual =
+                resolveHomeSongRowClickAction(
+                    isCurrentSong = false,
+                    currentPlaybackStatus = PlaybackStatus.Playing,
+                    hasCurrentSongToggle = true,
+                ),
         )
     }
 }

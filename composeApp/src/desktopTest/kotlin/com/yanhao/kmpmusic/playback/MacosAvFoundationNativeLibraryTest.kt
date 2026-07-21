@@ -11,7 +11,7 @@ import kotlin.test.assertEquals
 class MacosAvFoundationNativeLibraryTest {
     /** 验证打包 `.app` 可通过 Compose resources 属性找到内置 bridge。 */
     @Test
-    fun resolvesBundledBridgePathFromComposeResources(): Unit {
+    fun resolvesBundledBridgePathFromComposeResources() {
         val resourcesDir: Path = Files.createTempDirectory("kmp-music-macos-resources")
         try {
             val bridgeDirectory: Path = resourcesDir.resolve(MACOS_AVFOUNDATION_BRIDGE_BUNDLED_RESOURCE_DIRECTORY)
@@ -20,9 +20,10 @@ class MacosAvFoundationNativeLibraryTest {
             Files.writeString(bridgePath, "fake dylib")
             assertEquals(
                 expected = bridgePath.toAbsolutePath().toString(),
-                actual = MacosAvFoundationNativeLibraryPathResolver.resolveBundledBridgePath(
-                    resourcesDir = resourcesDir.toString(),
-                ),
+                actual =
+                    MacosAvFoundationNativeLibraryPathResolver.resolveBundledBridgePath(
+                        resourcesDir = resourcesDir.toString(),
+                    ),
             )
         } finally {
             resourcesDir.toFile().deleteRecursively()

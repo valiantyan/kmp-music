@@ -44,9 +44,10 @@ internal fun DesktopPlayerTrack(
     onLike: (String) -> Unit,
 ) {
     Row(
-        modifier = Modifier
-            .width(DesktopMusicDimens.PlayerTrackColumnWidth)
-            .fillMaxHeight(),
+        modifier =
+            Modifier
+                .width(DesktopMusicDimens.PlayerTrackColumnWidth)
+                .fillMaxHeight(),
         horizontalArrangement = Arrangement.spacedBy(16.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -55,9 +56,10 @@ internal fun DesktopPlayerTrack(
                 coverArt = song.coverArt,
                 coverImageUri = song.coverImageUri,
                 contentDescription = "${song.title} 封面",
-                modifier = Modifier
-                    .size(58.dp)
-                    .clip(RoundedCornerShape(10.dp)),
+                modifier =
+                    Modifier
+                        .size(58.dp)
+                        .clip(RoundedCornerShape(10.dp)),
                 contentScale = ContentScale.Crop,
             )
             Column(modifier = Modifier.weight(1f)) {
@@ -85,10 +87,11 @@ internal fun DesktopPlayerTrack(
             return
         }
         Box(
-            modifier = Modifier
-                .size(58.dp)
-                .clip(RoundedCornerShape(10.dp))
-                .background(DesktopMusicColors.Soft),
+            modifier =
+                Modifier
+                    .size(58.dp)
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(DesktopMusicColors.Soft),
         )
         Column(modifier = Modifier.weight(1f)) {
             Text(
@@ -122,11 +125,12 @@ private fun DesktopPlayerTrackActions(
             modifier = Modifier.size(38.dp),
         ) {
             Icon(
-                imageVector = if (isLiked) {
-                    Icons.Rounded.Favorite
-                } else {
-                    Icons.Rounded.FavoriteBorder
-                },
+                imageVector =
+                    if (isLiked) {
+                        Icons.Rounded.Favorite
+                    } else {
+                        Icons.Rounded.FavoriteBorder
+                    },
                 contentDescription = if (isLiked) "取消收藏" else "收藏",
                 tint = if (isLiked) DesktopMusicColors.PlayerRed else DesktopMusicColors.Ink,
             )

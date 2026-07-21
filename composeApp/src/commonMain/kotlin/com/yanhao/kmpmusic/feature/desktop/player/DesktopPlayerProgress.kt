@@ -34,10 +34,11 @@ internal fun DesktopThinSlider(
     modifier: Modifier = Modifier,
 ) {
     val rangeSpan: Float = (valueRange.endInclusive - valueRange.start).coerceAtLeast(minimumValue = 1f)
-    val progressFraction: Float = ((value - valueRange.start) / rangeSpan).coerceIn(
-        minimumValue = 0f,
-        maximumValue = 1f,
-    )
+    val progressFraction: Float =
+        ((value - valueRange.start) / rangeSpan).coerceIn(
+            minimumValue = 0f,
+            maximumValue = 1f,
+        )
     val updateFromX: (Float, Float) -> Unit = { positionX: Float, width: Float ->
         if (enabled && width > 0f) {
             val fraction: Float = (positionX / width).coerceIn(minimumValue = 0f, maximumValue = 1f)
@@ -45,46 +46,49 @@ internal fun DesktopThinSlider(
         }
     }
     BoxWithConstraints(
-        modifier = modifier
-            .height(22.dp)
-            .pointerInput(enabled, valueRange) {
-                detectTapGestures { offset ->
-                    updateFromX(offset.x, size.width.toFloat())
-                }
-            }
-            .pointerInput(enabled, valueRange) {
-                detectDragGestures(
-                    onDragStart = { offset ->
+        modifier =
+            modifier
+                .height(22.dp)
+                .pointerInput(enabled, valueRange) {
+                    detectTapGestures { offset ->
                         updateFromX(offset.x, size.width.toFloat())
-                    },
-                    onDrag = { change, _ ->
-                        change.consume()
-                        updateFromX(change.position.x, size.width.toFloat())
-                    },
-                )
-            },
+                    }
+                }.pointerInput(enabled, valueRange) {
+                    detectDragGestures(
+                        onDragStart = { offset ->
+                            updateFromX(offset.x, size.width.toFloat())
+                        },
+                        onDrag = { change, _ ->
+                            change.consume()
+                            updateFromX(change.position.x, size.width.toFloat())
+                        },
+                    )
+                },
         contentAlignment = Alignment.CenterStart,
     ) {
         Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(3.dp)
-                .clip(CircleShape)
-                .background(Color(0xFFDCE3E8)),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .height(3.dp)
+                    .clip(CircleShape)
+                    .background(Color(0xFFDCE3E8)),
         )
         Box(
-            modifier = Modifier
-                .fillMaxWidth(fraction = progressFraction)
-                .height(3.dp)
-                .clip(CircleShape)
-                .background(if (enabled) DesktopMusicColors.Accent else DesktopMusicColors.Accent.copy(alpha = 0.45f)),
+            modifier =
+                Modifier
+                    .fillMaxWidth(fraction = progressFraction)
+                    .height(3.dp)
+                    .clip(CircleShape)
+                    .background(if (enabled) DesktopMusicColors.Accent else DesktopMusicColors.Accent.copy(alpha = 0.45f)),
         )
         Box(
-            modifier = Modifier
-                .offset(x = (maxWidth - 10.dp) * progressFraction)
-                .size(10.dp)
-                .clip(CircleShape)
-                .background(if (enabled) DesktopMusicColors.Accent else DesktopMusicColors.Accent.copy(alpha = 0.45f)),
+            modifier =
+                Modifier
+                    .offset(x = (maxWidth - 10.dp) * progressFraction)
+                    .size(10.dp)
+                    .clip(CircleShape)
+                    .background(if (enabled) DesktopMusicColors.Accent else DesktopMusicColors.Accent.copy(alpha = 0.45f)),
         )
     }
 }

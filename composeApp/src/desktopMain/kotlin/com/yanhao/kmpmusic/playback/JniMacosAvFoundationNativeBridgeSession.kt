@@ -37,7 +37,10 @@ internal class JniMacosAvFoundationNativeBridgeSession(
     }
 
     /** 跳转当前媒体进度。 */
-    override fun seekTo(generation: Long, positionMs: Long): Int {
+    override fun seekTo(
+        generation: Long,
+        positionMs: Long,
+    ): Int {
         val activeHandle: Long = activeHandleOrUnavailable() ?: return unavailable()
         return MacosAvFoundationNativeBindings.seekTo(
             handle = activeHandle,
@@ -60,19 +63,16 @@ internal class JniMacosAvFoundationNativeBridgeSession(
 
     /** 释放 native 会话。 */
     override fun release(): Int {
-        val activeHandle: Long = activeHandleOrUnavailable()
-            ?: return MACOS_AVFOUNDATION_NATIVE_STATUS_ACCEPTED
+        val activeHandle: Long =
+            activeHandleOrUnavailable()
+                ?: return MACOS_AVFOUNDATION_NATIVE_STATUS_ACCEPTED
         handle = 0L
         return MacosAvFoundationNativeBindings.release(handle = activeHandle)
     }
 
     /** 读取仍可用的 native handle。 */
-    private fun activeHandleOrUnavailable(): Long? {
-        return handle.takeIf { value: Long -> value != 0L }
-    }
+    private fun activeHandleOrUnavailable(): Long? = handle.takeIf { value: Long -> value != 0L }
 
     /** 统一返回 bridge 不可用状态码。 */
-    private fun unavailable(): Int {
-        return MACOS_AVFOUNDATION_NATIVE_STATUS_ENGINE_UNAVAILABLE
-    }
+    private fun unavailable(): Int = MACOS_AVFOUNDATION_NATIVE_STATUS_ENGINE_UNAVAILABLE
 }

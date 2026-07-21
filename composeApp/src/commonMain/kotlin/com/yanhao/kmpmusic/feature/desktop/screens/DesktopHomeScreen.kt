@@ -24,8 +24,8 @@ import com.yanhao.kmpmusic.feature.desktop.components.DesktopMoreButton
 import com.yanhao.kmpmusic.feature.desktop.components.DesktopPageHeader
 import com.yanhao.kmpmusic.feature.desktop.components.DesktopScanIcon
 import com.yanhao.kmpmusic.feature.desktop.components.DesktopSecondaryButton
-import com.yanhao.kmpmusic.feature.desktop.components.DesktopSectionHeader
 import com.yanhao.kmpmusic.feature.desktop.components.DesktopSectionEmptyMessage
+import com.yanhao.kmpmusic.feature.desktop.components.DesktopSectionHeader
 import com.yanhao.kmpmusic.feature.desktop.components.DesktopSongTable
 import com.yanhao.kmpmusic.feature.desktop.components.DesktopStatCard
 import com.yanhao.kmpmusic.feature.desktop.components.DesktopToolbar
@@ -54,29 +54,33 @@ fun DesktopLocalMusicRootScreen(
     onMore: (Song) -> Unit,
     onAlbumOpen: (Album) -> Unit,
 ) {
-    val playAllLabel: String = rootPlayAllLabel(
-        songs = songs,
-        currentSongId = currentSongId,
-        currentPlaybackStatus = currentPlaybackStatus,
-    )
-    val recentAlbums: List<Album> = buildRecentAlbums(
-        recentSongs = recentSongs,
-        albums = albums,
-    )
+    val playAllLabel: String =
+        rootPlayAllLabel(
+            songs = songs,
+            currentSongId = currentSongId,
+            currentPlaybackStatus = currentPlaybackStatus,
+        )
+    val recentAlbums: List<Album> =
+        buildRecentAlbums(
+            recentSongs = recentSongs,
+            albums = albums,
+        )
     Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState()),
+        modifier =
+            Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState()),
     ) {
         DesktopPageHeader(
             title = "本地音乐",
             eyebrow = "已扫描 ${libraryStats.songCount} 首歌曲，${libraryStats.albumCount} 张专辑，${libraryStats.artistCount} 位歌手",
         ) {
             DesktopSecondaryButton(
-                text = localMusicScanActionLabel(
-                    scanState = scanState,
-                    platform = LocalMusicDiscoveryPlatform.Desktop,
-                ),
+                text =
+                    localMusicScanActionLabel(
+                        scanState = scanState,
+                        platform = LocalMusicDiscoveryPlatform.Desktop,
+                    ),
                 icon = DesktopScanIcon,
                 onClick = onScan,
             )
@@ -187,6 +191,7 @@ internal fun rootPlayAllLabel(
         PlaybackStatus.Buffering,
         PlaybackStatus.Loading,
         -> "暂停播放"
+
         PlaybackStatus.Paused,
         PlaybackStatus.Ended,
         PlaybackStatus.Idle,
@@ -218,18 +223,19 @@ internal fun buildRecentAlbums(
     recentSongs: List<Song>,
     albums: List<Album>,
 ): List<Album> {
-    val albumsByTitle: Map<String, List<Album>> = albums.groupBy { album: Album ->
-        normalizeDesktopLookupKey(album.title)
-    }
-    return recentSongs.mapNotNull { song: Song ->
-        val normalizedAlbumTitle: String = normalizeDesktopLookupKey(song.album)
-        val normalizedArtistName: String = normalizeDesktopLookupKey(song.artist)
-        val titleMatches: List<Album> = albumsByTitle[normalizedAlbumTitle].orEmpty()
-        titleMatches.firstOrNull { album: Album ->
-            normalizeDesktopLookupKey(album.artist) == normalizedArtistName
-        } ?: titleMatches.singleOrNull()
-    }
-        .distinctBy { album: Album -> album.id }
+    val albumsByTitle: Map<String, List<Album>> =
+        albums.groupBy { album: Album ->
+            normalizeDesktopLookupKey(album.title)
+        }
+    return recentSongs
+        .mapNotNull { song: Song ->
+            val normalizedAlbumTitle: String = normalizeDesktopLookupKey(song.album)
+            val normalizedArtistName: String = normalizeDesktopLookupKey(song.artist)
+            val titleMatches: List<Album> = albumsByTitle[normalizedAlbumTitle].orEmpty()
+            titleMatches.firstOrNull { album: Album ->
+                normalizeDesktopLookupKey(album.artist) == normalizedArtistName
+            } ?: titleMatches.singleOrNull()
+        }.distinctBy { album: Album -> album.id }
         .take(HOME_ALBUM_PREVIEW_COUNT)
 }
 
@@ -243,6 +249,7 @@ internal fun buildFrequentArtists(
     if (recentSongs.isEmpty()) {
         return emptyList()
     }
+
     data class RecentArtistAccumulator(
         val name: String,
         val recentCount: Int,
@@ -250,24 +257,26 @@ internal fun buildFrequentArtists(
         val coverArt: CoverArt,
         val coverImageUri: String?,
     )
-    val artistsByNormalizedName: Map<String, Artist> = artists.associateBy { artist: Artist ->
-        normalizeDesktopLookupKey(artist.name)
-    }
+    val artistsByNormalizedName: Map<String, Artist> =
+        artists.associateBy { artist: Artist ->
+            normalizeDesktopLookupKey(artist.name)
+        }
     val recentArtistStats: Map<String, RecentArtistAccumulator> =
         recentSongs.withIndex().fold(mutableMapOf()) { acc, indexedSong ->
             val normalizedArtistName: String = normalizeDesktopLookupKey(indexedSong.value.artist)
             val existing: RecentArtistAccumulator? = acc[normalizedArtistName]
-            acc[normalizedArtistName] = if (existing == null) {
-                RecentArtistAccumulator(
-                    name = indexedSong.value.artist,
-                    recentCount = 1,
-                    firstRecentIndex = indexedSong.index,
-                    coverArt = indexedSong.value.coverArt,
-                    coverImageUri = indexedSong.value.coverImageUri,
-                )
-            } else {
-                existing.copy(recentCount = existing.recentCount + 1)
-            }
+            acc[normalizedArtistName] =
+                if (existing == null) {
+                    RecentArtistAccumulator(
+                        name = indexedSong.value.artist,
+                        recentCount = 1,
+                        firstRecentIndex = indexedSong.index,
+                        coverArt = indexedSong.value.coverArt,
+                        coverImageUri = indexedSong.value.coverImageUri,
+                    )
+                } else {
+                    existing.copy(recentCount = existing.recentCount + 1)
+                }
             acc
         }
     return recentArtistStats.entries
@@ -277,8 +286,7 @@ internal fun buildFrequentArtists(
             }.thenBy { entry: Map.Entry<String, RecentArtistAccumulator> ->
                 entry.value.firstRecentIndex
             },
-        )
-        .map { entry: Map.Entry<String, RecentArtistAccumulator> ->
+        ).map { entry: Map.Entry<String, RecentArtistAccumulator> ->
             val recentArtist: RecentArtistAccumulator = entry.value
             artistsByNormalizedName[entry.key]?.copy(songCount = recentArtist.recentCount)
                 ?: Artist(
@@ -294,6 +302,4 @@ internal fun buildFrequentArtists(
 }
 
 /** 桌面端最近播放匹配使用统一规整规则，避免大小写或空格造成重复。 */
-private fun normalizeDesktopLookupKey(value: String): String {
-    return value.trim().lowercase()
-}
+private fun normalizeDesktopLookupKey(value: String): String = value.trim().lowercase()

@@ -16,36 +16,41 @@ import kotlin.test.assertTrue
 
 class MusicAppFavoriteStateSynchronizerTest {
     @Test
-    fun toggleFavoriteSyncsHomeLocalQueueFavoriteRecentAndCurrentSongSources(): Unit {
+    fun toggleFavoriteSyncsHomeLocalQueueFavoriteRecentAndCurrentSongSources() {
         val playbackRepository = InMemoryPlaybackRepository()
         playbackRepository.savePlaybackHistory(history = PlaybackHistory(songIds = listOf("song-1")))
         val favoritesRepository = InMemoryFavoritesRepository(initialLikedSongIds = emptySet())
-        val synchronizer = FavoriteStateSynchronizer(
-            toggleFavoriteUseCase = ToggleFavoriteUseCaseImpl(favoritesRepository = favoritesRepository),
-            favoriteSongsResolver = { likedSongIds: Set<String>, preferredSongs: List<Song> ->
-                preferredSongs.filter { song: Song -> likedSongIds.contains(element = song.id) }
-                    .distinctBy { song -> song.id }
-                    .map { song: Song -> song.copy(isLiked = true) }
-            },
-            recentSongsBuilder = { _: MusicAppUiState, songs: List<Song> ->
-                val songsById: Map<String, Song> = songs
-                    .distinctBy { song: Song -> song.id }
-                    .associateBy { song: Song -> song.id }
-                playbackRepository.getPlaybackHistory().songIds.mapNotNull { songId -> songsById[songId] }
-            },
-        )
-        val state = testState().copy(
-            homeLocalSongPreview = listOf(testSong(id = "song-1")),
-            localSongs = listOf(testSong(id = "song-1")),
-            queueSongsSnapshot = listOf(testSong(id = "song-1")),
-            currentSongId = "song-1",
-            queueSongIds = listOf("song-1"),
-        )
+        val synchronizer =
+            FavoriteStateSynchronizer(
+                toggleFavoriteUseCase = ToggleFavoriteUseCaseImpl(favoritesRepository = favoritesRepository),
+                favoriteSongsResolver = { likedSongIds: Set<String>, preferredSongs: List<Song> ->
+                    preferredSongs
+                        .filter { song: Song -> likedSongIds.contains(element = song.id) }
+                        .distinctBy { song -> song.id }
+                        .map { song: Song -> song.copy(isLiked = true) }
+                },
+                recentSongsBuilder = { _: MusicAppUiState, songs: List<Song> ->
+                    val songsById: Map<String, Song> =
+                        songs
+                            .distinctBy { song: Song -> song.id }
+                            .associateBy { song: Song -> song.id }
+                    playbackRepository.getPlaybackHistory().songIds.mapNotNull { songId -> songsById[songId] }
+                },
+            )
+        val state =
+            testState().copy(
+                homeLocalSongPreview = listOf(testSong(id = "song-1")),
+                localSongs = listOf(testSong(id = "song-1")),
+                queueSongsSnapshot = listOf(testSong(id = "song-1")),
+                currentSongId = "song-1",
+                queueSongIds = listOf("song-1"),
+            )
 
-        val nextState = synchronizer.toggleFavorite(
-            state = state,
-            songId = "song-1",
-        )
+        val nextState =
+            synchronizer.toggleFavorite(
+                state = state,
+                songId = "song-1",
+            )
 
         assertEquals(expected = setOf("song-1"), actual = nextState.likedSongIds)
         assertTrue(actual = nextState.homeLocalSongPreview.single().isLiked)
@@ -57,31 +62,36 @@ class MusicAppFavoriteStateSynchronizerTest {
     }
 
     @Test
-    fun favoriteAlbumsAndArtistsStillComeFromProjectorAfterToggle(): Unit {
+    fun favoriteAlbumsAndArtistsStillComeFromProjectorAfterToggle() {
         val favoritesRepository = InMemoryFavoritesRepository(initialLikedSongIds = emptySet())
-        val synchronizer = FavoriteStateSynchronizer(
-            toggleFavoriteUseCase = ToggleFavoriteUseCaseImpl(favoritesRepository = favoritesRepository),
-            favoriteSongsResolver = { likedSongIds: Set<String>, preferredSongs: List<Song> ->
-                preferredSongs.filter { song: Song -> likedSongIds.contains(element = song.id) }
-                    .distinctBy { song -> song.id }
-                    .map { song: Song -> song.copy(isLiked = true) }
-            },
-            recentSongsBuilder = { _: MusicAppUiState, _: List<Song> -> emptyList() },
-        )
-        val state = testState().copy(
-            homeLocalSongPreview = listOf(
-                testSong(
-                    id = "song-1",
-                    album = "Album",
-                    artist = "Artist",
-                ),
-            ),
-        )
+        val synchronizer =
+            FavoriteStateSynchronizer(
+                toggleFavoriteUseCase = ToggleFavoriteUseCaseImpl(favoritesRepository = favoritesRepository),
+                favoriteSongsResolver = { likedSongIds: Set<String>, preferredSongs: List<Song> ->
+                    preferredSongs
+                        .filter { song: Song -> likedSongIds.contains(element = song.id) }
+                        .distinctBy { song -> song.id }
+                        .map { song: Song -> song.copy(isLiked = true) }
+                },
+                recentSongsBuilder = { _: MusicAppUiState, _: List<Song> -> emptyList() },
+            )
+        val state =
+            testState().copy(
+                homeLocalSongPreview =
+                    listOf(
+                        testSong(
+                            id = "song-1",
+                            album = "Album",
+                            artist = "Artist",
+                        ),
+                    ),
+            )
 
-        val nextState = synchronizer.toggleFavorite(
-            state = state,
-            songId = "song-1",
-        )
+        val nextState =
+            synchronizer.toggleFavorite(
+                state = state,
+                songId = "song-1",
+            )
 
         assertEquals(
             expected = listOf("album:album"),
@@ -94,56 +104,66 @@ class MusicAppFavoriteStateSynchronizerTest {
     }
 
     @Test
-    fun toggleFavoriteSyncsLocalPlaylistDetailSongs(): Unit {
+    fun toggleFavoriteSyncsLocalPlaylistDetailSongs() {
         val favoritesRepository = InMemoryFavoritesRepository(initialLikedSongIds = emptySet())
-        val synchronizer = FavoriteStateSynchronizer(
-            toggleFavoriteUseCase = ToggleFavoriteUseCaseImpl(favoritesRepository = favoritesRepository),
-            favoriteSongsResolver = { likedSongIds: Set<String>, preferredSongs: List<Song> ->
-                preferredSongs.filter { song: Song -> likedSongIds.contains(element = song.id) }
-                    .distinctBy { song -> song.id }
-                    .map { song: Song -> song.copy(isLiked = true) }
-            },
-            recentSongsBuilder = { _: MusicAppUiState, _: List<Song> -> emptyList() },
-        )
+        val synchronizer =
+            FavoriteStateSynchronizer(
+                toggleFavoriteUseCase = ToggleFavoriteUseCaseImpl(favoritesRepository = favoritesRepository),
+                favoriteSongsResolver = { likedSongIds: Set<String>, preferredSongs: List<Song> ->
+                    preferredSongs
+                        .filter { song: Song -> likedSongIds.contains(element = song.id) }
+                        .distinctBy { song -> song.id }
+                        .map { song: Song -> song.copy(isLiked = true) }
+                },
+                recentSongsBuilder = { _: MusicAppUiState, _: List<Song> -> emptyList() },
+            )
         val playlistSong: Song = testSong(id = "playlist-song")
-        val state: MusicAppUiState = testState().copy(
-            selectedLocalPlaylistDetail = LocalPlaylistDetailDisplayModel(
-                id = "playlist",
-                name = "歌单",
-                availableSongCount = 1,
-                coverArt = CoverArt.HeroLocalMusic,
-                coverImageUri = null,
-                songs = listOf(playlistSong),
-            ),
-            currentSongId = playlistSong.id,
-            queueSongIds = listOf(playlistSong.id),
-        )
+        val state: MusicAppUiState =
+            testState().copy(
+                selectedLocalPlaylistDetail =
+                    LocalPlaylistDetailDisplayModel(
+                        id = "playlist",
+                        name = "歌单",
+                        availableSongCount = 1,
+                        coverArt = CoverArt.HeroLocalMusic,
+                        coverImageUri = null,
+                        songs = listOf(playlistSong),
+                    ),
+                currentSongId = playlistSong.id,
+                queueSongIds = listOf(playlistSong.id),
+            )
 
-        val nextState: MusicAppUiState = synchronizer.toggleFavorite(
-            state = state,
-            songId = playlistSong.id,
-        )
+        val nextState: MusicAppUiState =
+            synchronizer.toggleFavorite(
+                state = state,
+                songId = playlistSong.id,
+            )
 
-        assertTrue(actual = nextState.selectedLocalPlaylistDetail?.songs?.single()?.isLiked == true)
+        assertTrue(
+            actual =
+                nextState.selectedLocalPlaylistDetail
+                    ?.songs
+                    ?.single()
+                    ?.isLiked == true,
+        )
         assertTrue(actual = nextState.favoriteSongs.single().isLiked)
         assertTrue(actual = nextState.currentSong?.isLiked == true)
     }
 
-    private fun testState(): MusicAppUiState {
-        return MusicAppUiState(
+    private fun testState(): MusicAppUiState =
+        MusicAppUiState(
             likedSongIds = emptySet(),
             currentSongId = null,
             playbackStatus = PlaybackStatus.Idle,
             queueSongIds = emptyList(),
         )
-    }
 
     private fun testSong(
         id: String,
         album: String = "Album",
         artist: String = "Artist",
-    ): Song {
-        return Song(
+    ): Song =
+        Song(
             id = id,
             title = id,
             artist = artist,
@@ -157,5 +177,4 @@ class MusicAppFavoriteStateSynchronizerTest {
             trackNumber = 1,
             durationMs = 180_000L,
         )
-    }
 }

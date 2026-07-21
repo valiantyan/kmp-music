@@ -13,13 +13,17 @@ internal object MediaControllerPlaybackModeMapper {
     /**
      * 应用播放模式，让系统媒体按钮和 App 内按钮使用同一套循环规则。
      */
-    fun apply(controller: MediaController, playbackMode: PlaybackMode) {
+    fun apply(
+        controller: MediaController,
+        playbackMode: PlaybackMode,
+    ) {
         if (controller.isCommandAvailable(Player.COMMAND_SET_REPEAT_MODE)) {
-            controller.repeatMode = when (playbackMode) {
-                PlaybackMode.LoopAll -> Player.REPEAT_MODE_ALL
-                PlaybackMode.LoopOne -> Player.REPEAT_MODE_ONE
-                PlaybackMode.Shuffle -> Player.REPEAT_MODE_ALL
-            }
+            controller.repeatMode =
+                when (playbackMode) {
+                    PlaybackMode.LoopAll -> Player.REPEAT_MODE_ALL
+                    PlaybackMode.LoopOne -> Player.REPEAT_MODE_ONE
+                    PlaybackMode.Shuffle -> Player.REPEAT_MODE_ALL
+                }
         }
         if (controller.isCommandAvailable(Player.COMMAND_SET_SHUFFLE_MODE)) {
             controller.shuffleModeEnabled = playbackMode == PlaybackMode.Shuffle

@@ -27,10 +27,11 @@ import androidx.compose.ui.unit.sp
 @Composable
 internal fun SearchEmptySuggestion() {
     Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(top = 56.dp, bottom = 48.dp)
-            .alpha(alpha = 0.4f),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(top = 56.dp, bottom = 48.dp)
+                .alpha(alpha = 0.4f),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(space = 16.dp),
     ) {
@@ -60,11 +61,12 @@ private fun SearchEmptyIcon() {
             tint = searchEmptyIconColor,
         )
         Box(
-            modifier = Modifier
-                .align(alignment = Alignment.BottomStart)
-                .size(size = 26.dp)
-                .clip(shape = CircleShape)
-                .background(color = searchBackgroundColor),
+            modifier =
+                Modifier
+                    .align(alignment = Alignment.BottomStart)
+                    .size(size = 26.dp)
+                    .clip(shape = CircleShape)
+                    .background(color = searchBackgroundColor),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
@@ -86,9 +88,10 @@ internal fun SearchNoResultState(message: String) {
         fontSize = 16.sp,
         lineHeight = 24.sp,
         fontWeight = FontWeight.Medium,
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(top = 32.dp),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(top = 32.dp),
         textAlign = TextAlign.Center,
     )
 }

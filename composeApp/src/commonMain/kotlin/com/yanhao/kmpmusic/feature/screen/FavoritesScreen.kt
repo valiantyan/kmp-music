@@ -44,34 +44,39 @@ fun FavoritesScreen(
     contentPadding: PaddingValues = PaddingValues(0.dp),
 ) {
     val topPadding: Dp = contentPadding.calculateTopPadding()
-    val likedSongs: List<Song> = remember(songs) {
-        songs.filter { song: Song -> song.isLiked }
-    }
-    val likedAlbums: List<Album> = remember(likedSongs, section) {
-        if (section == FavoriteSection.Albums) {
-            MusicLibraryProjector.buildAlbums(songs = likedSongs)
-        } else {
-            emptyList()
+    val likedSongs: List<Song> =
+        remember(songs) {
+            songs.filter { song: Song -> song.isLiked }
         }
-    }
-    val likedArtists: List<Artist> = remember(likedSongs, section) {
-        if (section == FavoriteSection.Artists) {
-            MusicLibraryProjector.buildArtists(songs = likedSongs)
-        } else {
-            emptyList()
+    val likedAlbums: List<Album> =
+        remember(likedSongs, section) {
+            if (section == FavoriteSection.Albums) {
+                MusicLibraryProjector.buildAlbums(songs = likedSongs)
+            } else {
+                emptyList()
+            }
         }
-    }
+    val likedArtists: List<Artist> =
+        remember(likedSongs, section) {
+            if (section == FavoriteSection.Artists) {
+                MusicLibraryProjector.buildArtists(songs = likedSongs)
+            } else {
+                emptyList()
+            }
+        }
     Box(
-        modifier = modifier
-            .fillMaxSize()
-            .background(color = favoritesBackgroundColor),
+        modifier =
+            modifier
+                .fillMaxSize()
+                .background(color = favoritesBackgroundColor),
     ) {
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(
-                top = topPadding + MusicDimens.MobileToolbarHeight + MusicDimens.MobileToolbarBodySpacing,
-                bottom = contentPadding.calculateBottomPadding() + 40.dp,
-            ),
+            contentPadding =
+                PaddingValues(
+                    top = topPadding + MusicDimens.MobileToolbarHeight + MusicDimens.MobileToolbarBodySpacing,
+                    bottom = contentPadding.calculateBottomPadding() + 40.dp,
+                ),
         ) {
             item(key = "favorites-action-header", contentType = "favorites-action-header") {
                 FavoritesActionHeader(
@@ -83,38 +88,48 @@ fun FavoritesScreen(
                         }
                     },
                     onSection = onSection,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = favoritesHorizontalPadding),
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = favoritesHorizontalPadding),
                 )
             }
             item(key = "favorites-action-list-gap", contentType = "favorites-gap") {
                 Spacer(modifier = Modifier.height(height = favoritesActionToListGap))
             }
             when (section) {
-                FavoriteSection.Songs -> favoriteSongItems(
-                    likedSongs = likedSongs,
-                    currentSongId = currentSongId,
-                    onSongPlay = onSongPlay,
-                    onMore = onMore,
-                    onLike = onLike,
-                )
-                FavoriteSection.Albums -> favoriteAlbumItems(
-                    likedAlbums = likedAlbums,
-                    onAlbumOpen = onAlbumOpen,
-                )
-                FavoriteSection.Artists -> favoriteArtistItems(
-                    likedArtists = likedArtists,
-                    onArtistOpen = onArtistOpen,
-                )
+                FavoriteSection.Songs -> {
+                    favoriteSongItems(
+                        likedSongs = likedSongs,
+                        currentSongId = currentSongId,
+                        onSongPlay = onSongPlay,
+                        onMore = onMore,
+                        onLike = onLike,
+                    )
+                }
+
+                FavoriteSection.Albums -> {
+                    favoriteAlbumItems(
+                        likedAlbums = likedAlbums,
+                        onAlbumOpen = onAlbumOpen,
+                    )
+                }
+
+                FavoriteSection.Artists -> {
+                    favoriteArtistItems(
+                        likedArtists = likedArtists,
+                        onArtistOpen = onArtistOpen,
+                    )
+                }
             }
         }
         MobilePrimaryToolbar(
             title = "收藏",
             onSearch = onSearch,
-            modifier = Modifier
-                .align(alignment = Alignment.TopCenter)
-                .padding(top = topPadding),
+            modifier =
+                Modifier
+                    .align(alignment = Alignment.TopCenter)
+                    .padding(top = topPadding),
         )
     }
 }

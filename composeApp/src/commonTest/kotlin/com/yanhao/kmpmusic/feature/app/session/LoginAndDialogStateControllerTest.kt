@@ -13,7 +13,7 @@ import kotlin.test.assertTrue
  */
 class LoginAndDialogStateControllerTest {
     @Test
-    fun clearCacheDialogOpensAndClosesWithoutChangingUserData(): Unit {
+    fun clearCacheDialogOpensAndClosesWithoutChangingUserData() {
         val controller = LoginAndDialogStateController
         val state: MusicAppUiState = testState().copy(likedSongIds = setOf("liked"))
         val openState: MusicAppUiState = controller.openClearCacheDialog(state = state)
@@ -24,37 +24,39 @@ class LoginAndDialogStateControllerTest {
     }
 
     @Test
-    fun sendLoginMailRequiresAtSymbol(): Unit {
+    fun sendLoginMailRequiresAtSymbol() {
         val controller = LoginAndDialogStateController
-        val invalidState: MusicAppUiState = controller.sendLoginMail(
-            state = testState().copy(email = "not-mail"),
-        )
-        val validState: MusicAppUiState = controller.sendLoginMail(
-            state = testState().copy(email = "user@example.com"),
-        )
+        val invalidState: MusicAppUiState =
+            controller.sendLoginMail(
+                state = testState().copy(email = "not-mail"),
+            )
+        val validState: MusicAppUiState =
+            controller.sendLoginMail(
+                state = testState().copy(email = "user@example.com"),
+            )
         assertFalse(actual = invalidState.isMailSent)
         assertTrue(actual = validState.isMailSent)
     }
 
     @Test
-    fun moreMenuCanOpenAndCloseBySongId(): Unit {
+    fun moreMenuCanOpenAndCloseBySongId() {
         val controller = LoginAndDialogStateController
-        val openState: MusicAppUiState = controller.openMore(
-            state = testState(),
-            songId = "song-1",
-        )
+        val openState: MusicAppUiState =
+            controller.openMore(
+                state = testState(),
+                songId = "song-1",
+            )
         val closedState: MusicAppUiState = controller.closeMore(state = openState)
         assertEquals(expected = "song-1", actual = openState.moreSongId)
         assertNull(actual = closedState.moreSongId)
     }
 
     /** 构造最小可用 [MusicAppUiState]，避免测试依赖无关初始化细节。 */
-    private fun testState(): MusicAppUiState {
-        return MusicAppUiState(
+    private fun testState(): MusicAppUiState =
+        MusicAppUiState(
             likedSongIds = emptySet(),
             currentSongId = null,
             playbackStatus = PlaybackStatus.Idle,
             queueSongIds = emptyList(),
         )
-    }
 }

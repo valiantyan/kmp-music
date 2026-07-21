@@ -58,13 +58,15 @@ fun LocalPlaylistListScreen(
         modifier = modifier,
     ) {
         LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .weight(weight = 1f),
-            contentPadding = PaddingValues(
-                top = 16.dp,
-                bottom = contentPadding.calculateBottomPadding() + 40.dp,
-            ),
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .weight(weight = 1f),
+            contentPadding =
+                PaddingValues(
+                    top = 16.dp,
+                    bottom = contentPadding.calculateBottomPadding() + 40.dp,
+                ),
             verticalArrangement = Arrangement.spacedBy(space = 24.dp),
         ) {
             item(key = "local-playlist-list-header", contentType = "local-playlist-header") {
@@ -73,24 +75,24 @@ fun LocalPlaylistListScreen(
                     onManage = onManage,
                 )
             }
-        if (playlists.isEmpty()) {
-            item(key = "local-playlist-list-empty", contentType = "local-playlist-empty") {
-                LocalPlaylistListEmptyState()
+            if (playlists.isEmpty()) {
+                item(key = "local-playlist-list-empty", contentType = "local-playlist-empty") {
+                    LocalPlaylistListEmptyState()
+                }
+                return@LazyColumn
             }
-            return@LazyColumn
-        }
-        items(
-            items = playlists.chunked(size = 2),
-            key = { rowPlaylists: List<LocalPlaylistCardDisplayModel> ->
-                rowPlaylists.joinToString(separator = "|") { playlist: LocalPlaylistCardDisplayModel -> playlist.id }
-            },
-            contentType = { "local-playlist-row" },
-        ) { rowPlaylists: List<LocalPlaylistCardDisplayModel> ->
-            LocalPlaylistRow(
-                rowPlaylists = rowPlaylists,
-                onPlaylistOpen = onPlaylistOpen,
-            )
-        }
+            items(
+                items = playlists.chunked(size = 2),
+                key = { rowPlaylists: List<LocalPlaylistCardDisplayModel> ->
+                    rowPlaylists.joinToString(separator = "|") { playlist: LocalPlaylistCardDisplayModel -> playlist.id }
+                },
+                contentType = { "local-playlist-row" },
+            ) { rowPlaylists: List<LocalPlaylistCardDisplayModel> ->
+                LocalPlaylistRow(
+                    rowPlaylists = rowPlaylists,
+                    onPlaylistOpen = onPlaylistOpen,
+                )
+            }
         }
     }
 }
@@ -102,10 +104,11 @@ private fun LocalPlaylistSubheading(
     onManage: () -> Unit,
 ) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(height = 24.dp)
-            .padding(horizontal = 16.dp),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .height(height = 24.dp)
+                .padding(horizontal = 16.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -128,9 +131,10 @@ private fun LocalPlaylistSubheading(
                     imageVector = localPlaylistManageIcon,
                     contentDescription = "管理歌单",
                     tint = localPlaylistAccentColor,
-                    modifier = Modifier
-                        .width(width = 16.667.dp)
-                        .height(height = 12.563.dp),
+                    modifier =
+                        Modifier
+                            .width(width = 16.667.dp)
+                            .height(height = 12.563.dp),
                 )
             }
         }
@@ -140,9 +144,7 @@ private fun LocalPlaylistSubheading(
 /**
  * 歌单列表页顶部摘要只描述当前可见事实，不暴露未提供交互的排序能力。
  */
-internal fun buildLocalPlaylistCountSummary(playlists: List<LocalPlaylistCardDisplayModel>): String {
-    return "共 ${playlists.size} 个歌单"
-}
+internal fun buildLocalPlaylistCountSummary(playlists: List<LocalPlaylistCardDisplayModel>): String = "共 ${playlists.size} 个歌单"
 
 // 空态只作为防御兜底；正常入口会在 0 歌单时停留我的页并提示。
 @Composable
@@ -164,9 +166,10 @@ private fun LocalPlaylistRow(
     onPlaylistOpen: (String) -> Unit,
 ) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp),
         horizontalArrangement = Arrangement.spacedBy(space = 16.dp),
     ) {
         rowPlaylists.forEach { playlist: LocalPlaylistCardDisplayModel ->
@@ -194,11 +197,12 @@ private fun LocalPlaylistCard(
         modifier = modifier.clickable { onPlaylistOpen(playlist.id) },
     ) {
         Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .aspectRatio(ratio = 1f)
-                .clip(shape = coverShape)
-                .background(color = homeAlbumCoverBackgroundColor),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .aspectRatio(ratio = 1f)
+                    .clip(shape = coverShape)
+                    .background(color = homeAlbumCoverBackgroundColor),
         ) {
             CoverArtImage(
                 coverArt = playlist.coverArt,
@@ -216,9 +220,10 @@ private fun LocalPlaylistCard(
             fontWeight = FontWeight.Medium,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 10.dp),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(top = 10.dp),
         )
         Text(
             text = "${playlist.availableSongCount} 首歌曲",
@@ -237,41 +242,43 @@ private val localPlaylistListBackgroundColor: Color = MusicColors.PageBackground
 private val localPlaylistAccentColor: Color = Color(0xFF006A62)
 private val localPlaylistSubheadingColor: Color = Color(0xFF3D4947)
 
-private val localPlaylistManageIcon: ImageVector = ImageVector.Builder(
-    name = "LocalPlaylistManageIcon",
-    defaultWidth = 16.667.dp,
-    defaultHeight = 12.563.dp,
-    viewportWidth = 16.6667f,
-    viewportHeight = 12.5625f,
-).apply {
-    path(fill = SolidColor(Color.Black)) {
-        moveTo(x = 2.95833f, y = 12.5625f)
-        lineTo(x = 0f, y = 9.60417f)
-        lineTo(x = 1.16667f, y = 8.4375f)
-        lineTo(x = 2.9375f, y = 10.2083f)
-        lineTo(x = 6.47917f, y = 6.66667f)
-        lineTo(x = 7.64583f, y = 7.85417f)
-        lineTo(x = 2.95833f, y = 12.5625f)
-        close()
-        moveTo(x = 2.95833f, y = 5.89583f)
-        lineTo(x = 0f, y = 2.9375f)
-        lineTo(x = 1.16667f, y = 1.77083f)
-        lineTo(x = 2.9375f, y = 3.54167f)
-        lineTo(x = 6.47917f, y = 0f)
-        lineTo(x = 7.64583f, y = 1.1875f)
-        lineTo(x = 2.95833f, y = 5.89583f)
-        close()
-        moveTo(x = 9.16667f, y = 10.8958f)
-        verticalLineTo(y = 9.22917f)
-        horizontalLineTo(x = 16.6667f)
-        verticalLineTo(y = 10.8958f)
-        horizontalLineTo(x = 9.16667f)
-        close()
-        moveTo(x = 9.16667f, y = 4.22917f)
-        verticalLineTo(y = 2.5625f)
-        horizontalLineTo(x = 16.6667f)
-        verticalLineTo(y = 4.22917f)
-        horizontalLineTo(x = 9.16667f)
-        close()
-    }
-}.build()
+private val localPlaylistManageIcon: ImageVector =
+    ImageVector
+        .Builder(
+            name = "LocalPlaylistManageIcon",
+            defaultWidth = 16.667.dp,
+            defaultHeight = 12.563.dp,
+            viewportWidth = 16.6667f,
+            viewportHeight = 12.5625f,
+        ).apply {
+            path(fill = SolidColor(Color.Black)) {
+                moveTo(x = 2.95833f, y = 12.5625f)
+                lineTo(x = 0f, y = 9.60417f)
+                lineTo(x = 1.16667f, y = 8.4375f)
+                lineTo(x = 2.9375f, y = 10.2083f)
+                lineTo(x = 6.47917f, y = 6.66667f)
+                lineTo(x = 7.64583f, y = 7.85417f)
+                lineTo(x = 2.95833f, y = 12.5625f)
+                close()
+                moveTo(x = 2.95833f, y = 5.89583f)
+                lineTo(x = 0f, y = 2.9375f)
+                lineTo(x = 1.16667f, y = 1.77083f)
+                lineTo(x = 2.9375f, y = 3.54167f)
+                lineTo(x = 6.47917f, y = 0f)
+                lineTo(x = 7.64583f, y = 1.1875f)
+                lineTo(x = 2.95833f, y = 5.89583f)
+                close()
+                moveTo(x = 9.16667f, y = 10.8958f)
+                verticalLineTo(y = 9.22917f)
+                horizontalLineTo(x = 16.6667f)
+                verticalLineTo(y = 10.8958f)
+                horizontalLineTo(x = 9.16667f)
+                close()
+                moveTo(x = 9.16667f, y = 4.22917f)
+                verticalLineTo(y = 2.5625f)
+                horizontalLineTo(x = 16.6667f)
+                verticalLineTo(y = 4.22917f)
+                horizontalLineTo(x = 9.16667f)
+                close()
+            }
+        }.build()

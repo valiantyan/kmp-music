@@ -1,8 +1,8 @@
 package com.yanhao.kmpmusic.feature.app.playback
 
 import com.yanhao.kmpmusic.domain.model.PlaybackSnapshot
-import com.yanhao.kmpmusic.domain.model.Song
 import com.yanhao.kmpmusic.domain.model.PlaybackSnapshotIdentity
+import com.yanhao.kmpmusic.domain.model.Song
 import com.yanhao.kmpmusic.domain.persistence.PlaybackSnapshotStore
 import com.yanhao.kmpmusic.feature.app.MusicAppUiState
 
@@ -38,8 +38,9 @@ class PlaybackRestoreOrchestrator(
      * 为本轮显式恢复请求读取持久化身份；没有可恢复队列时返回 null。
      */
     suspend fun createPendingRequest(): PendingPlaybackSnapshotRequest? {
-        val savedIdentity: PlaybackSnapshotIdentity = playbackSnapshotStore.getSavedSnapshotIdentity()
-            ?: return null
+        val savedIdentity: PlaybackSnapshotIdentity =
+            playbackSnapshotStore.getSavedSnapshotIdentity()
+                ?: return null
         return PendingPlaybackSnapshotRequest(identity = savedIdentity)
     }
 
@@ -52,20 +53,22 @@ class PlaybackRestoreOrchestrator(
         pendingRequest: PendingPlaybackSnapshotRequest?,
         isRequestCurrent: (PendingPlaybackSnapshotRequest) -> Boolean,
     ): Result {
-        val request: PendingPlaybackSnapshotRequest = pendingRequest
-            ?: return Result(
-                queueSongsSnapshot = null,
-                restoredSnapshot = null,
-                pendingRequest = null,
-                didHydrateSnapshot = false,
-            )
-        val savedIdentity: PlaybackSnapshotIdentity = playbackSnapshotStore.getSavedSnapshotIdentity()
-            ?: return Result(
-                queueSongsSnapshot = null,
-                restoredSnapshot = null,
-                pendingRequest = null,
-                didHydrateSnapshot = false,
-            )
+        val request: PendingPlaybackSnapshotRequest =
+            pendingRequest
+                ?: return Result(
+                    queueSongsSnapshot = null,
+                    restoredSnapshot = null,
+                    pendingRequest = null,
+                    didHydrateSnapshot = false,
+                )
+        val savedIdentity: PlaybackSnapshotIdentity =
+            playbackSnapshotStore.getSavedSnapshotIdentity()
+                ?: return Result(
+                    queueSongsSnapshot = null,
+                    restoredSnapshot = null,
+                    pendingRequest = null,
+                    didHydrateSnapshot = false,
+                )
         if (savedIdentity != request.identity) {
             return Result(
                 queueSongsSnapshot = null,
@@ -82,17 +85,20 @@ class PlaybackRestoreOrchestrator(
                 didHydrateSnapshot = false,
             )
         }
-        val availableSongs: List<Song> = availableSongsResolver(
-            request.identity.queueSongIds,
-            preferredSongs,
-        )
+        val availableSongs: List<Song> =
+            availableSongsResolver(
+                request.identity.queueSongIds,
+                preferredSongs,
+            )
         val availableSongIds: Set<String> = availableSongs.map { song: Song -> song.id }.toSet()
-        val hasCompleteQueue: Boolean = request.identity.queueSongIds.all { songId: String ->
-            availableSongIds.contains(element = songId)
-        }
-        val hasCurrentSong: Boolean = request.identity.currentSongId.let { songId: String ->
-            availableSongIds.contains(element = songId)
-        }
+        val hasCompleteQueue: Boolean =
+            request.identity.queueSongIds.all { songId: String ->
+                availableSongIds.contains(element = songId)
+            }
+        val hasCurrentSong: Boolean =
+            request.identity.currentSongId.let { songId: String ->
+                availableSongIds.contains(element = songId)
+            }
         if (!hasCompleteQueue || !hasCurrentSong) {
             return Result(
                 queueSongsSnapshot = null,
@@ -109,9 +115,10 @@ class PlaybackRestoreOrchestrator(
                 didHydrateSnapshot = false,
             )
         }
-        val restoredSnapshot: PlaybackSnapshot = playbackSnapshotStore.restoreSnapshot(
-            availableSongIds = availableSongIds,
-        )
+        val restoredSnapshot: PlaybackSnapshot =
+            playbackSnapshotStore.restoreSnapshot(
+                availableSongIds = availableSongIds,
+            )
         if (!isRequestCurrent(request) || playbackSnapshotStore.getSavedSnapshotIdentity() != request.identity) {
             return Result(
                 queueSongsSnapshot = null,

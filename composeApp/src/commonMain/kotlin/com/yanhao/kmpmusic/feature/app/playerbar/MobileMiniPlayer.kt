@@ -2,8 +2,8 @@ package com.yanhao.kmpmusic.feature.app.playerbar
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -54,34 +54,38 @@ fun MobileMiniPlayer(
     onQueue: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val miniPlayerPalette: MiniPlayerPalette = rememberMiniPlayerPalette(
-        coverArt = song.coverArt,
-        coverImageUri = song.coverImageUri,
-    )
+    val miniPlayerPalette: MiniPlayerPalette =
+        rememberMiniPlayerPalette(
+            coverArt = song.coverArt,
+            coverImageUri = song.coverImageUri,
+        )
     val containerColor: Color by animateColorAsState(
         targetValue = miniPlayerPalette.containerColor,
         animationSpec = tween(durationMillis = 260),
         label = "MiniPlayerContainerColor",
     )
-    val progressFraction: Float = calculateMiniPlayerProgressFraction(
-        playbackPositionMs = playbackPositionMs,
-        playbackDurationMs = playbackDurationMs ?: song.durationMs,
-    )
+    val progressFraction: Float =
+        calculateMiniPlayerProgressFraction(
+            playbackPositionMs = playbackPositionMs,
+            playbackDurationMs = playbackDurationMs ?: song.durationMs,
+        )
     Surface(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(horizontal = scaledDp(MusicDimens.PagePaddingHorizontal))
-            .height(scaledDp(MusicDimens.MiniPlayerHeight)),
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .padding(horizontal = scaledDp(MusicDimens.PagePaddingHorizontal))
+                .height(scaledDp(MusicDimens.MiniPlayerHeight)),
         shape = RoundedCornerShape(18.dp),
         color = containerColor,
         onClick = onOpen,
     ) {
         Box(modifier = Modifier.height(scaledDp(MusicDimens.MiniPlayerHeight))) {
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(scaledDp(MusicDimens.MiniPlayerHeight))
-                    .padding(start = scaledDp(10.dp), top = scaledDp(8.dp), end = scaledDp(17.dp), bottom = scaledDp(7.dp)),
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .height(scaledDp(MusicDimens.MiniPlayerHeight))
+                        .padding(start = scaledDp(10.dp), top = scaledDp(8.dp), end = scaledDp(17.dp), bottom = scaledDp(7.dp)),
                 horizontalArrangement = Arrangement.spacedBy(scaledDp(12.dp)),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
@@ -148,10 +152,20 @@ fun MobileMiniPlayer(
                 }
             }
             Box(
-                modifier = Modifier.align(Alignment.BottomStart).fillMaxWidth().height(scaledDp(3.dp)).background(MusicColors.Line.copy(alpha = 0.65f)),
+                modifier =
+                    Modifier
+                        .align(Alignment.BottomStart)
+                        .fillMaxWidth()
+                        .height(scaledDp(3.dp))
+                        .background(MusicColors.Line.copy(alpha = 0.65f)),
             )
             Box(
-                modifier = Modifier.align(Alignment.BottomStart).fillMaxWidth(fraction = progressFraction).height(scaledDp(3.dp)).background(MusicColors.Accent),
+                modifier =
+                    Modifier
+                        .align(Alignment.BottomStart)
+                        .fillMaxWidth(fraction = progressFraction)
+                        .height(scaledDp(3.dp))
+                        .background(MusicColors.Accent),
             )
         }
     }
@@ -175,9 +189,10 @@ private fun MiniControlButton(
     content: @Composable () -> Unit,
 ) {
     Box(
-        modifier = Modifier
-            .size(width = scaledDp(28.dp), height = scaledDp(42.dp))
-            .clickable(onClick = onClick),
+        modifier =
+            Modifier
+                .size(width = scaledDp(28.dp), height = scaledDp(42.dp))
+                .clickable(onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
         content()

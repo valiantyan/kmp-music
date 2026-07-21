@@ -7,10 +7,10 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
@@ -56,10 +56,11 @@ fun DesktopTextInput(
     }
     LaunchedEffect(value, textFieldValue.text) {
         if (textFieldValue.text != value) {
-            textFieldValue = TextFieldValue(
-                text = value,
-                selection = TextRange(index = value.length),
-            )
+            textFieldValue =
+                TextFieldValue(
+                    text = value,
+                    selection = TextRange(index = value.length),
+                )
         }
     }
     BasicTextField(
@@ -72,17 +73,19 @@ fun DesktopTextInput(
         singleLine = true,
         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
         keyboardActions = KeyboardActions(onSearch = { onSubmit() }),
-        textStyle = androidx.compose.ui.text.TextStyle(
-            color = DesktopMusicColors.Ink,
-            fontSize = DesktopMusicType.Eyebrow,
-            fontWeight = FontWeight.SemiBold,
-        ),
+        textStyle =
+            androidx.compose.ui.text.TextStyle(
+                color = DesktopMusicColors.Ink,
+                fontSize = DesktopMusicType.Eyebrow,
+                fontWeight = FontWeight.SemiBold,
+            ),
         interactionSource = interactionSource,
         decorationBox = { innerTextField: @Composable () -> Unit ->
-            val shouldShowClearAction: Boolean = shouldShowDesktopTextInputClearAction(
-                value = textFieldValue.text,
-                isClearEnabled = isClearEnabled,
-            )
+            val shouldShowClearAction: Boolean =
+                shouldShowDesktopTextInputClearAction(
+                    value = textFieldValue.text,
+                    isClearEnabled = isClearEnabled,
+                )
             Surface(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
@@ -140,11 +143,12 @@ fun DesktopSegmentedControl(
     onSelect: (Int) -> Unit,
 ) {
     Row(
-        modifier = Modifier
-            .clip(RoundedCornerShape(10.dp))
-            .background(Color.White.copy(alpha = 0.72f))
-            .border(width = 1.dp, color = Color(0xFFD4DDE3), shape = RoundedCornerShape(10.dp))
-            .padding(3.dp),
+        modifier =
+            Modifier
+                .clip(RoundedCornerShape(10.dp))
+                .background(Color.White.copy(alpha = 0.72f))
+                .border(width = 1.dp, color = Color(0xFFD4DDE3), shape = RoundedCornerShape(10.dp))
+                .padding(3.dp),
         horizontalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         labels.forEachIndexed { index: Int, label: String ->

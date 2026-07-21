@@ -108,11 +108,12 @@ private fun PlayerAuxiliaryAction(
     tint: Color,
     onClick: (() -> Unit)?,
 ) {
-    val actionModifier: Modifier = if (onClick == null) {
-        Modifier
-    } else {
-        Modifier.clickable(onClick = onClick)
-    }
+    val actionModifier: Modifier =
+        if (onClick == null) {
+            Modifier
+        } else {
+            Modifier.clickable(onClick = onClick)
+        }
     Column(
         modifier = actionModifier.width(width = scaledDp(64.dp)),
         horizontalAlignment = Alignment.CenterHorizontally,

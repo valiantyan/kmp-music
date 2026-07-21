@@ -59,49 +59,54 @@ fun SearchScreen(
     val keyboardController = LocalSoftwareKeyboardController.current
     val focusManager = LocalFocusManager.current
     var isSearchInputFocused: Boolean by remember { mutableStateOf(value = false) }
-    val keyboardDismissConnection: NestedScrollConnection = remember(
-        keyboardController,
-        focusManager,
-        isSearchInputFocused,
-    ) {
-        object : NestedScrollConnection {
-            override fun onPreScroll(
-                available: Offset,
-                source: NestedScrollSource,
-            ): Offset {
-                if (shouldDismissSearchKeyboardOnScroll(
-                        isUserInput = source == NestedScrollSource.UserInput,
-                        isSearchInputFocused = isSearchInputFocused,
-                        horizontalDelta = available.x,
-                        verticalDelta = available.y,
-                    )
-                ) {
-                    isSearchInputFocused = false
-                    keyboardController?.hide()
-                    focusManager.clearFocus(force = true)
+    val keyboardDismissConnection: NestedScrollConnection =
+        remember(
+            keyboardController,
+            focusManager,
+            isSearchInputFocused,
+        ) {
+            object : NestedScrollConnection {
+                override fun onPreScroll(
+                    available: Offset,
+                    source: NestedScrollSource,
+                ): Offset {
+                    if (shouldDismissSearchKeyboardOnScroll(
+                            isUserInput = source == NestedScrollSource.UserInput,
+                            isSearchInputFocused = isSearchInputFocused,
+                            horizontalDelta = available.x,
+                            verticalDelta = available.y,
+                        )
+                    ) {
+                        isSearchInputFocused = false
+                        keyboardController?.hide()
+                        focusManager.clearFocus(force = true)
+                    }
+                    return Offset.Zero
                 }
-                return Offset.Zero
             }
         }
-    }
     val selectedTab: SearchResultTab = visibleSearchResultTab(scope = scope)
-    val hasSearchHistory: Boolean = shouldShowSearchHistorySection(
-        history = history,
-    )
-    val shouldShowResults: Boolean = shouldShowSearchResultContent(
-        query = query,
-        activeQuery = activeQuery,
-    )
-    val resultRows: List<SearchResultLazyRow> = buildVisibleSearchResultLazyRows(
-        query = query,
-        activeQuery = activeQuery,
-        selectedTab = selectedTab,
-        result = result,
-    )
+    val hasSearchHistory: Boolean =
+        shouldShowSearchHistorySection(
+            history = history,
+        )
+    val shouldShowResults: Boolean =
+        shouldShowSearchResultContent(
+            query = query,
+            activeQuery = activeQuery,
+        )
+    val resultRows: List<SearchResultLazyRow> =
+        buildVisibleSearchResultLazyRows(
+            query = query,
+            activeQuery = activeQuery,
+            selectedTab = selectedTab,
+            result = result,
+        )
     Column(
-        modifier = modifier
-            .fillMaxSize()
-            .background(color = searchBackgroundColor),
+        modifier =
+            modifier
+                .fillMaxSize()
+                .background(color = searchBackgroundColor),
     ) {
         SearchTopBar(
             query = query,
@@ -113,13 +118,15 @@ fun SearchScreen(
             },
         )
         LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .nestedScroll(connection = keyboardDismissConnection),
-            contentPadding = PaddingValues(
-                top = 16.dp,
-                bottom = contentPadding.calculateBottomPadding() + 48.dp,
-            ),
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .nestedScroll(connection = keyboardDismissConnection),
+            contentPadding =
+                PaddingValues(
+                    top = 16.dp,
+                    bottom = contentPadding.calculateBottomPadding() + 48.dp,
+                ),
         ) {
             if (hasSearchHistory) {
                 item(key = "search-history-section", contentType = "search-history") {

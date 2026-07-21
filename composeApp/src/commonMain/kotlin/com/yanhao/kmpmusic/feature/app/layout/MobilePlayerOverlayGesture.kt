@@ -53,31 +53,36 @@ internal fun MobilePlayerOverlayGesture(
         val density = LocalDensity.current
         val contentHeightPx: Float = with(density) { maxHeight.toPx() }
         val navigationBarBottomPx: Float = WindowInsets.navigationBars.getBottom(density = density).toFloat()
-        val dismissDistancePx: Float = calculatePlayerDismissDistance(
-            contentHeightPx = contentHeightPx,
-            navigationBarBottomPx = navigationBarBottomPx,
-        )
-        var dragOffsetPx: Float by remember { mutableFloatStateOf(value = 0f) }
-        val dragState = rememberDraggableState { dragDeltaPx: Float ->
-            dragOffsetPx = calculatePlayerDragOffset(
-                currentOffsetPx = dragOffsetPx,
-                dragDeltaPx = dragDeltaPx,
+        val dismissDistancePx: Float =
+            calculatePlayerDismissDistance(
+                contentHeightPx = contentHeightPx,
+                navigationBarBottomPx = navigationBarBottomPx,
             )
-        }
+        var dragOffsetPx: Float by remember { mutableFloatStateOf(value = 0f) }
+        val dragState =
+            rememberDraggableState { dragDeltaPx: Float ->
+                dragOffsetPx =
+                    calculatePlayerDragOffset(
+                        currentOffsetPx = dragOffsetPx,
+                        dragDeltaPx = dragDeltaPx,
+                    )
+            }
         Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .clickable(
-                    interactionSource = interactionSource, indication = null, onClick = {},
-                ),
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .clickable(
+                        interactionSource = interactionSource,
+                        indication = null,
+                        onClick = {},
+                    ),
         )
         content(
             Modifier
                 .fillMaxSize()
                 .offset {
                     IntOffset(x = 0, y = dragOffsetPx.roundToInt())
-                }
-                .draggable(
+                }.draggable(
                     state = dragState,
                     orientation = Orientation.Vertical,
                     onDragStopped = {
@@ -123,9 +128,7 @@ internal fun calculatePlayerDismissDistance(
 internal fun calculatePlayerDragOffset(
     currentOffsetPx: Float,
     dragDeltaPx: Float,
-): Float {
-    return (currentOffsetPx + dragDeltaPx).coerceAtLeast(minimumValue = 0f)
-}
+): Float = (currentOffsetPx + dragDeltaPx).coerceAtLeast(minimumValue = 0f)
 
 /**
  * 判断播放页是否达到关闭阈值；屏幕高度无效时保守地回弹。
@@ -194,15 +197,17 @@ private suspend fun animatePlayerDragOffsetToDismiss(
     screenHeightPx: Float,
     updateOffsetPx: (Float) -> Unit,
 ) {
-    val targetOffsetPx: Float = calculatePlayerDismissTargetOffset(
-        dragOffsetPx = currentOffsetPx,
-        screenHeightPx = screenHeightPx,
-    )
-    val durationMillis: Int = calculatePlayerDismissSettleMillis(
-        currentOffsetPx = currentOffsetPx,
-        targetOffsetPx = targetOffsetPx,
-        screenHeightPx = screenHeightPx,
-    )
+    val targetOffsetPx: Float =
+        calculatePlayerDismissTargetOffset(
+            dragOffsetPx = currentOffsetPx,
+            screenHeightPx = screenHeightPx,
+        )
+    val durationMillis: Int =
+        calculatePlayerDismissSettleMillis(
+            currentOffsetPx = currentOffsetPx,
+            targetOffsetPx = targetOffsetPx,
+            screenHeightPx = screenHeightPx,
+        )
     if (durationMillis > 0) {
         val dragAnimation = Animatable(initialValue = currentOffsetPx)
         dragAnimation.animateTo(

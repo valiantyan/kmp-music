@@ -66,30 +66,33 @@ internal fun MeProfileSection() {
 private fun MeProfileAvatar() {
     Box(modifier = Modifier.size(size = meAvatarFrameSize)) {
         Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(color = meAvatarFrameColor, shape = CircleShape)
-                .border(
-                    width = 2.dp,
-                    color = meAccentColor,
-                    shape = CircleShape,
-                ),
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .background(color = meAvatarFrameColor, shape = CircleShape)
+                    .border(
+                        width = 2.dp,
+                        color = meAccentColor,
+                        shape = CircleShape,
+                    ),
         ) {
             AsyncImage(
                 model = Res.getUri("drawable/me_profile_avatar.jpg"),
                 contentDescription = "个人头像",
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(all = meAvatarFramePadding)
-                    .clip(shape = CircleShape),
+                modifier =
+                    Modifier
+                        .fillMaxSize()
+                        .padding(all = meAvatarFramePadding)
+                        .clip(shape = CircleShape),
                 contentScale = ContentScale.Crop,
             )
         }
         Surface(
-            modifier = Modifier
-                .align(alignment = Alignment.BottomEnd)
-                .offset(x = -meAvatarBadgeOffset, y = -meAvatarBadgeOffset)
-                .size(size = meAvatarBadgeSize),
+            modifier =
+                Modifier
+                    .align(alignment = Alignment.BottomEnd)
+                    .offset(x = -meAvatarBadgeOffset, y = -meAvatarBadgeOffset)
+                    .size(size = meAvatarBadgeSize),
             shape = CircleShape,
             color = meAccentDarkColor,
             border = BorderStroke(width = 4.dp, color = meAvatarBadgeBorderColor),

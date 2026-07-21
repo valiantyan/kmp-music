@@ -71,19 +71,22 @@ fun DesktopAppLayout(
             return@Box
         }
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(DesktopMusicColors.WindowBackground),
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .background(DesktopMusicColors.WindowBackground),
         ) {
             DesktopTitleBar(
                 showSearch = state.shouldShowTitlebarMusicSearch,
                 onSearch = {
-                    val context: SearchContext = when (state.navigationState.rootTab) {
-                        RootTab.Favorites -> SearchContext.Favorites
-                        RootTab.Home,
-                        RootTab.Me,
-                        -> SearchContext.LocalLibrary
-                    }
+                    val context: SearchContext =
+                        when (state.navigationState.rootTab) {
+                            RootTab.Favorites -> SearchContext.Favorites
+
+                            RootTab.Home,
+                            RootTab.Me,
+                            -> SearchContext.LocalLibrary
+                        }
                     controller.openSearch(context = context)
                 },
             )
@@ -108,10 +111,11 @@ fun DesktopAppLayout(
                     )
                 }
                 Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxHeight()
-                        .background(DesktopMusicColors.Paper),
+                    modifier =
+                        Modifier
+                            .weight(1f)
+                            .fillMaxHeight()
+                            .background(DesktopMusicColors.Paper),
                 ) {
                     DesktopWorkspaceLayout(
                         state = state,
@@ -146,6 +150,4 @@ fun DesktopAppLayout(
 }
 
 /** 首页保持效果图中的资料库侧栏，二级页让内容区获得完整宽度。 */
-private fun MusicAppUiState.shouldShowLibrarySidebar(): Boolean {
-    return navigationState.secondaryScreen == null && navigationState.rootTab == RootTab.Home
-}
+private fun MusicAppUiState.shouldShowLibrarySidebar(): Boolean = navigationState.secondaryScreen == null && navigationState.rootTab == RootTab.Home

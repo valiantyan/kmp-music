@@ -33,12 +33,16 @@ internal class ContentNavigationController(
     /**
      * 首页内容分段切换在专辑和歌手页签下需要预热完整曲库，避免列表为空。
      */
-    fun setHomeContentSection(state: MusicAppUiState, section: HomeContentSection): Result {
-        val loadResult: Result = if (section.requiresFullLibrary()) {
-            loadLocalMusicLibrary(state = state)
-        } else {
-            Result(state = state)
-        }
+    fun setHomeContentSection(
+        state: MusicAppUiState,
+        section: HomeContentSection,
+    ): Result {
+        val loadResult: Result =
+            if (section.requiresFullLibrary()) {
+                loadLocalMusicLibrary(state = state)
+            } else {
+                Result(state = state)
+            }
         return loadResult.copy(
             state = loadResult.state.copy(homeContentSection = section),
         )
@@ -48,10 +52,11 @@ internal class ContentNavigationController(
      * 我的页歌曲统计入口必须回到首页歌曲分段，同时彻底退出二级页。
      */
     fun openHomeSongs(state: MusicAppUiState): Result {
-        val rootState: MusicAppUiState = NavigationStateController.navigateToRoot(
-            state = state,
-            tab = RootTab.Home,
-        )
+        val rootState: MusicAppUiState =
+            NavigationStateController.navigateToRoot(
+                state = state,
+                tab = RootTab.Home,
+            )
         return Result(
             state = rootState.copy(homeContentSection = HomeContentSection.Songs),
         )
@@ -60,7 +65,10 @@ internal class ContentNavigationController(
     /**
      * 本地音乐页依赖完整曲库，否则歌曲、专辑和歌手分段都会不完整。
      */
-    fun openLocalMusic(state: MusicAppUiState, section: LocalMusicSection): Result {
+    fun openLocalMusic(
+        state: MusicAppUiState,
+        section: LocalMusicSection,
+    ): Result {
         val loadResult: Result = loadLocalMusicLibrary(state = state)
         return loadResult.navigateToSecondary(screen = SecondaryScreen.LocalMusic(initialSection = section))
     }
@@ -68,31 +76,34 @@ internal class ContentNavigationController(
     /**
      * 扫描页只是路由切换入口，不应为了打开页面预热完整曲库。
      */
-    fun openAudioScan(state: MusicAppUiState): Result {
-        return Result(
-            state = NavigationStateController.navigateToSecondary(
-                state = state,
-                screen = SecondaryScreen.AudioScan,
-            ),
+    fun openAudioScan(state: MusicAppUiState): Result =
+        Result(
+            state =
+                NavigationStateController.navigateToSecondary(
+                    state = state,
+                    screen = SecondaryScreen.AudioScan,
+                ),
         )
-    }
 
     /**
      * 最近播放页直接复用现有列表，不需要为导航额外触发全量加载。
      */
-    fun openRecentPlayed(state: MusicAppUiState): Result {
-        return Result(
-            state = NavigationStateController.navigateToSecondary(
-                state = state,
-                screen = SecondaryScreen.RecentPlayed,
-            ),
+    fun openRecentPlayed(state: MusicAppUiState): Result =
+        Result(
+            state =
+                NavigationStateController.navigateToSecondary(
+                    state = state,
+                    screen = SecondaryScreen.RecentPlayed,
+                ),
         )
-    }
 
     /**
      * 专辑详情依赖完整曲库中的聚合实体，先加载再写入选中身份。
      */
-    fun openAlbum(state: MusicAppUiState, album: Album): Result {
+    fun openAlbum(
+        state: MusicAppUiState,
+        album: Album,
+    ): Result {
         val loadResult: Result = loadLocalMusicLibrary(state = state)
         return loadResult.navigateToSecondary(
             screen = SecondaryScreen.AlbumDetail,
@@ -103,7 +114,10 @@ internal class ContentNavigationController(
     /**
      * 歌手详情依赖完整曲库中的聚合实体，先加载再写入选中身份。
      */
-    fun openArtist(state: MusicAppUiState, artist: Artist): Result {
+    fun openArtist(
+        state: MusicAppUiState,
+        artist: Artist,
+    ): Result {
         val loadResult: Result = loadLocalMusicLibrary(state = state)
         return loadResult.navigateToSecondary(
             screen = SecondaryScreen.ArtistDetail,
@@ -114,16 +128,20 @@ internal class ContentNavigationController(
     /**
      * 从歌曲打开专辑详情时先补齐完整曲库，再按专辑标题归一化匹配详情实体。
      */
-    fun openAlbumFromSong(state: MusicAppUiState, song: Song): Result {
+    fun openAlbumFromSong(
+        state: MusicAppUiState,
+        song: Song,
+    ): Result {
         val loadResult: Result = loadLocalMusicLibrary(state = state)
-        val targetAlbum: Album = loadResult.state.detailAlbums.firstOrNull { album: Album ->
-            hasSameAlbumTitle(
-                firstTitle = album.title,
-                secondTitle = song.album,
+        val targetAlbum: Album =
+            loadResult.state.detailAlbums.firstOrNull { album: Album ->
+                hasSameAlbumTitle(
+                    firstTitle = album.title,
+                    secondTitle = song.album,
+                )
+            } ?: return loadResult.copy(
+                state = loadResult.state.copy(moreSongId = null),
             )
-        } ?: return loadResult.copy(
-            state = loadResult.state.copy(moreSongId = null),
-        )
         return openAlbum(
             state = loadResult.state.copy(moreSongId = null),
             album = targetAlbum,
@@ -135,16 +153,20 @@ internal class ContentNavigationController(
     /**
      * 从歌曲打开歌手详情时先补齐完整曲库，再按歌手名归一化匹配详情实体。
      */
-    fun openArtistFromSong(state: MusicAppUiState, song: Song): Result {
+    fun openArtistFromSong(
+        state: MusicAppUiState,
+        song: Song,
+    ): Result {
         val loadResult: Result = loadLocalMusicLibrary(state = state)
-        val targetArtist: Artist = loadResult.state.detailArtists.firstOrNull { artist: Artist ->
-            hasSameArtistName(
-                firstName = artist.name,
-                secondName = song.artist,
+        val targetArtist: Artist =
+            loadResult.state.detailArtists.firstOrNull { artist: Artist ->
+                hasSameArtistName(
+                    firstName = artist.name,
+                    secondName = song.artist,
+                )
+            } ?: return loadResult.copy(
+                state = loadResult.state.copy(moreSongId = null),
             )
-        } ?: return loadResult.copy(
-            state = loadResult.state.copy(moreSongId = null),
-        )
         return openArtist(
             state = loadResult.state.copy(moreSongId = null),
             artist = targetArtist,
@@ -168,20 +190,18 @@ internal class ContentNavigationController(
     }
 
     /** 聚合型首页分段都依赖完整曲库。 */
-    private fun HomeContentSection.requiresFullLibrary(): Boolean {
-        return this == HomeContentSection.Albums || this == HomeContentSection.Artists
-    }
+    private fun HomeContentSection.requiresFullLibrary(): Boolean = this == HomeContentSection.Albums || this == HomeContentSection.Artists
 
     /** 统一封装二级页面跳转，避免各入口重复保留 [loadedFullLibrary]。 */
     private fun Result.navigateToSecondary(
         screen: SecondaryScreen,
         state: MusicAppUiState = this.state,
-    ): Result {
-        return copy(
-            state = NavigationStateController.navigateToSecondary(
-                state = state,
-                screen = screen,
-            ),
+    ): Result =
+        copy(
+            state =
+                NavigationStateController.navigateToSecondary(
+                    state = state,
+                    screen = screen,
+                ),
         )
-    }
 }

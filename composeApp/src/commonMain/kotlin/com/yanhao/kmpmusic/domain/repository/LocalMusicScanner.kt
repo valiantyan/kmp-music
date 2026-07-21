@@ -23,7 +23,5 @@ interface LocalMusicScanner {
     suspend fun scan(
         request: LocalMusicScanRequest,
         preferences: LocalMusicDiscoveryPreferences,
-    ): LocalMusicScanResult {
-        return scan(request = request)
-    }
+    ): LocalMusicScanResult = scan(request = request)
 }

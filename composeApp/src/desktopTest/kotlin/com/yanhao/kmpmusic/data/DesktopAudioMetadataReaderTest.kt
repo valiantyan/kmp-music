@@ -1,15 +1,15 @@
 package com.yanhao.kmpmusic.data
 
-import java.nio.file.Files
-import java.nio.file.Path
-import kotlin.test.Test
-import kotlin.test.assertEquals
-import kotlin.test.assertNull
 import org.jaudiotagger.audio.AudioFile
 import org.jaudiotagger.audio.generic.GenericAudioHeader
 import org.jaudiotagger.audio.generic.GenericTag
 import org.jaudiotagger.tag.FieldKey
 import org.jaudiotagger.tag.Tag
+import java.nio.file.Files
+import java.nio.file.Path
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertNull
 
 /**
  * 桌面音频元数据读取测试，保护 macOS 文件夹扫描与 Android MediaStore 的字段对齐。
@@ -21,12 +21,13 @@ class DesktopAudioMetadataReaderTest {
      * jaudiotagger 读取到的标题、歌手、专辑和时长应被完整映射，避免 UI 退回未知占位。
      */
     @Test
-    fun toDesktopAudioMetadataReturnsTagFieldsAndDuration(): Unit {
+    fun toDesktopAudioMetadataReturnsTagFieldsAndDuration() {
         val audioFile: AudioFile = createTaggedAudioFile()
 
-        val metadata: DesktopAudioMetadata = with(reader) {
-            audioFile.toDesktopAudioMetadata()
-        }
+        val metadata: DesktopAudioMetadata =
+            with(reader) {
+                audioFile.toDesktopAudioMetadata()
+            }
 
         assertEquals(expected = "桌面歌曲", actual = metadata.title)
         assertEquals(expected = "桌面歌手", actual = metadata.artist)
@@ -38,7 +39,7 @@ class DesktopAudioMetadataReaderTest {
      * 损坏或不支持的文件不能中断扫描，只返回空元数据交给 scanner 兜底。
      */
     @Test
-    fun readMetadataReturnsEmptyMetadataForUnreadableAudio(): Unit {
+    fun readMetadataReturnsEmptyMetadataForUnreadableAudio() {
         val audioPath: Path = Files.createTempFile("kmp-music-broken-audio", ".mp3")
         Files.writeString(audioPath, "not an audio file")
 

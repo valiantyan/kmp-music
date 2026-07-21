@@ -44,21 +44,21 @@ class LocalAudioFileRulesTest {
             actual = matrix.all { support: AppleAudioFormatSupport -> support.evidence.isNotBlank() },
         )
         assertTrue(
-            actual = matrix
-                .filter { support: AppleAudioFormatSupport ->
-                    support.status == AppleAudioFormatSupportStatus.Supported
-                }
-                .all { support: AppleAudioFormatSupport ->
-                    support.evidence.contains(other = "iOS") &&
-                        support.evidence.contains(other = "后续 gate 验证")
-                },
+            actual =
+                matrix
+                    .filter { support: AppleAudioFormatSupport ->
+                        support.status == AppleAudioFormatSupportStatus.Supported
+                    }.all { support: AppleAudioFormatSupport ->
+                        support.evidence.contains(other = "iOS") &&
+                            support.evidence.contains(other = "后续 gate 验证")
+                    },
         )
         assertTrue(
-            actual = matrix
-                .filter { support: AppleAudioFormatSupport ->
-                    support.status == AppleAudioFormatSupportStatus.PendingVerification
-                }
-                .all { support: AppleAudioFormatSupport -> !support.allowsScanning },
+            actual =
+                matrix
+                    .filter { support: AppleAudioFormatSupport ->
+                        support.status == AppleAudioFormatSupportStatus.PendingVerification
+                    }.all { support: AppleAudioFormatSupport -> !support.allowsScanning },
         )
     }
 
@@ -89,35 +89,40 @@ class LocalAudioFileRulesTest {
 
     /** 短音频过滤只在用户开启偏好且时长已知时生效。 */
     @Test
-    fun shouldIncludeByDurationUsesShortAudioPreference(): Unit {
+    fun shouldIncludeByDurationUsesShortAudioPreference() {
         val defaultPreferences: LocalMusicDiscoveryPreferences = LocalMusicDiscoveryPreferences()
-        val disabledPreferences: LocalMusicDiscoveryPreferences = defaultPreferences.copy(
-            shouldIgnoreShortAudio = false,
-        )
+        val disabledPreferences: LocalMusicDiscoveryPreferences =
+            defaultPreferences.copy(
+                shouldIgnoreShortAudio = false,
+            )
 
         assertFalse(
-            actual = LocalAudioFileRules.shouldIncludeByDuration(
-                durationMs = 29_999L,
-                preferences = defaultPreferences,
-            ),
+            actual =
+                LocalAudioFileRules.shouldIncludeByDuration(
+                    durationMs = 29_999L,
+                    preferences = defaultPreferences,
+                ),
         )
         assertTrue(
-            actual = LocalAudioFileRules.shouldIncludeByDuration(
-                durationMs = 30_000L,
-                preferences = defaultPreferences,
-            ),
+            actual =
+                LocalAudioFileRules.shouldIncludeByDuration(
+                    durationMs = 30_000L,
+                    preferences = defaultPreferences,
+                ),
         )
         assertTrue(
-            actual = LocalAudioFileRules.shouldIncludeByDuration(
-                durationMs = null,
-                preferences = defaultPreferences,
-            ),
+            actual =
+                LocalAudioFileRules.shouldIncludeByDuration(
+                    durationMs = null,
+                    preferences = defaultPreferences,
+                ),
         )
         assertTrue(
-            actual = LocalAudioFileRules.shouldIncludeByDuration(
-                durationMs = 1_000L,
-                preferences = disabledPreferences,
-            ),
+            actual =
+                LocalAudioFileRules.shouldIncludeByDuration(
+                    durationMs = 1_000L,
+                    preferences = disabledPreferences,
+                ),
         )
     }
 }

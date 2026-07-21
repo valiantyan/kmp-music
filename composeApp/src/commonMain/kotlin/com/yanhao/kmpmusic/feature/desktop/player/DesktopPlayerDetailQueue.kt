@@ -52,11 +52,12 @@ internal fun DesktopPlayerQueuePreview(
         )
         Spacer(modifier = Modifier.height(12.dp))
         LazyColumn(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(174.dp)
-                .clip(RoundedCornerShape(18.dp))
-                .background(Color.White.copy(alpha = 0.58f)),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .height(174.dp)
+                    .clip(RoundedCornerShape(18.dp))
+                    .background(Color.White.copy(alpha = 0.58f)),
         ) {
             itemsIndexed(items = queueRows) { index: Int, row: DesktopPlayerQueueRowState ->
                 DesktopPlayerQueueRow(
@@ -89,11 +90,12 @@ private fun DesktopPlayerQueueRow(
     onClick: () -> Unit,
 ) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(54.dp)
-            .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .height(54.dp)
+                .clickable(onClick = onClick)
+                .padding(horizontal = 16.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -133,11 +135,10 @@ private fun DesktopPlayerQueueRow(
  */
 internal fun buildPlayerQueueRowStates(
     queueSongs: List<Song>,
-): List<DesktopPlayerQueueRowState> {
-    return queueSongs.mapIndexed { index: Int, queueSong: Song ->
+): List<DesktopPlayerQueueRowState> =
+    queueSongs.mapIndexed { index: Int, queueSong: Song ->
         DesktopPlayerQueueRowState(
             song = queueSong,
             queueIndex = index,
         )
     }
-}

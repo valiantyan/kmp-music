@@ -31,9 +31,10 @@ internal fun SearchResultsHeader(
     onScope: (SearchScope) -> Unit,
 ) {
     Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = searchHorizontalPadding),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = searchHorizontalPadding),
         verticalArrangement = Arrangement.spacedBy(space = 24.dp),
     ) {
         Text(
@@ -48,10 +49,11 @@ internal fun SearchResultsHeader(
             onScope = onScope,
         )
         Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(height = 1.dp)
-                .background(color = searchDividerColor),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .height(height = 1.dp)
+                    .background(color = searchDividerColor),
         )
     }
 }
@@ -63,10 +65,11 @@ private fun SearchResultTabs(
     onScope: (SearchScope) -> Unit,
 ) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(height = 33.dp)
-            .background(color = Color.Transparent),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .height(height = 33.dp)
+                .background(color = Color.Transparent),
         horizontalArrangement = Arrangement.spacedBy(space = 32.dp),
         verticalAlignment = Alignment.Bottom,
     ) {
@@ -89,11 +92,12 @@ private fun SearchResultTabButton(
 ) {
     val tabColor: Color = if (isSelected) searchAccentColor else searchSecondaryTextColor
     Column(
-        modifier = Modifier
-            .height(height = 33.dp)
-            .clickable(enabled = tab.scope != null) {
-                tab.scope?.let { scope: SearchScope -> onScope(scope) }
-            },
+        modifier =
+            Modifier
+                .height(height = 33.dp)
+                .clickable(enabled = tab.scope != null) {
+                    tab.scope?.let { scope: SearchScope -> onScope(scope) }
+                },
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Bottom,
     ) {
@@ -107,11 +111,12 @@ private fun SearchResultTabButton(
         )
         Spacer(modifier = Modifier.height(height = 8.dp))
         Box(
-            modifier = Modifier
-                .height(height = 3.dp)
-                .width(width = 28.dp)
-                .clip(shape = CircleShape)
-                .background(color = if (isSelected) searchAccentColor else Color.Transparent),
+            modifier =
+                Modifier
+                    .height(height = 3.dp)
+                    .width(width = 28.dp)
+                    .clip(shape = CircleShape)
+                    .background(color = if (isSelected) searchAccentColor else Color.Transparent),
         )
     }
 }

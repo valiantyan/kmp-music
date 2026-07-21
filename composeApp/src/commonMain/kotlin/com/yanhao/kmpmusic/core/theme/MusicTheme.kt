@@ -7,6 +7,7 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.LocalRippleConfiguration
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Typography
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
@@ -14,18 +15,17 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.ProvidableCompositionLocal
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.drawscope.ContentDrawScope
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.material3.Typography
-import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.graphics.drawscope.ContentDrawScope
 import androidx.compose.ui.node.DelegatableNode
 import androidx.compose.ui.node.DrawModifierNode
-import androidx.compose.ui.unit.sp
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.TextUnit
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.yanhao.kmpmusic.domain.model.ThemeMode
 
 /**
@@ -40,6 +40,7 @@ object MusicColors {
     val MutedLight: Color = Color(0xFFA7ADB5)
     val Line: Color = Color(0xFFE5EAED)
     val Paper: Color = Color(0xFFFBFCFD)
+
     /** 移动端普通页面统一使用的纯白背景。 */
     val PageBackground: Color = Color(0xFFFFFFFF)
     val Soft: Color = Color(0xFFF1F4F5)
@@ -55,8 +56,10 @@ object MusicColors {
     val DialogControlBorder: Color = Color(0xFFBCC9C6)
     val DialogSoft: Color = Color(0xFFECEEEF)
     val DialogDivider: Color = Color(0xFFF2F4F5)
+
     /** 用户确认的移动端 Toolbar 统一白色背景。 */
     val MobileToolbarBackground: Color = Color(0xFFFFFFFF)
+
     /** Figma 节点 994:1813 的 90% 黑色标题与图标色。 */
     val MobileToolbarContent: Color = Color(0xE6000000)
 }
@@ -75,6 +78,7 @@ object MusicDimens {
     val HeroFolderSize: Dp = 126.dp
     val MiniPlayerHeight: Dp = 68.dp
     val BottomNavHeight: Dp = 78.dp
+
     /** 底部 Tab 吸收系统安全区时，控件内容区保留的最小高度(56dp)。 */
     val BottomNavIntegratedContentMinHeight: Dp = 56.dp
     val TopLevelContentBottom: Dp = 210.dp
@@ -118,20 +122,28 @@ object MusicDimens {
     val SearchFieldIconSize: Dp = 24.dp
     val SearchFieldContentGap: Dp = 12.dp
     val SearchChipGap: Dp = 10.dp
+
     /** 移动端 Toolbar 内容高度，不包含系统状态栏。 */
     val MobileToolbarHeight: Dp = 52.dp
+
     /** Toolbar 与正文之间的固定视觉间距。 */
     val MobileToolbarBodySpacing: Dp = 16.dp
+
     /** Figma Toolbar 两侧最外层留白。 */
     val MobileToolbarOuterPadding: Dp = 4.dp
+
     /** Figma Toolbar 导航、标题与操作区之间的间距。 */
     val MobileToolbarContentGap: Dp = 4.dp
+
     /** 返回与右侧操作的稳定槽位宽度。 */
     val MobileToolbarActionSlotWidth: Dp = 48.dp
+
     /** 操作槽内部状态层尺寸。 */
     val MobileToolbarStateLayerSize: Dp = 40.dp
+
     /** Toolbar 图标标准尺寸。 */
     val MobileToolbarIconSize: Dp = 24.dp
+
     /** 一级页移除导航槽后的标题左边距。 */
     val MobilePrimaryToolbarTitleStart: Dp = 16.dp
 }
@@ -150,17 +162,13 @@ val LocalMusicScale: ProvidableCompositionLocal<Float> = staticCompositionLocalO
  * 按当前视觉比例缩放 [Dp]，用于把原型 px 节奏映射到真实手机 dp。
  */
 @Composable
-fun scaledDp(value: Dp): Dp {
-    return value * LocalMusicScale.current
-}
+fun scaledDp(value: Dp): Dp = value * LocalMusicScale.current
 
 /**
  * 按当前视觉比例缩放字号，避免 480dpi 手机上文本过大。
  */
 @Composable
-fun scaledSp(value: TextUnit): TextUnit {
-    return value * LocalMusicScale.current * VISUAL_FONT_SCALE
-}
+fun scaledSp(value: TextUnit): TextUnit = value * LocalMusicScale.current * VISUAL_FONT_SCALE
 
 /**
  * App 主题入口，沿用原型浅色为默认模式。
@@ -171,28 +179,30 @@ fun KmpMusicTheme(
     themeMode: ThemeMode,
     content: @Composable () -> Unit,
 ) {
-    val useDarkTheme: Boolean = when (themeMode) {
-        ThemeMode.Light -> false
-        ThemeMode.Dark -> true
-        ThemeMode.System -> isSystemInDarkTheme()
-    }
-    val colors = if (useDarkTheme) {
-        darkColorScheme(
-            primary = MusicColors.Accent,
-            background = MusicColors.PageBackground,
-            surface = MusicColors.DarkPaper,
-            onBackground = MusicColors.Ink,
-            onSurface = Color.White,
-        )
-    } else {
-        lightColorScheme(
-            primary = MusicColors.Accent,
-            background = MusicColors.PageBackground,
-            surface = MusicColors.Paper,
-            onBackground = MusicColors.Ink,
-            onSurface = MusicColors.Ink,
-        )
-    }
+    val useDarkTheme: Boolean =
+        when (themeMode) {
+            ThemeMode.Light -> false
+            ThemeMode.Dark -> true
+            ThemeMode.System -> isSystemInDarkTheme()
+        }
+    val colors =
+        if (useDarkTheme) {
+            darkColorScheme(
+                primary = MusicColors.Accent,
+                background = MusicColors.PageBackground,
+                surface = MusicColors.DarkPaper,
+                onBackground = MusicColors.Ink,
+                onSurface = Color.White,
+            )
+        } else {
+            lightColorScheme(
+                primary = MusicColors.Accent,
+                background = MusicColors.PageBackground,
+                surface = MusicColors.Paper,
+                onBackground = MusicColors.Ink,
+                onSurface = MusicColors.Ink,
+            )
+        }
     MaterialTheme(
         colorScheme = colors,
         typography = MusicTypography,
@@ -209,23 +219,19 @@ fun KmpMusicTheme(
  * 无视觉反馈的点击指示器，用于保留点击语义但移除原型不需要的灰色 pressed 背景。
  */
 private object NoVisualIndication : IndicationNodeFactory {
-    override fun create(interactionSource: InteractionSource): DelegatableNode {
-        return NoVisualIndicationNode()
-    }
+    override fun create(interactionSource: InteractionSource): DelegatableNode = NoVisualIndicationNode()
 
-    override fun equals(other: Any?): Boolean {
-        return other === this
-    }
+    override fun equals(other: Any?): Boolean = other === this
 
-    override fun hashCode(): Int {
-        return 0
-    }
+    override fun hashCode(): Int = 0
 }
 
 /**
  * 只绘制原始内容，不额外绘制 ripple、pressed state 或 hover state。
  */
-private class NoVisualIndicationNode : Modifier.Node(), DrawModifierNode {
+private class NoVisualIndicationNode :
+    Modifier.Node(),
+    DrawModifierNode {
     override fun ContentDrawScope.draw() {
         drawContent()
     }
@@ -234,45 +240,52 @@ private class NoVisualIndicationNode : Modifier.Node(), DrawModifierNode {
 /**
  * 接近原型中 SF/PingFang 的系统字体层级。
  */
-val MusicTypography: Typography = Typography(
-    headlineLarge = TextStyle(
-        fontFamily = FontFamily.SansSerif,
-        fontWeight = FontWeight.ExtraBold,
-        fontSize = 34.sp,
-        lineHeight = 38.sp,
-    ),
-    headlineMedium = TextStyle(
-        fontFamily = FontFamily.SansSerif,
-        fontWeight = FontWeight.ExtraBold,
-        fontSize = 26.sp,
-        lineHeight = 30.sp,
-    ),
-    titleLarge = TextStyle(
-        fontFamily = FontFamily.SansSerif,
-        fontWeight = FontWeight.ExtraBold,
-        fontSize = 21.sp,
-        lineHeight = 25.sp,
-    ),
-    titleMedium = TextStyle(
-        fontFamily = FontFamily.SansSerif,
-        fontWeight = FontWeight.Bold,
-        fontSize = 17.sp,
-        lineHeight = 22.sp,
-    ),
-    bodyMedium = TextStyle(
-        fontFamily = FontFamily.SansSerif,
-        fontWeight = FontWeight.Medium,
-        fontSize = 14.sp,
-        lineHeight = 20.sp,
-    ),
-)
+val MusicTypography: Typography =
+    Typography(
+        headlineLarge =
+            TextStyle(
+                fontFamily = FontFamily.SansSerif,
+                fontWeight = FontWeight.ExtraBold,
+                fontSize = 34.sp,
+                lineHeight = 38.sp,
+            ),
+        headlineMedium =
+            TextStyle(
+                fontFamily = FontFamily.SansSerif,
+                fontWeight = FontWeight.ExtraBold,
+                fontSize = 26.sp,
+                lineHeight = 30.sp,
+            ),
+        titleLarge =
+            TextStyle(
+                fontFamily = FontFamily.SansSerif,
+                fontWeight = FontWeight.ExtraBold,
+                fontSize = 21.sp,
+                lineHeight = 25.sp,
+            ),
+        titleMedium =
+            TextStyle(
+                fontFamily = FontFamily.SansSerif,
+                fontWeight = FontWeight.Bold,
+                fontSize = 17.sp,
+                lineHeight = 22.sp,
+            ),
+        bodyMedium =
+            TextStyle(
+                fontFamily = FontFamily.SansSerif,
+                fontWeight = FontWeight.Medium,
+                fontSize = 14.sp,
+                lineHeight = 20.sp,
+            ),
+    )
 
 /**
  * Figma 节点 994:1813 的移动端 Toolbar 单行标题样式。
  */
-val MobileToolbarTitleStyle: TextStyle = TextStyle(
-    fontFamily = FontFamily.SansSerif,
-    fontWeight = FontWeight.Medium,
-    fontSize = 18.sp,
-    lineHeight = 26.sp,
-)
+val MobileToolbarTitleStyle: TextStyle =
+    TextStyle(
+        fontFamily = FontFamily.SansSerif,
+        fontWeight = FontWeight.Medium,
+        fontSize = 18.sp,
+        lineHeight = 26.sp,
+    )

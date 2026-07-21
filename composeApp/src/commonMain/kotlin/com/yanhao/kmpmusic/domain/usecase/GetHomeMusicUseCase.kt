@@ -31,11 +31,10 @@ class GetHomeMusicUseCaseImpl(
     private val musicLibraryRepository: MusicLibraryRepository,
 ) : GetHomeMusicUseCase {
     /** 汇总首页所需数据，避免 UI 直接碰仓库。 */
-    override operator fun invoke(): HomeMusic {
-        return HomeMusic(
+    override operator fun invoke(): HomeMusic =
+        HomeMusic(
             songs = musicLibraryRepository.getSongs(),
             albums = musicLibraryRepository.getAlbums(),
             artists = musicLibraryRepository.getArtists(),
         )
-    }
 }

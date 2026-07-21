@@ -42,10 +42,12 @@ internal class IosSandboxAudioImporter(
         completedAt: Long,
         preferences: LocalMusicDiscoveryPreferences,
     ): LocalMusicScanResult {
-        val folderPath: String = fileSystem.path(url = folderUrl)
-            ?: throw createUnavailableIosFolderException(fileSystem = fileSystem, folderUrl = folderUrl)
-        val subpaths: List<String> = fileSystem.listSubpaths(path = folderPath)
-            ?: throw createUnavailableIosFolderPathException(folderPath = folderPath)
+        val folderPath: String =
+            fileSystem.path(url = folderUrl)
+                ?: throw createUnavailableIosFolderException(fileSystem = fileSystem, folderUrl = folderUrl)
+        val subpaths: List<String> =
+            fileSystem.listSubpaths(path = folderPath)
+                ?: throw createUnavailableIosFolderPathException(folderPath = folderPath)
         val importDirectoryPath: String = resolveImportDirectoryPath()
         val discovered: MutableList<MusicFileMetadata> = mutableListOf()
         val failed: MutableList<LocalMusicProblem> = mutableListOf()
@@ -70,8 +72,9 @@ internal class IosSandboxAudioImporter(
 
     /** 解析并创建沙盒导入目录。 */
     private fun resolveImportDirectoryPath(): String {
-        val importDirectoryPath: String = fileSystem.sandboxImportDirectoryPath()
-            ?: throw createIosSandboxUnavailableException()
+        val importDirectoryPath: String =
+            fileSystem.sandboxImportDirectoryPath()
+                ?: throw createIosSandboxUnavailableException()
         if (!fileSystem.ensureDirectory(path = importDirectoryPath)) {
             throw createIosSandboxUnavailableException()
         }
@@ -93,28 +96,33 @@ internal class IosSandboxAudioImporter(
             return
         }
         val sourcePath: String = "$folderPath/$relativePath"
-        val commitResult: IosSandboxAudioCommitResult = committer.commit(
-            candidate = IosSandboxAudioImportCandidate(
-                sourcePath = sourcePath,
-                fileName = fileName,
-                importDirectoryPath = importDirectoryPath,
-            ),
-        )
+        val commitResult: IosSandboxAudioCommitResult =
+            committer.commit(
+                candidate =
+                    IosSandboxAudioImportCandidate(
+                        sourcePath = sourcePath,
+                        fileName = fileName,
+                        importDirectoryPath = importDirectoryPath,
+                    ),
+            )
         if (commitResult is IosSandboxAudioCommitResult.Failure) {
             failed += commitResult.problem
             return
         }
         val committedPath: String = (commitResult as IosSandboxAudioCommitResult.Success).committedPath
-        val albumName: String = relativePath.substringBeforeLast(
-            delimiter = "/",
-            missingDelimiterValue = "iOS 导入",
-        ).substringAfterLast(delimiter = "/")
-        discovered += buildIosImportedAudioMetadata(
-            fileSystem = fileSystem,
-            committedPath = committedPath,
-            fileName = fileName,
-            albumName = albumName,
-            audioType = audioType,
-        )
+        val albumName: String =
+            relativePath
+                .substringBeforeLast(
+                    delimiter = "/",
+                    missingDelimiterValue = "iOS 导入",
+                ).substringAfterLast(delimiter = "/")
+        discovered +=
+            buildIosImportedAudioMetadata(
+                fileSystem = fileSystem,
+                committedPath = committedPath,
+                fileName = fileName,
+                albumName = albumName,
+                audioType = audioType,
+            )
     }
 }

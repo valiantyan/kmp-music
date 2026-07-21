@@ -54,24 +54,26 @@ fun MobileBottomNavigation(
     val bottomPadding: Dp = if (isCompactContent) scaledDp(value = 2.dp) else scaledDp(value = 8.dp)
     val rowAlignment: Alignment = if (isCompactContent) Alignment.Center else Alignment.TopCenter
     Surface(
-        modifier = modifier
-            .fillMaxWidth()
-            .height(height = contentHeight + bottomInsetHeight)
-            .border(width = 1.dp, color = MusicColors.Line.copy(alpha = 0.86f)),
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .height(height = contentHeight + bottomInsetHeight)
+                .border(width = 1.dp, color = MusicColors.Line.copy(alpha = 0.86f)),
         color = MusicColors.Paper,
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
             Row(
-                modifier = Modifier
-                    .align(alignment = rowAlignment)
-                    .fillMaxWidth()
-                    .height(height = contentHeight)
-                    .padding(
-                        start = scaledDp(24.dp),
-                        top = topPadding,
-                        end = scaledDp(24.dp),
-                        bottom = bottomPadding,
-                    ),
+                modifier =
+                    Modifier
+                        .align(alignment = rowAlignment)
+                        .fillMaxWidth()
+                        .height(height = contentHeight)
+                        .padding(
+                            start = scaledDp(24.dp),
+                            top = topPadding,
+                            end = scaledDp(24.dp),
+                            bottom = bottomPadding,
+                        ),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
@@ -106,18 +108,20 @@ private fun MobileBottomNavigationItem(
 ) {
     val itemColor: Color = if (isSelected) MusicColors.Accent else Color(0xFF7D838D)
     Column(
-        modifier = Modifier
-            .size(width = scaledDp(74.dp), height = itemHeight)
-            .clickable(enabled = isEnabled, onClick = onClick),
+        modifier =
+            Modifier
+                .size(width = scaledDp(74.dp), height = itemHeight)
+                .clickable(enabled = isEnabled, onClick = onClick),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(space = scaledDp(3.dp), alignment = Alignment.CenterVertically),
     ) {
         Icon(
-            imageVector = when (tab) {
-                RootTab.Home -> Icons.Rounded.Home
-                RootTab.Favorites -> Icons.Rounded.Favorite
-                RootTab.Me -> Icons.Rounded.Person
-            },
+            imageVector =
+                when (tab) {
+                    RootTab.Home -> Icons.Rounded.Home
+                    RootTab.Favorites -> Icons.Rounded.Favorite
+                    RootTab.Me -> Icons.Rounded.Person
+                },
             contentDescription = tab.mobileLabel(),
             tint = itemColor,
             modifier = Modifier.size(size = iconSize),
@@ -134,10 +138,9 @@ private fun MobileBottomNavigationItem(
 /**
  * 根 Tab 中文名。
  */
-private fun RootTab.mobileLabel(): String {
-    return when (this) {
+private fun RootTab.mobileLabel(): String =
+    when (this) {
         RootTab.Home -> "首页"
         RootTab.Favorites -> "收藏"
         RootTab.Me -> "我的"
     }
-}

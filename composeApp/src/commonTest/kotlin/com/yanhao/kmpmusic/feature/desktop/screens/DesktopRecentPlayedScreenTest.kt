@@ -16,10 +16,11 @@ class DesktopRecentPlayedScreenTest {
      * 空列表时必须显示清晰空态，避免 workspace 只剩标题。
      */
     @Test
-    fun desktopRecentPlayedPageShowsClearEmptyState(): Unit {
-        val model: DesktopRecentPlayedPageDisplayModel = buildDesktopRecentPlayedPageDisplayModel(
-            songs = emptyList(),
-        )
+    fun desktopRecentPlayedPageShowsClearEmptyState() {
+        val model: DesktopRecentPlayedPageDisplayModel =
+            buildDesktopRecentPlayedPageDisplayModel(
+                songs = emptyList(),
+            )
 
         assertEquals(expected = "最近播放", actual = model.title)
         assertEquals(expected = "暂无最近播放", actual = model.emptyTitle)
@@ -31,17 +32,19 @@ class DesktopRecentPlayedScreenTest {
      * 桌面完整页展示调用方传入的全部歌曲，不复用“我的”页摘要 Top3 截断。
      */
     @Test
-    fun desktopRecentPlayedPageKeepsEveryProvidedSong(): Unit {
-        val songs: List<Song> = (1..5).map { index: Int ->
-            testSong(
-                id = "song-$index",
-                title = "Song $index",
-            )
-        }
+    fun desktopRecentPlayedPageKeepsEveryProvidedSong() {
+        val songs: List<Song> =
+            (1..5).map { index: Int ->
+                testSong(
+                    id = "song-$index",
+                    title = "Song $index",
+                )
+            }
 
-        val model: DesktopRecentPlayedPageDisplayModel = buildDesktopRecentPlayedPageDisplayModel(
-            songs = songs,
-        )
+        val model: DesktopRecentPlayedPageDisplayModel =
+            buildDesktopRecentPlayedPageDisplayModel(
+                songs = songs,
+            )
 
         assertEquals(
             expected = listOf("song-1", "song-2", "song-3", "song-4", "song-5"),
@@ -57,10 +60,11 @@ class DesktopRecentPlayedScreenTest {
      * 展示模型只使用统一过滤后的入参，不自行读取历史、全库或 demo 数据。
      */
     @Test
-    fun desktopRecentPlayedPageUsesProvidedFilteredSongsOnly(): Unit {
-        val model: DesktopRecentPlayedPageDisplayModel = buildDesktopRecentPlayedPageDisplayModel(
-            songs = listOf(testSong(id = "filtered-song", title = "Filtered Song")),
-        )
+    fun desktopRecentPlayedPageUsesProvidedFilteredSongsOnly() {
+        val model: DesktopRecentPlayedPageDisplayModel =
+            buildDesktopRecentPlayedPageDisplayModel(
+                songs = listOf(testSong(id = "filtered-song", title = "Filtered Song")),
+            )
 
         assertEquals(
             expected = listOf("filtered-song"),
@@ -73,10 +77,11 @@ class DesktopRecentPlayedScreenTest {
      * 当前页面不是播放日志管理页，不能暴露清空、编辑、筛选、排序或审计语义。
      */
     @Test
-    fun desktopRecentPlayedPageDoesNotExposeManagementActions(): Unit {
-        val model: DesktopRecentPlayedPageDisplayModel = buildDesktopRecentPlayedPageDisplayModel(
-            songs = listOf(testSong(id = "song-1", title = "Song 1")),
-        )
+    fun desktopRecentPlayedPageDoesNotExposeManagementActions() {
+        val model: DesktopRecentPlayedPageDisplayModel =
+            buildDesktopRecentPlayedPageDisplayModel(
+                songs = listOf(testSong(id = "song-1", title = "Song 1")),
+            )
 
         assertFalse(actual = model.hasManagementActions)
         assertFalse(actual = model.eyebrow.contains(other = "清空"))
@@ -89,13 +94,15 @@ class DesktopRecentPlayedScreenTest {
      * 桌面完整页歌曲行本轮接入播放和单曲更多入口，且不新增管理动作。
      */
     @Test
-    fun desktopRecentPlayedPageRowsExposePlaybackAndMoreActions(): Unit {
-        val model: DesktopRecentPlayedPageDisplayModel = buildDesktopRecentPlayedPageDisplayModel(
-            songs = listOf(
-                testSong(id = "song-1", title = "Song 1"),
-                testSong(id = "song-2", title = "Song 2"),
-            ),
-        )
+    fun desktopRecentPlayedPageRowsExposePlaybackAndMoreActions() {
+        val model: DesktopRecentPlayedPageDisplayModel =
+            buildDesktopRecentPlayedPageDisplayModel(
+                songs =
+                    listOf(
+                        testSong(id = "song-1", title = "Song 1"),
+                        testSong(id = "song-2", title = "Song 2"),
+                    ),
+            )
 
         assertEquals(
             expected = listOf(true, true),
@@ -112,15 +119,17 @@ class DesktopRecentPlayedScreenTest {
      * 桌面完整页只给全局当前歌曲行附加播放中标识，非当前行保持普通状态。
      */
     @Test
-    fun desktopRecentPlayedPageMarksOnlyCurrentSong(): Unit {
-        val model: DesktopRecentPlayedPageDisplayModel = buildDesktopRecentPlayedPageDisplayModel(
-            songs = listOf(
-                testSong(id = "song-1", title = "Song 1"),
-                testSong(id = "song-2", title = "Song 2"),
-                testSong(id = "song-3", title = "Song 3"),
-            ),
-            currentSongId = "song-3",
-        )
+    fun desktopRecentPlayedPageMarksOnlyCurrentSong() {
+        val model: DesktopRecentPlayedPageDisplayModel =
+            buildDesktopRecentPlayedPageDisplayModel(
+                songs =
+                    listOf(
+                        testSong(id = "song-1", title = "Song 1"),
+                        testSong(id = "song-2", title = "Song 2"),
+                        testSong(id = "song-3", title = "Song 3"),
+                    ),
+                currentSongId = "song-3",
+            )
 
         assertEquals(
             expected = listOf(false, false, true),
@@ -136,10 +145,11 @@ class DesktopRecentPlayedScreenTest {
      * 桌面页明确使用 workspace 表格策略，避免退回手机稿窄列表。
      */
     @Test
-    fun desktopRecentPlayedPageUsesWorkspaceTableLayout(): Unit {
-        val model: DesktopRecentPlayedPageDisplayModel = buildDesktopRecentPlayedPageDisplayModel(
-            songs = listOf(testSong(id = "song-1", title = "Song 1")),
-        )
+    fun desktopRecentPlayedPageUsesWorkspaceTableLayout() {
+        val model: DesktopRecentPlayedPageDisplayModel =
+            buildDesktopRecentPlayedPageDisplayModel(
+                songs = listOf(testSong(id = "song-1", title = "Song 1")),
+            )
 
         assertEquals(
             expected = DesktopRecentPlayedLayoutPolicy.WorkspaceTable,
@@ -151,8 +161,8 @@ class DesktopRecentPlayedScreenTest {
     private fun testSong(
         id: String,
         title: String,
-    ): Song {
-        return Song(
+    ): Song =
+        Song(
             id = id,
             title = title,
             artist = "Artist",
@@ -168,5 +178,4 @@ class DesktopRecentPlayedScreenTest {
             sourceKind = LocalMusicSourceKind.DesktopFolder,
             localUri = "file:///$id.mp3",
         )
-    }
 }

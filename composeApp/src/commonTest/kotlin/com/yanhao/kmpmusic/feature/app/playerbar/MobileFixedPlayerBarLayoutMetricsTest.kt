@@ -10,14 +10,15 @@ import kotlin.test.assertEquals
 class MobileFixedPlayerBarLayoutMetricsTest {
     /** Android 保持旧路径：底部安全区仍在 Tab 外单独绘制，避免改坏现有正常表现。 */
     @Test
-    fun androidLayoutKeepsNavigationBarOutsideBottomTab(): Unit {
-        val metrics: MobileFixedPlayerBarLayoutMetrics = buildMobileFixedPlayerBarLayoutMetrics(
-            hasSong = true,
-            miniPlayerHeight = 68.dp,
-            bottomNavigationHeight = 78.dp,
-            navigationBarHeight = 34.dp,
-            integratesBottomNavigationInset = false,
-        )
+    fun androidLayoutKeepsNavigationBarOutsideBottomTab() {
+        val metrics: MobileFixedPlayerBarLayoutMetrics =
+            buildMobileFixedPlayerBarLayoutMetrics(
+                hasSong = true,
+                miniPlayerHeight = 68.dp,
+                bottomNavigationHeight = 78.dp,
+                navigationBarHeight = 34.dp,
+                integratesBottomNavigationInset = false,
+            )
 
         assertEquals(expected = 146.dp, actual = metrics.stackHeight)
         assertEquals(expected = 180.dp, actual = metrics.containerHeight)
@@ -29,14 +30,15 @@ class MobileFixedPlayerBarLayoutMetricsTest {
 
     /** iOS 把 Home Indicator 安全区纳入底部 Tab，但不能把 Android 内容高度整体加厚。 */
     @Test
-    fun iosLayoutUsesCompactBottomTabWithIntegratedHomeIndicator(): Unit {
-        val metrics: MobileFixedPlayerBarLayoutMetrics = buildMobileFixedPlayerBarLayoutMetrics(
-            hasSong = true,
-            miniPlayerHeight = 68.dp,
-            bottomNavigationHeight = 78.dp,
-            navigationBarHeight = 34.dp,
-            integratesBottomNavigationInset = true,
-        )
+    fun iosLayoutUsesCompactBottomTabWithIntegratedHomeIndicator() {
+        val metrics: MobileFixedPlayerBarLayoutMetrics =
+            buildMobileFixedPlayerBarLayoutMetrics(
+                hasSong = true,
+                miniPlayerHeight = 68.dp,
+                bottomNavigationHeight = 78.dp,
+                navigationBarHeight = 34.dp,
+                integratesBottomNavigationInset = true,
+            )
 
         assertEquals(expected = 158.dp, actual = metrics.stackHeight)
         assertEquals(expected = 158.dp, actual = metrics.containerHeight)
@@ -48,14 +50,15 @@ class MobileFixedPlayerBarLayoutMetricsTest {
 
     /** iOS 二级页只显示迷你播放器时，整个底部 Tab 都必须滑出裁剪区域。 */
     @Test
-    fun iosMiniPlayerOnlyHidesEntireBottomTab(): Unit {
-        val metrics: MobileFixedPlayerBarLayoutMetrics = buildMobileFixedPlayerBarLayoutMetrics(
-            hasSong = true,
-            miniPlayerHeight = 68.dp,
-            bottomNavigationHeight = 78.dp,
-            navigationBarHeight = 34.dp,
-            integratesBottomNavigationInset = true,
-        )
+    fun iosMiniPlayerOnlyHidesEntireBottomTab() {
+        val metrics: MobileFixedPlayerBarLayoutMetrics =
+            buildMobileFixedPlayerBarLayoutMetrics(
+                hasSong = true,
+                miniPlayerHeight = 68.dp,
+                bottomNavigationHeight = 78.dp,
+                navigationBarHeight = 34.dp,
+                integratesBottomNavigationInset = true,
+            )
 
         assertEquals(expected = 90.dp, actual = metrics.miniPlayerOnlyOffset)
         assertEquals(expected = 158.dp, actual = metrics.hiddenOffset)

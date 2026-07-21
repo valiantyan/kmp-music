@@ -23,8 +23,8 @@ internal data class RecentPlayedSongRowDisplayModel(
 internal fun buildRecentPlayedSongRowDisplayModels(
     songs: List<Song>,
     currentSongId: String?,
-): List<RecentPlayedSongRowDisplayModel> {
-    return songs.map { song: Song ->
+): List<RecentPlayedSongRowDisplayModel> =
+    songs.map { song: Song ->
         val isCurrentSong: Boolean = song.id == currentSongId
         RecentPlayedSongRowDisplayModel(
             song = song,
@@ -33,4 +33,3 @@ internal fun buildRecentPlayedSongRowDisplayModels(
             hasMoreAction = true,
         )
     }
-}

@@ -21,21 +21,27 @@ class SearchSessionController(
 ) {
     // 防抖任务必须集中托管，避免 facade 和子控制器各自维护搜索发布时间线。
     private var debounceJob: Job? = null
+
     // 自动搜索历史草稿用于替换同一轮输入产生的中间词，避免历史被防抖过程污染。
     private var automaticSearchHistoryDraft: AutomaticSearchHistoryDraft? = null
 
     /** 打开搜索时重置输入态，并切换到指定搜索上下文。 */
-    fun openSearch(state: MusicAppUiState, context: SearchContext): MusicAppUiState {
-        return syncActiveSearchQueryImmediately(state = state, query = "").copy(
+    fun openSearch(
+        state: MusicAppUiState,
+        context: SearchContext,
+    ): MusicAppUiState =
+        syncActiveSearchQueryImmediately(state = state, query = "").copy(
             searchContext = context,
             searchQuery = "",
             activeSearchQuery = "",
             searchScope = SearchScope.All,
         )
-    }
 
     /** 更新搜索词；清空会结束当前自动搜索草稿，非空词仍通过防抖驱动结果。 */
-    fun setSearchQuery(state: MusicAppUiState, query: String): MusicAppUiState {
+    fun setSearchQuery(
+        state: MusicAppUiState,
+        query: String,
+    ): MusicAppUiState {
         val nextState: MusicAppUiState = state.copy(searchQuery = query)
         return scheduleActiveSearchQuerySync(
             state = nextState,
@@ -44,16 +50,18 @@ class SearchSessionController(
     }
 
     /** 更新搜索范围。 */
-    fun setSearchScope(state: MusicAppUiState, scope: SearchScope): MusicAppUiState {
-        return state.copy(searchScope = scope)
-    }
+    fun setSearchScope(
+        state: MusicAppUiState,
+        scope: SearchScope,
+    ): MusicAppUiState = state.copy(searchScope = scope)
 
     /** 立即同步 active query，并把当前搜索词写入当前上下文历史。 */
     fun commitSearchQueryToHistory(state: MusicAppUiState): MusicAppUiState {
-        val syncedState: MusicAppUiState = syncActiveSearchQueryImmediately(
-            state = state,
-            query = state.searchQuery,
-        )
+        val syncedState: MusicAppUiState =
+            syncActiveSearchQueryImmediately(
+                state = state,
+                query = state.searchQuery,
+            )
         return commitSearchQueryToHistory(
             state = syncedState,
             query = syncedState.searchQuery,
@@ -62,11 +70,15 @@ class SearchSessionController(
     }
 
     /** 点击历史词时立即回填搜索态，并把该词提到历史顶部。 */
-    fun selectSearchHistory(state: MusicAppUiState, query: String): MusicAppUiState {
-        val nextState: MusicAppUiState = syncActiveSearchQueryImmediately(
-            state = state,
-            query = query,
-        ).copy(searchQuery = query)
+    fun selectSearchHistory(
+        state: MusicAppUiState,
+        query: String,
+    ): MusicAppUiState {
+        val nextState: MusicAppUiState =
+            syncActiveSearchQueryImmediately(
+                state = state,
+                query = query,
+            ).copy(searchQuery = query)
         return commitSearchQueryToHistory(state = nextState)
     }
 
@@ -85,7 +97,10 @@ class SearchSessionController(
     }
 
     /** 清空指定上下文的搜索历史。 */
-    fun clearSearchHistory(state: MusicAppUiState, context: SearchContext): MusicAppUiState {
+    fun clearSearchHistory(
+        state: MusicAppUiState,
+        context: SearchContext,
+    ): MusicAppUiState {
         automaticSearchHistoryDraft = null
         return updateSearchHistory(
             state = state,
@@ -115,10 +130,11 @@ class SearchSessionController(
         return updateSearchHistory(
             state = state,
             context = context,
-            history = moveQueryToHistoryTop(
-                query = normalizedQuery,
-                currentHistory = state.searchHistoryFor(context = context),
-            ),
+            history =
+                moveQueryToHistoryTop(
+                    query = normalizedQuery,
+                    currentHistory = state.searchHistoryFor(context = context),
+                ),
         )
     }
 
@@ -134,18 +150,19 @@ class SearchSessionController(
                 query = query,
             )
         }
-        debounceJob = controllerScope.launch {
-            delay(timeMillis = debounceMillis)
-            publishStateUpdate { currentState: MusicAppUiState ->
-                if (!shouldPublishDebouncedSearchQuery(state = currentState, query = query)) {
-                    return@publishStateUpdate currentState
+        debounceJob =
+            controllerScope.launch {
+                delay(timeMillis = debounceMillis)
+                publishStateUpdate { currentState: MusicAppUiState ->
+                    if (!shouldPublishDebouncedSearchQuery(state = currentState, query = query)) {
+                        return@publishStateUpdate currentState
+                    }
+                    publishDebouncedSearchQuery(
+                        state = currentState,
+                        query = query,
+                    )
                 }
-                publishDebouncedSearchQuery(
-                    state = currentState,
-                    query = query,
-                )
             }
-        }
         return state
     }
 
@@ -170,9 +187,7 @@ class SearchSessionController(
     private fun shouldPublishDebouncedSearchQuery(
         state: MusicAppUiState,
         query: String,
-    ): Boolean {
-        return state.searchQuery == query
-    }
+    ): Boolean = state.searchQuery == query
 
     // 显式提交、清空和历史点击必须立刻同步 active query。
     private fun syncActiveSearchQueryImmediately(
@@ -196,30 +211,35 @@ class SearchSessionController(
             return state
         }
         val currentDraft: AutomaticSearchHistoryDraft? = automaticSearchHistoryDraft
-        val baseHistory: List<String> = if (currentDraft?.context == context) {
-            currentDraft.baseHistory
-        } else {
-            state.searchHistoryFor(context = context)
-        }
-        automaticSearchHistoryDraft = AutomaticSearchHistoryDraft(
-            context = context,
-            baseHistory = baseHistory,
-        )
+        val baseHistory: List<String> =
+            if (currentDraft?.context == context) {
+                currentDraft.baseHistory
+            } else {
+                state.searchHistoryFor(context = context)
+            }
+        automaticSearchHistoryDraft =
+            AutomaticSearchHistoryDraft(
+                context = context,
+                baseHistory = baseHistory,
+            )
         return updateSearchHistory(
             state = state,
             context = context,
-            history = moveQueryToHistoryTop(
-                query = normalizedQuery,
-                currentHistory = baseHistory,
-            ),
+            history =
+                moveQueryToHistoryTop(
+                    query = normalizedQuery,
+                    currentHistory = baseHistory,
+                ),
         )
     }
 
     // 最新搜索词需要去重并置顶，同时限制历史长度。
-    private fun moveQueryToHistoryTop(query: String, currentHistory: List<String>): List<String> {
-        return (listOf(query) + currentHistory.filterNot { item: String -> item == query })
+    private fun moveQueryToHistoryTop(
+        query: String,
+        currentHistory: List<String>,
+    ): List<String> =
+        (listOf(query) + currentHistory.filterNot { item: String -> item == query })
             .take(n = 10)
-    }
 
     // 按上下文写回仓库和 UI state，保证不同入口的历史互不串联。
     private fun updateSearchHistory(

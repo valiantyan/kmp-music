@@ -26,33 +26,30 @@ import org.jetbrains.compose.resources.ExperimentalResourceApi
 /**
  * 迷你播放器 palette 默认值，图片加载或取色失败时使用。
  */
-fun defaultMiniPlayerPalette(): MiniPlayerPalette {
-    return MiniPlayerPalette(
+fun defaultMiniPlayerPalette(): MiniPlayerPalette =
+    MiniPlayerPalette(
         containerColor = MusicColors.Paper.copy(alpha = 0.92f),
     )
-}
 
 /**
  * 歌手详情页 palette 默认值，图片加载或取色失败时使用。
  */
-fun defaultArtistDetailPalette(): ArtistDetailPalette {
-    return ArtistDetailPalette(
+fun defaultArtistDetailPalette(): ArtistDetailPalette =
+    ArtistDetailPalette(
         backgroundColor = MusicColors.DarkPaper,
         ambientColor = MusicColors.DarkSoft,
         contentColor = MusicColors.Soft,
         heroScrimColor = MusicColors.Ink,
     )
-}
 
 /**
  * 桌面播放页 palette 默认值，图片加载或取色失败时使用。
  */
-fun defaultPlayerPagePalette(): PlayerPagePalette {
-    return PlayerPagePalette(
+fun defaultPlayerPagePalette(): PlayerPagePalette =
+    PlayerPagePalette(
         backgroundColor = MusicColors.Paper,
         ambientColor = MusicColors.Accent.copy(alpha = 0.18f),
     )
-}
 
 /**
  * 使用与封面显示相同的 Coil 来源顺序提取迷你播放器配色。
@@ -61,14 +58,13 @@ fun defaultPlayerPagePalette(): PlayerPagePalette {
 fun rememberMiniPlayerPalette(
     coverArt: CoverArt,
     coverImageUri: String?,
-): MiniPlayerPalette {
-    return rememberCoverPalette(
+): MiniPlayerPalette =
+    rememberCoverPalette(
         coverArt = coverArt,
         coverImageUri = coverImageUri,
         defaultPalette = defaultMiniPlayerPalette(),
         extractPalette = ::extractMiniPlayerPalette,
     )
-}
 
 /**
  * 使用与歌手头像显示相同的 Coil 来源顺序提取详情页背景配色。
@@ -77,14 +73,13 @@ fun rememberMiniPlayerPalette(
 fun rememberArtistDetailPalette(
     coverArt: CoverArt,
     coverImageUri: String?,
-): ArtistDetailPalette {
-    return rememberCoverPalette(
+): ArtistDetailPalette =
+    rememberCoverPalette(
         coverArt = coverArt,
         coverImageUri = coverImageUri,
         defaultPalette = defaultArtistDetailPalette(),
         extractPalette = ::extractArtistDetailPalette,
     )
-}
 
 /**
  * 使用与封面显示相同的 Coil 来源顺序提取桌面播放页配色。
@@ -93,14 +88,13 @@ fun rememberArtistDetailPalette(
 fun rememberPlayerPagePalette(
     coverArt: CoverArt,
     coverImageUri: String?,
-): PlayerPagePalette {
-    return rememberCoverPalette(
+): PlayerPagePalette =
+    rememberCoverPalette(
         coverArt = coverArt,
         coverImageUri = coverImageUri,
         defaultPalette = defaultPlayerPagePalette(),
         extractPalette = ::extractPlayerPagePalette,
     )
-}
 
 /**
  * 统一托管封面 palette 的异步加载状态，保证页面层不直接接触 Coil API。
@@ -114,29 +108,32 @@ private fun <T> rememberCoverPalette(
     extractPalette: (ImageBitmap) -> T,
 ): T {
     val platformContext: PlatformContext = LocalPlatformContext.current
-    val request: CoverArtImageRequest = remember(coverArt, coverImageUri) {
-        buildCoverArtImageRequest(
-            coverArt = coverArt,
-            coverImageUri = coverImageUri,
-        )
-    }
+    val request: CoverArtImageRequest =
+        remember(coverArt, coverImageUri) {
+            buildCoverArtImageRequest(
+                coverArt = coverArt,
+                coverImageUri = coverImageUri,
+            )
+        }
     val fallbackModel: String = Res.getUri(request.fallbackResourcePath)
-    val primaryModel: String = if (request.usesExternalCover) {
-        request.primaryModel
-    } else {
-        fallbackModel
-    }
+    val primaryModel: String =
+        if (request.usesExternalCover) {
+            request.primaryModel
+        } else {
+            fallbackModel
+        }
     var palette: T by remember(coverArt, coverImageUri) {
         mutableStateOf(value = defaultPalette)
     }
     LaunchedEffect(primaryModel, fallbackModel, platformContext) {
-        palette = loadCoverPalette(
-            primaryModel = primaryModel,
-            fallbackModel = fallbackModel,
-            platformContext = platformContext,
-            defaultPalette = defaultPalette,
-            extractPalette = extractPalette,
-        )
+        palette =
+            loadCoverPalette(
+                primaryModel = primaryModel,
+                fallbackModel = fallbackModel,
+                platformContext = platformContext,
+                defaultPalette = defaultPalette,
+                extractPalette = extractPalette,
+            )
     }
     return palette
 }
@@ -151,11 +148,12 @@ private suspend fun <T> loadCoverPalette(
     defaultPalette: T,
     extractPalette: (ImageBitmap) -> T,
 ): T {
-    val primaryPalette: T? = loadPaletteFromModel(
-        model = primaryModel,
-        platformContext = platformContext,
-        extractPalette = extractPalette,
-    )
+    val primaryPalette: T? =
+        loadPaletteFromModel(
+            model = primaryModel,
+            platformContext = platformContext,
+            extractPalette = extractPalette,
+        )
     if (primaryPalette != null) {
         return primaryPalette
     }
@@ -177,9 +175,11 @@ private suspend fun <T> loadPaletteFromModel(
     platformContext: PlatformContext,
     extractPalette: (ImageBitmap) -> T,
 ): T? {
-    val request: ImageRequest = ImageRequest.Builder(platformContext)
-        .data(model)
-        .build()
+    val request: ImageRequest =
+        ImageRequest
+            .Builder(platformContext)
+            .data(model)
+            .build()
     val result = SingletonImageLoader.get(platformContext).execute(request)
     if (result !is SuccessResult) {
         return null

@@ -28,21 +28,24 @@ internal fun AddToPlaylistFooter(
     controller: MusicAppController,
 ) {
     Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(height = AddToPlaylistDialogDesignSpec.footerHeight)
-            .padding(top = AddToPlaylistDialogDesignSpec.footerTopPadding),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .height(height = AddToPlaylistDialogDesignSpec.footerHeight)
+                .padding(top = AddToPlaylistDialogDesignSpec.footerTopPadding),
     ) {
         Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(height = AddToPlaylistDialogDesignSpec.dividerHeight)
-                .background(color = AddToPlaylistDialogDesignSpec.softContainerColor),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .height(height = AddToPlaylistDialogDesignSpec.dividerHeight)
+                    .background(color = AddToPlaylistDialogDesignSpec.softContainerColor),
         )
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(height = AddToPlaylistDialogDesignSpec.footerActionHeight),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .height(height = AddToPlaylistDialogDesignSpec.footerActionHeight),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             AddToPlaylistFooterButton(
@@ -73,18 +76,20 @@ private fun AddToPlaylistFooterButton(
     onClick: () -> Unit,
 ) {
     Box(
-        modifier = modifier
-            .fillMaxHeight()
-            .clickable(enabled = enabled, onClick = onClick),
+        modifier =
+            modifier
+                .fillMaxHeight()
+                .clickable(enabled = enabled, onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
         Text(
             text = text,
-            color = if (enabled) {
-                AddToPlaylistDialogDesignSpec.actionColor
-            } else {
-                AddToPlaylistDialogDesignSpec.actionColor.copy(alpha = 0.38f)
-            },
+            color =
+                if (enabled) {
+                    AddToPlaylistDialogDesignSpec.actionColor
+                } else {
+                    AddToPlaylistDialogDesignSpec.actionColor.copy(alpha = 0.38f)
+                },
             fontSize = 15.sp,
             lineHeight = 22.5.sp,
             fontWeight = FontWeight.Medium,
@@ -99,9 +104,10 @@ private fun AddToPlaylistFooterButton(
 @Composable
 private fun AddToPlaylistFooterDivider() {
     Box(
-        modifier = Modifier
-            .width(width = AddToPlaylistDialogDesignSpec.dividerHeight)
-            .height(height = AddToPlaylistDialogDesignSpec.footerDividerHeight)
-            .background(color = AddToPlaylistDialogDesignSpec.softContainerColor),
+        modifier =
+            Modifier
+                .width(width = AddToPlaylistDialogDesignSpec.dividerHeight)
+                .height(height = AddToPlaylistDialogDesignSpec.footerDividerHeight)
+                .background(color = AddToPlaylistDialogDesignSpec.softContainerColor),
     )
 }

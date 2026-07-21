@@ -11,7 +11,10 @@ internal object MediaButtonStateSender {
     /**
      * 通过官方 [MediaController.sendCustomCommand] 请求 service 更新媒体按钮偏好。
      */
-    fun send(controller: MediaController, state: MediaButtonState?) {
+    fun send(
+        controller: MediaController,
+        state: MediaButtonState?,
+    ) {
         val safeState: MediaButtonState = state ?: return
         if (!controller.isSessionCommandAvailable(PlaybackMediaCommandCatalog.updateButtonsCommand())) {
             return

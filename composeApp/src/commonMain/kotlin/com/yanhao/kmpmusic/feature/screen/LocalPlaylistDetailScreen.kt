@@ -57,52 +57,55 @@ fun LocalPlaylistDetailScreen(
         modifier = modifier,
     ) {
         LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .weight(weight = 1f),
-            contentPadding = PaddingValues(
-                bottom = contentPadding.calculateBottomPadding() + 40.dp,
-            ),
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .weight(weight = 1f),
+            contentPadding =
+                PaddingValues(
+                    bottom = contentPadding.calculateBottomPadding() + 40.dp,
+                ),
         ) {
-        item(key = "local-playlist-header", contentType = "local-playlist-header") {
-            LocalPlaylistDetailHeader(detail = detail)
-        }
-        item(key = "local-playlist-play-all", contentType = "local-playlist-play-all") {
-            AlbumDetailPlayAllButton(
-                text = "播放全部",
-                countText = "${detail.availableSongCount}首",
-                enabled = detail.canPlayAll,
-                onClick = onPlayAll,
-            )
-        }
-        item(key = "local-playlist-song-list-top-gap", contentType = "local-playlist-gap") {
-            Spacer(modifier = Modifier.height(height = 32.dp))
-        }
-        if (detail.songs.isEmpty()) {
-            item(key = "local-playlist-empty", contentType = "local-playlist-empty") {
-                LocalPlaylistDetailEmptyState(text = detail.emptyText)
+            item(key = "local-playlist-header", contentType = "local-playlist-header") {
+                LocalPlaylistDetailHeader(detail = detail)
             }
-            return@LazyColumn
-        }
-        itemsIndexed(
-            items = detail.songs,
-            key = { _: Int, song: Song -> song.id },
-            contentType = { _: Int, _: Song -> "local-playlist-detail-song" },
-        ) { index: Int, song: Song ->
-            val rowState: AlbumDetailSongRowState = buildAlbumDetailSongRowState(
-                index = index,
-                song = song,
-                isCurrentSong = song.id == currentSongId,
-            )
-            AlbumDetailSongRow(
-                rowState = rowState,
-                isCurrentSong = song.id == currentSongId,
-                currentPlaybackStatus = currentPlaybackStatus,
-                onSongPlay = onSongPlay,
-                onCurrentSongToggle = onCurrentSongToggle,
-                onMore = onMore,
-            )
-        }
+            item(key = "local-playlist-play-all", contentType = "local-playlist-play-all") {
+                AlbumDetailPlayAllButton(
+                    text = "播放全部",
+                    countText = "${detail.availableSongCount}首",
+                    enabled = detail.canPlayAll,
+                    onClick = onPlayAll,
+                )
+            }
+            item(key = "local-playlist-song-list-top-gap", contentType = "local-playlist-gap") {
+                Spacer(modifier = Modifier.height(height = 32.dp))
+            }
+            if (detail.songs.isEmpty()) {
+                item(key = "local-playlist-empty", contentType = "local-playlist-empty") {
+                    LocalPlaylistDetailEmptyState(text = detail.emptyText)
+                }
+                return@LazyColumn
+            }
+            itemsIndexed(
+                items = detail.songs,
+                key = { _: Int, song: Song -> song.id },
+                contentType = { _: Int, _: Song -> "local-playlist-detail-song" },
+            ) { index: Int, song: Song ->
+                val rowState: AlbumDetailSongRowState =
+                    buildAlbumDetailSongRowState(
+                        index = index,
+                        song = song,
+                        isCurrentSong = song.id == currentSongId,
+                    )
+                AlbumDetailSongRow(
+                    rowState = rowState,
+                    isCurrentSong = song.id == currentSongId,
+                    currentPlaybackStatus = currentPlaybackStatus,
+                    onSongPlay = onSongPlay,
+                    onCurrentSongToggle = onCurrentSongToggle,
+                    onMore = onMore,
+                )
+            }
         }
     }
 }
@@ -111,9 +114,10 @@ fun LocalPlaylistDetailScreen(
 @Composable
 private fun LocalPlaylistDetailHeader(detail: LocalPlaylistDetailDisplayModel) {
     Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(top = 24.dp),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(top = 24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         LocalPlaylistDetailCover(detail = detail)
@@ -126,9 +130,10 @@ private fun LocalPlaylistDetailHeader(detail: LocalPlaylistDetailDisplayModel) {
             textAlign = TextAlign.Center,
             maxLines = 2,
             overflow = TextOverflow.Ellipsis,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(start = 20.dp, top = 32.dp, end = 20.dp),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(start = 20.dp, top = 32.dp, end = 20.dp),
         )
         Text(
             text = "${detail.availableSongCount} 首歌曲",
@@ -139,9 +144,10 @@ private fun LocalPlaylistDetailHeader(detail: LocalPlaylistDetailDisplayModel) {
             textAlign = TextAlign.Center,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 20.dp),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp),
         )
     }
 }
@@ -154,36 +160,39 @@ private fun LocalPlaylistDetailCover(detail: LocalPlaylistDetailDisplayModel) {
         contentAlignment = Alignment.Center,
     ) {
         Box(
-            modifier = Modifier
-                .align(alignment = Alignment.BottomCenter)
-                .offset(y = detailHeroCoverGlowOffsetY)
-                .size(width = detailHeroCoverGlowWidth, height = detailHeroCoverGlowHeight)
-                .blur(radius = detailHeroCoverGlowBlurRadius)
-                .background(
-                    color = albumDetailActionColor.copy(alpha = 0.20f),
-                    shape = detailHeroCoverShape,
-                ),
+            modifier =
+                Modifier
+                    .align(alignment = Alignment.BottomCenter)
+                    .offset(y = detailHeroCoverGlowOffsetY)
+                    .size(width = detailHeroCoverGlowWidth, height = detailHeroCoverGlowHeight)
+                    .blur(radius = detailHeroCoverGlowBlurRadius)
+                    .background(
+                        color = albumDetailActionColor.copy(alpha = 0.20f),
+                        shape = detailHeroCoverShape,
+                    ),
         )
         Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .clip(shape = detailHeroCoverShape)
-                .border(
-                    border = BorderStroke(
-                        width = detailHeroCoverBorderWidth,
-                        color = Color.White.copy(alpha = DETAIL_HERO_COVER_BORDER_ALPHA),
-                    ),
-                    shape = detailHeroCoverShape,
-                )
-                .padding(all = detailHeroCoverPadding),
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .clip(shape = detailHeroCoverShape)
+                    .border(
+                        border =
+                            BorderStroke(
+                                width = detailHeroCoverBorderWidth,
+                                color = Color.White.copy(alpha = DETAIL_HERO_COVER_BORDER_ALPHA),
+                            ),
+                        shape = detailHeroCoverShape,
+                    ).padding(all = detailHeroCoverPadding),
         ) {
             CoverArtImage(
                 coverArt = detail.coverArt,
                 coverImageUri = detail.coverImageUri,
                 contentDescription = "${detail.name} 歌单封面",
-                modifier = Modifier
-                    .fillMaxSize()
-                    .clip(shape = detailHeroCoverInnerShape),
+                modifier =
+                    Modifier
+                        .fillMaxSize()
+                        .clip(shape = detailHeroCoverInnerShape),
                 contentScale = ContentScale.Crop,
             )
         }
@@ -200,8 +209,9 @@ private fun LocalPlaylistDetailEmptyState(text: String) {
         lineHeight = 24.sp,
         fontWeight = FontWeight.Medium,
         textAlign = TextAlign.Center,
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 20.dp, vertical = 32.dp),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp, vertical = 32.dp),
     )
 }

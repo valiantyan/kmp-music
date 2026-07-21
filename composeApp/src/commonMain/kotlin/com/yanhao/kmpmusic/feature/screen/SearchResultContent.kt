@@ -26,25 +26,36 @@ internal fun SearchResultLazyRowContent(
     onArtistOpen: (Artist) -> Unit,
 ) {
     when (row) {
-        is SearchResultLazyRow.HomeSongItem -> SearchSongResultRow(
-            row = row,
-            currentSongId = currentSongId,
-            currentPlaybackStatus = currentPlaybackStatus,
-            onSongPlay = onSongPlay,
-            onCurrentSongToggle = onCurrentSongToggle,
-            onMore = onMore,
-            onLike = onLike,
-        )
-        is SearchResultLazyRow.HomeAlbumRow -> HomeAlbumRow(
-            rowAlbums = row.albums,
-            currentAlbumTitle = currentAlbumTitle,
-            onAlbumOpen = onAlbumOpen,
-        )
-        is SearchResultLazyRow.HomeArtistItem -> HomeArtistRow(
-            artist = row.artist,
-            onArtistOpen = onArtistOpen,
-        )
-        is SearchResultLazyRow.Message -> SearchNoResultState(message = row.text)
+        is SearchResultLazyRow.HomeSongItem -> {
+            SearchSongResultRow(
+                row = row,
+                currentSongId = currentSongId,
+                currentPlaybackStatus = currentPlaybackStatus,
+                onSongPlay = onSongPlay,
+                onCurrentSongToggle = onCurrentSongToggle,
+                onMore = onMore,
+                onLike = onLike,
+            )
+        }
+
+        is SearchResultLazyRow.HomeAlbumRow -> {
+            HomeAlbumRow(
+                rowAlbums = row.albums,
+                currentAlbumTitle = currentAlbumTitle,
+                onAlbumOpen = onAlbumOpen,
+            )
+        }
+
+        is SearchResultLazyRow.HomeArtistItem -> {
+            HomeArtistRow(
+                artist = row.artist,
+                onArtistOpen = onArtistOpen,
+            )
+        }
+
+        is SearchResultLazyRow.Message -> {
+            SearchNoResultState(message = row.text)
+        }
     }
 }
 
@@ -55,9 +66,10 @@ internal fun SearchResultRowFrame(
     content: @Composable () -> Unit,
 ) {
     Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(top = if (index == 0) 24.dp else 14.dp),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(top = if (index == 0) 24.dp else 14.dp),
     ) {
         content()
     }

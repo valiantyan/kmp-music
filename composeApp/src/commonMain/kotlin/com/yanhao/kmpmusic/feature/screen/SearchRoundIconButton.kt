@@ -22,11 +22,12 @@ internal fun SearchRoundIconButton(
     content: @Composable () -> Unit,
 ) {
     Box(
-        modifier = Modifier
-            .size(size = size)
-            .clip(shape = CircleShape)
-            .semantics { this.contentDescription = contentDescription }
-            .clickable(onClick = onClick),
+        modifier =
+            Modifier
+                .size(size = size)
+                .clip(shape = CircleShape)
+                .semantics { this.contentDescription = contentDescription }
+                .clickable(onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
         Box(modifier = Modifier, contentAlignment = Alignment.Center) {

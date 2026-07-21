@@ -38,8 +38,9 @@ internal fun ExistingPlaylistList(
 }
 
 // 首个已有歌单行需要吃掉分隔线后的额外顶部节奏，对齐 Figma 中 68px 行高。
-private fun resolveExistingPlaylistRowHeight(index: Int) = if (index == 0) {
-    AddToPlaylistDialogDesignSpec.firstPlaylistRowHeight
-} else {
-    AddToPlaylistDialogDesignSpec.playlistRowHeight
-}
+private fun resolveExistingPlaylistRowHeight(index: Int) =
+    if (index == 0) {
+        AddToPlaylistDialogDesignSpec.firstPlaylistRowHeight
+    } else {
+        AddToPlaylistDialogDesignSpec.playlistRowHeight
+    }

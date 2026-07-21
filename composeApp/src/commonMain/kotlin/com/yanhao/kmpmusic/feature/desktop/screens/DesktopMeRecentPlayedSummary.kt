@@ -83,21 +83,22 @@ internal fun buildDesktopMeRecentPlayedSummaryDisplayModel(
     recentSongs: List<Song>,
     currentSongId: String? = null,
 ): DesktopMeRecentPlayedSummaryDisplayModel {
-    val rows: List<DesktopMeRecentPlayedSongDisplayModel> = recentSongs
-        .take(n = RECENT_PLAYED_SUMMARY_COUNT)
-        .map { song: Song ->
-            val isCurrentSong: Boolean = song.id == currentSongId
-            DesktopMeRecentPlayedSongDisplayModel(
-                song = song,
-                title = song.title,
-                subtitle = "${song.artist} · ${song.album}",
-                duration = song.duration,
-                isCurrentSong = isCurrentSong,
-                playingIndicatorLabel = if (isCurrentSong) "播放中" else null,
-                hasPlaybackAction = true,
-                hasMoreAction = true,
-            )
-        }
+    val rows: List<DesktopMeRecentPlayedSongDisplayModel> =
+        recentSongs
+            .take(n = RECENT_PLAYED_SUMMARY_COUNT)
+            .map { song: Song ->
+                val isCurrentSong: Boolean = song.id == currentSongId
+                DesktopMeRecentPlayedSongDisplayModel(
+                    song = song,
+                    title = song.title,
+                    subtitle = "${song.artist} · ${song.album}",
+                    duration = song.duration,
+                    isCurrentSong = isCurrentSong,
+                    playingIndicatorLabel = if (isCurrentSong) "播放中" else null,
+                    hasPlaybackAction = true,
+                    hasMoreAction = true,
+                )
+            }
     return DesktopMeRecentPlayedSummaryDisplayModel(
         title = "最近播放",
         actionLabel = "查看全部",
@@ -165,10 +166,11 @@ private fun DesktopMeRecentPlayedSongRow(
 ) {
     val titleColor: Color = if (row.isCurrentSong) DesktopMusicColors.PlayerRed else DesktopMusicColors.Ink
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .heightIn(min = 54.dp)
-            .clickable(enabled = row.hasPlaybackAction) { onSongPlay(row.song) },
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .heightIn(min = 54.dp)
+                .clickable(enabled = row.hasPlaybackAction) { onSongPlay(row.song) },
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -176,9 +178,10 @@ private fun DesktopMeRecentPlayedSongRow(
             coverArt = row.song.coverArt,
             coverImageUri = row.song.coverImageUri,
             contentDescription = "${row.title} 封面",
-            modifier = Modifier
-                .size(44.dp)
-                .clip(RoundedCornerShape(10.dp)),
+            modifier =
+                Modifier
+                    .size(44.dp)
+                    .clip(RoundedCornerShape(10.dp)),
             contentScale = ContentScale.Crop,
         )
         Column(

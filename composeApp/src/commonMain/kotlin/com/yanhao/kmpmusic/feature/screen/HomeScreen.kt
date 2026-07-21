@@ -51,16 +51,18 @@ fun HomeScreen(
 ) {
     val topPadding: Dp = contentPadding.calculateTopPadding()
     Box(
-        modifier = modifier
-            .fillMaxSize()
-            .background(Color.White),
+        modifier =
+            modifier
+                .fillMaxSize()
+                .background(Color.White),
     ) {
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(
-                top = topPadding + MusicDimens.MobileToolbarHeight + MusicDimens.MobileToolbarBodySpacing,
-                bottom = contentPadding.calculateBottomPadding(),
-            ),
+            contentPadding =
+                PaddingValues(
+                    top = topPadding + MusicDimens.MobileToolbarHeight + MusicDimens.MobileToolbarBodySpacing,
+                    bottom = contentPadding.calculateBottomPadding(),
+                ),
         ) {
             item(key = "home-filter-chips") {
                 HomeFilterChips(
@@ -69,41 +71,50 @@ fun HomeScreen(
                 )
             }
             when (selectedSection) {
-                HomeContentSection.Songs -> homeSongItems(
-                    songs = songs,
-                    libraryStats = libraryStats,
-                    scanState = scanState,
-                    discoveryPlatform = discoveryPlatform,
-                    currentSongId = currentSongId,
-                    onScan = onScan,
-                    onSongPlay = onSongPlay,
-                    onMore = onMore,
-                    onLike = onLike,
-                )
-                HomeContentSection.Albums -> homeAlbumItems(
-                    albums = albums,
-                    songs = songs,
-                    currentSongId = currentSongId,
-                    scanState = scanState,
-                    discoveryPlatform = discoveryPlatform,
-                    onScan = onScan,
-                    onAlbumOpen = onAlbumOpen,
-                )
-                HomeContentSection.Artists -> homeArtistItems(
-                    artists = artists,
-                    scanState = scanState,
-                    discoveryPlatform = discoveryPlatform,
-                    onScan = onScan,
-                    onArtistOpen = onArtistOpen,
-                )
+                HomeContentSection.Songs -> {
+                    homeSongItems(
+                        songs = songs,
+                        libraryStats = libraryStats,
+                        scanState = scanState,
+                        discoveryPlatform = discoveryPlatform,
+                        currentSongId = currentSongId,
+                        onScan = onScan,
+                        onSongPlay = onSongPlay,
+                        onMore = onMore,
+                        onLike = onLike,
+                    )
+                }
+
+                HomeContentSection.Albums -> {
+                    homeAlbumItems(
+                        albums = albums,
+                        songs = songs,
+                        currentSongId = currentSongId,
+                        scanState = scanState,
+                        discoveryPlatform = discoveryPlatform,
+                        onScan = onScan,
+                        onAlbumOpen = onAlbumOpen,
+                    )
+                }
+
+                HomeContentSection.Artists -> {
+                    homeArtistItems(
+                        artists = artists,
+                        scanState = scanState,
+                        discoveryPlatform = discoveryPlatform,
+                        onScan = onScan,
+                        onArtistOpen = onArtistOpen,
+                    )
+                }
             }
         }
         MobilePrimaryToolbar(
             title = selectedSection.title(),
             onSearch = onSearch,
-            modifier = Modifier
-                .align(alignment = Alignment.TopCenter)
-                .padding(top = topPadding),
+            modifier =
+                Modifier
+                    .align(alignment = Alignment.TopCenter)
+                    .padding(top = topPadding),
         )
     }
 }
@@ -125,10 +136,11 @@ private fun LazyListScope.homeSongItems(
     }
     item(key = "home-title-row") {
         HomeSongSectionHeader(
-            songCountText = formatHomeSongCount(
-                songs = songs,
-                libraryStats = libraryStats,
-            ),
+            songCountText =
+                formatHomeSongCount(
+                    songs = songs,
+                    libraryStats = libraryStats,
+                ),
         )
     }
     item(key = "home-song-list-gap") {
@@ -216,19 +228,19 @@ private fun formatHomeSongCount(
     songs: List<Song>,
     libraryStats: LibraryStats,
 ): String {
-    val songCount: Int = if (libraryStats.songCount > 0) {
-        libraryStats.songCount
-    } else {
-        songs.size
-    }
+    val songCount: Int =
+        if (libraryStats.songCount > 0) {
+            libraryStats.songCount
+        } else {
+            songs.size
+        }
     return "$songCount 首歌曲"
 }
 
 // 顶部栏标题随首页内容页签切换，保持 Figma 页面语义一致。
-private fun HomeContentSection.title(): String {
-    return when (this) {
+private fun HomeContentSection.title(): String =
+    when (this) {
         HomeContentSection.Songs -> "歌曲"
         HomeContentSection.Albums -> "专辑"
         HomeContentSection.Artists -> "歌手"
     }
-}

@@ -16,9 +16,10 @@ fun App(
     discoveryPlatform: LocalMusicDiscoveryPlatform = LocalMusicDiscoveryPlatform.Android,
 ) {
     val controllerScope = rememberCoroutineScope()
-    val appController: MusicAppController = controller ?: remember(controllerScope) {
-        MusicAppController(controllerScope = controllerScope)
-    }
+    val appController: MusicAppController =
+        controller ?: remember(controllerScope) {
+            MusicAppController(controllerScope = controllerScope)
+        }
     MusicApp(
         controller = appController,
         discoveryPlatform = discoveryPlatform,

@@ -16,11 +16,12 @@ class InMemoryFavoritesRepository(
 
     /** 切换收藏歌曲并返回更新后的集合。 */
     override fun toggleSong(songId: String): Set<String> {
-        likedSongIds = if (likedSongIds.contains(songId)) {
-            likedSongIds - songId
-        } else {
-            likedSongIds + songId
-        }
+        likedSongIds =
+            if (likedSongIds.contains(songId)) {
+                likedSongIds - songId
+            } else {
+                likedSongIds + songId
+            }
         return likedSongIds
     }
 

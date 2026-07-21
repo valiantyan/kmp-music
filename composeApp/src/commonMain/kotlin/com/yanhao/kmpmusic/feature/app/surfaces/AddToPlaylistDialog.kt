@@ -82,9 +82,10 @@ private fun AddToPlaylistDialogContent(
 @Composable
 private fun AddToPlaylistHeader() {
     Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(height = AddToPlaylistDialogDesignSpec.headerHeight),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .height(height = AddToPlaylistDialogDesignSpec.headerHeight),
         contentAlignment = Alignment.Center,
     ) {
         Text(
@@ -98,9 +99,8 @@ private fun AddToPlaylistHeader() {
 }
 
 // 主容器描边集中在这里，保持弹窗边界在白底和浅灰遮罩上都稳定。
-private fun addToPlaylistDialogBorder(): BorderStroke {
-    return BorderStroke(
+private fun addToPlaylistDialogBorder(): BorderStroke =
+    BorderStroke(
         width = AddToPlaylistDialogDesignSpec.dividerHeight,
         color = AddToPlaylistDialogDesignSpec.containerColor,
     )
-}

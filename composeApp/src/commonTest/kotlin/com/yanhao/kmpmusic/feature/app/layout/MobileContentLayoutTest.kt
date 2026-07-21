@@ -13,7 +13,7 @@ class MobileContentLayoutTest {
      * 首页和收藏页会滚动列表内容，必须保留白底遮罩挡住状态栏区域。
      */
     @Test
-    fun topLevelListPagesRenderStatusBarBackground(): Unit {
+    fun topLevelListPagesRenderStatusBarBackground() {
         assertTrue(actual = shouldRenderTopLevelStatusBarBackground(rootTab = RootTab.Home))
         assertTrue(actual = shouldRenderTopLevelStatusBarBackground(rootTab = RootTab.Favorites))
     }
@@ -22,7 +22,7 @@ class MobileContentLayoutTest {
      * 我的页需要全屏沉浸式背景，不应被一级页白底遮罩覆盖状态栏。
      */
     @Test
-    fun mePageSkipsStatusBarBackgroundForImmersiveLayout(): Unit {
+    fun mePageSkipsStatusBarBackgroundForImmersiveLayout() {
         assertFalse(actual = shouldRenderTopLevelStatusBarBackground(rootTab = RootTab.Me))
     }
 }

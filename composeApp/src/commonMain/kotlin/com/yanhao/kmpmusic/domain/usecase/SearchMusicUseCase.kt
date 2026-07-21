@@ -24,7 +24,10 @@ interface SearchMusicUseCase {
     /**
      * 根据关键词和范围搜索本地音乐。
      */
-    operator fun invoke(query: String, scope: SearchScope): SearchResult
+    operator fun invoke(
+        query: String,
+        scope: SearchScope,
+    ): SearchResult
 }
 
 /**
@@ -34,7 +37,10 @@ class SearchMusicUseCaseImpl(
     private val musicLibraryRepository: MusicLibraryRepository,
 ) : SearchMusicUseCase {
     /** 执行本地内存搜索，并始终基于完整可用曲库聚合搜索结果。 */
-    override operator fun invoke(query: String, scope: SearchScope): SearchResult {
+    override operator fun invoke(
+        query: String,
+        scope: SearchScope,
+    ): SearchResult {
         val allSongs: List<Song> = musicLibraryRepository.getAllAvailableSongs()
         return buildSearchResult(
             query = query,
@@ -53,27 +59,30 @@ fun buildSearchResult(
     val normalizedQuery: String = query.trim().lowercase()
     val allAlbums: List<Album> = buildAlbums(songs = allSongs)
     val allArtists: List<Artist> = buildArtists(songs = allSongs)
-    val songs: List<Song> = if (scope == SearchScope.All || scope == SearchScope.Songs) {
-        allSongs.filter { song ->
-            matchesSong(song = song, normalizedQuery = normalizedQuery)
+    val songs: List<Song> =
+        if (scope == SearchScope.All || scope == SearchScope.Songs) {
+            allSongs.filter { song ->
+                matchesSong(song = song, normalizedQuery = normalizedQuery)
+            }
+        } else {
+            emptyList()
         }
-    } else {
-        emptyList()
-    }
-    val albums: List<Album> = if (scope == SearchScope.All || scope == SearchScope.Albums) {
-        allAlbums.filter { album ->
-            matchesAlbum(album = album, normalizedQuery = normalizedQuery)
+    val albums: List<Album> =
+        if (scope == SearchScope.All || scope == SearchScope.Albums) {
+            allAlbums.filter { album ->
+                matchesAlbum(album = album, normalizedQuery = normalizedQuery)
+            }
+        } else {
+            emptyList()
         }
-    } else {
-        emptyList()
-    }
-    val artists: List<Artist> = if (scope == SearchScope.All || scope == SearchScope.Artists) {
-        allArtists.filter { artist ->
-            matchesArtist(artist = artist, normalizedQuery = normalizedQuery)
+    val artists: List<Artist> =
+        if (scope == SearchScope.All || scope == SearchScope.Artists) {
+            allArtists.filter { artist ->
+                matchesArtist(artist = artist, normalizedQuery = normalizedQuery)
+            }
+        } else {
+            emptyList()
         }
-    } else {
-        emptyList()
-    }
     return SearchResult(
         songs = songs,
         albums = albums,
@@ -82,62 +91,74 @@ fun buildSearchResult(
 }
 
 // 搜索需要和控制器详情页使用同一套聚合规则，避免同歌库下结果口径不一致。
-private fun buildAlbums(songs: List<Song>): List<Album> {
-    return songs.groupBy { song: Song -> normalizeAlbumTitle(value = song.album) }.values.map { albumSongs: List<Song> ->
-        val firstSong: Song = albumSongs.first()
-        Album(
-            id = "album:${normalizeAlbumTitle(value = firstSong.album)}",
-            title = firstSong.album,
-            artist = firstSong.artist,
-            songCount = albumSongs.size,
-            coverArt = firstSong.coverArt,
-            coverImageUri = firstSong.coverImageUri,
-            mood = "本地音乐",
-            year = "本地",
-        )
-    }.sortedBy { album -> album.title.lowercase() }
-}
+private fun buildAlbums(songs: List<Song>): List<Album> =
+    songs
+        .groupBy { song: Song -> normalizeAlbumTitle(value = song.album) }
+        .values
+        .map { albumSongs: List<Song> ->
+            val firstSong: Song = albumSongs.first()
+            Album(
+                id = "album:${normalizeAlbumTitle(value = firstSong.album)}",
+                title = firstSong.album,
+                artist = firstSong.artist,
+                songCount = albumSongs.size,
+                coverArt = firstSong.coverArt,
+                coverImageUri = firstSong.coverImageUri,
+                mood = "本地音乐",
+                year = "本地",
+            )
+        }.sortedBy { album -> album.title.lowercase() }
 
 // 歌手搜索同样从完整曲库重建聚合，避免依赖仓库里的缓存列表时机。
-private fun buildArtists(songs: List<Song>): List<Artist> {
-    return songs.groupBy { song -> normalizeArtistName(value = song.artist) }.entries.map { entry ->
-        val normalizedArtist: String = entry.key
-        val artistSongs: List<Song> = entry.value
-        val firstSong: Song = artistSongs.first()
-        Artist(
-            id = "artist:$normalizedArtist",
-            name = firstSong.artist,
-            songCount = artistSongs.size,
-            albumCount = countArtistAlbums(songs = artistSongs),
-            coverArt = firstSong.coverArt,
-            coverImageUri = firstSong.coverImageUri,
-            tag = "本地音乐",
-        )
-    }.sortedBy { artist -> artist.name.lowercase() }
-}
+private fun buildArtists(songs: List<Song>): List<Artist> =
+    songs
+        .groupBy { song -> normalizeArtistName(value = song.artist) }
+        .entries
+        .map { entry ->
+            val normalizedArtist: String = entry.key
+            val artistSongs: List<Song> = entry.value
+            val firstSong: Song = artistSongs.first()
+            Artist(
+                id = "artist:$normalizedArtist",
+                name = firstSong.artist,
+                songCount = artistSongs.size,
+                albumCount = countArtistAlbums(songs = artistSongs),
+                coverArt = firstSong.coverArt,
+                coverImageUri = firstSong.coverImageUri,
+                tag = "本地音乐",
+            )
+        }.sortedBy { artist -> artist.name.lowercase() }
 
 // 歌手搜索结果复用首页歌手副标题所需的专辑聚合口径。
-private fun countArtistAlbums(songs: List<Song>): Int {
-    return songs
+private fun countArtistAlbums(songs: List<Song>): Int =
+    songs
         .map { song: Song -> normalizeAlbumTitle(value = song.album) }
         .distinct()
         .size
-}
 
 // 空查询代表浏览全部本地内容。
-private fun matchesSong(song: Song, normalizedQuery: String): Boolean {
+private fun matchesSong(
+    song: Song,
+    normalizedQuery: String,
+): Boolean {
     if (normalizedQuery.isBlank()) return true
     return "${song.title} ${song.artist} ${song.album}".lowercase().contains(normalizedQuery)
 }
 
 // 专辑搜索覆盖标题和歌手名。
-private fun matchesAlbum(album: Album, normalizedQuery: String): Boolean {
+private fun matchesAlbum(
+    album: Album,
+    normalizedQuery: String,
+): Boolean {
     if (normalizedQuery.isBlank()) return true
     return "${album.title} ${album.artist}".lowercase().contains(normalizedQuery)
 }
 
 // 歌手搜索覆盖姓名和标签。
-private fun matchesArtist(artist: Artist, normalizedQuery: String): Boolean {
+private fun matchesArtist(
+    artist: Artist,
+    normalizedQuery: String,
+): Boolean {
     if (normalizedQuery.isBlank()) return true
     return "${artist.name} ${artist.tag}".lowercase().contains(normalizedQuery)
 }

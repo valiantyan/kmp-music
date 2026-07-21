@@ -32,12 +32,13 @@ class InMemoryLocalPlaylistRepositoryImpl(
             return validationResult
         }
         val createdAt: Long = nowMillis()
-        val playlist: LocalPlaylist = LocalPlaylist(
-            id = "localPlaylist:$createdAt:${trimmedName.hashCode().toUInt().toString(radix = 16)}",
-            name = trimmedName,
-            createdAt = createdAt,
-            updatedAt = createdAt,
-        )
+        val playlist: LocalPlaylist =
+            LocalPlaylist(
+                id = "localPlaylist:$createdAt:${trimmedName.hashCode().toUInt().toString(radix = 16)}",
+                name = trimmedName,
+                createdAt = createdAt,
+                updatedAt = createdAt,
+            )
         playlists += playlist
         return LocalPlaylistCreateResult.Success(playlist = playlist)
     }
@@ -52,12 +53,20 @@ class InMemoryLocalPlaylistRepositoryImpl(
         }
         val createResult: LocalPlaylistCreateResult = createPlaylist(name = name)
         return when (createResult) {
-            LocalPlaylistCreateResult.BlankName -> CreateLocalPlaylistWithSongResult.BlankName
-            LocalPlaylistCreateResult.DuplicateName -> CreateLocalPlaylistWithSongResult.DuplicateName
-            is LocalPlaylistCreateResult.Success -> addFirstRelation(
-                playlist = createResult.playlist,
-                songId = songId,
-            )
+            LocalPlaylistCreateResult.BlankName -> {
+                CreateLocalPlaylistWithSongResult.BlankName
+            }
+
+            LocalPlaylistCreateResult.DuplicateName -> {
+                CreateLocalPlaylistWithSongResult.DuplicateName
+            }
+
+            is LocalPlaylistCreateResult.Success -> {
+                addFirstRelation(
+                    playlist = createResult.playlist,
+                    songId = songId,
+                )
+            }
         }
     }
 
@@ -66,11 +75,13 @@ class InMemoryLocalPlaylistRepositoryImpl(
         playlistId: String,
         songId: String,
     ): AddSongToLocalPlaylistResult {
-        val playlist: LocalPlaylist = playlists.firstOrNull { item: LocalPlaylist -> item.id == playlistId }
-            ?: return AddSongToLocalPlaylistResult.PlaylistNotFound
-        val existingRelation: LocalPlaylistSong? = relations.firstOrNull { relation: LocalPlaylistSong ->
-            relation.playlistId == playlistId && relation.songId == songId
-        }
+        val playlist: LocalPlaylist =
+            playlists.firstOrNull { item: LocalPlaylist -> item.id == playlistId }
+                ?: return AddSongToLocalPlaylistResult.PlaylistNotFound
+        val existingRelation: LocalPlaylistSong? =
+            relations.firstOrNull { relation: LocalPlaylistSong ->
+                relation.playlistId == playlistId && relation.songId == songId
+            }
         if (existingRelation != null) {
             return AddSongToLocalPlaylistResult.AlreadyExists(relation = existingRelation)
         }
@@ -78,12 +89,13 @@ class InMemoryLocalPlaylistRepositoryImpl(
             return AddSongToLocalPlaylistResult.SongUnavailable
         }
         val addedAt: Long = nowMillis()
-        val relation: LocalPlaylistSong = LocalPlaylistSong(
-            playlistId = playlistId,
-            songId = songId,
-            addedAt = addedAt,
-            sortOrder = relations.count { item: LocalPlaylistSong -> item.playlistId == playlistId },
-        )
+        val relation: LocalPlaylistSong =
+            LocalPlaylistSong(
+                playlistId = playlistId,
+                songId = songId,
+                addedAt = addedAt,
+                sortOrder = relations.count { item: LocalPlaylistSong -> item.playlistId == playlistId },
+            )
         relations += relation
         val playlistIndex: Int = playlists.indexOfFirst { item: LocalPlaylist -> item.id == playlist.id }
         if (playlistIndex >= 0) {
@@ -102,12 +114,11 @@ class InMemoryLocalPlaylistRepositoryImpl(
     }
 
     /** 读取全部歌单，排序规则对齐持久化仓库。 */
-    override fun getPlaylists(): List<LocalPlaylist> {
-        return playlists.sortedWith(
+    override fun getPlaylists(): List<LocalPlaylist> =
+        playlists.sortedWith(
             compareByDescending<LocalPlaylist> { playlist: LocalPlaylist -> playlist.updatedAt }
                 .thenBy { playlist: LocalPlaylist -> playlist.name },
         )
-    }
 
     /** 搜索只影响查询，不改变创建判重规则。 */
     override fun searchPlaylists(query: String): List<LocalPlaylist> {
@@ -134,17 +145,21 @@ class InMemoryLocalPlaylistRepositoryImpl(
 
     /** 读取歌单详情并过滤当前曲库不可用歌曲，列表按最新添加优先。 */
     override fun getPlaylistDetail(playlistId: String): LocalPlaylistDetail? {
-        val playlist: LocalPlaylist = playlists.firstOrNull { item: LocalPlaylist -> item.id == playlistId }
-            ?: return null
-        val playlistRelations: List<LocalPlaylistSong> = relations
-            .filter { relation: LocalPlaylistSong -> relation.playlistId == playlistId }
-            .sortedWith(
-                compareByDescending<LocalPlaylistSong> { relation: LocalPlaylistSong -> relation.addedAt }
-                    .thenByDescending { relation: LocalPlaylistSong -> relation.sortOrder },
-            )
-        val songsById: Map<String, Song> = musicLibraryRepository.getAvailableSongsByIds(
-            songIds = playlistRelations.map { relation: LocalPlaylistSong -> relation.songId },
-        ).associateBy { song -> song.id }
+        val playlist: LocalPlaylist =
+            playlists.firstOrNull { item: LocalPlaylist -> item.id == playlistId }
+                ?: return null
+        val playlistRelations: List<LocalPlaylistSong> =
+            relations
+                .filter { relation: LocalPlaylistSong -> relation.playlistId == playlistId }
+                .sortedWith(
+                    compareByDescending<LocalPlaylistSong> { relation: LocalPlaylistSong -> relation.addedAt }
+                        .thenByDescending { relation: LocalPlaylistSong -> relation.sortOrder },
+                )
+        val songsById: Map<String, Song> =
+            musicLibraryRepository
+                .getAvailableSongsByIds(
+                    songIds = playlistRelations.map { relation: LocalPlaylistSong -> relation.songId },
+                ).associateBy { song -> song.id }
         return LocalPlaylistDetail(
             playlist = playlist,
             relations = playlistRelations,
@@ -168,12 +183,13 @@ class InMemoryLocalPlaylistRepositoryImpl(
         playlist: LocalPlaylist,
         songId: String,
     ): CreateLocalPlaylistWithSongResult {
-        val relation: LocalPlaylistSong = LocalPlaylistSong(
-            playlistId = playlist.id,
-            songId = songId,
-            addedAt = playlist.createdAt,
-            sortOrder = 0,
-        )
+        val relation: LocalPlaylistSong =
+            LocalPlaylistSong(
+                playlistId = playlist.id,
+                songId = songId,
+                addedAt = playlist.createdAt,
+                sortOrder = 0,
+            )
         relations += relation
         return CreateLocalPlaylistWithSongResult.Success(
             playlist = playlist,
@@ -182,7 +198,5 @@ class InMemoryLocalPlaylistRepositoryImpl(
     }
 
     // 只允许当前应用曲库能解析出的歌曲进入歌单关系。
-    private fun hasAvailableSong(songId: String): Boolean {
-        return musicLibraryRepository.getAvailableSongsByIds(songIds = listOf(songId)).isNotEmpty()
-    }
+    private fun hasAvailableSong(songId: String): Boolean = musicLibraryRepository.getAvailableSongsByIds(songIds = listOf(songId)).isNotEmpty()
 }

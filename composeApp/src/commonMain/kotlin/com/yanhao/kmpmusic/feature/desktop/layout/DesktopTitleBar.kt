@@ -38,17 +38,19 @@ fun DesktopTitleBar(
     modifier: Modifier = Modifier,
 ) {
     Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .height(DesktopMusicDimens.TitleBarHeight)
-            .background(Color(0xB8F7F9FB))
-            .border(width = 1.dp, color = Color(0xB8C7CFD6)),
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .height(DesktopMusicDimens.TitleBarHeight)
+                .background(Color(0xB8F7F9FB))
+                .border(width = 1.dp, color = Color(0xB8C7CFD6)),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Spacer(
-            modifier = Modifier
-                .width(DesktopMusicDimens.RailWidth)
-                .padding(start = 18.dp),
+            modifier =
+                Modifier
+                    .width(DesktopMusicDimens.RailWidth)
+                    .padding(start = 18.dp),
         )
         Box(
             modifier = Modifier.weight(1f),
@@ -64,10 +66,11 @@ fun DesktopTitleBar(
         }
         if (showSearch) {
             Surface(
-                modifier = Modifier
-                    .width(520.dp)
-                    .height(30.dp)
-                    .padding(end = 18.dp),
+                modifier =
+                    Modifier
+                        .width(520.dp)
+                        .height(30.dp)
+                        .padding(end = 18.dp),
                 shape = CircleShape,
                 color = Color.White.copy(alpha = 0.84f),
                 border = BorderStroke(width = 1.dp, color = Color(0xFFD7DDE3)),
@@ -93,10 +96,11 @@ fun DesktopTitleBar(
             }
         } else {
             Spacer(
-                modifier = Modifier
-                    .width(520.dp)
-                    .height(30.dp)
-                    .padding(end = 18.dp),
+                modifier =
+                    Modifier
+                        .width(520.dp)
+                        .height(30.dp)
+                        .padding(end = 18.dp),
             )
         }
     }

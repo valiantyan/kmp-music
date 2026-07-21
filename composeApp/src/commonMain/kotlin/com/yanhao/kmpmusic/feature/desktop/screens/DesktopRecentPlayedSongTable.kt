@@ -43,10 +43,11 @@ internal fun DesktopRecentPlayedSongTable(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(18.dp),
         color = Color.White.copy(alpha = 0.72f),
-        border = BorderStroke(
-            width = 1.dp,
-            color = DesktopMusicColors.Line,
-        ),
+        border =
+            BorderStroke(
+                width = 1.dp,
+                color = DesktopMusicColors.Line,
+            ),
     ) {
         Column(modifier = Modifier.padding(horizontal = 18.dp, vertical = 14.dp)) {
             DesktopRecentPlayedTableHeader()
@@ -67,9 +68,10 @@ internal fun DesktopRecentPlayedSongTable(
 @Composable
 private fun DesktopRecentPlayedTableHeader() {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(DesktopMusicDimens.TableHeaderHeight),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .height(DesktopMusicDimens.TableHeaderHeight),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         DesktopRecentPlayedHeaderText(
@@ -78,21 +80,24 @@ private fun DesktopRecentPlayedTableHeader() {
         )
         DesktopRecentPlayedHeaderText(
             text = "标题",
-            modifier = Modifier
-                .weight(2.4f)
-                .padding(end = DesktopMusicDimens.TableColumnGap),
+            modifier =
+                Modifier
+                    .weight(2.4f)
+                    .padding(end = DesktopMusicDimens.TableColumnGap),
         )
         DesktopRecentPlayedHeaderText(
             text = "歌手",
-            modifier = Modifier
-                .weight(1.2f)
-                .padding(end = DesktopMusicDimens.TableColumnGap),
+            modifier =
+                Modifier
+                    .weight(1.2f)
+                    .padding(end = DesktopMusicDimens.TableColumnGap),
         )
         DesktopRecentPlayedHeaderText(
             text = "专辑",
-            modifier = Modifier
-                .weight(1.2f)
-                .padding(end = DesktopMusicDimens.TableColumnGap),
+            modifier =
+                Modifier
+                    .weight(1.2f)
+                    .padding(end = DesktopMusicDimens.TableColumnGap),
         )
         DesktopRecentPlayedHeaderText(
             text = "时长",
@@ -131,11 +136,12 @@ private fun DesktopRecentPlayedSongRow(
     val titleColor: Color = if (row.isCurrentSong) DesktopMusicColors.PlayerRed else DesktopMusicColors.Ink
     val indexLabel: String = if (row.isCurrentSong) "▶" else row.indexLabel
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(DesktopMusicDimens.TableRowHeight)
-            .background(if (row.isCurrentSong) DesktopMusicColors.Accent.copy(alpha = 0.10f) else Color.Transparent)
-            .clickable(enabled = row.hasPlaybackAction) { onSongPlay(row.song) },
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .height(DesktopMusicDimens.TableRowHeight)
+                .background(if (row.isCurrentSong) DesktopMusicColors.Accent.copy(alpha = 0.10f) else Color.Transparent)
+                .clickable(enabled = row.hasPlaybackAction) { onSongPlay(row.song) },
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
@@ -146,9 +152,10 @@ private fun DesktopRecentPlayedSongRow(
             fontWeight = if (row.isCurrentSong) FontWeight.Bold else FontWeight.Normal,
         )
         Row(
-            modifier = Modifier
-                .weight(2.4f)
-                .padding(end = DesktopMusicDimens.TableColumnGap),
+            modifier =
+                Modifier
+                    .weight(2.4f)
+                    .padding(end = DesktopMusicDimens.TableColumnGap),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -156,9 +163,10 @@ private fun DesktopRecentPlayedSongRow(
                 coverArt = row.song.coverArt,
                 coverImageUri = row.song.coverImageUri,
                 contentDescription = "${row.title} 封面",
-                modifier = Modifier
-                    .size(DesktopMusicDimens.TableCoverSize)
-                    .clip(RoundedCornerShape(7.dp)),
+                modifier =
+                    Modifier
+                        .size(DesktopMusicDimens.TableCoverSize)
+                        .clip(RoundedCornerShape(7.dp)),
                 contentScale = ContentScale.Crop,
             )
             Row(
@@ -188,15 +196,17 @@ private fun DesktopRecentPlayedSongRow(
         }
         DesktopRecentPlayedCellText(
             text = row.artist,
-            modifier = Modifier
-                .weight(1.2f)
-                .padding(end = DesktopMusicDimens.TableColumnGap),
+            modifier =
+                Modifier
+                    .weight(1.2f)
+                    .padding(end = DesktopMusicDimens.TableColumnGap),
         )
         DesktopRecentPlayedCellText(
             text = row.album,
-            modifier = Modifier
-                .weight(1.2f)
-                .padding(end = DesktopMusicDimens.TableColumnGap),
+            modifier =
+                Modifier
+                    .weight(1.2f)
+                    .padding(end = DesktopMusicDimens.TableColumnGap),
         )
         DesktopRecentPlayedCellText(
             text = row.duration,

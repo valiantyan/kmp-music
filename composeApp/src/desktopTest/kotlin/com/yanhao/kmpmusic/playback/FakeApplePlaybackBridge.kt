@@ -66,12 +66,16 @@ internal class FakeApplePlaybackBridge : ApplePlaybackBridge {
     }
 
     /** 手动发出 prepared 事件，模拟 native 准备完成。 */
-    fun emitPrepared(generation: Long, durationMs: Long?) {
+    fun emitPrepared(
+        generation: Long,
+        durationMs: Long?,
+    ) {
         eventChannel.trySend(
-            element = ApplePlaybackBridgeEvent.Prepared(
-                generation = generation,
-                durationMs = durationMs,
-            ),
+            element =
+                ApplePlaybackBridgeEvent.Prepared(
+                    generation = generation,
+                    durationMs = durationMs,
+                ),
         )
     }
 
@@ -82,11 +86,12 @@ internal class FakeApplePlaybackBridge : ApplePlaybackBridge {
         durationMs: Long?,
     ) {
         eventChannel.trySend(
-            element = ApplePlaybackBridgeEvent.Buffering(
-                generation = generation,
-                positionMs = positionMs,
-                durationMs = durationMs,
-            ),
+            element =
+                ApplePlaybackBridgeEvent.Buffering(
+                    generation = generation,
+                    positionMs = positionMs,
+                    durationMs = durationMs,
+                ),
         )
     }
 
@@ -97,11 +102,12 @@ internal class FakeApplePlaybackBridge : ApplePlaybackBridge {
         durationMs: Long?,
     ) {
         eventChannel.trySend(
-            element = ApplePlaybackBridgeEvent.Playing(
-                generation = generation,
-                positionMs = positionMs,
-                durationMs = durationMs,
-            ),
+            element =
+                ApplePlaybackBridgeEvent.Playing(
+                    generation = generation,
+                    positionMs = positionMs,
+                    durationMs = durationMs,
+                ),
         )
     }
 
@@ -112,11 +118,12 @@ internal class FakeApplePlaybackBridge : ApplePlaybackBridge {
         durationMs: Long?,
     ) {
         eventChannel.trySend(
-            element = ApplePlaybackBridgeEvent.Paused(
-                generation = generation,
-                positionMs = positionMs,
-                durationMs = durationMs,
-            ),
+            element =
+                ApplePlaybackBridgeEvent.Paused(
+                    generation = generation,
+                    positionMs = positionMs,
+                    durationMs = durationMs,
+                ),
         )
     }
 
@@ -127,11 +134,12 @@ internal class FakeApplePlaybackBridge : ApplePlaybackBridge {
         durationMs: Long?,
     ) {
         eventChannel.trySend(
-            element = ApplePlaybackBridgeEvent.Progress(
-                generation = generation,
-                positionMs = positionMs,
-                durationMs = durationMs,
-            ),
+            element =
+                ApplePlaybackBridgeEvent.Progress(
+                    generation = generation,
+                    positionMs = positionMs,
+                    durationMs = durationMs,
+                ),
         )
     }
 
@@ -141,12 +149,16 @@ internal class FakeApplePlaybackBridge : ApplePlaybackBridge {
     }
 
     /** 手动发出失败事件，验证错误归一化和 generation 失效。 */
-    fun emitFailure(generation: Long, error: PlaybackError) {
+    fun emitFailure(
+        generation: Long,
+        error: PlaybackError,
+    ) {
         eventChannel.trySend(
-            element = ApplePlaybackBridgeEvent.Failed(
-                generation = generation,
-                error = error,
-            ),
+            element =
+                ApplePlaybackBridgeEvent.Failed(
+                    generation = generation,
+                    error = error,
+                ),
         )
     }
 

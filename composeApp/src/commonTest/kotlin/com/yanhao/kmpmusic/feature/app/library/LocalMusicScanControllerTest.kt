@@ -32,177 +32,190 @@ class LocalMusicScanControllerTest {
      * 运行中再次触发扫描只取消当前会话，不启动第二个扫描，并发布取消态。
      */
     @Test
-    fun runningScanSecondEntryCancelsCurrentSessionOnly(): Unit = runTest {
-        var state: MusicAppUiState = baseState()
-        val useCase = BlockingScanUseCase()
-        val controller = LocalMusicScanController(
-            scanLocalMusicUseCase = useCase,
-            permissionSettingsOpener = PermissionSettingsOpener {},
-            controllerScope = backgroundScope,
-            nowMillis = { 10L },
-            resolveLikedSongIdsForScan = { currentState: MusicAppUiState -> currentState.likedSongIds },
-            shouldConfirmPermissionSettingsBeforeScan = { false },
-            publishStateUpdate = { reducer: (MusicAppUiState) -> MusicAppUiState -> state = reducer(state) },
-        )
+    fun runningScanSecondEntryCancelsCurrentSessionOnly(): Unit =
+        runTest {
+            var state: MusicAppUiState = baseState()
+            val useCase = BlockingScanUseCase()
+            val controller =
+                LocalMusicScanController(
+                    scanLocalMusicUseCase = useCase,
+                    permissionSettingsOpener = PermissionSettingsOpener {},
+                    controllerScope = backgroundScope,
+                    nowMillis = { 10L },
+                    resolveLikedSongIdsForScan = { currentState: MusicAppUiState -> currentState.likedSongIds },
+                    shouldConfirmPermissionSettingsBeforeScan = { false },
+                    publishStateUpdate = { reducer: (MusicAppUiState) -> MusicAppUiState -> state = reducer(state) },
+                )
 
-        val job = launch {
+            val job =
+                launch {
+                    controller.scanLocalMusic(
+                        state = state,
+                        request = LocalMusicScanRequest.Refresh,
+                        onLibrarySnapshot = {},
+                    )
+                }
+            useCase.awaitStarted()
+
             controller.scanLocalMusic(
                 state = state,
                 request = LocalMusicScanRequest.Refresh,
                 onLibrarySnapshot = {},
             )
+
+            assertEquals(expected = 1, actual = useCase.callCount)
+            assertTrue(actual = state.scanState is LocalMusicScanState.Cancelled)
+            job.cancel()
         }
-        useCase.awaitStarted()
-
-        controller.scanLocalMusic(
-            state = state,
-            request = LocalMusicScanRequest.Refresh,
-            onLibrarySnapshot = {},
-        )
-
-        assertEquals(expected = 1, actual = useCase.callCount)
-        assertTrue(actual = state.scanState is LocalMusicScanState.Cancelled)
-        job.cancel()
-    }
 
     /**
      * 取消后旧成功晚到必须被丢弃，不能同步曲库快照或覆盖取消态。
      */
     @Test
-    fun lateSuccessAfterCancellationIsIgnored(): Unit = runTest {
-        var state: MusicAppUiState = baseState()
-        var syncedSnapshotCount: Int = 0
-        val useCase = LateSuccessAfterCancellationUseCase()
-        val controller = LocalMusicScanController(
-            scanLocalMusicUseCase = useCase,
-            permissionSettingsOpener = PermissionSettingsOpener {},
-            controllerScope = backgroundScope,
-            nowMillis = { 10L },
-            resolveLikedSongIdsForScan = { currentState: MusicAppUiState -> currentState.likedSongIds },
-            shouldConfirmPermissionSettingsBeforeScan = { false },
-            publishStateUpdate = { reducer: (MusicAppUiState) -> MusicAppUiState -> state = reducer(state) },
-        )
+    fun lateSuccessAfterCancellationIsIgnored(): Unit =
+        runTest {
+            var state: MusicAppUiState = baseState()
+            var syncedSnapshotCount: Int = 0
+            val useCase = LateSuccessAfterCancellationUseCase()
+            val controller =
+                LocalMusicScanController(
+                    scanLocalMusicUseCase = useCase,
+                    permissionSettingsOpener = PermissionSettingsOpener {},
+                    controllerScope = backgroundScope,
+                    nowMillis = { 10L },
+                    resolveLikedSongIdsForScan = { currentState: MusicAppUiState -> currentState.likedSongIds },
+                    shouldConfirmPermissionSettingsBeforeScan = { false },
+                    publishStateUpdate = { reducer: (MusicAppUiState) -> MusicAppUiState -> state = reducer(state) },
+                )
 
-        val job = launch {
+            val job =
+                launch {
+                    controller.scanLocalMusic(
+                        state = state,
+                        request = LocalMusicScanRequest.Refresh,
+                        onLibrarySnapshot = { syncedSnapshotCount += 1 },
+                    )
+                }
+            useCase.awaitStarted()
             controller.scanLocalMusic(
                 state = state,
                 request = LocalMusicScanRequest.Refresh,
                 onLibrarySnapshot = { syncedSnapshotCount += 1 },
             )
-        }
-        useCase.awaitStarted()
-        controller.scanLocalMusic(
-            state = state,
-            request = LocalMusicScanRequest.Refresh,
-            onLibrarySnapshot = { syncedSnapshotCount += 1 },
-        )
-        useCase.releaseLateResult()
-        job.join()
+            useCase.releaseLateResult()
+            job.join()
 
-        assertEquals(expected = 0, actual = syncedSnapshotCount)
-        assertTrue(actual = state.scanState is LocalMusicScanState.Cancelled)
-    }
+            assertEquals(expected = 0, actual = syncedSnapshotCount)
+            assertTrue(actual = state.scanState is LocalMusicScanState.Cancelled)
+        }
 
     /**
      * 取消后旧错误晚到也必须被丢弃，不能把取消态改成错误态。
      */
     @Test
-    fun lateErrorAfterCancellationIsIgnored(): Unit = runTest {
-        var state: MusicAppUiState = baseState()
-        val useCase = LateErrorAfterCancellationUseCase()
-        val controller = LocalMusicScanController(
-            scanLocalMusicUseCase = useCase,
-            permissionSettingsOpener = PermissionSettingsOpener {},
-            controllerScope = backgroundScope,
-            nowMillis = { 10L },
-            resolveLikedSongIdsForScan = { currentState: MusicAppUiState -> currentState.likedSongIds },
-            shouldConfirmPermissionSettingsBeforeScan = { false },
-            publishStateUpdate = { reducer: (MusicAppUiState) -> MusicAppUiState -> state = reducer(state) },
-        )
+    fun lateErrorAfterCancellationIsIgnored(): Unit =
+        runTest {
+            var state: MusicAppUiState = baseState()
+            val useCase = LateErrorAfterCancellationUseCase()
+            val controller =
+                LocalMusicScanController(
+                    scanLocalMusicUseCase = useCase,
+                    permissionSettingsOpener = PermissionSettingsOpener {},
+                    controllerScope = backgroundScope,
+                    nowMillis = { 10L },
+                    resolveLikedSongIdsForScan = { currentState: MusicAppUiState -> currentState.likedSongIds },
+                    shouldConfirmPermissionSettingsBeforeScan = { false },
+                    publishStateUpdate = { reducer: (MusicAppUiState) -> MusicAppUiState -> state = reducer(state) },
+                )
 
-        val job = launch {
+            val job =
+                launch {
+                    controller.scanLocalMusic(
+                        state = state,
+                        request = LocalMusicScanRequest.Refresh,
+                        onLibrarySnapshot = {},
+                    )
+                }
+            useCase.awaitStarted()
             controller.scanLocalMusic(
                 state = state,
                 request = LocalMusicScanRequest.Refresh,
                 onLibrarySnapshot = {},
             )
-        }
-        useCase.awaitStarted()
-        controller.scanLocalMusic(
-            state = state,
-            request = LocalMusicScanRequest.Refresh,
-            onLibrarySnapshot = {},
-        )
-        useCase.releaseLateError()
-        job.join()
+            useCase.releaseLateError()
+            job.join()
 
-        assertTrue(actual = state.scanState is LocalMusicScanState.Cancelled)
-    }
+            assertTrue(actual = state.scanState is LocalMusicScanState.Cancelled)
+        }
 
     /**
      * 取消发布后即使旧扫描还没真正退出，再次触发也必须启动新会话，并继续丢弃旧成功。
      */
     @Test
-    fun restartAfterCancellationStartsNewSessionBeforeOldSessionFinishes(): Unit = runTest {
-        var state: MusicAppUiState = baseState()
-        val syncedSongCounts: MutableList<Int> = mutableListOf()
-        val useCase = RestartableLateSuccessUseCase()
-        val controller = LocalMusicScanController(
-            scanLocalMusicUseCase = useCase,
-            permissionSettingsOpener = PermissionSettingsOpener {},
-            controllerScope = backgroundScope,
-            nowMillis = { 10L },
-            resolveLikedSongIdsForScan = { currentState: MusicAppUiState -> currentState.likedSongIds },
-            shouldConfirmPermissionSettingsBeforeScan = { false },
-            publishStateUpdate = { reducer: (MusicAppUiState) -> MusicAppUiState -> state = reducer(state) },
-        )
+    fun restartAfterCancellationStartsNewSessionBeforeOldSessionFinishes(): Unit =
+        runTest {
+            var state: MusicAppUiState = baseState()
+            val syncedSongCounts: MutableList<Int> = mutableListOf()
+            val useCase = RestartableLateSuccessUseCase()
+            val controller =
+                LocalMusicScanController(
+                    scanLocalMusicUseCase = useCase,
+                    permissionSettingsOpener = PermissionSettingsOpener {},
+                    controllerScope = backgroundScope,
+                    nowMillis = { 10L },
+                    resolveLikedSongIdsForScan = { currentState: MusicAppUiState -> currentState.likedSongIds },
+                    shouldConfirmPermissionSettingsBeforeScan = { false },
+                    publishStateUpdate = { reducer: (MusicAppUiState) -> MusicAppUiState -> state = reducer(state) },
+                )
 
-        val firstJob = launch {
+            val firstJob =
+                launch {
+                    controller.scanLocalMusic(
+                        state = state,
+                        request = LocalMusicScanRequest.Refresh,
+                        onLibrarySnapshot = { snapshot: LibrarySnapshot ->
+                            syncedSongCounts += snapshot.stats.songCount
+                            state = state.copy(scanState = snapshot.scanState)
+                        },
+                    )
+                }
+            useCase.awaitFirstStarted()
+
             controller.scanLocalMusic(
                 state = state,
                 request = LocalMusicScanRequest.Refresh,
-                onLibrarySnapshot = { snapshot: LibrarySnapshot ->
-                    syncedSongCounts += snapshot.stats.songCount
-                    state = state.copy(scanState = snapshot.scanState)
-                },
+                onLibrarySnapshot = {},
             )
+            assertTrue(actual = state.scanState is LocalMusicScanState.Cancelled)
+
+            val secondJob =
+                launch {
+                    controller.scanLocalMusic(
+                        state = state,
+                        request = LocalMusicScanRequest.Refresh,
+                        onLibrarySnapshot = { snapshot: LibrarySnapshot ->
+                            syncedSongCounts += snapshot.stats.songCount
+                            state = state.copy(scanState = snapshot.scanState)
+                        },
+                    )
+                }
+            useCase.awaitSecondStarted()
+
+            assertEquals(expected = 2, actual = useCase.callCount)
+            assertTrue(actual = state.scanState is LocalMusicScanState.Scanning)
+
+            useCase.releaseFirstLateResult()
+            firstJob.join()
+
+            assertTrue(actual = state.scanState is LocalMusicScanState.Scanning)
+            assertTrue(actual = syncedSongCounts.isEmpty())
+
+            useCase.releaseSecondResult()
+            secondJob.join()
+
+            assertEquals(expected = listOf(22), actual = syncedSongCounts)
+            assertTrue(actual = state.scanState is LocalMusicScanState.Done)
         }
-        useCase.awaitFirstStarted()
-
-        controller.scanLocalMusic(
-            state = state,
-            request = LocalMusicScanRequest.Refresh,
-            onLibrarySnapshot = {},
-        )
-        assertTrue(actual = state.scanState is LocalMusicScanState.Cancelled)
-
-        val secondJob = launch {
-            controller.scanLocalMusic(
-                state = state,
-                request = LocalMusicScanRequest.Refresh,
-                onLibrarySnapshot = { snapshot: LibrarySnapshot ->
-                    syncedSongCounts += snapshot.stats.songCount
-                    state = state.copy(scanState = snapshot.scanState)
-                },
-            )
-        }
-        useCase.awaitSecondStarted()
-
-        assertEquals(expected = 2, actual = useCase.callCount)
-        assertTrue(actual = state.scanState is LocalMusicScanState.Scanning)
-
-        useCase.releaseFirstLateResult()
-        firstJob.join()
-
-        assertTrue(actual = state.scanState is LocalMusicScanState.Scanning)
-        assertTrue(actual = syncedSongCounts.isEmpty())
-
-        useCase.releaseSecondResult()
-        secondJob.join()
-
-        assertEquals(expected = listOf(22), actual = syncedSongCounts)
-        assertTrue(actual = state.scanState is LocalMusicScanState.Done)
-    }
 }
 
 private class BlockingScanUseCase : ScanLocalMusicUseCase {
@@ -233,15 +246,17 @@ private class BlockingScanUseCase : ScanLocalMusicUseCase {
             artists = emptyList(),
             stats = LibraryStats(),
             sources = emptyList(),
-            scanState = LocalMusicScanState.Done(
-                summary = LocalMusicLastScanSummary(
-                    addedCount = 0,
-                    updatedCount = 0,
-                    removedCount = 0,
-                    problemCount = 0,
-                    completedAt = 10L,
+            scanState =
+                LocalMusicScanState.Done(
+                    summary =
+                        LocalMusicLastScanSummary(
+                            addedCount = 0,
+                            updatedCount = 0,
+                            removedCount = 0,
+                            problemCount = 0,
+                            completedAt = 10L,
+                        ),
                 ),
-            ),
             lastScanSummary = null,
             problems = emptyList(),
         )
@@ -277,10 +292,11 @@ private class LateErrorAfterCancellationUseCase : ScanLocalMusicUseCase {
             }
         }
         throw LocalMusicScanException(
-            error = LocalMusicScanError(
-                type = LocalMusicScanErrorType.Unknown,
-                message = "旧扫描错误晚到",
-            ),
+            error =
+                LocalMusicScanError(
+                    type = LocalMusicScanErrorType.Unknown,
+                    message = "旧扫描错误晚到",
+                ),
         )
     }
 
@@ -324,15 +340,17 @@ private class LateSuccessAfterCancellationUseCase : ScanLocalMusicUseCase {
             artists = emptyList(),
             stats = LibraryStats(songCount = 99),
             sources = emptyList(),
-            scanState = LocalMusicScanState.Done(
-                summary = LocalMusicLastScanSummary(
-                    addedCount = 99,
-                    updatedCount = 0,
-                    removedCount = 0,
-                    problemCount = 0,
-                    completedAt = 10L,
+            scanState =
+                LocalMusicScanState.Done(
+                    summary =
+                        LocalMusicLastScanSummary(
+                            addedCount = 99,
+                            updatedCount = 0,
+                            removedCount = 0,
+                            problemCount = 0,
+                            completedAt = 10L,
+                        ),
                 ),
-            ),
             lastScanSummary = null,
             problems = emptyList(),
         )
@@ -418,39 +436,40 @@ private class RestartableLateSuccessUseCase : ScanLocalMusicUseCase {
     }
 
     /** 构造带可识别歌曲数的快照，方便断言只有新会话被同步。 */
-    private fun createSnapshot(songCount: Int): LibrarySnapshot {
-        return LibrarySnapshot(
+    private fun createSnapshot(songCount: Int): LibrarySnapshot =
+        LibrarySnapshot(
             songs = emptyList(),
             albums = emptyList(),
             artists = emptyList(),
             stats = LibraryStats(songCount = songCount),
             sources = emptyList(),
-            scanState = LocalMusicScanState.Done(
-                summary = LocalMusicLastScanSummary(
-                    addedCount = songCount,
-                    updatedCount = 0,
-                    removedCount = 0,
-                    problemCount = 0,
-                    completedAt = 10L,
+            scanState =
+                LocalMusicScanState.Done(
+                    summary =
+                        LocalMusicLastScanSummary(
+                            addedCount = songCount,
+                            updatedCount = 0,
+                            removedCount = 0,
+                            problemCount = 0,
+                            completedAt = 10L,
+                        ),
                 ),
-            ),
             lastScanSummary = null,
             problems = emptyList(),
         )
-    }
 }
 
 /**
  * 构造带运行中扫描态的最小 UI 状态，专门服务扫描会话测试。
  */
-private fun baseState(): MusicAppUiState {
-    return MusicAppUiState(
+private fun baseState(): MusicAppUiState =
+    MusicAppUiState(
         likedSongIds = emptySet(),
         currentSongId = null,
         playbackStatus = PlaybackStatus.Idle,
         queueSongIds = emptyList(),
-        scanState = LocalMusicScanState.Scanning(
-            progress = LocalMusicScanProgress(currentSourceName = "上一次"),
-        ),
+        scanState =
+            LocalMusicScanState.Scanning(
+                progress = LocalMusicScanProgress(currentSourceName = "上一次"),
+            ),
     )
-}

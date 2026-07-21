@@ -107,15 +107,14 @@ internal data class ArtistDetailScrollState(
 internal fun createArtistDetailScrollSpec(
     statusBarInset: Dp,
     viewportHeight: Dp,
-): ArtistDetailScrollSpec {
-    return ArtistDetailScrollSpec(
+): ArtistDetailScrollSpec =
+    ArtistDetailScrollSpec(
         expandedHeaderHeight = calculateExpandedHeaderHeight(viewportHeight = viewportHeight),
         toolbarContentHeight = artistDetailToolbarContentHeight,
         statusBarInset = statusBarInset,
         maxPullStretchHeight = artistDetailMaxPullStretchHeight,
         toolbarRevealContentHeight = artistDetailToolbarRevealContentHeight,
     )
-}
 
 /**
  * 根据列表滚动和下拉距离计算歌手详情页折叠状态。
@@ -125,34 +124,40 @@ internal fun calculateArtistDetailScrollState(
     scrollOffset: Dp,
     pullOffset: Dp,
 ): ArtistDetailScrollState {
-    val layoutState: ArtistDetailLayoutState = calculateArtistDetailLayoutState(
-        spec = spec,
-        pullOffset = pullOffset,
-    )
-    val headerCollapseDistance: Dp = calculateCollapseDistance(
-        expandedHeaderHeight = spec.expandedHeaderHeight,
-        collapsedToolbarHeight = layoutState.collapsedToolbarHeight,
-    )
-    val toolbarRevealDistance: Dp = calculateArtistDetailToolbarRevealDistance(
-        expandedHeaderHeight = spec.expandedHeaderHeight,
-        collapsedToolbarHeight = spec.statusBarInset + spec.toolbarRevealContentHeight,
-    )
+    val layoutState: ArtistDetailLayoutState =
+        calculateArtistDetailLayoutState(
+            spec = spec,
+            pullOffset = pullOffset,
+        )
+    val headerCollapseDistance: Dp =
+        calculateCollapseDistance(
+            expandedHeaderHeight = spec.expandedHeaderHeight,
+            collapsedToolbarHeight = layoutState.collapsedToolbarHeight,
+        )
+    val toolbarRevealDistance: Dp =
+        calculateArtistDetailToolbarRevealDistance(
+            expandedHeaderHeight = spec.expandedHeaderHeight,
+            collapsedToolbarHeight = spec.statusBarInset + spec.toolbarRevealContentHeight,
+        )
     val safeScrollOffset: Dp = scrollOffset.coerceAtLeast(minimumValue = 0.dp)
-    val collapseProgress: Float = (safeScrollOffset.value / toolbarRevealDistance.value).coerceIn(
-        minimumValue = 0f,
-        maximumValue = 1f,
-    )
-    val heroImageOffset: Dp = calculateHeroImageOffset(
-        scrollOffset = safeScrollOffset,
-        maxOffset = spec.expandedHeaderHeight,
-    )
-    val headerVisibleHeight: Dp = calculateHeaderVisibleHeight(
-        expandedHeaderHeight = spec.expandedHeaderHeight,
-        collapsedToolbarHeight = layoutState.collapsedToolbarHeight,
-        collapseDistance = headerCollapseDistance,
-        scrollOffset = safeScrollOffset,
-        pullStretchHeight = layoutState.pullStretchHeight,
-    )
+    val collapseProgress: Float =
+        (safeScrollOffset.value / toolbarRevealDistance.value).coerceIn(
+            minimumValue = 0f,
+            maximumValue = 1f,
+        )
+    val heroImageOffset: Dp =
+        calculateHeroImageOffset(
+            scrollOffset = safeScrollOffset,
+            maxOffset = spec.expandedHeaderHeight,
+        )
+    val headerVisibleHeight: Dp =
+        calculateHeaderVisibleHeight(
+            expandedHeaderHeight = spec.expandedHeaderHeight,
+            collapsedToolbarHeight = layoutState.collapsedToolbarHeight,
+            collapseDistance = headerCollapseDistance,
+            scrollOffset = safeScrollOffset,
+            pullStretchHeight = layoutState.pullStretchHeight,
+        )
     return ArtistDetailScrollState(
         collapseProgress = collapseProgress,
         toolbarAlpha = calculateToolbarAlpha(collapseProgress = collapseProgress),
@@ -164,14 +169,16 @@ internal fun calculateArtistDetailScrollState(
         headerVisibleHeight = headerVisibleHeight,
         heroImageHeight = layoutState.heroImageHeight,
         heroImageOffset = heroImageOffset,
-        listHeaderSpacerHeight = (layoutState.heroImageHeight - layoutState.collapsedToolbarHeight).coerceAtLeast(
-            minimumValue = 0.dp,
-        ),
+        listHeaderSpacerHeight =
+            (layoutState.heroImageHeight - layoutState.collapsedToolbarHeight).coerceAtLeast(
+                minimumValue = 0.dp,
+            ),
         contentGroupSpacerHeight = layoutState.contentGroupSpacerHeight,
-        expandedContentAlpha = (1f - collapseProgress * 1.35f).coerceIn(
-            minimumValue = 0f,
-            maximumValue = 1f,
-        ),
+        expandedContentAlpha =
+            (1f - collapseProgress * 1.35f).coerceIn(
+                minimumValue = 0f,
+                maximumValue = 1f,
+            ),
     )
 }
 
@@ -183,27 +190,27 @@ internal fun calculateArtistDetailLayoutState(
     pullOffset: Dp,
 ): ArtistDetailLayoutState {
     val collapsedToolbarHeight: Dp = spec.statusBarInset + spec.toolbarContentHeight
-    val pullStretchHeight: Dp = pullOffset.coerceIn(
-        minimumValue = 0.dp,
-        maximumValue = spec.maxPullStretchHeight,
-    )
+    val pullStretchHeight: Dp =
+        pullOffset.coerceIn(
+            minimumValue = 0.dp,
+            maximumValue = spec.maxPullStretchHeight,
+        )
     val heroImageHeight: Dp = spec.expandedHeaderHeight + pullStretchHeight
     return ArtistDetailLayoutState(
         collapsedToolbarHeight = collapsedToolbarHeight,
         pullStretchHeight = pullStretchHeight,
         heroImageHeight = heroImageHeight,
         contentTopBarrier = collapsedToolbarHeight,
-        contentGroupSpacerHeight = calculateArtistDetailContentGroupSpacerHeight(
-            expandedHeaderHeight = heroImageHeight,
-            collapsedToolbarHeight = collapsedToolbarHeight,
-        ),
+        contentGroupSpacerHeight =
+            calculateArtistDetailContentGroupSpacerHeight(
+                expandedHeaderHeight = heroImageHeight,
+                collapsedToolbarHeight = collapsedToolbarHeight,
+            ),
     )
 }
 
 // 头图初始高度来自视口，而不是单个 Image 的固定高度。
-private fun calculateExpandedHeaderHeight(viewportHeight: Dp): Dp {
-    return viewportHeight * ARTIST_DETAIL_EXPANDED_HEADER_VIEWPORT_FRACTION
-}
+private fun calculateExpandedHeaderHeight(viewportHeight: Dp): Dp = viewportHeight * ARTIST_DETAIL_EXPANDED_HEADER_VIEWPORT_FRACTION
 
 // 内容组锚点落在展开头图 55%-65% 区间，扣除 Toolbar 后成为 LazyColumn 的真实 spacer。
 private fun calculateArtistDetailContentGroupSpacerHeight(
@@ -218,12 +225,11 @@ private fun calculateArtistDetailContentGroupSpacerHeight(
 internal fun calculateArtistDetailToolbarRevealDistance(
     expandedHeaderHeight: Dp,
     collapsedToolbarHeight: Dp,
-): Dp {
-    return calculateArtistDetailContentGroupSpacerHeight(
+): Dp =
+    calculateArtistDetailContentGroupSpacerHeight(
         expandedHeaderHeight = expandedHeaderHeight,
         collapsedToolbarHeight = collapsedToolbarHeight,
     ).coerceAtLeast(minimumValue = 1.dp)
-}
 
 // 把 [LazyColumn] 的首个可见 item 位置换算成连续滚动距离，避免 item 边界造成头图跳变。
 internal fun calculateArtistDetailScrollOffsetFromListPosition(
@@ -232,24 +238,43 @@ internal fun calculateArtistDetailScrollOffsetFromListPosition(
     scrollSpec: ArtistDetailScrollSpec,
 ): Dp {
     val collapsedToolbarHeight: Dp = scrollSpec.statusBarInset + scrollSpec.toolbarRevealContentHeight
-    val contentSpacerHeight: Dp = calculateArtistDetailToolbarRevealDistance(
-        expandedHeaderHeight = scrollSpec.expandedHeaderHeight,
-        collapsedToolbarHeight = collapsedToolbarHeight,
-    )
-    val baseOffset: Dp = when (firstVisibleItemIndex) {
-        0 -> 0.dp
-        1 -> contentSpacerHeight
-        2 -> contentSpacerHeight + artistDetailExpandedTitleScrollHeight
-        3 -> contentSpacerHeight + artistDetailExpandedTitleScrollHeight + artistDetailPlayAllScrollHeight
-        4 -> contentSpacerHeight +
-            artistDetailExpandedTitleScrollHeight +
-            artistDetailPlayAllScrollHeight +
-            artistDetailSectionTitleScrollHeight
-        else -> calculateArtistDetailSongListBaseOffset(
-            firstVisibleItemIndex = firstVisibleItemIndex,
-            contentSpacerHeight = contentSpacerHeight,
+    val contentSpacerHeight: Dp =
+        calculateArtistDetailToolbarRevealDistance(
+            expandedHeaderHeight = scrollSpec.expandedHeaderHeight,
+            collapsedToolbarHeight = collapsedToolbarHeight,
         )
-    }
+    val baseOffset: Dp =
+        when (firstVisibleItemIndex) {
+            0 -> {
+                0.dp
+            }
+
+            1 -> {
+                contentSpacerHeight
+            }
+
+            2 -> {
+                contentSpacerHeight + artistDetailExpandedTitleScrollHeight
+            }
+
+            3 -> {
+                contentSpacerHeight + artistDetailExpandedTitleScrollHeight + artistDetailPlayAllScrollHeight
+            }
+
+            4 -> {
+                contentSpacerHeight +
+                    artistDetailExpandedTitleScrollHeight +
+                    artistDetailPlayAllScrollHeight +
+                    artistDetailSectionTitleScrollHeight
+            }
+
+            else -> {
+                calculateArtistDetailSongListBaseOffset(
+                    firstVisibleItemIndex = firstVisibleItemIndex,
+                    contentSpacerHeight = contentSpacerHeight,
+                )
+            }
+        }
     return (baseOffset + firstVisibleItemScrollOffset).coerceIn(
         minimumValue = 0.dp,
         maximumValue = scrollSpec.expandedHeaderHeight,
@@ -274,36 +299,31 @@ private fun calculateArtistDetailSongListBaseOffset(
 private fun calculateHeroImageOffset(
     scrollOffset: Dp,
     maxOffset: Dp,
-): Dp {
-    return -scrollOffset.coerceIn(
+): Dp =
+    -scrollOffset.coerceIn(
         minimumValue = 0.dp,
         maximumValue = maxOffset,
     )
-}
 
 // 折叠距离至少保留 1dp，避免极端小屏或异常 token 导致除零。
 private fun calculateCollapseDistance(
     expandedHeaderHeight: Dp,
     collapsedToolbarHeight: Dp,
-): Dp {
-    return (expandedHeaderHeight - collapsedToolbarHeight).coerceAtLeast(minimumValue = 1.dp)
-}
+): Dp = (expandedHeaderHeight - collapsedToolbarHeight).coerceAtLeast(minimumValue = 1.dp)
 
 // 完全折叠时使用不透明浅色 Toolbar，避免头图透出后显得发黑。
-private fun calculateToolbarAlpha(collapseProgress: Float): Float {
-    return collapseProgress.coerceIn(
+private fun calculateToolbarAlpha(collapseProgress: Float): Float =
+    collapseProgress.coerceIn(
         minimumValue = 0f,
         maximumValue = 1f,
     )
-}
 
 // 标题在接近折叠完成时渐显，避免展开态和头图上的歌手名抢焦点。
-private fun calculateToolbarTitleAlpha(collapseProgress: Float): Float {
-    return ((collapseProgress - 0.68f) / 0.32f).coerceIn(
+private fun calculateToolbarTitleAlpha(collapseProgress: Float): Float =
+    ((collapseProgress - 0.68f) / 0.32f).coerceIn(
         minimumValue = 0f,
         maximumValue = 1f,
     )
-}
 
 // 头图向上折叠到 Toolbar 高度后停止，正文由 [contentTopBarrier] 负责裁切。
 private fun calculateHeaderVisibleHeight(
@@ -313,10 +333,11 @@ private fun calculateHeaderVisibleHeight(
     scrollOffset: Dp,
     pullStretchHeight: Dp,
 ): Dp {
-    val consumedHeight: Dp = scrollOffset.coerceIn(
-        minimumValue = 0.dp,
-        maximumValue = collapseDistance,
-    )
+    val consumedHeight: Dp =
+        scrollOffset.coerceIn(
+            minimumValue = 0.dp,
+            maximumValue = collapseDistance,
+        )
     return (expandedHeaderHeight - consumedHeight + pullStretchHeight).coerceAtLeast(
         minimumValue = collapsedToolbarHeight,
     )

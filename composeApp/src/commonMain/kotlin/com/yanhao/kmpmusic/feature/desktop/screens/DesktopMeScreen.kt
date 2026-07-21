@@ -60,9 +60,10 @@ fun DesktopMeRootScreen(
     onRecentSongMore: (Song) -> Unit,
 ) {
     Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState()),
+        modifier =
+            Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState()),
     ) {
         DesktopPageHeader(
             title = "我的",
@@ -142,8 +143,8 @@ internal data class DesktopMeQuickActionDisplayModel(
 internal fun buildDesktopMeStatDisplayModels(
     libraryStats: LibraryStats,
     localPlaylistCount: Int,
-): List<DesktopMeStatDisplayModel> {
-    return listOf(
+): List<DesktopMeStatDisplayModel> =
+    listOf(
         DesktopMeStatDisplayModel(
             icon = "♫",
             title = "歌曲",
@@ -161,13 +162,12 @@ internal fun buildDesktopMeStatDisplayModels(
             value = STATIC_LISTENING_HOURS.toString(),
         ),
     )
-}
 
 /**
  * 构造桌面“我的”页快速功能入口；扫描音乐必须复用桌面文件夹扫描动作。
  */
-internal fun buildDesktopMeQuickActionDisplayModels(): List<DesktopMeQuickActionDisplayModel> {
-    return listOf(
+internal fun buildDesktopMeQuickActionDisplayModels(): List<DesktopMeQuickActionDisplayModel> =
+    listOf(
         DesktopMeQuickActionDisplayModel(
             action = DesktopMeQuickAction.ScanMusic,
             title = "扫描音乐",
@@ -175,7 +175,6 @@ internal fun buildDesktopMeQuickActionDisplayModels(): List<DesktopMeQuickAction
             actionLabel = "添加文件夹",
         ),
     )
-}
 
 /**
  * 三项统计使用桌面端横向等权布局，保持宽屏 workspace 的自然间距。
@@ -199,10 +198,11 @@ private fun DesktopMeStatsRow(
                 title = item.title,
                 value = item.value,
                 modifier = Modifier.weight(1f),
-                onClick = when (item.action) {
-                    DesktopMeStatAction.OpenLocalPlaylists -> onLocalPlaylistsOpen
-                    null -> null
-                },
+                onClick =
+                    when (item.action) {
+                        DesktopMeStatAction.OpenLocalPlaylists -> onLocalPlaylistsOpen
+                        null -> null
+                    },
             )
         }
     }
@@ -222,9 +222,10 @@ private fun DesktopMeQuickActions(
                 title = item.title,
                 subtitle = item.subtitle,
                 actionLabel = item.actionLabel,
-                onClick = when (item.action) {
-                    DesktopMeQuickAction.ScanMusic -> onScanMusic
-                },
+                onClick =
+                    when (item.action) {
+                        DesktopMeQuickAction.ScanMusic -> onScanMusic
+                    },
             )
         }
     }
@@ -284,16 +285,18 @@ private fun DesktopProfileAvatar() {
         border = BorderStroke(width = 3.dp, color = DesktopMusicColors.Accent),
     ) {
         Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(5.dp),
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .padding(5.dp),
         ) {
             AsyncImage(
                 model = Res.getUri("drawable/me_profile_avatar.jpg"),
                 contentDescription = "个人头像",
-                modifier = Modifier
-                    .fillMaxSize()
-                    .clip(CircleShape),
+                modifier =
+                    Modifier
+                        .fillMaxSize()
+                        .clip(CircleShape),
                 contentScale = ContentScale.Crop,
             )
         }

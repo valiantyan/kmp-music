@@ -38,10 +38,11 @@ internal class IosAvAudioSessionController(
         return memScoped {
             val categoryError = alloc<ObjCObjectVar<NSError?>>()
             val activeError = alloc<ObjCObjectVar<NSError?>>()
-            val isCategorySet: Boolean = audioSession.setCategory(
-                category = AVAudioSessionCategoryPlayback,
-                error = categoryError.ptr,
-            )
+            val isCategorySet: Boolean =
+                audioSession.setCategory(
+                    category = AVAudioSessionCategoryPlayback,
+                    error = categoryError.ptr,
+                )
             if (!isCategorySet) {
                 return@memScoped false
             }

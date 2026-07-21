@@ -64,10 +64,11 @@ fun LocalPlaylistManagementScreen(
         Box(modifier = Modifier.weight(weight = 1f)) {
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(
-                    top = 12.dp,
-                    bottom = contentPadding.calculateBottomPadding() + 66.dp,
-                ),
+                contentPadding =
+                    PaddingValues(
+                        top = 12.dp,
+                        bottom = contentPadding.calculateBottomPadding() + 66.dp,
+                    ),
                 verticalArrangement = Arrangement.spacedBy(space = 12.dp),
             ) {
                 if (playlists.isEmpty()) {
@@ -118,19 +119,21 @@ private fun LocalPlaylistManagementItem(
     onToggle: (String) -> Unit,
 ) {
     Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 20.dp)
-            .height(height = 98.dp)
-            .clickable { onToggle(playlist.id) },
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp)
+                .height(height = 98.dp)
+                .clickable { onToggle(playlist.id) },
         shape = RoundedCornerShape(size = 24.dp),
         color = Color.White,
         border = BorderStroke(width = 1.dp, color = localPlaylistManagementLineColor),
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(start = 16.dp, end = 16.dp),
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .padding(start = 16.dp, end = 16.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             LocalPlaylistManagementSelectionMark(isSelected = isSelected)
@@ -138,16 +141,18 @@ private fun LocalPlaylistManagementItem(
                 coverArt = playlist.coverArt,
                 coverImageUri = playlist.coverImageUri,
                 contentDescription = "${playlist.name} 歌单封面",
-                modifier = Modifier
-                    .padding(start = 16.dp)
-                    .size(size = 64.dp)
-                    .clip(shape = RoundedCornerShape(size = 12.dp)),
+                modifier =
+                    Modifier
+                        .padding(start = 16.dp)
+                        .size(size = 64.dp)
+                        .clip(shape = RoundedCornerShape(size = 12.dp)),
                 contentScale = ContentScale.Crop,
             )
             Column(
-                modifier = Modifier
-                    .padding(start = 16.dp)
-                    .weight(weight = 1f),
+                modifier =
+                    Modifier
+                        .padding(start = 16.dp)
+                        .weight(weight = 1f),
                 verticalArrangement = Arrangement.Center,
             ) {
                 Text(
@@ -177,17 +182,17 @@ private fun LocalPlaylistManagementItem(
 @Composable
 private fun LocalPlaylistManagementSelectionMark(isSelected: Boolean) {
     Box(
-        modifier = Modifier
-            .size(size = 24.dp)
-            .background(
-                color = if (isSelected) localPlaylistManagementAccentColor else Color.Transparent,
-                shape = CircleShape,
-            )
-            .border(
-                width = 2.dp,
-                color = if (isSelected) localPlaylistManagementAccentColor else localPlaylistManagementSelectionColor,
-                shape = CircleShape,
-            ),
+        modifier =
+            Modifier
+                .size(size = 24.dp)
+                .background(
+                    color = if (isSelected) localPlaylistManagementAccentColor else Color.Transparent,
+                    shape = CircleShape,
+                ).border(
+                    width = 2.dp,
+                    color = if (isSelected) localPlaylistManagementAccentColor else localPlaylistManagementSelectionColor,
+                    shape = CircleShape,
+                ),
         contentAlignment = Alignment.Center,
     ) {
         if (isSelected) {
@@ -209,20 +214,23 @@ private fun LocalPlaylistManagementDeleteBar(
     modifier: Modifier = Modifier,
 ) {
     Surface(
-        modifier = modifier
-            .fillMaxWidth()
-            .height(height = 66.dp)
-            .clickable(enabled = canDelete, onClick = onDelete),
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .height(height = 66.dp)
+                .clickable(enabled = canDelete, onClick = onDelete),
         color = Color.White,
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .alpha(alpha = if (canDelete) 1f else 0.5f),
-            horizontalArrangement = Arrangement.spacedBy(
-                space = 6.dp,
-                alignment = Alignment.CenterHorizontally,
-            ),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .alpha(alpha = if (canDelete) 1f else 0.5f),
+            horizontalArrangement =
+                Arrangement.spacedBy(
+                    space = 6.dp,
+                    alignment = Alignment.CenterHorizontally,
+                ),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Icon(

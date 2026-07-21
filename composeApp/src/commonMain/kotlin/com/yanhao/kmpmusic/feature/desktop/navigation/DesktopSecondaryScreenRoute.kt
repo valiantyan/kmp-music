@@ -74,125 +74,164 @@ fun DesktopSecondaryScreenRoute(
                 },
             )
         }
-        SecondaryScreen.Player -> Unit
-        SecondaryScreen.AlbumDetail -> DesktopAlbumDetailScreen(
-            album = state.selectedAlbum,
-            songs = state.localSongs,
-            currentSongId = state.currentSongId,
-            currentPlaybackStatus = state.playbackStatus,
-            onBack = controller::navigateBack,
-            onSongPlay = { song: Song, queueSongs: List<Song> ->
-                controller.playSong(
-                    song = song,
-                    queueSongs = queueSongs,
-                )
-            },
-            onMore = controller::openMore,
-        )
-        SecondaryScreen.ArtistDetail -> DesktopArtistDetailScreen(
-            artist = state.selectedArtist,
-            songs = state.localSongs,
-            albums = state.localAlbums,
-            currentSongId = state.currentSongId,
-            currentPlaybackStatus = state.playbackStatus,
-            onBack = controller::navigateBack,
-            onSongPlay = { song: Song, queueSongs: List<Song> ->
-                controller.playSong(
-                    song = song,
-                    queueSongs = queueSongs,
-                )
-            },
-            onMore = controller::openMore,
-        )
-        SecondaryScreen.Settings -> DesktopSettingsScreen(
-            themeMode = state.themeMode,
-            scanState = state.scanState,
-            onThemeMode = controller::setThemeMode,
-            onBack = controller::navigateBack,
-            onScan = onScanLocalMusic,
-            onLocalMusicSources = {
-                controller.openLocalMusic(section = LocalMusicSection.Sources)
-            },
-            onClearCache = controller::openClearCacheDialog,
-        )
-        SecondaryScreen.About -> DesktopEmptyStateScreen(
-            title = "关于 KMP Music",
-            subtitle = "版本 1.0 · 本地音乐优先",
-        )
-        SecondaryScreen.Login -> DesktopLoginScreen(
-            email = state.email,
-            isMailSent = state.isMailSent,
-            onEmail = controller::setEmail,
-            onSend = controller::sendLoginMail,
-            onBack = controller::navigateBack,
-        )
-        SecondaryScreen.AudioScan -> DesktopEmptyStateScreen(
-            title = "扫描音频文件",
-            subtitle = "桌面端请使用首页或设置里的添加文件夹入口。",
-        )
-        SecondaryScreen.RecentPlayed -> DesktopRecentPlayedScreen(
-            songs = state.recentSongs,
-            currentSongId = state.currentSongId,
-            onBack = controller::navigateBack,
-            onSongPlay = controller::playRecentSong,
-            onSongMore = controller::openMore,
-        )
-        SecondaryScreen.LocalPlaylists -> DesktopLocalPlaylistListScreen(
-            playlists = state.localPlaylists,
-            onBack = controller::navigateBack,
-            onManage = controller::openLocalPlaylistManagement,
-            onPlaylistOpen = controller::openLocalPlaylistDetail,
-        )
-        SecondaryScreen.LocalPlaylistManagement -> DesktopLocalPlaylistManagementScreen(
-            playlists = state.localPlaylists,
-            selectedPlaylistIds = state.selectedManagedLocalPlaylistIds,
-            canDelete = state.canDeleteManagedLocalPlaylists,
-            onBack = controller::navigateBack,
-            onPlaylistToggle = controller::toggleManagedLocalPlaylistSelection,
-            onDelete = controller::openDeleteLocalPlaylistsDialog,
-        )
-        SecondaryScreen.LocalPlaylistDetail -> DesktopLocalPlaylistDetailScreen(
-            detail = state.selectedLocalPlaylistDetail,
-            currentSongId = state.currentSongId,
-            currentPlaybackStatus = state.playbackStatus,
-            onBack = controller::navigateBack,
-            onPlayAll = controller::playSelectedLocalPlaylistAll,
-            onSongPlay = { song: Song, _: List<Song> ->
-                controller.playSelectedLocalPlaylistSong(song = song)
-            },
-            onCurrentSongToggle = controller::togglePlayback,
-            onMore = { song: Song ->
-                controller.openMore(
-                    song = song,
-                    sourceContext = SongMoreSourceContext.LocalPlaylistDetail,
-                )
-            },
-        )
-        is SecondaryScreen.LocalMusic -> DesktopLocalMusicScreen(
-            initialSection = state.navigationState.secondaryScreen.initialSection,
-            songs = state.localSongs,
-            albums = state.localAlbums,
-            artists = state.localArtists,
-            sources = state.localMusicSources,
-            problems = state.localMusicProblems,
-            scanState = state.scanState,
-            currentSongId = state.currentSongId,
-            currentPlaybackStatus = state.playbackStatus,
-            onBack = controller::navigateBack,
-            onScan = onScanLocalMusic,
-            onSongPlay = { song: Song, queueSongs: List<Song> ->
-                controller.playSong(
-                    song = song,
-                    queueSongs = queueSongs,
-                )
-            },
-            onMore = controller::openMore,
-            onAlbumOpen = controller::openAlbum,
-            onArtistOpen = controller::openArtist,
-        )
-        null -> DesktopEmptyStateScreen(
-            title = "本地音乐",
-            subtitle = "桌面首页",
-        )
+
+        SecondaryScreen.Player -> {
+            Unit
+        }
+
+        SecondaryScreen.AlbumDetail -> {
+            DesktopAlbumDetailScreen(
+                album = state.selectedAlbum,
+                songs = state.localSongs,
+                currentSongId = state.currentSongId,
+                currentPlaybackStatus = state.playbackStatus,
+                onBack = controller::navigateBack,
+                onSongPlay = { song: Song, queueSongs: List<Song> ->
+                    controller.playSong(
+                        song = song,
+                        queueSongs = queueSongs,
+                    )
+                },
+                onMore = controller::openMore,
+            )
+        }
+
+        SecondaryScreen.ArtistDetail -> {
+            DesktopArtistDetailScreen(
+                artist = state.selectedArtist,
+                songs = state.localSongs,
+                albums = state.localAlbums,
+                currentSongId = state.currentSongId,
+                currentPlaybackStatus = state.playbackStatus,
+                onBack = controller::navigateBack,
+                onSongPlay = { song: Song, queueSongs: List<Song> ->
+                    controller.playSong(
+                        song = song,
+                        queueSongs = queueSongs,
+                    )
+                },
+                onMore = controller::openMore,
+            )
+        }
+
+        SecondaryScreen.Settings -> {
+            DesktopSettingsScreen(
+                themeMode = state.themeMode,
+                scanState = state.scanState,
+                onThemeMode = controller::setThemeMode,
+                onBack = controller::navigateBack,
+                onScan = onScanLocalMusic,
+                onLocalMusicSources = {
+                    controller.openLocalMusic(section = LocalMusicSection.Sources)
+                },
+                onClearCache = controller::openClearCacheDialog,
+            )
+        }
+
+        SecondaryScreen.About -> {
+            DesktopEmptyStateScreen(
+                title = "关于 KMP Music",
+                subtitle = "版本 1.0 · 本地音乐优先",
+            )
+        }
+
+        SecondaryScreen.Login -> {
+            DesktopLoginScreen(
+                email = state.email,
+                isMailSent = state.isMailSent,
+                onEmail = controller::setEmail,
+                onSend = controller::sendLoginMail,
+                onBack = controller::navigateBack,
+            )
+        }
+
+        SecondaryScreen.AudioScan -> {
+            DesktopEmptyStateScreen(
+                title = "扫描音频文件",
+                subtitle = "桌面端请使用首页或设置里的添加文件夹入口。",
+            )
+        }
+
+        SecondaryScreen.RecentPlayed -> {
+            DesktopRecentPlayedScreen(
+                songs = state.recentSongs,
+                currentSongId = state.currentSongId,
+                onBack = controller::navigateBack,
+                onSongPlay = controller::playRecentSong,
+                onSongMore = controller::openMore,
+            )
+        }
+
+        SecondaryScreen.LocalPlaylists -> {
+            DesktopLocalPlaylistListScreen(
+                playlists = state.localPlaylists,
+                onBack = controller::navigateBack,
+                onManage = controller::openLocalPlaylistManagement,
+                onPlaylistOpen = controller::openLocalPlaylistDetail,
+            )
+        }
+
+        SecondaryScreen.LocalPlaylistManagement -> {
+            DesktopLocalPlaylistManagementScreen(
+                playlists = state.localPlaylists,
+                selectedPlaylistIds = state.selectedManagedLocalPlaylistIds,
+                canDelete = state.canDeleteManagedLocalPlaylists,
+                onBack = controller::navigateBack,
+                onPlaylistToggle = controller::toggleManagedLocalPlaylistSelection,
+                onDelete = controller::openDeleteLocalPlaylistsDialog,
+            )
+        }
+
+        SecondaryScreen.LocalPlaylistDetail -> {
+            DesktopLocalPlaylistDetailScreen(
+                detail = state.selectedLocalPlaylistDetail,
+                currentSongId = state.currentSongId,
+                currentPlaybackStatus = state.playbackStatus,
+                onBack = controller::navigateBack,
+                onPlayAll = controller::playSelectedLocalPlaylistAll,
+                onSongPlay = { song: Song, _: List<Song> ->
+                    controller.playSelectedLocalPlaylistSong(song = song)
+                },
+                onCurrentSongToggle = controller::togglePlayback,
+                onMore = { song: Song ->
+                    controller.openMore(
+                        song = song,
+                        sourceContext = SongMoreSourceContext.LocalPlaylistDetail,
+                    )
+                },
+            )
+        }
+
+        is SecondaryScreen.LocalMusic -> {
+            DesktopLocalMusicScreen(
+                initialSection = state.navigationState.secondaryScreen.initialSection,
+                songs = state.localSongs,
+                albums = state.localAlbums,
+                artists = state.localArtists,
+                sources = state.localMusicSources,
+                problems = state.localMusicProblems,
+                scanState = state.scanState,
+                currentSongId = state.currentSongId,
+                currentPlaybackStatus = state.playbackStatus,
+                onBack = controller::navigateBack,
+                onScan = onScanLocalMusic,
+                onSongPlay = { song: Song, queueSongs: List<Song> ->
+                    controller.playSong(
+                        song = song,
+                        queueSongs = queueSongs,
+                    )
+                },
+                onMore = controller::openMore,
+                onAlbumOpen = controller::openAlbum,
+                onArtistOpen = controller::openArtist,
+            )
+        }
+
+        null -> {
+            DesktopEmptyStateScreen(
+                title = "本地音乐",
+                subtitle = "桌面首页",
+            )
+        }
     }
 }

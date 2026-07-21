@@ -24,9 +24,10 @@ internal class AndroidPlaybackSessionRuntime(
     private val playbackServiceConnector: PlaybackServiceConnector =
         PlaybackServiceConnector(scope = playbackScope),
     // Android 通知与系统媒体命令桥运行时。
-    private val playbackRuntime: AndroidPlaybackRuntime = AndroidPlaybackRuntime(
-        serviceConnector = playbackServiceConnector,
-    ),
+    private val playbackRuntime: AndroidPlaybackRuntime =
+        AndroidPlaybackRuntime(
+            serviceConnector = playbackServiceConnector,
+        ),
 ) {
     // 当前进程级共享控制器，仅在拿到 applicationContext 后初始化。
     private var controllerHolder: MusicAppController? = null
@@ -53,13 +54,14 @@ internal class AndroidPlaybackSessionRuntime(
             if (controllerHolder != null) {
                 return
             }
-            val controller: MusicAppController = createAndroidPlaybackController(
-                context = applicationContext,
-                localMusicScanner = uiBindings.localMusicScanner,
-                audioPlayerEngine = playbackServiceConnector,
-                permissionSettingsOpener = uiBindings.permissionSettingsOpener,
-                controllerScope = playbackScope,
-            )
+            val controller: MusicAppController =
+                createAndroidPlaybackController(
+                    context = applicationContext,
+                    localMusicScanner = uiBindings.localMusicScanner,
+                    audioPlayerEngine = playbackServiceConnector,
+                    permissionSettingsOpener = uiBindings.permissionSettingsOpener,
+                    controllerScope = playbackScope,
+                )
             playbackRuntime.attachController(controller = controller)
             controllerHolder = controller
         }

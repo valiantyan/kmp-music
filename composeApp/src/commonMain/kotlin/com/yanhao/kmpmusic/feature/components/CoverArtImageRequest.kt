@@ -30,8 +30,8 @@ internal fun buildCoverArtImageRequest(
 /**
  * Compose Multiplatform resources 中的封面路径，供 Res.getUri 加载。
  */
-internal fun coverArtResourcePath(coverArt: CoverArt): String {
-    return when (coverArt) {
+internal fun coverArtResourcePath(coverArt: CoverArt): String =
+    when (coverArt) {
         CoverArt.AlbumBestOfMe -> "drawable/album_best_of_me.png"
         CoverArt.AlbumRiverYear -> "drawable/album_river_year.png"
         CoverArt.AlbumTimeForest -> "drawable/album_time_forest.png"
@@ -39,4 +39,3 @@ internal fun coverArtResourcePath(coverArt: CoverArt): String {
         CoverArt.CoverSummerWaltz -> "drawable/cover_summer_waltz.png"
         CoverArt.HeroLocalMusic -> "drawable/hero_local_folder.png"
     }
-}

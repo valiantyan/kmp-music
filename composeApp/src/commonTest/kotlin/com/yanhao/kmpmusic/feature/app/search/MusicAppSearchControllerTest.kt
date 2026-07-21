@@ -21,276 +21,314 @@ import kotlin.test.assertTrue
 @OptIn(ExperimentalCoroutinesApi::class)
 class MusicAppSearchControllerTest {
     @Test
-    fun openSearchResetsQueryAndScopeForContext(): Unit = runTest {
-        val controller = SearchSessionController(
-            searchHistoryRepository = FakeSearchHistoryRepository(),
-            controllerScope = this,
-            debounceMillis = 300L,
-            publishStateUpdate = { _ -> },
-        )
-        val state = testState().copy(
-            searchQuery = "old",
-            activeSearchQuery = "old",
-            searchScope = SearchScope.Songs,
-        )
+    fun openSearchResetsQueryAndScopeForContext(): Unit =
+        runTest {
+            val controller =
+                SearchSessionController(
+                    searchHistoryRepository = FakeSearchHistoryRepository(),
+                    controllerScope = this,
+                    debounceMillis = 300L,
+                    publishStateUpdate = { _ -> },
+                )
+            val state =
+                testState().copy(
+                    searchQuery = "old",
+                    activeSearchQuery = "old",
+                    searchScope = SearchScope.Songs,
+                )
 
-        val nextState = controller.openSearch(
-            state = state,
-            context = SearchContext.Favorites,
-        )
+            val nextState =
+                controller.openSearch(
+                    state = state,
+                    context = SearchContext.Favorites,
+                )
 
-        assertEquals(expected = SearchContext.Favorites, actual = nextState.searchContext)
-        assertEquals(expected = "", actual = nextState.searchQuery)
-        assertEquals(expected = "", actual = nextState.activeSearchQuery)
-        assertEquals(expected = SearchScope.All, actual = nextState.searchScope)
-    }
-
-    @Test
-    fun clearingUncommittedSearchQueryDoesNotWriteHistory(): Unit = runTest {
-        val repository = FakeSearchHistoryRepository()
-        val controller = SearchSessionController(
-            searchHistoryRepository = repository,
-            controllerScope = this,
-            debounceMillis = 300L,
-            publishStateUpdate = { _ -> },
-        )
-        val state = testState().copy(
-            navigationState = testState().navigationState.copy(
-                secondaryScreen = SecondaryScreen.Search(context = SearchContext.LocalLibrary),
-            ),
-            searchContext = SearchContext.LocalLibrary,
-            searchQuery = "summer",
-            activeSearchQuery = "summer",
-        )
-
-        val nextState = controller.setSearchQuery(state = state, query = "")
-
-        assertEquals(expected = "", actual = nextState.searchQuery)
-        assertEquals(expected = "", actual = nextState.activeSearchQuery)
-        assertEquals(expected = emptyList(), actual = nextState.localLibrarySearchHistory)
-        assertEquals(expected = emptyList(), actual = repository.getSearchHistory(SearchContext.LocalLibrary))
-    }
+            assertEquals(expected = SearchContext.Favorites, actual = nextState.searchContext)
+            assertEquals(expected = "", actual = nextState.searchQuery)
+            assertEquals(expected = "", actual = nextState.activeSearchQuery)
+            assertEquals(expected = SearchScope.All, actual = nextState.searchScope)
+        }
 
     @Test
-    fun nonBlankSearchQueryDebouncesActiveQuery(): Unit = runTest {
-        var state = testState()
-        val controller = SearchSessionController(
-            searchHistoryRepository = FakeSearchHistoryRepository(),
-            controllerScope = this,
-            debounceMillis = 300L,
-            publishStateUpdate = { reducer -> state = reducer(state) },
-        )
+    fun clearingUncommittedSearchQueryDoesNotWriteHistory(): Unit =
+        runTest {
+            val repository = FakeSearchHistoryRepository()
+            val controller =
+                SearchSessionController(
+                    searchHistoryRepository = repository,
+                    controllerScope = this,
+                    debounceMillis = 300L,
+                    publishStateUpdate = { _ -> },
+                )
+            val state =
+                testState().copy(
+                    navigationState =
+                        testState().navigationState.copy(
+                            secondaryScreen = SecondaryScreen.Search(context = SearchContext.LocalLibrary),
+                        ),
+                    searchContext = SearchContext.LocalLibrary,
+                    searchQuery = "summer",
+                    activeSearchQuery = "summer",
+                )
 
-        state = controller.setSearchQuery(state = state, query = "river")
-        assertEquals(expected = "", actual = state.activeSearchQuery)
+            val nextState = controller.setSearchQuery(state = state, query = "")
 
-        advanceTimeBy(299L)
-        assertEquals(expected = "", actual = state.activeSearchQuery)
-
-        advanceTimeBy(1L)
-        advanceUntilIdle()
-        assertEquals(expected = "river", actual = state.activeSearchQuery)
-    }
-
-    @Test
-    fun debouncedSearchQueryPublishesActiveQueryAndCommitsVisibleHistory(): Unit = runTest {
-        val repository = FakeSearchHistoryRepository()
-        var state = testState().copy(
-            navigationState = testState().navigationState.copy(
-                secondaryScreen = SecondaryScreen.Search(context = SearchContext.LocalLibrary),
-            ),
-            searchContext = SearchContext.LocalLibrary,
-        )
-        val controller = SearchSessionController(
-            searchHistoryRepository = repository,
-            controllerScope = this,
-            debounceMillis = 300L,
-            publishStateUpdate = { reducer -> state = reducer(state) },
-        )
-
-        state = controller.setSearchQuery(state = state, query = "雨")
-        advanceTimeBy(300L)
-        advanceUntilIdle()
-
-        assertEquals(expected = "雨", actual = state.activeSearchQuery)
-        assertEquals(expected = listOf("雨"), actual = state.localLibrarySearchHistory)
-        assertEquals(expected = listOf("雨"), actual = repository.getSearchHistory(SearchContext.LocalLibrary))
-    }
+            assertEquals(expected = "", actual = nextState.searchQuery)
+            assertEquals(expected = "", actual = nextState.activeSearchQuery)
+            assertEquals(expected = emptyList(), actual = nextState.localLibrarySearchHistory)
+            assertEquals(expected = emptyList(), actual = repository.getSearchHistory(SearchContext.LocalLibrary))
+        }
 
     @Test
-    fun debouncedSearchQueryReplacesPreviousAutomaticHistoryDraft(): Unit = runTest {
-        val repository = FakeSearchHistoryRepository()
-        var state = testState().copy(
-            navigationState = testState().navigationState.copy(
-                secondaryScreen = SecondaryScreen.Search(context = SearchContext.LocalLibrary),
-            ),
-            searchContext = SearchContext.LocalLibrary,
-        )
-        val controller = SearchSessionController(
-            searchHistoryRepository = repository,
-            controllerScope = this,
-            debounceMillis = 300L,
-            publishStateUpdate = { reducer -> state = reducer(state) },
-        )
+    fun nonBlankSearchQueryDebouncesActiveQuery(): Unit =
+        runTest {
+            var state = testState()
+            val controller =
+                SearchSessionController(
+                    searchHistoryRepository = FakeSearchHistoryRepository(),
+                    controllerScope = this,
+                    debounceMillis = 300L,
+                    publishStateUpdate = { reducer -> state = reducer(state) },
+                )
 
-        state = controller.setSearchQuery(state = state, query = "shang")
-        advanceTimeBy(300L)
-        advanceUntilIdle()
-        state = controller.setSearchQuery(state = state, query = "shangx")
-        advanceTimeBy(300L)
-        advanceUntilIdle()
-        state = controller.setSearchQuery(state = state, query = "shangxin")
-        advanceTimeBy(300L)
-        advanceUntilIdle()
+            state = controller.setSearchQuery(state = state, query = "river")
+            assertEquals(expected = "", actual = state.activeSearchQuery)
 
-        assertEquals(expected = "shangxin", actual = state.activeSearchQuery)
-        assertEquals(expected = listOf("shangxin"), actual = state.localLibrarySearchHistory)
-        assertEquals(expected = listOf("shangxin"), actual = repository.getSearchHistory(SearchContext.LocalLibrary))
-    }
+            advanceTimeBy(299L)
+            assertEquals(expected = "", actual = state.activeSearchQuery)
+
+            advanceTimeBy(1L)
+            advanceUntilIdle()
+            assertEquals(expected = "river", actual = state.activeSearchQuery)
+        }
 
     @Test
-    fun debouncedSearchQueryPreservesHistoryBeforeAutomaticDraft(): Unit = runTest {
-        val repository = FakeSearchHistoryRepository()
-        var state = testState().copy(
-            navigationState = testState().navigationState.copy(
-                secondaryScreen = SecondaryScreen.Search(context = SearchContext.LocalLibrary),
-            ),
-            searchContext = SearchContext.LocalLibrary,
-            localLibrarySearchHistory = listOf("old"),
-        )
-        val controller = SearchSessionController(
-            searchHistoryRepository = repository,
-            controllerScope = this,
-            debounceMillis = 300L,
-            publishStateUpdate = { reducer -> state = reducer(state) },
-        )
+    fun debouncedSearchQueryPublishesActiveQueryAndCommitsVisibleHistory(): Unit =
+        runTest {
+            val repository = FakeSearchHistoryRepository()
+            var state =
+                testState().copy(
+                    navigationState =
+                        testState().navigationState.copy(
+                            secondaryScreen = SecondaryScreen.Search(context = SearchContext.LocalLibrary),
+                        ),
+                    searchContext = SearchContext.LocalLibrary,
+                )
+            val controller =
+                SearchSessionController(
+                    searchHistoryRepository = repository,
+                    controllerScope = this,
+                    debounceMillis = 300L,
+                    publishStateUpdate = { reducer -> state = reducer(state) },
+                )
 
-        state = controller.setSearchQuery(state = state, query = "shang")
-        advanceTimeBy(300L)
-        advanceUntilIdle()
-        state = controller.setSearchQuery(state = state, query = "shangxin")
-        advanceTimeBy(300L)
-        advanceUntilIdle()
+            state = controller.setSearchQuery(state = state, query = "雨")
+            advanceTimeBy(300L)
+            advanceUntilIdle()
 
-        assertEquals(expected = listOf("shangxin", "old"), actual = state.localLibrarySearchHistory)
-        assertEquals(
-            expected = listOf("shangxin", "old"),
-            actual = repository.getSearchHistory(SearchContext.LocalLibrary),
-        )
-    }
+            assertEquals(expected = "雨", actual = state.activeSearchQuery)
+            assertEquals(expected = listOf("雨"), actual = state.localLibrarySearchHistory)
+            assertEquals(expected = listOf("雨"), actual = repository.getSearchHistory(SearchContext.LocalLibrary))
+        }
 
     @Test
-    fun debouncedSearchQueryOutsideSearchPageDoesNotCommitHistory(): Unit = runTest {
-        val repository = FakeSearchHistoryRepository()
-        var state = testState().copy(searchContext = SearchContext.LocalLibrary)
-        val controller = SearchSessionController(
-            searchHistoryRepository = repository,
-            controllerScope = this,
-            debounceMillis = 300L,
-            publishStateUpdate = { reducer -> state = reducer(state) },
-        )
+    fun debouncedSearchQueryReplacesPreviousAutomaticHistoryDraft(): Unit =
+        runTest {
+            val repository = FakeSearchHistoryRepository()
+            var state =
+                testState().copy(
+                    navigationState =
+                        testState().navigationState.copy(
+                            secondaryScreen = SecondaryScreen.Search(context = SearchContext.LocalLibrary),
+                        ),
+                    searchContext = SearchContext.LocalLibrary,
+                )
+            val controller =
+                SearchSessionController(
+                    searchHistoryRepository = repository,
+                    controllerScope = this,
+                    debounceMillis = 300L,
+                    publishStateUpdate = { reducer -> state = reducer(state) },
+                )
 
-        state = controller.setSearchQuery(state = state, query = "雨")
-        advanceTimeBy(300L)
-        advanceUntilIdle()
+            state = controller.setSearchQuery(state = state, query = "shang")
+            advanceTimeBy(300L)
+            advanceUntilIdle()
+            state = controller.setSearchQuery(state = state, query = "shangx")
+            advanceTimeBy(300L)
+            advanceUntilIdle()
+            state = controller.setSearchQuery(state = state, query = "shangxin")
+            advanceTimeBy(300L)
+            advanceUntilIdle()
 
-        assertEquals(expected = "雨", actual = state.activeSearchQuery)
-        assertEquals(expected = emptyList(), actual = state.localLibrarySearchHistory)
-        assertEquals(expected = emptyList(), actual = repository.getSearchHistory(SearchContext.LocalLibrary))
-    }
-
-    @Test
-    fun searchHistoryIsIsolatedByContextAndDeduplicatesLatestFirst(): Unit = runTest {
-        val controller = SearchSessionController(
-            searchHistoryRepository = FakeSearchHistoryRepository(),
-            controllerScope = this,
-            debounceMillis = 300L,
-            publishStateUpdate = { _ -> },
-        )
-        var state = testState().copy(searchContext = SearchContext.LocalLibrary, searchQuery = "river")
-        state = controller.commitSearchQueryToHistory(state = state)
-        state = state.copy(searchContext = SearchContext.Favorites, searchQuery = "river")
-        state = controller.commitSearchQueryToHistory(state = state)
-        state = state.copy(searchContext = SearchContext.LocalLibrary, searchQuery = "sea")
-        state = controller.commitSearchQueryToHistory(state = state)
-        state = state.copy(searchContext = SearchContext.LocalLibrary, searchQuery = "river")
-        state = controller.commitSearchQueryToHistory(state = state)
-
-        assertEquals(expected = listOf("river", "sea"), actual = state.localLibrarySearchHistory)
-        assertEquals(expected = listOf("river"), actual = state.favoritesSearchHistory)
-    }
+            assertEquals(expected = "shangxin", actual = state.activeSearchQuery)
+            assertEquals(expected = listOf("shangxin"), actual = state.localLibrarySearchHistory)
+            assertEquals(expected = listOf("shangxin"), actual = repository.getSearchHistory(SearchContext.LocalLibrary))
+        }
 
     @Test
-    fun selectSearchHistoryRestoresQueryAndMovesItToTop(): Unit = runTest {
-        val controller = SearchSessionController(
-            searchHistoryRepository = FakeSearchHistoryRepository(),
-            controllerScope = this,
-            debounceMillis = 300L,
-            publishStateUpdate = { _ -> },
-        )
-        val state = testState().copy(
-            searchContext = SearchContext.LocalLibrary,
-            localLibrarySearchHistory = listOf("sea", "river"),
-        )
+    fun debouncedSearchQueryPreservesHistoryBeforeAutomaticDraft(): Unit =
+        runTest {
+            val repository = FakeSearchHistoryRepository()
+            var state =
+                testState().copy(
+                    navigationState =
+                        testState().navigationState.copy(
+                            secondaryScreen = SecondaryScreen.Search(context = SearchContext.LocalLibrary),
+                        ),
+                    searchContext = SearchContext.LocalLibrary,
+                    localLibrarySearchHistory = listOf("old"),
+                )
+            val controller =
+                SearchSessionController(
+                    searchHistoryRepository = repository,
+                    controllerScope = this,
+                    debounceMillis = 300L,
+                    publishStateUpdate = { reducer -> state = reducer(state) },
+                )
 
-        val nextState = controller.selectSearchHistory(
-            state = state,
-            query = "river",
-        )
+            state = controller.setSearchQuery(state = state, query = "shang")
+            advanceTimeBy(300L)
+            advanceUntilIdle()
+            state = controller.setSearchQuery(state = state, query = "shangxin")
+            advanceTimeBy(300L)
+            advanceUntilIdle()
 
-        assertEquals(expected = "river", actual = nextState.searchQuery)
-        assertEquals(expected = "river", actual = nextState.activeSearchQuery)
-        assertEquals(expected = listOf("river", "sea"), actual = nextState.localLibrarySearchHistory)
-    }
-
-    @Test
-    fun removeSearchHistoryItemOnlyDeletesRequestedEntryInContext(): Unit = runTest {
-        val controller = SearchSessionController(
-            searchHistoryRepository = FakeSearchHistoryRepository(),
-            controllerScope = this,
-            debounceMillis = 300L,
-            publishStateUpdate = { _ -> },
-        )
-        val state = testState().copy(
-            searchContext = SearchContext.LocalLibrary,
-            localLibrarySearchHistory = listOf("river", "sea"),
-            favoritesSearchHistory = listOf("jazz"),
-        )
-
-        val nextState = controller.removeSearchHistoryItem(
-            state = state,
-            context = SearchContext.LocalLibrary,
-            query = "river",
-        )
-
-        assertEquals(expected = listOf("sea"), actual = nextState.localLibrarySearchHistory)
-        assertEquals(expected = listOf("jazz"), actual = nextState.favoritesSearchHistory)
-    }
+            assertEquals(expected = listOf("shangxin", "old"), actual = state.localLibrarySearchHistory)
+            assertEquals(
+                expected = listOf("shangxin", "old"),
+                actual = repository.getSearchHistory(SearchContext.LocalLibrary),
+            )
+        }
 
     @Test
-    fun clearSearchHistoryOnlyClearsRequestedContext(): Unit = runTest {
-        val controller = SearchSessionController(
-            searchHistoryRepository = FakeSearchHistoryRepository(),
-            controllerScope = this,
-            debounceMillis = 300L,
-            publishStateUpdate = { _ -> },
-        )
-        val state = testState().copy(
-            localLibrarySearchHistory = listOf("river"),
-            favoritesSearchHistory = listOf("jazz"),
-        )
+    fun debouncedSearchQueryOutsideSearchPageDoesNotCommitHistory(): Unit =
+        runTest {
+            val repository = FakeSearchHistoryRepository()
+            var state = testState().copy(searchContext = SearchContext.LocalLibrary)
+            val controller =
+                SearchSessionController(
+                    searchHistoryRepository = repository,
+                    controllerScope = this,
+                    debounceMillis = 300L,
+                    publishStateUpdate = { reducer -> state = reducer(state) },
+                )
 
-        val nextState = controller.clearSearchHistory(
-            state = state,
-            context = SearchContext.Favorites,
-        )
+            state = controller.setSearchQuery(state = state, query = "雨")
+            advanceTimeBy(300L)
+            advanceUntilIdle()
 
-        assertEquals(expected = listOf("river"), actual = nextState.localLibrarySearchHistory)
-        assertEquals(expected = emptyList(), actual = nextState.favoritesSearchHistory)
-    }
+            assertEquals(expected = "雨", actual = state.activeSearchQuery)
+            assertEquals(expected = emptyList(), actual = state.localLibrarySearchHistory)
+            assertEquals(expected = emptyList(), actual = repository.getSearchHistory(SearchContext.LocalLibrary))
+        }
 
     @Test
-    fun controllerInitializationRestoresSearchHistoryFromSharedRepositoryAcrossInstances(): Unit {
+    fun searchHistoryIsIsolatedByContextAndDeduplicatesLatestFirst(): Unit =
+        runTest {
+            val controller =
+                SearchSessionController(
+                    searchHistoryRepository = FakeSearchHistoryRepository(),
+                    controllerScope = this,
+                    debounceMillis = 300L,
+                    publishStateUpdate = { _ -> },
+                )
+            var state = testState().copy(searchContext = SearchContext.LocalLibrary, searchQuery = "river")
+            state = controller.commitSearchQueryToHistory(state = state)
+            state = state.copy(searchContext = SearchContext.Favorites, searchQuery = "river")
+            state = controller.commitSearchQueryToHistory(state = state)
+            state = state.copy(searchContext = SearchContext.LocalLibrary, searchQuery = "sea")
+            state = controller.commitSearchQueryToHistory(state = state)
+            state = state.copy(searchContext = SearchContext.LocalLibrary, searchQuery = "river")
+            state = controller.commitSearchQueryToHistory(state = state)
+
+            assertEquals(expected = listOf("river", "sea"), actual = state.localLibrarySearchHistory)
+            assertEquals(expected = listOf("river"), actual = state.favoritesSearchHistory)
+        }
+
+    @Test
+    fun selectSearchHistoryRestoresQueryAndMovesItToTop(): Unit =
+        runTest {
+            val controller =
+                SearchSessionController(
+                    searchHistoryRepository = FakeSearchHistoryRepository(),
+                    controllerScope = this,
+                    debounceMillis = 300L,
+                    publishStateUpdate = { _ -> },
+                )
+            val state =
+                testState().copy(
+                    searchContext = SearchContext.LocalLibrary,
+                    localLibrarySearchHistory = listOf("sea", "river"),
+                )
+
+            val nextState =
+                controller.selectSearchHistory(
+                    state = state,
+                    query = "river",
+                )
+
+            assertEquals(expected = "river", actual = nextState.searchQuery)
+            assertEquals(expected = "river", actual = nextState.activeSearchQuery)
+            assertEquals(expected = listOf("river", "sea"), actual = nextState.localLibrarySearchHistory)
+        }
+
+    @Test
+    fun removeSearchHistoryItemOnlyDeletesRequestedEntryInContext(): Unit =
+        runTest {
+            val controller =
+                SearchSessionController(
+                    searchHistoryRepository = FakeSearchHistoryRepository(),
+                    controllerScope = this,
+                    debounceMillis = 300L,
+                    publishStateUpdate = { _ -> },
+                )
+            val state =
+                testState().copy(
+                    searchContext = SearchContext.LocalLibrary,
+                    localLibrarySearchHistory = listOf("river", "sea"),
+                    favoritesSearchHistory = listOf("jazz"),
+                )
+
+            val nextState =
+                controller.removeSearchHistoryItem(
+                    state = state,
+                    context = SearchContext.LocalLibrary,
+                    query = "river",
+                )
+
+            assertEquals(expected = listOf("sea"), actual = nextState.localLibrarySearchHistory)
+            assertEquals(expected = listOf("jazz"), actual = nextState.favoritesSearchHistory)
+        }
+
+    @Test
+    fun clearSearchHistoryOnlyClearsRequestedContext(): Unit =
+        runTest {
+            val controller =
+                SearchSessionController(
+                    searchHistoryRepository = FakeSearchHistoryRepository(),
+                    controllerScope = this,
+                    debounceMillis = 300L,
+                    publishStateUpdate = { _ -> },
+                )
+            val state =
+                testState().copy(
+                    localLibrarySearchHistory = listOf("river"),
+                    favoritesSearchHistory = listOf("jazz"),
+                )
+
+            val nextState =
+                controller.clearSearchHistory(
+                    state = state,
+                    context = SearchContext.Favorites,
+                )
+
+            assertEquals(expected = listOf("river"), actual = nextState.localLibrarySearchHistory)
+            assertEquals(expected = emptyList(), actual = nextState.favoritesSearchHistory)
+        }
+
+    @Test
+    fun controllerInitializationRestoresSearchHistoryFromSharedRepositoryAcrossInstances() {
         val repository = FakeSearchHistoryRepository()
         val firstController = createController(searchHistoryRepository = repository)
 
@@ -311,22 +349,20 @@ class MusicAppSearchControllerTest {
     }
 
     /** 为搜索控制器测试构造最小 [MusicAppUiState]。 */
-    private fun testState(): MusicAppUiState {
-        return MusicAppUiState(
+    private fun testState(): MusicAppUiState =
+        MusicAppUiState(
             likedSongIds = emptySet(),
             currentSongId = null,
             playbackStatus = PlaybackStatus.Idle,
             queueSongIds = emptyList(),
         )
-    }
 
     /** 通过真实 [MusicAppController] 初始化链路验证搜索历史恢复。 */
-    private fun createController(searchHistoryRepository: SearchHistoryRepository): MusicAppController {
-        return MusicAppController(
+    private fun createController(searchHistoryRepository: SearchHistoryRepository): MusicAppController =
+        MusicAppController(
             searchHistoryRepository = searchHistoryRepository,
             controllerScope = CoroutineScope(SupervisorJob() + Dispatchers.Unconfined),
         )
-    }
 }
 
 private class FakeSearchHistoryRepository : SearchHistoryRepository {
@@ -334,12 +370,13 @@ private class FakeSearchHistoryRepository : SearchHistoryRepository {
     private val histories: MutableMap<SearchContext, List<String>> = mutableMapOf()
 
     /** 读取指定上下文的搜索历史。 */
-    override fun getSearchHistory(context: SearchContext): List<String> {
-        return histories[context].orEmpty()
-    }
+    override fun getSearchHistory(context: SearchContext): List<String> = histories[context].orEmpty()
 
     /** 持久化指定上下文的搜索历史。 */
-    override fun saveSearchHistory(context: SearchContext, history: List<String>) {
+    override fun saveSearchHistory(
+        context: SearchContext,
+        history: List<String>,
+    ) {
         histories[context] = history
     }
 }

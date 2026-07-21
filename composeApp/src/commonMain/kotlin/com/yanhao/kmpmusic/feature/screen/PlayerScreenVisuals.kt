@@ -39,41 +39,47 @@ internal fun PlayerBackground(
     backgroundColor: Color,
 ) {
     Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(color = backgroundColor),
+        modifier =
+            Modifier
+                .fillMaxSize()
+                .background(color = backgroundColor),
     ) {
         CoverArtImage(
             coverArt = song.coverArt,
             coverImageUri = song.coverImageUri,
             contentDescription = null,
-            modifier = Modifier
-                .fillMaxSize()
-                .alpha(alpha = 0.16f)
-                .blur(radius = scaledDp(54.dp)),
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .alpha(alpha = 0.16f)
+                    .blur(radius = scaledDp(54.dp)),
             contentScale = ContentScale.Crop,
         )
         Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(
-                    brush = Brush.radialGradient(
-                        colors = listOf(
-                            palette.ambientColor.copy(alpha = 0.46f),
-                            Color.Transparent,
-                        ),
-                        radius = 720f,
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .background(
+                        brush =
+                            Brush.radialGradient(
+                                colors =
+                                    listOf(
+                                        palette.ambientColor.copy(alpha = 0.46f),
+                                        Color.Transparent,
+                                    ),
+                                radius = 720f,
+                            ),
+                    ).background(
+                        brush =
+                            Brush.verticalGradient(
+                                colorStops =
+                                    arrayOf(
+                                        0f to Color.White.copy(alpha = 0.30f),
+                                        0.42f to backgroundColor.copy(alpha = 0.72f),
+                                        1f to backgroundColor,
+                                    ),
+                            ),
                     ),
-                )
-                .background(
-                    brush = Brush.verticalGradient(
-                        colorStops = arrayOf(
-                            0f to Color.White.copy(alpha = 0.30f),
-                            0.42f to backgroundColor.copy(alpha = 0.72f),
-                            1f to backgroundColor,
-                        ),
-                    ),
-                ),
         )
     }
 }
@@ -87,9 +93,10 @@ internal fun PlayerTopBar(onBack: () -> Unit) {
     ) {
         IconButton(
             onClick = onBack,
-            modifier = Modifier
-                .offset(x = -scaledDp(28.dp))
-                .size(size = scaledDp(40.dp)),
+            modifier =
+                Modifier
+                    .offset(x = -scaledDp(28.dp))
+                    .size(size = scaledDp(40.dp)),
         ) {
             Icon(
                 imageVector = Icons.Rounded.ExpandMore,
@@ -108,32 +115,35 @@ internal fun PlayerCoverArt(
     coverSize: Dp,
 ) {
     Box(
-        modifier = Modifier
-            .size(size = coverSize)
-            .shadow(
-                elevation = scaledDp(24.dp),
-                shape = RoundedCornerShape(size = scaledDp(32.dp)),
-                ambientColor = MusicColors.AccentDeep.copy(alpha = 0.22f),
-                spotColor = MusicColors.AccentDeep.copy(alpha = 0.22f),
-            )
-            .clip(shape = RoundedCornerShape(size = scaledDp(32.dp)))
-            .background(
-                brush = Brush.linearGradient(
-                    colors = listOf(
-                        Color.White.copy(alpha = 0.30f),
-                        Color.White.copy(alpha = 0.08f),
-                    ),
+        modifier =
+            Modifier
+                .size(size = coverSize)
+                .shadow(
+                    elevation = scaledDp(24.dp),
+                    shape = RoundedCornerShape(size = scaledDp(32.dp)),
+                    ambientColor = MusicColors.AccentDeep.copy(alpha = 0.22f),
+                    spotColor = MusicColors.AccentDeep.copy(alpha = 0.22f),
+                ).clip(shape = RoundedCornerShape(size = scaledDp(32.dp)))
+                .background(
+                    brush =
+                        Brush.linearGradient(
+                            colors =
+                                listOf(
+                                    Color.White.copy(alpha = 0.30f),
+                                    Color.White.copy(alpha = 0.08f),
+                                ),
+                        ),
                 ),
-            ),
         contentAlignment = Alignment.Center,
     ) {
         CoverArtImage(
             coverArt = song.coverArt,
             coverImageUri = song.coverImageUri,
             contentDescription = "${song.title} 封面",
-            modifier = Modifier
-                .fillMaxSize()
-                .clip(shape = RoundedCornerShape(size = scaledDp(30.dp))),
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .clip(shape = RoundedCornerShape(size = scaledDp(30.dp))),
             contentScale = ContentScale.Crop,
         )
     }
