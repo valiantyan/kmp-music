@@ -23,6 +23,7 @@
 | 移动端导航、全局 chrome、迷你播放器、播放页、桌面播放器 | `docs/agents/ui-state.md`、相关显示模型和测试 | 生产 App 必须是 Compose 原生 UI；原型只作视觉参考。 |
 | 本地 issue、PRD 或 GitHub 缺陷 | `docs/agents/issue-tracker.md`、`docs/agents/github-bug-flow.md`、对应 `.scratch/<feature-slug>/` | 本地 Markdown issue 是执行和审计主记录。 |
 | 测试范围不确定 | `docs/agents/testing.md`、`./gradlew :composeApp:tasks` | 不猜任务名，不声称未运行的验证通过。 |
+| Harness 维护、重复错误沉淀、验证入口失效 | `docs/agents/harness.md`、`docs/agents/testing.md`、`scripts/verify-local.sh` | 先找最小权威 owner；能升级成测试、脚本、lint 或类型约束的，不只写成口头规则。 |
 
 ## Agent skills
 
@@ -51,13 +52,14 @@
 
 ## 常用验证
 
+- 常规代码默认验收：`./scripts/verify-local.sh`
 - 不确定任务是否存在：`./gradlew :composeApp:tasks`
 - Android 编译：`./gradlew :composeApp:compileDebugKotlinAndroid`
 - 共享逻辑和 Android 编译：`./gradlew :composeApp:compileDebugKotlinAndroid :composeApp:desktopTest`
 - 桌面端测试：`./gradlew :composeApp:desktopTest`
 - macOS AVFoundation 冒烟验证：`./gradlew :composeApp:macosAvFoundationBridgeSmoke`、`./gradlew :composeApp:macosAvFoundationDefaultRuntimeSmoke`
 
-更多命令和测试选择细则见 `docs/agents/testing.md`；提交前至少运行与改动范围匹配的验证。
+更多命令和测试选择细则见 `docs/agents/testing.md`；提交前至少运行与改动范围匹配的验证。常规代码改动后，AI 必须主动运行 `./scripts/verify-local.sh`；如果因环境限制、任务范围或更精确的 focused 验证没有运行该脚本，交付说明必须写清原因、已运行的等价命令和人工验收缺口。
 
 ## 交付门禁
 
@@ -66,6 +68,7 @@
 - 如果验证未运行、失败或受环境限制，明确说明，不要把推测写成已通过。
 - 缺陷修复提交信息必须用中文写明问题原因和解决方案。
 - 交付前做对抗式审查：基于当前可见上下文、实际 diff 和必要文件列出最可能翻车的风险；上下文不足时先补查或标明未覆盖，不凭记忆审查。
+- 如果同类错误第二次出现，把教训沉淀到最早能阻止它的位置：优先测试、脚本、类型或接口约束，其次更新 `docs/agents/*` 或对应 `.scratch/<feature-slug>/` 记录。
 
 ## 禁止事项
 

@@ -2,19 +2,44 @@
 
 本文承接根 `AGENTS.md` 的测试细则。提交前至少运行与改动范围匹配的命令；不确定任务是否存在时先跑 `./gradlew :composeApp:tasks`。
 
+## 默认入口
+
+常规代码改动后，AI 必须主动运行默认入口：
+
+```bash
+./scripts/verify-local.sh
+```
+
+该脚本运行 Android Kotlin 编译和 Desktop 测试，覆盖共享逻辑与 Android 编译风险；在 macOS host 上，`desktopTest` 会带上 AVFoundation bridge 编译依赖，非 macOS 环境由 Gradle `onlyIf` 跳过相关 bridge 编译。它不是所有任务的唯一验收：平台播放、安装、截图、iOS framework、DMG 或真实设备行为仍要按改动范围补跑 focused 命令，并在交付说明中写明。只有纯文档改动、脚本因环境限制不可运行，或已运行更精确的 focused 验证时，才允许不跑默认入口；这种情况必须说明原因和等价证据。
+
 ## 命令选择
 
 | 改动范围 | 最低验证 |
 | --- | --- |
+| 默认本地验收，不确定该跑什么 | `./scripts/verify-local.sh` |
 | 普通 Kotlin 或 Android 共享代码编译风险 | `./gradlew :composeApp:compileDebugKotlinAndroid` |
 | 需要生成调试 APK | `./gradlew :composeApp:assembleDebug` |
 | 需要安装到已连接 Android 设备 | `./gradlew :composeApp:installDebug` |
-| 共享状态、控制器、导航、播放、队列、收藏、搜索、扫描、偏好 | `./gradlew :composeApp:compileDebugKotlinAndroid :composeApp:desktopTest` |
+| 共享状态、控制器、导航、播放、队列、收藏、搜索、扫描、偏好 | 先跑对应 focused 测试，再跑 `./scripts/verify-local.sh` |
 | UI 大改 | 至少 Android 编译；涉及共享状态时加 `:composeApp:desktopTest`；尽量补截图核对。 |
 | 领域模型或 UseCase | 更新对应 `domain/model`、`domain/usecase`、`domain/playback` 测试，并运行匹配测试任务。 |
 | Repository、数据库、扫描合并 | 更新 `data`、`domain/persistence` 或扫描控制器测试，并运行匹配测试任务。 |
-| Android MediaStore、Media3 service、通知按钮或权限 | 至少 Android 编译；能用 JVM 或共享测试覆盖的逻辑要补测。 |
+| Android MediaStore、Media3 service、通知按钮或权限 | 至少 Android 编译；能用 JVM 或共享测试覆盖的逻辑要补测，可用 `./scripts/verify-local.sh android-unit`。 |
+| Android Manifest、资源、权限声明或基础质量门禁 | `./scripts/verify-local.sh lint` |
 | Apple/macOS AVFoundation | 至少 `./gradlew :composeApp:desktopTest`；按影响范围跑相关 macOS 冒烟验证。 |
+
+`scripts/verify-local.sh` 支持这些 focused 模式：
+
+| 模式 | 命令 |
+| --- | --- |
+| `default` / `quick` | `./gradlew :composeApp:compileDebugKotlinAndroid :composeApp:desktopTest` |
+| `android` | `./gradlew :composeApp:compileDebugKotlinAndroid` |
+| `android-unit` | `./gradlew :composeApp:testDebugUnitTest` |
+| `apk` | `./gradlew :composeApp:assembleDebug` |
+| `lint` | `./gradlew :composeApp:lintDebug` |
+| `desktop` | `./gradlew :composeApp:desktopTest` |
+| `macos-avfoundation` | `./gradlew :composeApp:desktopTest :composeApp:macosAvFoundationBridgeSmoke :composeApp:macosAvFoundationDefaultRuntimeSmoke` |
+| `tasks` | `./gradlew :composeApp:tasks` |
 
 ## 测试落点
 
@@ -23,9 +48,25 @@
 - 桌面页面或播放器显示改动，优先补 `feature/desktop` 测试。
 - 数据库迁移、持久化 mapper、播放快照、扫描合并这类状态语义不能只靠 UI 现象验证。
 
+## 验收判断
+
+- 通过：运行了与改动范围匹配的命令，用户可见行为或平台 claim 有对应证据，且没有未解释的失败。
+- 有条件通过：核心命令通过，但截图、真机、iOS、macOS smoke 或外部权限受限；交付说明必须写清剩余风险和建议补跑命令。
+- 不通过：命令失败、任务不存在、环境缺依赖、脚本本身出错，或测试只证明内部实现但没有覆盖用户验收 claim。
+
+## 失败排查
+
+1. 先确认失败命令是否真实存在：`./gradlew :composeApp:tasks`。
+2. 编译失败先按源码集定位：`commonMain` 看分层和 `expect/actual`，`androidMain` 看 MediaStore/Media3/权限，`desktopMain` 看文件系统、数据库或 AVFoundation bridge。
+3. 测试失败先读失败测试名对应的源码和邻近测试，不要删除失败断言来让构建变绿。
+4. macOS AVFoundation smoke 失败时区分 `clang++`、JNI bridge 编译、资源 staging、运行时播放和宿主系统权限问题。
+5. 环境或权限限制要在最终回复中归类为项目问题、环境问题、权限问题、依赖问题或脚本问题。
+
 ## 交付说明
 
 - 不要在没有实际运行的情况下声称验证通过。
+- 常规代码改动如果没有运行 `./scripts/verify-local.sh`，必须说明跳过原因、等价命令和未覆盖风险。
 - 如果验证失败，保留真实失败命令和关键错误；不要删除失败测试来让构建变绿。
 - 如果验证受环境限制，说明限制原因、未覆盖风险和建议的后续命令。
 - Markdown 纯文档改动通常不需要跑 Gradle，但仍要检查 `git diff`、链接路径和文档是否与源码事实冲突。
+- 重复错误沉淀到 `docs/agents/harness.md` 指定的最早 owner；能写测试、脚本或类型约束时，不只更新 Markdown。
