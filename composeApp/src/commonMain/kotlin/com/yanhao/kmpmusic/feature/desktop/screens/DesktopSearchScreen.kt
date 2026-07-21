@@ -103,6 +103,7 @@ fun DesktopSearchScreen(
             placeholder = "搜索歌曲、专辑、歌手",
             modifier = Modifier.fillMaxWidth(),
             leadingIcon = Icons.Rounded.Search,
+            isClearEnabled = true,
             onSubmit = onCommitSearch,
         )
         Spacer(modifier = Modifier.height(18.dp))

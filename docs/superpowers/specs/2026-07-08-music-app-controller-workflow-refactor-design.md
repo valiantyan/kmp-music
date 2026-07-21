@@ -103,7 +103,7 @@ feature/app/library/LocalMusicScanController.kt
 | `restorePlaybackSnapshot` | `PlaybackRestoreOrchestrator` 和门面 | 公开入口可短期保留兼容名称；内部语义是冷启动加载上次播放数据，不自动播放；只有启动期显式加载请求能设置待加载播放快照状态。 |
 | `openLocalMusic`、`openAudioScan`、`openRecentPlayed`、`openAlbum`、`openArtist`、`openAlbumFromSong`、`openArtistFromSong` | `ContentNavigationController` | 详情页打开前仍按需加载完整曲库；从搜索结果进入详情时由门面先提交搜索历史。 |
 | `openSearch` | `MusicAppController` 门面 | 保持门面级编排：按上下文加载曲库、重置搜索会话并导航到搜索页。 |
-| `setSearchQuery`、`setSearchScope`、`commitSearchQueryToHistory`、`selectSearchHistory`、`removeSearchHistoryItem`、`clearSearchHistory`、`search` | `SearchSessionController` 和 `SearchResultController` | 搜索输入、防抖、历史和结果派生规则保持；搜索页外醒来的防抖任务不得写入历史。 |
+| `setSearchQuery`、`setSearchScope`、`commitSearchQueryToHistory`、`selectSearchHistory`、`removeSearchHistoryItem`、`clearSearchHistory`、`search` | `SearchSessionController` 和 `SearchResultController` | 搜索输入、防抖、历史和结果派生规则保持；搜索页外醒来的防抖任务不得写入历史，同一轮自动搜索只保留最后一个生效词。 |
 | `openPlayer` | `NavigationStateController` 和门面 | 只进入播放器二级页，不归播放动作模块。 |
 | `playSong`、`playRecentSong`、`togglePlayback`、`play`、`pause`、`moveTrack`、`skipToQueueIndex`、`seekTo`、`cyclePlaybackMode`、`setVolume`、`removeFromQueue`、`persistPlaybackSnapshotForServiceTeardown`、`persistPlaybackSnapshotForProcessTeardown`、`clearRecentPlaybackHistory` | `PlaybackActionController` | 队列解析、最近播放、快照补写、音量范围和系统媒体命令语义保持。 |
 | `toggleFavorite`、`toggleCurrentSongFavorite`、`setFavoriteSection` | `FavoriteStateSynchronizer` 和门面 | 收藏事实仍由仓库和同步器投影，播放 UI 观察者继续随收藏变化发布。 |
@@ -208,7 +208,7 @@ MusicAppController 统一写回 uiState
 3. 权限永久拒绝后再次扫描前先弹确认，再打开系统设置。
 4. `playSong` 未传入队列且歌曲已在当前队列中时，复用当前队列。
 5. 最近播放入口播放歌曲时，使用完整最近播放列表作为队列。
-6. 搜索历史只在防抖结果生效、显式提交或点击搜索结果时记录。
+6. 搜索历史只在防抖结果生效、显式提交或点击搜索结果时记录；同一轮连续输入产生的防抖中间词必须被最新词替换。
 7. 打开专辑或歌手详情前提交当前搜索词，并加载完整曲库。
 8. 冷启动加载上次播放数据在歌曲不足时挂起，不自动扫描；曲库加载或用户主动扫描完成后再尝试加载。
 9. 系统返回优先关闭权限弹窗、缓存弹窗、单曲更多面板、队列，再返回二级页面。

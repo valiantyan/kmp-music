@@ -118,6 +118,68 @@ class MusicAppSearchControllerTest {
     }
 
     @Test
+    fun debouncedSearchQueryReplacesPreviousAutomaticHistoryDraft(): Unit = runTest {
+        val repository = FakeSearchHistoryRepository()
+        var state = testState().copy(
+            navigationState = testState().navigationState.copy(
+                secondaryScreen = SecondaryScreen.Search(context = SearchContext.LocalLibrary),
+            ),
+            searchContext = SearchContext.LocalLibrary,
+        )
+        val controller = SearchSessionController(
+            searchHistoryRepository = repository,
+            controllerScope = this,
+            debounceMillis = 300L,
+            publishStateUpdate = { reducer -> state = reducer(state) },
+        )
+
+        state = controller.setSearchQuery(state = state, query = "shang")
+        advanceTimeBy(300L)
+        advanceUntilIdle()
+        state = controller.setSearchQuery(state = state, query = "shangx")
+        advanceTimeBy(300L)
+        advanceUntilIdle()
+        state = controller.setSearchQuery(state = state, query = "shangxin")
+        advanceTimeBy(300L)
+        advanceUntilIdle()
+
+        assertEquals(expected = "shangxin", actual = state.activeSearchQuery)
+        assertEquals(expected = listOf("shangxin"), actual = state.localLibrarySearchHistory)
+        assertEquals(expected = listOf("shangxin"), actual = repository.getSearchHistory(SearchContext.LocalLibrary))
+    }
+
+    @Test
+    fun debouncedSearchQueryPreservesHistoryBeforeAutomaticDraft(): Unit = runTest {
+        val repository = FakeSearchHistoryRepository()
+        var state = testState().copy(
+            navigationState = testState().navigationState.copy(
+                secondaryScreen = SecondaryScreen.Search(context = SearchContext.LocalLibrary),
+            ),
+            searchContext = SearchContext.LocalLibrary,
+            localLibrarySearchHistory = listOf("old"),
+        )
+        val controller = SearchSessionController(
+            searchHistoryRepository = repository,
+            controllerScope = this,
+            debounceMillis = 300L,
+            publishStateUpdate = { reducer -> state = reducer(state) },
+        )
+
+        state = controller.setSearchQuery(state = state, query = "shang")
+        advanceTimeBy(300L)
+        advanceUntilIdle()
+        state = controller.setSearchQuery(state = state, query = "shangxin")
+        advanceTimeBy(300L)
+        advanceUntilIdle()
+
+        assertEquals(expected = listOf("shangxin", "old"), actual = state.localLibrarySearchHistory)
+        assertEquals(
+            expected = listOf("shangxin", "old"),
+            actual = repository.getSearchHistory(SearchContext.LocalLibrary),
+        )
+    }
+
+    @Test
     fun debouncedSearchQueryOutsideSearchPageDoesNotCommitHistory(): Unit = runTest {
         val repository = FakeSearchHistoryRepository()
         var state = testState().copy(searchContext = SearchContext.LocalLibrary)

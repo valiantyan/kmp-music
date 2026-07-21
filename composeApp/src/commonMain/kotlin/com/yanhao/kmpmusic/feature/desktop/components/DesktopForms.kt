@@ -38,7 +38,7 @@ import com.yanhao.kmpmusic.feature.desktop.DesktopMusicColors
 import com.yanhao.kmpmusic.feature.desktop.DesktopMusicType
 
 /**
- * 桌面输入框统一复用浅色玻璃样式，避免搜索和登录各自拼接不一致的表单外观。
+ * 桌面输入框统一复用浅色玻璃样式，搜索页可显式开启清除动作，避免影响登录等普通表单。
  */
 @Composable
 fun DesktopTextInput(
@@ -47,6 +47,7 @@ fun DesktopTextInput(
     placeholder: String,
     modifier: Modifier = Modifier,
     leadingIcon: ImageVector? = null,
+    isClearEnabled: Boolean = false,
     onSubmit: () -> Unit = {},
 ) {
     val interactionSource: MutableInteractionSource = MutableInteractionSource()
@@ -78,6 +79,10 @@ fun DesktopTextInput(
         ),
         interactionSource = interactionSource,
         decorationBox = { innerTextField: @Composable () -> Unit ->
+            val shouldShowClearAction: Boolean = shouldShowDesktopTextInputClearAction(
+                value = textFieldValue.text,
+                isClearEnabled = isClearEnabled,
+            )
             Surface(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
@@ -111,6 +116,14 @@ fun DesktopTextInput(
                         }
                         innerTextField()
                     }
+                    DesktopTextInputClearAction(
+                        isClearEnabled = isClearEnabled,
+                        shouldShowClearAction = shouldShowClearAction,
+                        onClear = {
+                            textFieldValue = TextFieldValue(text = "")
+                            onValueChange("")
+                        },
+                    )
                 }
             }
         },

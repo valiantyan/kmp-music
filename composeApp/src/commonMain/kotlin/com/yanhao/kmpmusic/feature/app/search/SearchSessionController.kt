@@ -21,6 +21,8 @@ class SearchSessionController(
 ) {
     // 防抖任务必须集中托管，避免 facade 和子控制器各自维护搜索发布时间线。
     private var debounceJob: Job? = null
+    // 自动搜索历史草稿用于替换同一轮输入产生的中间词，避免历史被防抖过程污染。
+    private var automaticSearchHistoryDraft: AutomaticSearchHistoryDraft? = null
 
     /** 打开搜索时重置输入态，并切换到指定搜索上下文。 */
     fun openSearch(state: MusicAppUiState, context: SearchContext): MusicAppUiState {
@@ -32,7 +34,7 @@ class SearchSessionController(
         )
     }
 
-    /** 更新搜索词；清空只重置输入态，非空词在防抖生效后才记录为真实搜索。 */
+    /** 更新搜索词；清空会结束当前自动搜索草稿，非空词仍通过防抖驱动结果。 */
     fun setSearchQuery(state: MusicAppUiState, query: String): MusicAppUiState {
         val nextState: MusicAppUiState = state.copy(searchQuery = query)
         return scheduleActiveSearchQuerySync(
@@ -74,6 +76,7 @@ class SearchSessionController(
         context: SearchContext,
         query: String,
     ): MusicAppUiState {
+        automaticSearchHistoryDraft = null
         return updateSearchHistory(
             state = state,
             context = context,
@@ -83,6 +86,7 @@ class SearchSessionController(
 
     /** 清空指定上下文的搜索历史。 */
     fun clearSearchHistory(state: MusicAppUiState, context: SearchContext): MusicAppUiState {
+        automaticSearchHistoryDraft = null
         return updateSearchHistory(
             state = state,
             context = context,
@@ -118,7 +122,7 @@ class SearchSessionController(
         )
     }
 
-    // 非空 query 通过发布 reducer 延迟生效，只有可见结果生效时才记录历史。
+    // 非空 query 通过发布 reducer 延迟生效，自动历史在同一轮输入中只保留最后一个词。
     private fun scheduleActiveSearchQuerySync(
         state: MusicAppUiState,
         query: String,
@@ -145,7 +149,7 @@ class SearchSessionController(
         return state
     }
 
-    // 防抖搜索已驱动可见结果时才写历史；离开搜索页后醒来的任务只同步 active query。
+    // 防抖搜索已驱动可见结果时才更新自动历史草稿；离开搜索页后醒来的任务只同步 active query。
     private fun publishDebouncedSearchQuery(
         state: MusicAppUiState,
         query: String,
@@ -155,7 +159,7 @@ class SearchSessionController(
         if (secondaryScreen !is SecondaryScreen.Search) {
             return nextState
         }
-        return commitSearchQueryToHistory(
+        return commitAutomaticSearchQueryToHistory(
             state = nextState,
             query = query,
             context = secondaryScreen.context,
@@ -177,7 +181,38 @@ class SearchSessionController(
     ): MusicAppUiState {
         debounceJob?.cancel()
         debounceJob = null
+        automaticSearchHistoryDraft = null
         return state.copy(activeSearchQuery = query)
+    }
+
+    // 自动搜索基于本轮输入开始前的历史重建列表，从而替换中间词并保留旧历史。
+    private fun commitAutomaticSearchQueryToHistory(
+        state: MusicAppUiState,
+        query: String,
+        context: SearchContext,
+    ): MusicAppUiState {
+        val normalizedQuery: String = query.trim()
+        if (normalizedQuery.isBlank()) {
+            return state
+        }
+        val currentDraft: AutomaticSearchHistoryDraft? = automaticSearchHistoryDraft
+        val baseHistory: List<String> = if (currentDraft?.context == context) {
+            currentDraft.baseHistory
+        } else {
+            state.searchHistoryFor(context = context)
+        }
+        automaticSearchHistoryDraft = AutomaticSearchHistoryDraft(
+            context = context,
+            baseHistory = baseHistory,
+        )
+        return updateSearchHistory(
+            state = state,
+            context = context,
+            history = moveQueryToHistoryTop(
+                query = normalizedQuery,
+                currentHistory = baseHistory,
+            ),
+        )
     }
 
     // 最新搜索词需要去重并置顶，同时限制历史长度。
@@ -202,3 +237,14 @@ class SearchSessionController(
         }
     }
 }
+
+/**
+ * 自动搜索历史草稿，保存同一轮输入开始前的历史基线。
+ *
+ * @property context 草稿所属搜索上下文，避免不同入口的历史互相替换。
+ * @property baseHistory 本轮自动搜索开始前的历史，用来替换中间词并恢复既有历史顺序。
+ */
+private data class AutomaticSearchHistoryDraft(
+    val context: SearchContext,
+    val baseHistory: List<String>,
+)
