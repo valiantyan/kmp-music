@@ -35,7 +35,7 @@ data class LocalPlaylistSong(
  *
  * @property playlist 歌单元信息。
  * @property relations 歌单内全部已保存关系，包含当前不可用歌曲。
- * @property availableSongs 当前曲库仍能解析出的可播放歌曲，按 [relations] 稳定顺序排列。
+ * @property availableSongs 当前曲库仍能解析出的可播放歌曲，按 [relations] 的最新添加顺序排列。
  */
 data class LocalPlaylistDetail(
     val playlist: LocalPlaylist,

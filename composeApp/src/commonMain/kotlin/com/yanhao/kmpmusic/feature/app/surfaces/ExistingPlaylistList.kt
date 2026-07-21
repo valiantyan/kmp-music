@@ -4,8 +4,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import com.yanhao.kmpmusic.domain.model.LocalPlaylist
 import com.yanhao.kmpmusic.feature.app.AddToPlaylistFlowState
+import com.yanhao.kmpmusic.feature.app.LocalPlaylistCardDisplayModel
 import com.yanhao.kmpmusic.feature.app.MusicAppController
 
 /**
@@ -24,9 +24,9 @@ internal fun ExistingPlaylistList(
         }
         itemsIndexed(
             items = flow.availablePlaylists,
-            key = { _: Int, playlist: LocalPlaylist -> playlist.id },
-            contentType = { _: Int, _: LocalPlaylist -> "local-playlist-option" },
-        ) { index: Int, playlist: LocalPlaylist ->
+            key = { _: Int, playlist: LocalPlaylistCardDisplayModel -> playlist.id },
+            contentType = { _: Int, _: LocalPlaylistCardDisplayModel -> "local-playlist-option" },
+        ) { index: Int, playlist: LocalPlaylistCardDisplayModel ->
             ExistingPlaylistRow(
                 playlist = playlist,
                 isSelected = playlist.id == flow.selectedPlaylistId,

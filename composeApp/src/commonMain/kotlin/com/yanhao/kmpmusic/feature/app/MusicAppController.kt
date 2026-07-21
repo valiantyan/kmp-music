@@ -503,7 +503,7 @@ class MusicAppController(
         }
     }
 
-    /** 歌单详情播放全部按当前可用歌曲加入顺序建队列，从第一首开始播放。 */
+    /** 歌单详情播放全部按当前可用歌曲最新添加顺序建队列，从第一首开始播放。 */
     fun playSelectedLocalPlaylistAll() {
         val detail: LocalPlaylistDetailDisplayModel = uiState.selectedLocalPlaylistDetail ?: return
         val firstSong: Song = detail.songs.firstOrNull() ?: return
@@ -814,7 +814,7 @@ class MusicAppController(
         uiState = LoginAndDialogStateController.openAddToPlaylistFlow(
             state = uiState,
             songId = song.id,
-            playlists = localPlaylistRepository.getPlaylists(),
+            playlists = buildLocalPlaylistCards(),
         )
     }
 
@@ -851,7 +851,8 @@ class MusicAppController(
     fun addCurrentSongToSelectedPlaylist() {
         val flow: AddToPlaylistFlowState = uiState.addToPlaylistFlow ?: return
         val selectedPlaylistId: String = flow.selectedPlaylistId ?: return
-        val selectedPlaylist: LocalPlaylist = flow.availablePlaylists.firstOrNull { playlist: LocalPlaylist ->
+        val selectedPlaylist: LocalPlaylistCardDisplayModel = flow.availablePlaylists.firstOrNull {
+            playlist: LocalPlaylistCardDisplayModel ->
             playlist.id == selectedPlaylistId
         } ?: return
         val result: AddSongToLocalPlaylistResult = localPlaylistRepository.addSongToPlaylist(
@@ -997,15 +998,20 @@ class MusicAppController(
     private fun buildLocalPlaylistCards(): List<LocalPlaylistCardDisplayModel> {
         return localPlaylistRepository.getPlaylists().map { playlist: LocalPlaylist ->
             val detail: LocalPlaylistDetail? = localPlaylistRepository.getPlaylistDetail(playlistId = playlist.id)
-            val firstAvailableSong: Song? = detail?.availableSongs?.firstOrNull()
+            val coverSong: Song? = selectLocalPlaylistCoverSong(availableSongs = detail?.availableSongs.orEmpty())
             LocalPlaylistCardDisplayModel(
                 id = playlist.id,
                 name = playlist.name,
                 availableSongCount = detail?.availableSongs?.size ?: 0,
-                coverArt = firstAvailableSong?.coverArt ?: CoverArt.HeroLocalMusic,
-                coverImageUri = firstAvailableSong?.coverImageUri,
+                coverArt = coverSong?.coverArt ?: CoverArt.HeroLocalMusic,
+                coverImageUri = coverSong?.coverImageUri,
             )
         }
+    }
+
+    // 歌单封面只认真实扫描封面，避免第一首兜底资源挡住后续歌曲的真实封面。
+    private fun selectLocalPlaylistCoverSong(availableSongs: List<Song>): Song? {
+        return availableSongs.firstOrNull { song: Song -> !song.coverImageUri.isNullOrBlank() }
     }
 
     // 当前详情若已打开，添加成功后要重读仓库事实，保持列表和详情同源刷新。
@@ -1020,13 +1026,13 @@ class MusicAppController(
     // 歌单详情只投影当前可用歌曲；不可用关系保留在仓库详情中但不进入 UI。
     private fun buildLocalPlaylistDetail(playlistId: String): LocalPlaylistDetailDisplayModel? {
         val detail: LocalPlaylistDetail = localPlaylistRepository.getPlaylistDetail(playlistId = playlistId) ?: return null
-        val firstAvailableSong: Song? = detail.availableSongs.firstOrNull()
+        val coverSong: Song? = selectLocalPlaylistCoverSong(availableSongs = detail.availableSongs)
         return LocalPlaylistDetailDisplayModel(
             id = detail.playlist.id,
             name = detail.playlist.name,
             availableSongCount = detail.availableSongs.size,
-            coverArt = firstAvailableSong?.coverArt ?: CoverArt.HeroLocalMusic,
-            coverImageUri = firstAvailableSong?.coverImageUri,
+            coverArt = coverSong?.coverArt ?: CoverArt.HeroLocalMusic,
+            coverImageUri = coverSong?.coverImageUri,
             songs = detail.availableSongs,
         )
     }

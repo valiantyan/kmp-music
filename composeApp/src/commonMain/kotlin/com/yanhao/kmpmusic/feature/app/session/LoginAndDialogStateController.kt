@@ -1,9 +1,9 @@
 package com.yanhao.kmpmusic.feature.app.session
 
-import com.yanhao.kmpmusic.feature.app.MusicAppUiState
 import com.yanhao.kmpmusic.feature.app.AddToPlaylistFlowState
+import com.yanhao.kmpmusic.feature.app.LocalPlaylistCardDisplayModel
+import com.yanhao.kmpmusic.feature.app.MusicAppUiState
 import com.yanhao.kmpmusic.feature.app.SongMoreSourceContext
-import com.yanhao.kmpmusic.domain.model.LocalPlaylist
 
 /**
  * 统一承接轻量会话弹层与登录输入态 reducer，避免 [MusicAppController] 混入简单 UI 状态细节。
@@ -43,7 +43,7 @@ object LoginAndDialogStateController {
     fun openAddToPlaylistFlow(
         state: MusicAppUiState,
         songId: String,
-        playlists: List<LocalPlaylist>,
+        playlists: List<LocalPlaylistCardDisplayModel>,
     ): MusicAppUiState {
         return state.copy(
             moreSongId = null,
@@ -96,7 +96,9 @@ object LoginAndDialogStateController {
     ): MusicAppUiState {
         val flow: AddToPlaylistFlowState = state.addToPlaylistFlow ?: return state
         val selectedPlaylistId: String? = playlistId.takeIf {
-            flow.availablePlaylists.any { playlist: LocalPlaylist -> playlist.id == playlistId }
+            flow.availablePlaylists.any { playlist: LocalPlaylistCardDisplayModel ->
+                playlist.id == playlistId
+            }
         }
         return state.copy(
             addToPlaylistFlow = flow.copy(selectedPlaylistId = selectedPlaylistId),

@@ -4,7 +4,6 @@ import com.yanhao.kmpmusic.domain.model.Album
 import com.yanhao.kmpmusic.domain.model.Artist
 import com.yanhao.kmpmusic.domain.model.CoverArt
 import com.yanhao.kmpmusic.domain.model.LibraryStats
-import com.yanhao.kmpmusic.domain.model.LocalPlaylist
 import com.yanhao.kmpmusic.domain.model.LocalMusicDiscoveryPreferences
 import com.yanhao.kmpmusic.domain.model.LocalMusicProblem
 import com.yanhao.kmpmusic.domain.model.LocalMusicScanState
@@ -72,7 +71,7 @@ enum class SongMoreSourceContext {
  * 添加到歌单流程的临时弹窗状态。
  *
  * @property songId 本次要加入歌单的歌曲标识。
- * @property availablePlaylists 当前可选的已有歌单。
+ * @property availablePlaylists 当前可选的已有歌单展示事实，封面与歌单列表保持同源。
  * @property selectedPlaylistId 当前选中的已有歌单；为空时不能完成保存。
  * @property isCreateDialogOpen 是否已经进入新建歌单弹窗。
  * @property newPlaylistName 新建歌单输入框当前名称。
@@ -80,7 +79,7 @@ enum class SongMoreSourceContext {
  */
 data class AddToPlaylistFlowState(
     val songId: String,
-    val availablePlaylists: List<LocalPlaylist> = emptyList(),
+    val availablePlaylists: List<LocalPlaylistCardDisplayModel> = emptyList(),
     val selectedPlaylistId: String? = null,
     val isCreateDialogOpen: Boolean = false,
     val newPlaylistName: String = "",
@@ -99,8 +98,8 @@ data class AddToPlaylistFlowState(
  * @property id 歌单稳定标识。
  * @property name 用户可见歌单名称。
  * @property availableSongCount 当前仍可播放的歌曲数量。
- * @property coverArt 没有扫描封面时使用的应用内兜底封面。
- * @property coverImageUri 第一首可用歌曲的扫描封面，缺失时使用 [coverArt]。
+ * @property coverArt 找到真实扫描封面时使用对应歌曲兜底，否则使用默认本地音乐封面。
+ * @property coverImageUri 当前歌单中第一首带真实扫描封面的歌曲 URI。
  */
 data class LocalPlaylistCardDisplayModel(
     val id: String,
@@ -116,9 +115,9 @@ data class LocalPlaylistCardDisplayModel(
  * @property id 歌单稳定标识。
  * @property name 用户可见歌单名称。
  * @property availableSongCount 当前仍可播放歌曲数量。
- * @property coverArt 没有扫描封面时使用的应用内兜底封面。
- * @property coverImageUri 第一首可用歌曲的扫描封面，缺失时使用 [coverArt]。
- * @property songs 当前仍可播放歌曲，按首次加入歌单顺序排列。
+ * @property coverArt 找到真实扫描封面时使用对应歌曲兜底，否则使用默认本地音乐封面。
+ * @property coverImageUri 当前歌单中第一首带真实扫描封面的歌曲 URI。
+ * @property songs 当前仍可播放歌曲，按最新添加歌单顺序排列。
  * @property emptyText 空歌单详情页解释文案。
  */
 data class LocalPlaylistDetailDisplayModel(

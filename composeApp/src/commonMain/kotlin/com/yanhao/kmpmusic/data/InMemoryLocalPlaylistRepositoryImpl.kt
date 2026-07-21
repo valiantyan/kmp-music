@@ -132,13 +132,16 @@ class InMemoryLocalPlaylistRepositoryImpl(
         }
     }
 
-    /** 读取歌单详情并过滤当前曲库不可用歌曲。 */
+    /** 读取歌单详情并过滤当前曲库不可用歌曲，列表按最新添加优先。 */
     override fun getPlaylistDetail(playlistId: String): LocalPlaylistDetail? {
         val playlist: LocalPlaylist = playlists.firstOrNull { item: LocalPlaylist -> item.id == playlistId }
             ?: return null
         val playlistRelations: List<LocalPlaylistSong> = relations
             .filter { relation: LocalPlaylistSong -> relation.playlistId == playlistId }
-            .sortedBy { relation: LocalPlaylistSong -> relation.sortOrder }
+            .sortedWith(
+                compareByDescending<LocalPlaylistSong> { relation: LocalPlaylistSong -> relation.addedAt }
+                    .thenByDescending { relation: LocalPlaylistSong -> relation.sortOrder },
+            )
         val songsById: Map<String, Song> = musicLibraryRepository.getAvailableSongsByIds(
             songIds = playlistRelations.map { relation: LocalPlaylistSong -> relation.songId },
         ).associateBy { song -> song.id }

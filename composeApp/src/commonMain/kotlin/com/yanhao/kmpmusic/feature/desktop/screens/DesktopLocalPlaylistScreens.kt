@@ -415,7 +415,7 @@ private fun DesktopLocalPlaylistDetailSummary(
                     overflow = TextOverflow.Ellipsis,
                 )
                 Text(
-                    text = "按加入顺序播放",
+                    text = "按最新添加播放",
                     color = DesktopMusicColors.Muted,
                     fontSize = DesktopMusicType.Body,
                     maxLines = 1,

@@ -118,10 +118,10 @@ class PersistentLocalPlaylistRepositoryTest {
     }
 
     /**
-     * 新增歌曲关系写入加入时间和稳定顺序，并在真实新增时更新目标歌单更新时间。
+     * 新增歌曲关系写入加入时间和稳定顺序，读取详情时最新添加歌曲排在最前。
      */
     @Test
-    fun addSongToPlaylistPersistsStableOrderAndUpdatesPlaylistTimestamp(): Unit = runTest {
+    fun addSongToPlaylistPersistsStableOrderAndReadsLatestAddedFirst(): Unit = runTest {
         val fixture: LocalPlaylistRepositoryFixture = LocalPlaylistRepositoryFixture(
             nowValues = listOf(10L, 20L, 30L),
             availableSongs = listOf(song(id = "song-1"), song(id = "song-2")),
@@ -145,9 +145,10 @@ class PersistentLocalPlaylistRepositoryTest {
         )
 
         val detail = repository.getPlaylistDetail(playlistId = playlist.id)!!
-        assertEquals(expected = listOf("song-1", "song-2"), actual = detail.relations.map { relation -> relation.songId })
-        assertEquals(expected = listOf(0, 1), actual = detail.relations.map { relation -> relation.sortOrder })
-        assertEquals(expected = listOf(20L, 30L), actual = detail.relations.map { relation -> relation.addedAt })
+        assertEquals(expected = listOf("song-2", "song-1"), actual = detail.relations.map { relation -> relation.songId })
+        assertEquals(expected = listOf(1, 0), actual = detail.relations.map { relation -> relation.sortOrder })
+        assertEquals(expected = listOf(30L, 20L), actual = detail.relations.map { relation -> relation.addedAt })
+        assertEquals(expected = listOf("song-2", "song-1"), actual = detail.availableSongs.map { song -> song.id })
         assertEquals(expected = 30L, actual = repository.getPlaylists().first().updatedAt)
     }
 
@@ -263,7 +264,7 @@ class PersistentLocalPlaylistRepositoryTest {
 
         val detail = repository.getPlaylistDetail(playlistId = playlist.id)!!
 
-        assertEquals(expected = listOf("song-1", "song-2"), actual = detail.relations.map { relation -> relation.songId })
+        assertEquals(expected = listOf("song-2", "song-1"), actual = detail.relations.map { relation -> relation.songId })
         assertEquals(expected = listOf("song-2"), actual = detail.availableSongs.map { song -> song.id })
     }
 
@@ -464,7 +465,10 @@ class PersistentLocalPlaylistRepositoryTest {
         override suspend fun getRelations(playlistId: String): List<LocalPlaylistSongEntity> {
             return rows.values
                 .filter { entity: LocalPlaylistSongEntity -> entity.playlistId == playlistId }
-                .sortedBy { entity: LocalPlaylistSongEntity -> entity.sortOrder }
+                .sortedWith(
+                    compareByDescending<LocalPlaylistSongEntity> { entity: LocalPlaylistSongEntity -> entity.addedAt }
+                        .thenByDescending { entity: LocalPlaylistSongEntity -> entity.sortOrder },
+                )
         }
 
         /** 读取下一个稳定顺序。 */

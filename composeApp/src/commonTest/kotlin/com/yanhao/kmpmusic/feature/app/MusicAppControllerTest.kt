@@ -303,16 +303,16 @@ class MusicAppControllerTest {
     }
 
     /**
-     * 移动端歌单列表卡片应展示真实名称、当前可用歌曲数量和第一首可用歌曲封面。
+     * 移动端歌单列表卡片应展示真实名称、当前可用歌曲数量和第一首真实歌曲封面。
      */
     @Test
-    fun localPlaylistCardsUseAvailableSongCountAndFirstAvailableCover(): Unit {
+    fun localPlaylistCardsUseAvailableSongCountAndFirstScannedCover(): Unit {
         val firstSong: Song = testSong(id = "song-first", title = "First", modifiedAt = 1L).copy(
             coverArt = CoverArt.AlbumRiverYear,
-            coverImageUri = "file://first-cover.jpg",
         )
         val secondSong: Song = testSong(id = "song-second", title = "Second", modifiedAt = 2L).copy(
             coverArt = CoverArt.CoverSeaDream,
+            coverImageUri = "file://second-cover.jpg",
         )
         val playlist: LocalPlaylist = testPlaylist(id = "playlist-cover", name = "封面歌单", updatedAt = 20L)
         val repository: RecordingLocalPlaylistRepository = RecordingLocalPlaylistRepository(
@@ -345,8 +345,42 @@ class MusicAppControllerTest {
         assertEquals(expected = playlist.id, actual = card.id)
         assertEquals(expected = "封面歌单", actual = card.name)
         assertEquals(expected = 2, actual = card.availableSongCount)
-        assertEquals(expected = CoverArt.AlbumRiverYear, actual = card.coverArt)
-        assertEquals(expected = "file://first-cover.jpg", actual = card.coverImageUri)
+        assertEquals(expected = CoverArt.CoverSeaDream, actual = card.coverArt)
+        assertEquals(expected = "file://second-cover.jpg", actual = card.coverImageUri)
+    }
+
+    /**
+     * 歌单内没有任何真实扫描封面时，卡片必须直接回退到默认本地音乐封面。
+     */
+    @Test
+    fun localPlaylistCardsUseDefaultCoverWhenNoSongHasScannedCover(): Unit {
+        val songWithoutCover: Song = testSong(id = "song-no-cover", title = "No Cover", modifiedAt = 1L).copy(
+            coverArt = CoverArt.CoverSummerWaltz,
+        )
+        val playlist: LocalPlaylist = testPlaylist(id = "playlist-no-cover", name = "无封面歌单", updatedAt = 20L)
+        val repository: RecordingLocalPlaylistRepository = RecordingLocalPlaylistRepository(
+            playlists = mutableListOf(playlist),
+            playlistDetails = mutableMapOf(
+                playlist.id to LocalPlaylistDetail(
+                    playlist = playlist,
+                    relations = listOf(
+                        LocalPlaylistSong(
+                            playlistId = playlist.id,
+                            songId = songWithoutCover.id,
+                            addedAt = 20L,
+                            sortOrder = 0,
+                        ),
+                    ),
+                    availableSongs = listOf(songWithoutCover),
+                ),
+            ),
+        )
+
+        val controller: MusicAppController = createController(localPlaylistRepository = repository)
+
+        val card: LocalPlaylistCardDisplayModel = controller.uiState.localPlaylists.single()
+        assertEquals(expected = CoverArt.HeroLocalMusic, actual = card.coverArt)
+        assertNull(actual = card.coverImageUri)
     }
 
     /**
@@ -385,6 +419,7 @@ class MusicAppControllerTest {
     fun addingSongRefreshesLocalPlaylistCardsImmediately(): Unit {
         val targetSong: Song = testSong(id = "song-refresh", title = "Refresh", modifiedAt = 1L).copy(
             coverArt = CoverArt.CoverSummerWaltz,
+            coverImageUri = "file://refresh-cover.jpg",
         )
         val oldPlaylist: LocalPlaylist = testPlaylist(id = "playlist-old", name = "旧歌单", updatedAt = 10L)
         val targetPlaylist: LocalPlaylist = testPlaylist(id = "playlist-target", name = "目标歌单", updatedAt = 5L)
@@ -434,6 +469,7 @@ class MusicAppControllerTest {
         val targetCard: LocalPlaylistCardDisplayModel = controller.uiState.localPlaylists.first()
         assertEquals(expected = 1, actual = targetCard.availableSongCount)
         assertEquals(expected = CoverArt.CoverSummerWaltz, actual = targetCard.coverArt)
+        assertEquals(expected = "file://refresh-cover.jpg", actual = targetCard.coverImageUri)
     }
 
     /**
@@ -471,15 +507,17 @@ class MusicAppControllerTest {
     }
 
     /**
-     * 歌单详情只展示当前仍可用歌曲，并按仓库关系稳定顺序形成页面列表。
+     * 歌单详情只展示当前仍可用歌曲，并按仓库最新添加顺序形成页面列表和封面。
      */
     @Test
-    fun localPlaylistDetailUsesAvailableSongsInJoinOrder(): Unit {
+    fun localPlaylistDetailUsesAvailableSongsInLatestAddedOrder(): Unit {
         val firstSong: Song = testSong(id = "song-first", title = "First", modifiedAt = 1L).copy(
             coverArt = CoverArt.AlbumRiverYear,
-            coverImageUri = "file://first.jpg",
         )
-        val secondSong: Song = testSong(id = "song-second", title = "Second", modifiedAt = 2L)
+        val secondSong: Song = testSong(id = "song-second", title = "Second", modifiedAt = 2L).copy(
+            coverArt = CoverArt.CoverSeaDream,
+            coverImageUri = "file://second.jpg",
+        )
         val playlist: LocalPlaylist = testPlaylist(id = "playlist-detail", name = "详情歌单", updatedAt = 20L)
         val repository: RecordingLocalPlaylistRepository = RecordingLocalPlaylistRepository(
             playlists = mutableListOf(playlist),
@@ -506,7 +544,7 @@ class MusicAppControllerTest {
                             sortOrder = 2,
                         ),
                     ),
-                    availableSongs = listOf(firstSong, secondSong),
+                    availableSongs = listOf(secondSong, firstSong),
                 ),
             ),
         )
@@ -517,9 +555,9 @@ class MusicAppControllerTest {
         val detail: LocalPlaylistDetailDisplayModel = requireNotNull(controller.uiState.selectedLocalPlaylistDetail)
         assertEquals(expected = playlist.name, actual = detail.name)
         assertEquals(expected = 2, actual = detail.availableSongCount)
-        assertEquals(expected = listOf(firstSong.id, secondSong.id), actual = detail.songs.map { song: Song -> song.id })
-        assertEquals(expected = CoverArt.AlbumRiverYear, actual = detail.coverArt)
-        assertEquals(expected = "file://first.jpg", actual = detail.coverImageUri)
+        assertEquals(expected = listOf(secondSong.id, firstSong.id), actual = detail.songs.map { song: Song -> song.id })
+        assertEquals(expected = CoverArt.CoverSeaDream, actual = detail.coverArt)
+        assertEquals(expected = "file://second.jpg", actual = detail.coverImageUri)
         assertTrue(actual = detail.canPlayAll)
     }
 
@@ -1297,10 +1335,57 @@ class MusicAppControllerTest {
         val flow: AddToPlaylistFlowState = requireNotNull(controller.uiState.addToPlaylistFlow)
         assertEquals(
             expected = setOf("通勤", "夜跑"),
-            actual = flow.availablePlaylists.map { playlist: LocalPlaylist -> playlist.name }.toSet(),
+            actual = flow.availablePlaylists
+                .map { playlist: LocalPlaylistCardDisplayModel -> playlist.name }
+                .toSet(),
         )
         assertNull(actual = flow.selectedPlaylistId)
         assertFalse(actual = flow.canCompleteExistingPlaylist)
+    }
+
+    /**
+     * 添加到歌单弹窗应复用歌单展示封面，避免已有歌单列表退回固定占位图。
+     */
+    @Test
+    fun addToPlaylistFlowUsesPlaylistDisplayCover(): Unit {
+        val songWithoutCover: Song = testSong(id = "song-without-cover", title = "Without Cover", modifiedAt = 1L)
+        val songWithCover: Song = testSong(id = "song-with-cover", title = "With Cover", modifiedAt = 2L).copy(
+            coverArt = CoverArt.AlbumTimeForest,
+            coverImageUri = "file://playlist-dialog-cover.jpg",
+        )
+        val playlist: LocalPlaylist = testPlaylist(id = "playlist-dialog", name = "弹窗歌单", updatedAt = 20L)
+        val localPlaylistRepository: RecordingLocalPlaylistRepository = RecordingLocalPlaylistRepository(
+            playlists = mutableListOf(playlist),
+            playlistDetails = mutableMapOf(
+                playlist.id to LocalPlaylistDetail(
+                    playlist = playlist,
+                    relations = listOf(
+                        LocalPlaylistSong(
+                            playlistId = playlist.id,
+                            songId = songWithoutCover.id,
+                            addedAt = 1L,
+                            sortOrder = 0,
+                        ),
+                        LocalPlaylistSong(
+                            playlistId = playlist.id,
+                            songId = songWithCover.id,
+                            addedAt = 2L,
+                            sortOrder = 1,
+                        ),
+                    ),
+                    availableSongs = listOf(songWithoutCover, songWithCover),
+                ),
+            ),
+        )
+        val controller: MusicAppController = createController(localPlaylistRepository = localPlaylistRepository)
+        val targetSong: Song = testSong(id = "dialog-target-song", title = "Dialog Target", modifiedAt = 3L)
+
+        controller.openAddToPlaylistFlow(song = targetSong)
+
+        val playlistDisplay: LocalPlaylistCardDisplayModel =
+            requireNotNull(controller.uiState.addToPlaylistFlow).availablePlaylists.single()
+        assertEquals(expected = CoverArt.AlbumTimeForest, actual = playlistDisplay.coverArt)
+        assertEquals(expected = "file://playlist-dialog-cover.jpg", actual = playlistDisplay.coverImageUri)
     }
 
     /**
@@ -1328,7 +1413,9 @@ class MusicAppControllerTest {
         assertEquals(expected = "playlist-b", actual = controller.uiState.addToPlaylistFlow?.selectedPlaylistId)
         assertEquals(
             expected = listOf("A List", "B List"),
-            actual = controller.uiState.addToPlaylistFlow?.availablePlaylists?.map { playlist: LocalPlaylist -> playlist.name },
+            actual = controller.uiState.addToPlaylistFlow?.availablePlaylists?.map { playlist: LocalPlaylistCardDisplayModel ->
+                playlist.name
+            },
         )
     }
 
@@ -1526,10 +1613,10 @@ class MusicAppControllerTest {
     }
 
     /**
-     * 歌单详情播放全部应按加入顺序建立整个歌单队列，并从第一首开始播放。
+     * 歌单详情播放全部应按最新添加顺序建立整个歌单队列，并从第一首开始播放。
      */
     @Test
-    fun playLocalPlaylistAllUsesAvailableSongsInJoinOrder(): Unit = runTest {
+    fun playLocalPlaylistAllUsesAvailableSongsInLatestAddedOrder(): Unit = runTest {
         val playbackRepository: InMemoryPlaybackRepository = InMemoryPlaybackRepository()
         val songs: List<Song> = listOf(
             testSong(id = "playlist-song-1", title = "Playlist One", modifiedAt = 1L),

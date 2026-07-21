@@ -520,9 +520,9 @@ interface LocalPlaylistSongDao {
     ): LocalPlaylistSongEntity?
 
     /**
-     * 按稳定顺序读取歌单内全部关系。
+     * 按最新添加顺序读取歌单内全部关系，保证歌单详情和封面都以新歌优先。
      */
-    @Query("SELECT * FROM local_playlist_song WHERE playlistId = :playlistId ORDER BY sortOrder ASC, addedAt ASC")
+    @Query("SELECT * FROM local_playlist_song WHERE playlistId = :playlistId ORDER BY addedAt DESC, sortOrder DESC")
     suspend fun getRelations(playlistId: String): List<LocalPlaylistSongEntity>
 
     /**

@@ -53,7 +53,7 @@ interface LocalPlaylistRepository {
     fun getNextDefaultPlaylistName(): String
 
     /**
-     * 读取歌单详情，保留全部关系并过滤当前不可用歌曲。
+     * 读取歌单详情，保留全部关系并过滤当前不可用歌曲；歌单内歌曲按最新添加优先返回。
      */
     fun getPlaylistDetail(playlistId: String): LocalPlaylistDetail?
 }

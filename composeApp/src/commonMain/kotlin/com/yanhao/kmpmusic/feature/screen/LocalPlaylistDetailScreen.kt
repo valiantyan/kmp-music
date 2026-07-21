@@ -146,7 +146,7 @@ private fun LocalPlaylistDetailHeader(detail: LocalPlaylistDetailDisplayModel) {
     }
 }
 
-// 封面优先使用第一首可用歌曲封面，空歌单使用默认封面。
+// 封面选择已经由详情展示模型统一计算，页面只负责渲染。
 @Composable
 private fun LocalPlaylistDetailCover(detail: LocalPlaylistDetailDisplayModel) {
     Box(

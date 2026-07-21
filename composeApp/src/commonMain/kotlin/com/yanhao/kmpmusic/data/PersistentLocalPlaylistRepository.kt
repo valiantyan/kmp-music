@@ -169,7 +169,7 @@ class PersistentLocalPlaylistRepository(
         error(message = "unreachable")
     }
 
-    /** 读取详情时保留全部关系，但当前可播放歌曲只来自曲库可用集合。 */
+    /** 读取详情时保留全部关系，当前可播放歌曲按最新添加关系顺序恢复。 */
     override fun getPlaylistDetail(playlistId: String): LocalPlaylistDetail? = runBlocking {
         val playlist: LocalPlaylistEntity = playlistDao.getPlaylistById(playlistId = playlistId)
             ?: return@runBlocking null
@@ -210,7 +210,7 @@ class PersistentLocalPlaylistRepository(
         return musicLibraryRepository.getAvailableSongsByIds(songIds = listOf(songId)).isNotEmpty()
     }
 
-    // 曲库按自己的排序返回歌曲，这里恢复为歌单关系稳定顺序。
+    // 曲库按自己的排序返回歌曲，这里恢复为歌单关系的最新添加顺序。
     private fun resolveAvailableSongsInRelationOrder(
         relationEntities: List<LocalPlaylistSongEntity>,
     ): List<Song> {

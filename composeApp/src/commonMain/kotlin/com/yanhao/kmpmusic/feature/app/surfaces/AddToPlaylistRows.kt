@@ -25,8 +25,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.sp
-import com.yanhao.kmpmusic.domain.model.CoverArt
-import com.yanhao.kmpmusic.domain.model.LocalPlaylist
+import com.yanhao.kmpmusic.feature.app.LocalPlaylistCardDisplayModel
 import com.yanhao.kmpmusic.feature.app.MusicAppController
 import com.yanhao.kmpmusic.feature.components.CoverArtImage
 
@@ -49,7 +48,7 @@ internal fun NewPlaylistEntry(controller: MusicAppController) {
  */
 @Composable
 internal fun ExistingPlaylistRow(
-    playlist: LocalPlaylist,
+    playlist: LocalPlaylistCardDisplayModel,
     isSelected: Boolean,
     rowHeight: Dp,
     onSelect: () -> Unit,
@@ -58,7 +57,7 @@ internal fun ExistingPlaylistRow(
         modifier = Modifier.clickable(onClick = onSelect),
         title = playlist.name,
         rowHeight = rowHeight,
-        leadingContent = { ExistingPlaylistCover() },
+        leadingContent = { ExistingPlaylistCover(playlist = playlist) },
         isSelected = isSelected,
     )
 }
@@ -133,12 +132,13 @@ private fun NewPlaylistIcon() {
 }
 
 /**
- * 歌单弹窗没有详情封面数据，使用项目内真实封面资源避免泄漏 Figma 占位文本。
+ * 已有歌单行使用控制器投影出的封面事实，避免弹窗和歌单列表展示不一致。
  */
 @Composable
-private fun ExistingPlaylistCover() {
+private fun ExistingPlaylistCover(playlist: LocalPlaylistCardDisplayModel) {
     CoverArtImage(
-        coverArt = CoverArt.CoverSeaDream,
+        coverArt = playlist.coverArt,
+        coverImageUri = playlist.coverImageUri,
         contentDescription = null,
         modifier = Modifier
             .size(size = AddToPlaylistDialogDesignSpec.playlistCoverSize)
