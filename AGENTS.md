@@ -20,7 +20,7 @@
 | 代码定位、模块归属、技术栈版本 | `docs/agents/project-map.md`、`gradle/libs.versions.toml`、`composeApp/build.gradle.kts` | 只在需要找入口、源码集或测试位置时读；版本事实以 Gradle 为准。 |
 | 领域命名、本地音频发现、扫描来源 | `CONTEXT.md`、`docs/agents/domain.md`、相关 `docs/adr/` | 以来源文件仍存在且可访问为准，不设计复制音频后的永久保活。 |
 | 架构、Repository、UseCase、数据、播放、平台能力 | `docs/agents/kmp-architecture.md`、相关源码和测试 | `commonMain` 不引入平台 API；跨层依赖走接口或 `expect/actual`。 |
-| 移动端导航、全局 chrome、迷你播放器、播放页、桌面播放器 | `docs/agents/ui-state.md`、相关显示模型和测试 | 生产 App 必须是 Compose 原生 UI；原型只作视觉参考。 |
+| 移动端导航、全局 chrome、迷你播放器、播放页、桌面页面或播放器、视觉还原 | `docs/agents/ui-state.md`、相关显示模型和测试 | 生产 App 必须是 Compose 原生 UI；显式要求的 1:1、截图和动画证据属于交付硬门禁。 |
 | 本地 issue、PRD 或 GitHub 缺陷 | `docs/agents/issue-tracker.md`、`docs/agents/github-bug-flow.md`、对应 `.scratch/<feature-slug>/` | 本地 Markdown issue 是执行和审计主记录。 |
 | 测试范围不确定 | `docs/agents/testing.md`、`./gradlew :composeApp:tasks` | 不猜任务名，不声称未运行的验证通过。 |
 | Harness 维护、重复错误沉淀、验证入口失效 | `docs/agents/harness.md`、`docs/agents/testing.md`、`scripts/verify-local.sh` | 先找最小权威 owner；能升级成测试、脚本、lint 或类型约束的，不只写成口头规则。 |
@@ -66,6 +66,7 @@
 - 提交前查看 `git status --short --branch`，避免提交 `.scratch/` 临时产物、构建产物、IDE 状态、日志、Node 依赖、原型 dist、APK/DMG、本地缓存和原始附件。
 - 最终回复只说与任务目标相关的内容：改了什么、验证了什么、剩余风险是什么。
 - 如果验证未运行、失败或受环境限制，明确说明，不要把推测写成已通过。
+- 用户显式要求的 1:1、截图、录屏、动画、真机或指定状态验收必须取得对应证据；缺少时任务仍未完成，不能降级为“剩余风险”后交付或提交。
 - 缺陷修复提交信息必须用中文写明问题原因和解决方案。
 - 交付前做对抗式审查：基于当前可见上下文、实际 diff 和必要文件列出最可能翻车的风险；上下文不足时先补查或标明未覆盖，不凭记忆审查。
 - 如果同类错误第二次出现，把教训沉淀到最早能阻止它的位置：优先测试、脚本、类型或接口约束，其次更新 `docs/agents/*` 或对应 `.scratch/<feature-slug>/` 记录。

@@ -21,7 +21,7 @@
 | 需要生成调试 APK | `./gradlew :composeApp:assembleDebug` |
 | 需要安装到已连接 Android 设备 | `./gradlew :composeApp:installDebug` |
 | 共享状态、控制器、导航、播放、队列、收藏、搜索、扫描、偏好 | 先跑对应 focused 测试，再跑 `./scripts/verify-local.sh` |
-| UI 大改 | 至少 Android 编译；涉及共享状态时加 `:composeApp:desktopTest`；尽量补截图核对。 |
+| UI 大改 | 至少 Android 编译；涉及共享状态时加 `:composeApp:desktopTest`；按 `docs/agents/ui-state.md` 完成需求相关状态矩阵。显式要求 1:1、截图或动画时，对应视觉或动态证据是硬门禁。 |
 | 领域模型或 UseCase | 更新对应 `domain/model`、`domain/usecase`、`domain/playback` 测试，并运行匹配测试任务。 |
 | Repository、数据库、扫描合并 | 更新 `data`、`domain/persistence` 或扫描控制器测试，并运行匹配测试任务。 |
 | Android MediaStore、Media3 service、通知按钮或权限 | 至少 Android 编译；能用 JVM 或共享测试覆盖的逻辑要补测，可用 `./scripts/verify-local.sh android-unit`。 |
@@ -41,6 +41,13 @@
 | `macos-avfoundation` | `./gradlew :composeApp:desktopTest :composeApp:macosAvFoundationBridgeSmoke :composeApp:macosAvFoundationDefaultRuntimeSmoke` |
 | `tasks` | `./gradlew :composeApp:tasks` |
 
+## UI 验收证据
+
+- 编译、单元测试和 `./scripts/verify-local.sh` 证明代码与规则层风险，不证明像素、布局、动画或目标窗口来自本次构建。
+- 静态视觉验收使用本次构建在指定尺寸下的截图；动态验收使用本次构建的录屏或能看出实际变化的连续帧，并覆盖需求指定的状态切换。
+- UI 任务先按 `docs/agents/ui-state.md` 建立状态矩阵，再为每个需求 claim 绑定自动化测试、截图、录屏或人工操作结果；不能用某一类证据替代它无法证明的 claim。
+- 无法启动、识别或捕获本次构建时，先解决运行与取证问题。若缺失的是用户显式验收项，任务保持未完成。
+
 ## 测试落点
 
 - 改动 `MusicAppController`、导航、播放状态、队列、收藏、搜索、扫描或偏好时，更新对应 `composeApp/src/commonTest` 测试。
@@ -51,8 +58,8 @@
 ## 验收判断
 
 - 通过：运行了与改动范围匹配的命令，用户可见行为或平台 claim 有对应证据，且没有未解释的失败。
-- 有条件通过：核心命令通过，但截图、真机、iOS、macOS smoke 或外部权限受限；交付说明必须写清剩余风险和建议补跑命令。
-- 不通过：命令失败、任务不存在、环境缺依赖、脚本本身出错，或测试只证明内部实现但没有覆盖用户验收 claim。
+- 有条件通过：核心命令通过，但用户未显式要求、且不影响验收结论的补充截图、真机、iOS、macOS smoke 或外部权限受限；交付说明必须写清剩余风险和建议补跑命令。
+- 不通过：命令失败、任务不存在、环境缺依赖、脚本本身出错，测试只证明内部实现但没有覆盖用户验收 claim，或用户显式要求的截图、录屏、动画、真机和指定状态证据缺失。
 
 ## 失败排查
 
@@ -68,5 +75,6 @@
 - 常规代码改动如果没有运行 `./scripts/verify-local.sh`，必须说明跳过原因、等价命令和未覆盖风险。
 - 如果验证失败，保留真实失败命令和关键错误；不要删除失败测试来让构建变绿。
 - 如果验证受环境限制，说明限制原因、未覆盖风险和建议的后续命令。
+- UI 交付说明必须区分自动化测试、静态截图、动态录屏和人工操作分别证明了什么；不要用“测试通过”概括未实际观察的视觉或动画行为。
 - Markdown 纯文档改动通常不需要跑 Gradle，但仍要检查 `git diff`、链接路径和文档是否与源码事实冲突。
 - 重复错误沉淀到 `docs/agents/harness.md` 指定的最早 owner；能写测试、脚本或类型约束时，不只更新 Markdown。
