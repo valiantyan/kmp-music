@@ -129,24 +129,15 @@ private fun DesktopPlayerQueueRow(
 }
 
 /**
- * 队列从当前歌曲开始展示完整播放顺序，同时保留原始队列下标供点击播放使用。
+ * 队列按共享播放队列原始顺序展示，同时保留原始队列下标供点击播放使用。
  */
 internal fun buildPlayerQueueRowStates(
-    song: Song,
     queueSongs: List<Song>,
 ): List<DesktopPlayerQueueRowState> {
-    if (queueSongs.isEmpty()) {
-        return emptyList()
-    }
-    val rows: List<DesktopPlayerQueueRowState> = queueSongs.mapIndexed { index: Int, queueSong: Song ->
+    return queueSongs.mapIndexed { index: Int, queueSong: Song ->
         DesktopPlayerQueueRowState(
             song = queueSong,
             queueIndex = index,
         )
     }
-    val currentIndex: Int = rows.indexOfFirst { row: DesktopPlayerQueueRowState -> row.song.id == song.id }
-    if (currentIndex < 0) {
-        return rows
-    }
-    return rows.drop(n = currentIndex) + rows.take(n = currentIndex)
 }

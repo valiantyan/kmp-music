@@ -76,7 +76,6 @@ fun DesktopPlayerDetailScreen(
                 DesktopPlayerContent(
                     song = song,
                     queueRows = buildPlayerQueueRowStates(
-                        song = song,
                         queueSongs = queueSongs,
                     ),
                     isPlaying = isPlaying,
