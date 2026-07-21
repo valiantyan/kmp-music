@@ -1,8 +1,8 @@
 package com.yanhao.kmpmusic.feature.desktop.navigation
 
 import androidx.compose.runtime.Composable
+import com.yanhao.kmpmusic.domain.model.SearchContext
 import com.yanhao.kmpmusic.domain.model.Song
-import com.yanhao.kmpmusic.feature.app.LocalMusicSection
 import com.yanhao.kmpmusic.feature.app.MusicAppController
 import com.yanhao.kmpmusic.feature.app.MusicAppUiState
 import com.yanhao.kmpmusic.feature.app.RootTab
@@ -23,19 +23,12 @@ fun DesktopRootScreenRoute(
         RootTab.Home -> {
             DesktopLocalMusicRootScreen(
                 songs = state.songs,
-                albums = state.albums,
-                recentSongs = state.recentSongs,
-                libraryStats = state.libraryStats,
+                songCount = maxOf(a = state.libraryStats.songCount, b = state.songs.size),
                 scanState = state.scanState,
                 currentSongId = state.currentSongId,
-                currentPlaybackStatus = state.playbackStatus,
+                isPlaying = state.isPlaying,
+                onSearch = { controller.openSearch(context = SearchContext.LocalLibrary) },
                 onScan = onScanLocalMusic,
-                onBrowseLibrary = {
-                    controller.openLocalMusic(section = LocalMusicSection.Songs)
-                },
-                onBrowseAlbums = {
-                    controller.openLocalMusic(section = LocalMusicSection.Albums)
-                },
                 onSongPlay = { song: Song, queueSongs: List<Song> ->
                     controller.playSong(
                         song = song,
@@ -44,7 +37,7 @@ fun DesktopRootScreenRoute(
                 },
                 onCurrentSongToggle = controller::togglePlayback,
                 onMore = controller::openMore,
-                onAlbumOpen = controller::openAlbum,
+                onLike = controller::toggleFavorite,
             )
         }
 

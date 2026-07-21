@@ -9,8 +9,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.saveable.SaveableStateHolder
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 import com.yanhao.kmpmusic.feature.app.MusicAppController
 import com.yanhao.kmpmusic.feature.app.MusicAppUiState
+import com.yanhao.kmpmusic.feature.app.RootTab
 import com.yanhao.kmpmusic.feature.desktop.DesktopMusicColors
 import com.yanhao.kmpmusic.feature.desktop.DesktopMusicDimens
 import com.yanhao.kmpmusic.feature.desktop.desktopPageHorizontalPadding
@@ -29,7 +31,19 @@ fun DesktopWorkspaceLayout(
     modifier: Modifier = Modifier,
 ) {
     BoxWithConstraints(modifier = modifier.fillMaxSize()) {
-        val horizontalPadding: Dp = desktopPageHorizontalPadding(width = maxWidth)
+        val usesHomeFigmaLayout: Boolean = state.usesDesktopHomeFigmaLayout()
+        val horizontalPadding: Dp =
+            if (usesHomeFigmaLayout) {
+                0.dp
+            } else {
+                desktopPageHorizontalPadding(width = maxWidth)
+            }
+        val topPadding: Dp =
+            if (usesHomeFigmaLayout) {
+                0.dp
+            } else {
+                DesktopMusicDimens.PagePaddingTop
+            }
         Box(
             modifier =
                 Modifier
@@ -37,7 +51,7 @@ fun DesktopWorkspaceLayout(
                     .background(DesktopMusicColors.Paper)
                     .padding(
                         start = horizontalPadding,
-                        top = DesktopMusicDimens.PagePaddingTop,
+                        top = topPadding,
                         end = horizontalPadding,
                     ),
         ) {
@@ -59,3 +73,6 @@ fun DesktopWorkspaceLayout(
         }
     }
 }
+
+/** 首页新版设计自己控制固定搜索栏和标题区，外层工作区不再额外加旧 padding。 */
+private fun MusicAppUiState.usesDesktopHomeFigmaLayout(): Boolean = navigationState.secondaryScreen == null && navigationState.rootTab == RootTab.Home

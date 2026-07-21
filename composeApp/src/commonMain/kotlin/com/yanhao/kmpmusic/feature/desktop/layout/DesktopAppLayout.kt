@@ -6,10 +6,10 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.saveable.SaveableStateHolder
 import androidx.compose.ui.Modifier
-import com.yanhao.kmpmusic.domain.model.SearchContext
 import com.yanhao.kmpmusic.domain.model.Song
 import com.yanhao.kmpmusic.feature.app.LocalMusicSection
 import com.yanhao.kmpmusic.feature.app.MusicAppController
@@ -18,7 +18,6 @@ import com.yanhao.kmpmusic.feature.app.RootTab
 import com.yanhao.kmpmusic.feature.app.SecondaryScreen
 import com.yanhao.kmpmusic.feature.app.surfaces.AppDialogs
 import com.yanhao.kmpmusic.feature.app.surfaces.AppPanels
-import com.yanhao.kmpmusic.feature.desktop.DesktopLibrarySidebar
 import com.yanhao.kmpmusic.feature.desktop.DesktopMusicColors
 import com.yanhao.kmpmusic.feature.desktop.navigation.DesktopRail
 import com.yanhao.kmpmusic.feature.desktop.navigation.desktopRailDestination
@@ -77,39 +76,18 @@ fun DesktopAppLayout(
                     .background(DesktopMusicColors.WindowBackground),
         ) {
             DesktopTitleBar(
-                showSearch = state.shouldShowTitlebarMusicSearch,
-                onSearch = {
-                    val context: SearchContext =
-                        when (state.navigationState.rootTab) {
-                            RootTab.Favorites -> SearchContext.Favorites
-
-                            RootTab.Home,
-                            RootTab.Me,
-                            -> SearchContext.LocalLibrary
-                        }
-                    controller.openSearch(context = context)
-                },
+                modifier = Modifier.fillMaxWidth(),
             )
             Row(modifier = Modifier.weight(1f)) {
                 DesktopRail(
                     activeDestination = state.desktopRailDestination(),
-                    onRootTab = controller::navigateToRoot,
-                    onSettings = { controller.navigateToSecondary(SecondaryScreen.Settings) },
+                    onMusic = { controller.navigateToRoot(tab = RootTab.Home) },
+                    onAlbums = { controller.openLocalMusic(section = LocalMusicSection.Albums) },
+                    onArtists = { controller.openLocalMusic(section = LocalMusicSection.Artists) },
+                    onPlaylists = controller::openLocalPlaylists,
+                    onFavorites = { controller.navigateToRoot(tab = RootTab.Favorites) },
+                    onMe = { controller.navigateToRoot(tab = RootTab.Me) },
                 )
-                if (state.shouldShowLibrarySidebar()) {
-                    DesktopLibrarySidebar(
-                        libraryStats = state.libraryStats,
-                        recentSongs = state.recentSongs,
-                        onSection = controller::openLocalMusic,
-                        onSongPlay = { song, queueSongs ->
-                            controller.playSong(
-                                song = song,
-                                queueSongs = queueSongs,
-                            )
-                        },
-                        onRecentClear = controller::clearRecentPlaybackHistory,
-                    )
-                }
                 Box(
                     modifier =
                         Modifier
@@ -148,6 +126,3 @@ fun DesktopAppLayout(
         AppPanels(state = state, controller = controller)
     }
 }
-
-/** 首页保持效果图中的资料库侧栏，二级页让内容区获得完整宽度。 */
-private fun MusicAppUiState.shouldShowLibrarySidebar(): Boolean = navigationState.secondaryScreen == null && navigationState.rootTab == RootTab.Home
