@@ -22,9 +22,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.graphics.vector.path
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -101,7 +99,7 @@ private fun DesktopHomeSongPlaceholderArtwork(
     val placeholderIcon: ImageVector =
         when (visualSpec.artworkIconStyle) {
             DesktopHomeArtworkIconStyle.LibraryMusic -> Icons.Rounded.LibraryMusic
-            DesktopHomeArtworkIconStyle.FigmaMusicNote -> DesktopHomeFigmaMusicNoteIcon
+            DesktopHomeArtworkIconStyle.FigmaMusicNote -> DesktopFigmaMusicNoteIcon
         }
     Surface(
         modifier = Modifier.size(56.dp),
@@ -198,31 +196,3 @@ private fun DesktopHomeSongIconAction(
         }
     }
 }
-
-private val DesktopHomeFigmaMusicNoteIcon: ImageVector =
-    ImageVector
-        .Builder(
-            name = "DesktopHomeFigmaMusicNoteIcon",
-            defaultWidth = 15.dp,
-            defaultHeight = 22.5.dp,
-            viewportWidth = 15f,
-            viewportHeight = 22.5f,
-        ).apply {
-            path(fill = SolidColor(Color(0xFF006B5C))) {
-                moveTo(5f, 22.5f)
-                curveTo(3.625f, 22.5f, 2.44792f, 22.0104f, 1.46875f, 21.0312f)
-                curveTo(0.489583f, 20.0521f, 0f, 18.875f, 0f, 17.5f)
-                curveTo(0f, 16.125f, 0.489583f, 14.9479f, 1.46875f, 13.9688f)
-                curveTo(2.44792f, 12.9896f, 3.625f, 12.5f, 5f, 12.5f)
-                curveTo(5.47917f, 12.5f, 5.92188f, 12.5573f, 6.32812f, 12.6719f)
-                curveTo(6.73438f, 12.7865f, 7.125f, 12.9583f, 7.5f, 13.1875f)
-                verticalLineTo(0f)
-                horizontalLineTo(15f)
-                verticalLineTo(5f)
-                horizontalLineTo(10f)
-                verticalLineTo(17.5f)
-                curveTo(10f, 18.875f, 9.51042f, 20.0521f, 8.53125f, 21.0312f)
-                curveTo(7.55208f, 22.0104f, 6.375f, 22.5f, 5f, 22.5f)
-                close()
-            }
-        }.build()

@@ -83,6 +83,13 @@ internal fun DesktopLocalMusicScreen(
     var section: LocalMusicSection by remember(initialSection) {
         mutableStateOf(value = initialSection)
     }
+    if (initialSection == LocalMusicSection.Artists) {
+        DesktopLocalArtistPage(
+            artists = artists,
+            onArtistOpen = onArtistOpen,
+        )
+        return
+    }
     if (section == LocalMusicSection.Albums) {
         DesktopLocalAlbumPage(
             albums = albums,
