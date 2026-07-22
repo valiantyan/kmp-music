@@ -5,14 +5,14 @@ package com.yanhao.kmpmusic.domain.repository
  */
 interface FavoritesRepository {
     /**
-     * 获取收藏歌曲标识集合。
+     * 按最近收藏时间从新到旧获取歌曲标识。
      */
-    fun getLikedSongIds(): Set<String>
+    fun getLikedSongIds(): List<String>
 
     /**
-     * 切换单首歌曲收藏状态。
+     * 切换单首歌曲收藏状态，并按最近收藏时间从新到旧返回歌曲标识。
      */
-    fun toggleSong(songId: String): Set<String>
+    fun toggleSong(songId: String): List<String>
 
     /**
      * 用完整集合覆盖当前收藏状态，供外部恢复或同步收藏结果。

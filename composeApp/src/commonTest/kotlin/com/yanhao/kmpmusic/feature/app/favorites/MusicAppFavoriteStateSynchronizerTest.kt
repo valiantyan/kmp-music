@@ -23,7 +23,7 @@ class MusicAppFavoriteStateSynchronizerTest {
         val synchronizer =
             FavoriteStateSynchronizer(
                 toggleFavoriteUseCase = ToggleFavoriteUseCaseImpl(favoritesRepository = favoritesRepository),
-                favoriteSongsResolver = { likedSongIds: Set<String>, preferredSongs: List<Song> ->
+                favoriteSongsResolver = { likedSongIds: List<String>, preferredSongs: List<Song> ->
                     preferredSongs
                         .filter { song: Song -> likedSongIds.contains(element = song.id) }
                         .distinctBy { song -> song.id }
@@ -61,13 +61,47 @@ class MusicAppFavoriteStateSynchronizerTest {
         assertTrue(actual = nextState.currentSong?.isLiked == true)
     }
 
+    /** 新收藏必须插入现有收藏列表首位，不受曲库候选顺序影响。 */
+    @Test
+    fun toggleFavoritePlacesNewestFavoriteFirst() {
+        val olderFavorite: Song = testSong(id = "older").copy(isLiked = true)
+        val newerFavorite: Song = testSong(id = "newer")
+        val favoritesRepository = InMemoryFavoritesRepository(initialLikedSongIds = setOf(olderFavorite.id))
+        val synchronizer =
+            FavoriteStateSynchronizer(
+                toggleFavoriteUseCase = ToggleFavoriteUseCaseImpl(favoritesRepository = favoritesRepository),
+                favoriteSongsResolver = { likedSongIds: List<String>, preferredSongs: List<Song> ->
+                    preferredSongs
+                        .filter { song: Song -> likedSongIds.contains(element = song.id) }
+                        .distinctBy { song: Song -> song.id }
+                        .map { song: Song -> song.copy(isLiked = true) }
+                },
+                recentSongsBuilder = { _: MusicAppUiState, _: List<Song> -> emptyList() },
+            )
+        val state: MusicAppUiState =
+            testState().copy(
+                homeLocalSongPreview = listOf(olderFavorite, newerFavorite),
+                favoriteSongs = listOf(olderFavorite),
+                likedSongIds = setOf(olderFavorite.id),
+            )
+        val nextState: MusicAppUiState =
+            synchronizer.toggleFavorite(
+                state = state,
+                songId = newerFavorite.id,
+            )
+        assertEquals(
+            expected = listOf(newerFavorite.id, olderFavorite.id),
+            actual = nextState.favoriteSongs.map { song: Song -> song.id },
+        )
+    }
+
     @Test
     fun favoriteAlbumsAndArtistsStillComeFromProjectorAfterToggle() {
         val favoritesRepository = InMemoryFavoritesRepository(initialLikedSongIds = emptySet())
         val synchronizer =
             FavoriteStateSynchronizer(
                 toggleFavoriteUseCase = ToggleFavoriteUseCaseImpl(favoritesRepository = favoritesRepository),
-                favoriteSongsResolver = { likedSongIds: Set<String>, preferredSongs: List<Song> ->
+                favoriteSongsResolver = { likedSongIds: List<String>, preferredSongs: List<Song> ->
                     preferredSongs
                         .filter { song: Song -> likedSongIds.contains(element = song.id) }
                         .distinctBy { song -> song.id }
@@ -109,7 +143,7 @@ class MusicAppFavoriteStateSynchronizerTest {
         val synchronizer =
             FavoriteStateSynchronizer(
                 toggleFavoriteUseCase = ToggleFavoriteUseCaseImpl(favoritesRepository = favoritesRepository),
-                favoriteSongsResolver = { likedSongIds: Set<String>, preferredSongs: List<Song> ->
+                favoriteSongsResolver = { likedSongIds: List<String>, preferredSongs: List<Song> ->
                     preferredSongs
                         .filter { song: Song -> likedSongIds.contains(element = song.id) }
                         .distinctBy { song -> song.id }

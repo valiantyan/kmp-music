@@ -174,9 +174,9 @@ class MusicAppController(
 
     init {
         val initialHomePreview: List<Song> = musicLibraryRepository.getHomePreview(limit = 6)
-        val initialLikedSongIds: Set<String> =
+        val initialLikedSongIds: List<String> =
             injectedFavoritesRepository?.getLikedSongIds()
-                ?: initialHomePreview.filter { song: Song -> song.isLiked }.map { song: Song -> song.id }.toSet()
+                ?: initialHomePreview.filter { song: Song -> song.isLiked }.map { song: Song -> song.id }
         favoritesRepository = injectedFavoritesRepository ?: InMemoryFavoritesRepository(
             initialLikedSongIds = initialLikedSongIds,
         )

@@ -55,7 +55,8 @@ class LibraryStateSynchronizer(
         state: MusicAppUiState,
         snapshot: LibrarySnapshot,
     ): MusicAppUiState {
-        val likedSongIds: Set<String> = favoritesRepository.getLikedSongIds()
+        val orderedLikedSongIds: List<String> = favoritesRepository.getLikedSongIds()
+        val likedSongIds: Set<String> = orderedLikedSongIds.toSet()
         val previewWithLikes: List<Song> =
             musicLibraryRepository.getHomePreview(limit = 6).map { song: Song ->
                 song.copy(isLiked = likedSongIds.contains(element = song.id) || song.isLiked)
@@ -104,7 +105,7 @@ class LibraryStateSynchronizer(
                 ),
             favoriteSongs =
                 buildFavoriteSongs(
-                    likedSongIds = likedSongIds,
+                    likedSongIds = orderedLikedSongIds,
                     preferredSongs = previewWithLikes + fullSongsWithLikes + state.queueSongsSnapshot + state.favoriteSongs,
                 ),
         )
@@ -115,7 +116,8 @@ class LibraryStateSynchronizer(
         if (state.localSongs.isNotEmpty()) {
             return state
         }
-        val likedSongIds: Set<String> = favoritesRepository.getLikedSongIds()
+        val orderedLikedSongIds: List<String> = favoritesRepository.getLikedSongIds()
+        val likedSongIds: Set<String> = orderedLikedSongIds.toSet()
         val songsWithLikes: List<Song> =
             musicLibraryRepository.getAllAvailableSongs().map { song: Song ->
                 song.copy(isLiked = likedSongIds.contains(element = song.id) || song.isLiked)
@@ -126,7 +128,7 @@ class LibraryStateSynchronizer(
             localArtists = MusicLibraryProjector.buildArtists(songs = songsWithLikes),
             favoriteSongs =
                 buildFavoriteSongs(
-                    likedSongIds = likedSongIds,
+                    likedSongIds = orderedLikedSongIds,
                     preferredSongs = state.homeLocalSongPreview + songsWithLikes + state.queueSongsSnapshot + state.favoriteSongs,
                 ),
             likedSongIds =
@@ -177,7 +179,7 @@ class LibraryStateSynchronizer(
 
     /** 收藏列表需要按 id 补齐实体并强制回写 liked 状态。 */
     fun buildFavoriteSongs(
-        likedSongIds: Set<String>,
+        likedSongIds: List<String>,
         preferredSongs: List<Song>,
     ): List<Song> =
         resolveAvailableSongsByIds(
@@ -187,7 +189,7 @@ class LibraryStateSynchronizer(
             song.copy(isLiked = true)
         }
 
-    /** 先复用当前已知歌曲对象，再补查仓库，避免同一首歌出现多份不同实例。 */
+    /** 先复用当前已知歌曲对象，再按请求 ID 顺序补查仓库，避免查询顺序改变业务排序。 */
     fun resolveAvailableSongsByIds(
         songIds: List<String>,
         preferredSongs: List<Song>,
@@ -195,15 +197,11 @@ class LibraryStateSynchronizer(
         if (songIds.isEmpty()) {
             return emptyList()
         }
-        val requestedIds: Set<String> = songIds.toSet()
         val preferredById: Map<String, Song> = preferredSongs.associateBy { song: Song -> song.id }
         val fetchedSongs: List<Song> = musicLibraryRepository.getAvailableSongsByIds(songIds = songIds)
-        val fetchedSongIds: Set<String> = fetchedSongs.map { song: Song -> song.id }.toSet()
-        return (
-            fetchedSongs.map { song: Song -> preferredById[song.id] ?: song } +
-                preferredSongs.filter { song: Song ->
-                    requestedIds.contains(element = song.id) && !fetchedSongIds.contains(element = song.id)
-                }
-        ).distinctBy { song: Song -> song.id }
+        val fetchedById: Map<String, Song> = fetchedSongs.associateBy { song: Song -> song.id }
+        return songIds.distinct().mapNotNull { songId: String ->
+            preferredById[songId] ?: fetchedById[songId]
+        }
     }
 }

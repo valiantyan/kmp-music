@@ -7,9 +7,9 @@ import com.yanhao.kmpmusic.domain.repository.FavoritesRepository
  */
 interface ToggleFavoriteUseCase {
     /**
-     * 切换歌曲收藏状态并返回最新收藏集合。
+     * 切换歌曲收藏状态并按最近收藏时间从新到旧返回歌曲标识。
      */
-    operator fun invoke(songId: String): Set<String>
+    operator fun invoke(songId: String): List<String>
 }
 
 /**
@@ -19,5 +19,5 @@ class ToggleFavoriteUseCaseImpl(
     private val favoritesRepository: FavoritesRepository,
 ) : ToggleFavoriteUseCase {
     /** 委托仓库更新收藏状态，保持 UI 不感知存储细节。 */
-    override operator fun invoke(songId: String): Set<String> = favoritesRepository.toggleSong(songId = songId)
+    override operator fun invoke(songId: String): List<String> = favoritesRepository.toggleSong(songId = songId)
 }

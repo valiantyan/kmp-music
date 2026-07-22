@@ -325,6 +325,29 @@ class MusicAppLibraryStateSynchronizerTest {
         assertFalse(actual = repository.allSongsRead)
     }
 
+    /** 收藏实体补查必须遵循收藏 ID 顺序，不能泄漏曲库查询自身的返回顺序。 */
+    @Test
+    fun buildFavoriteSongsPreservesFavoriteIdOrder() {
+        val repository: FakeMusicLibraryRepository =
+            FakeMusicLibraryRepository(
+                allSongs =
+                    listOf(
+                        testSong(id = "older", title = "Older"),
+                        testSong(id = "newer", title = "Newer"),
+                    ),
+            )
+        val synchronizer: LibraryStateSynchronizer = createSynchronizer(repository = repository)
+        val favoriteSongs: List<Song> =
+            synchronizer.buildFavoriteSongs(
+                likedSongIds = listOf("newer", "older"),
+                preferredSongs = emptyList(),
+            )
+        assertEquals(
+            expected = listOf("newer", "older"),
+            actual = favoriteSongs.map { song: Song -> song.id },
+        )
+    }
+
     @Test
     fun loadLocalMusicLibraryDoesNothingWhenSongsAlreadyLoaded() {
         val repository: FakeMusicLibraryRepository =

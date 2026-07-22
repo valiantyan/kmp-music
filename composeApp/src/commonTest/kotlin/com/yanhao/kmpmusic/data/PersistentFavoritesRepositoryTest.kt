@@ -68,12 +68,44 @@ class PersistentFavoritesRepositoryTest {
             assertTrue(actual = savedFavorite.updatedAt > 0L)
         }
 
+    /**
+     * 连续收藏时必须把后收藏的歌曲放在最前面，避免 UI 继续沿用曲库原始顺序。
+     */
+    @Test
+    fun toggleSongReturnsNewestFavoriteFirst(): Unit =
+        runTest {
+            var nowMillis: Long = 100L
+            val repository: FavoritesRepository =
+                PersistentFavoritesRepository(
+                    favoriteSongDao = FakeFavoriteSongDao(),
+                    initialLikedSongIds = emptySet(),
+                    nowMillis = {
+                        val currentMillis: Long = nowMillis
+                        nowMillis += 100L
+                        currentMillis
+                    },
+                )
+            repository.toggleSong(songId = "older")
+            val likedSongIds: List<String> = repository.toggleSong(songId = "newer")
+            assertEquals(expected = listOf("newer", "older"), actual = likedSongIds)
+            repository.toggleSong(songId = "older")
+            assertEquals(
+                expected = listOf("older", "newer"),
+                actual = repository.toggleSong(songId = "older"),
+            )
+        }
+
     private class FakeFavoriteSongDao : FavoriteSongDao {
-        // 用插入顺序模拟数据库中的收藏记录集合，方便断言恢复结果。
+        // 使用插入顺序辅助模拟相同时间戳下后收藏项优先。
         private val rows: LinkedHashMap<String, FavoriteSongEntity> = linkedMapOf()
 
-        /** 返回当前保存的收藏歌曲标识。 */
-        override suspend fun getFavoriteSongIds(): List<String> = rows.keys.toList()
+        /** 按真实 DAO 的更新时间与插入先后返回收藏歌曲标识。 */
+        override suspend fun getFavoriteSongIds(): List<String> =
+            rows.values
+                .toList()
+                .asReversed()
+                .sortedByDescending { entity: FavoriteSongEntity -> entity.updatedAt }
+                .map { entity: FavoriteSongEntity -> entity.songId }
 
         /** 保存或覆盖单首歌曲的收藏记录。 */
         override suspend fun saveFavorite(entity: FavoriteSongEntity) {

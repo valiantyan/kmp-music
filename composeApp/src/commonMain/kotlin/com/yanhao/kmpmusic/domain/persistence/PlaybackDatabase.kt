@@ -262,11 +262,11 @@ interface PlaybackHistoryDao {
 @Dao
 interface FavoriteSongDao {
     /**
-     * 读取所有已收藏歌曲标识。
+     * 按收藏时间从新到旧读取歌曲标识，相同毫秒按插入顺序让后收藏项优先。
      *
      * @return 收藏歌曲标识列表。
      */
-    @Query("SELECT songId FROM favorite_song")
+    @Query("SELECT songId FROM favorite_song ORDER BY updatedAt DESC, rowid DESC")
     suspend fun getFavoriteSongIds(): List<String>
 
     /**

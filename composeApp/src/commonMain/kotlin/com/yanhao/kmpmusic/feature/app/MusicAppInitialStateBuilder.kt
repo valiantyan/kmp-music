@@ -20,7 +20,7 @@ internal class MusicAppInitialStateBuilder(
     private val playbackRepository: PlaybackRepository,
     private val userPreferencesRepository: UserPreferencesRepository,
     private val searchHistoryRepository: SearchHistoryRepository,
-    private val favoriteSongsBuilder: (likedSongIds: Set<String>, preferredSongs: List<Song>) -> List<Song>,
+    private val favoriteSongsBuilder: (likedSongIds: List<String>, preferredSongs: List<Song>) -> List<Song>,
     private val recentSongsBuilder: (state: MusicAppUiState, extraSongs: List<Song>) -> List<Song>,
 ) {
     /**
@@ -28,20 +28,21 @@ internal class MusicAppInitialStateBuilder(
      */
     fun build(
         homePreview: List<Song>,
-        initialLikedSongIds: Set<String>,
+        initialLikedSongIds: List<String>,
     ): MusicAppUiState {
         val stats: LibraryStats = musicLibraryRepository.getLibraryStats()
         val playbackState: PlaybackState = playbackRepository.getPlaybackState()
         val queueState: QueueState = playbackRepository.getQueueState()
+        val initialLikedSongIdSet: Set<String> = initialLikedSongIds.toSet()
         val previewWithLikes: List<Song> =
             homePreview.map { song: Song ->
-                song.copy(isLiked = initialLikedSongIds.contains(element = song.id) || song.isLiked)
+                song.copy(isLiked = initialLikedSongIdSet.contains(element = song.id) || song.isLiked)
             }
         val initialScanState: LocalMusicScanState = buildInitialScanState(stats = stats)
         val baseState: MusicAppUiState =
             buildBaseState(
                 previewWithLikes = previewWithLikes,
-                initialLikedSongIds = initialLikedSongIds,
+                initialLikedSongIds = initialLikedSongIdSet,
                 playbackState = playbackState,
                 queueState = queueState,
                 stats = stats,

@@ -12,7 +12,7 @@ class FavoriteStateSynchronizer(
     // 收藏切换入口仍走用例，确保仓库事实只有一份。
     private val toggleFavoriteUseCase: ToggleFavoriteUseCase,
     // 收藏列表实体仍由上游解析，避免这里重复感知仓库或查询策略。
-    private val favoriteSongsResolver: (likedSongIds: Set<String>, preferredSongs: List<Song>) -> List<Song>,
+    private val favoriteSongsResolver: (likedSongIds: List<String>, preferredSongs: List<Song>) -> List<Song>,
     // 最近播放列表继续沿用既有真实历史规则，只把可见歌曲候选交给外部构建。
     private val recentSongsBuilder: (state: MusicAppUiState, songs: List<Song>) -> List<Song>,
 ) {
@@ -23,7 +23,7 @@ class FavoriteStateSynchronizer(
         state: MusicAppUiState,
         songId: String,
     ): MusicAppUiState {
-        val likedSongIds: Set<String> = toggleFavoriteUseCase(songId = songId)
+        val likedSongIds: List<String> = toggleFavoriteUseCase(songId = songId)
         val isLiked: Boolean = likedSongIds.contains(element = songId)
         val homePreview: List<Song> =
             state.homeLocalSongPreview.updateFavoriteFlag(
@@ -65,7 +65,7 @@ class FavoriteStateSynchronizer(
             )
         val stateWithUpdatedCollections: MusicAppUiState =
             state.copy(
-                likedSongIds = likedSongIds,
+                likedSongIds = likedSongIds.toSet(),
                 homeLocalSongPreview = homePreview,
                 localSongs = localSongs,
                 favoriteSongs = favoriteSongs,
@@ -83,7 +83,7 @@ class FavoriteStateSynchronizer(
 
     // 已知歌曲足以覆盖收藏集合时，直接用内存投影，避免 500 次增删触发 500 次仓库回查。
     private fun resolveFavoriteSongs(
-        likedSongIds: Set<String>,
+        likedSongIds: List<String>,
         songId: String,
         isLiked: Boolean,
         currentFavoriteSongs: List<Song>,
@@ -106,17 +106,19 @@ class FavoriteStateSynchronizer(
         return favoriteSongsResolver(likedSongIds, preferredSongs)
     }
 
-    // 从当前 UI 已知歌曲里派生收藏列表，保持来源顺序并强制收藏态为 true。
+    // 从当前 UI 已知歌曲里派生收藏列表，保持最近收藏顺序并强制收藏态为 true。
     private fun buildKnownFavoriteSongs(
-        likedSongIds: Set<String>,
+        likedSongIds: List<String>,
         preferredSongs: List<Song>,
-    ): List<Song> =
-        preferredSongs
-            .asSequence()
-            .filter { song: Song -> likedSongIds.contains(element = song.id) }
-            .distinctBy { song: Song -> song.id }
-            .map { song: Song -> song.copy(isLiked = true) }
-            .toList()
+    ): List<Song> {
+        val preferredSongsById: Map<String, Song> =
+            preferredSongs
+                .distinctBy { song: Song -> song.id }
+                .associateBy { song: Song -> song.id }
+        return likedSongIds.mapNotNull { likedSongId: String ->
+            preferredSongsById[likedSongId]?.copy(isLiked = true)
+        }
+    }
 
     // 只复制被切换的一首歌，减少 500 条列表连续操作时的对象分配。
     private fun List<Song>.updateFavoriteFlag(
