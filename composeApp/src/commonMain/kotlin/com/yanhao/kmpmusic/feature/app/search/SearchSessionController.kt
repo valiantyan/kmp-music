@@ -29,12 +29,13 @@ class SearchSessionController(
     fun openSearch(
         state: MusicAppUiState,
         context: SearchContext,
+        initialScope: SearchScope = SearchScope.All,
     ): MusicAppUiState =
         syncActiveSearchQueryImmediately(state = state, query = "").copy(
             searchContext = context,
             searchQuery = "",
             activeSearchQuery = "",
-            searchScope = SearchScope.All,
+            searchScope = initialScope,
         )
 
     /** 更新搜索词；清空会结束当前自动搜索草稿，非空词仍通过防抖驱动结果。 */

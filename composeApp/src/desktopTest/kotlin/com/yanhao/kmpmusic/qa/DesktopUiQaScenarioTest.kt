@@ -9,7 +9,7 @@ import kotlin.test.assertFailsWith
  * Desktop UI QA 命令行契约测试，避免场景名与脚本路由漂移。
  */
 class DesktopUiQaScenarioTest {
-    /** 七个公开场景名必须稳定解析到对应页面和取证模式。 */
+    /** 十三个公开场景名必须稳定解析到对应页面和取证模式。 */
     @Test
     fun supportedScenariosParseWithExpectedCaptureModes() {
         assertEquals(expected = DesktopUiQaCaptureMode.Scrollbar, actual = DesktopUiQaScenario.parse(argument = "home").captureMode)
@@ -25,6 +25,12 @@ class DesktopUiQaScenarioTest {
             expected = DesktopUiQaCaptureMode.Static,
             actual = DesktopUiQaScenario.parse(argument = "playlist-management").captureMode,
         )
+        assertEquals(expected = DesktopUiQaCaptureMode.Static, actual = DesktopUiQaScenario.parse(argument = "search").captureMode)
+        assertEquals(expected = DesktopUiQaCaptureMode.Static, actual = DesktopUiQaScenario.parse(argument = "search-playing").captureMode)
+        assertEquals(expected = DesktopUiQaCaptureMode.Static, actual = DesktopUiQaScenario.parse(argument = "search-albums").captureMode)
+        assertEquals(expected = DesktopUiQaCaptureMode.Static, actual = DesktopUiQaScenario.parse(argument = "search-artists").captureMode)
+        assertEquals(expected = DesktopUiQaCaptureMode.Static, actual = DesktopUiQaScenario.parse(argument = "search-playlists").captureMode)
+        assertEquals(expected = DesktopUiQaCaptureMode.Static, actual = DesktopUiQaScenario.parse(argument = "search-empty").captureMode)
     }
 
     /** 收藏页使用用户确认的 1280x1024，既有场景继续保持原始尺寸。 */
@@ -36,6 +42,10 @@ class DesktopUiQaScenarioTest {
         assertEquals(expected = DesktopUiQaCaptureSpec.WINDOW_HEIGHT, actual = DesktopUiQaScenario.Home.windowHeight)
         assertEquals(expected = DesktopUiQaCaptureSpec.WINDOW_WIDTH, actual = DesktopUiQaScenario.Playlists.windowWidth)
         assertEquals(expected = DesktopUiQaCaptureSpec.WINDOW_HEIGHT, actual = DesktopUiQaScenario.PlaylistManagement.windowHeight)
+        assertEquals(expected = 1240, actual = DesktopUiQaScenario.Search.windowWidth)
+        assertEquals(expected = 824, actual = DesktopUiQaScenario.Search.windowHeight)
+        assertEquals(expected = 1240, actual = DesktopUiQaScenario.SearchEmpty.windowWidth)
+        assertEquals(expected = 824, actual = DesktopUiQaScenario.SearchEmpty.windowHeight)
     }
 
     /** 未知场景必须立即报错，不能静默退回其他页面生成错误证据。 */

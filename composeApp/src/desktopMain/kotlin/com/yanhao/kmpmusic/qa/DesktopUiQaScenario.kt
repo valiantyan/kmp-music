@@ -1,5 +1,6 @@
 package com.yanhao.kmpmusic.qa
 
+import com.yanhao.kmpmusic.domain.model.SearchScope
 import com.yanhao.kmpmusic.domain.model.Song
 import com.yanhao.kmpmusic.feature.app.LocalMusicSection
 import com.yanhao.kmpmusic.feature.app.MusicAppController
@@ -60,6 +61,42 @@ internal enum class DesktopUiQaScenario(
         argument = "playlist-management",
         captureMode = DesktopUiQaCaptureMode.Static,
     ),
+    Search(
+        argument = "search",
+        captureMode = DesktopUiQaCaptureMode.Static,
+        windowWidth = 1240,
+        windowHeight = 824,
+    ),
+    SearchPlaying(
+        argument = "search-playing",
+        captureMode = DesktopUiQaCaptureMode.Static,
+        windowWidth = 1240,
+        windowHeight = 824,
+    ),
+    SearchAlbums(
+        argument = "search-albums",
+        captureMode = DesktopUiQaCaptureMode.Static,
+        windowWidth = 1240,
+        windowHeight = 824,
+    ),
+    SearchArtists(
+        argument = "search-artists",
+        captureMode = DesktopUiQaCaptureMode.Static,
+        windowWidth = 1240,
+        windowHeight = 824,
+    ),
+    SearchPlaylists(
+        argument = "search-playlists",
+        captureMode = DesktopUiQaCaptureMode.Static,
+        windowWidth = 1240,
+        windowHeight = 824,
+    ),
+    SearchEmpty(
+        argument = "search-empty",
+        captureMode = DesktopUiQaCaptureMode.Static,
+        windowWidth = 1240,
+        windowHeight = 824,
+    ),
     ;
 
     companion object {
@@ -84,7 +121,7 @@ internal data class DesktopUiQaConfig(
         /** 命令行必须明确给出场景和输出目录，避免证据写入未知位置。 */
         fun parse(args: Array<String>): DesktopUiQaConfig {
             require(args.size == EXPECTED_ARGUMENT_COUNT) {
-                "用法: desktopUiQa <home|home-playing|albums|artists|favorites|playlists|playlist-management> <output-directory>"
+                "用法: desktopUiQa <home|home-playing|albums|artists|favorites|playlists|playlist-management|search|search-playing|search-albums|search-artists|search-playlists|search-empty> <output-directory>"
             }
             return DesktopUiQaConfig(
                 scenario = DesktopUiQaScenario.parse(argument = args[0]),
@@ -114,6 +151,12 @@ internal suspend fun prepareDesktopUiQaScenario(
         DesktopUiQaScenario.Playlists -> prepareDesktopPlaylistScenario(controller = controller, opensManagement = false)
         DesktopUiQaScenario.PlaylistManagement -> prepareDesktopPlaylistScenario(controller = controller, opensManagement = true)
         DesktopUiQaScenario.HomePlaying -> prepareDesktopHomePlayingScenario(controller = controller)
+        DesktopUiQaScenario.Search -> prepareDesktopSearchLandingScenario(controller = controller)
+        DesktopUiQaScenario.SearchPlaying -> prepareDesktopSearchPlayingScenario(controller = controller)
+        DesktopUiQaScenario.SearchAlbums -> prepareDesktopSearchAlbumScenario(controller = controller)
+        DesktopUiQaScenario.SearchArtists -> prepareDesktopSearchArtistScenario(controller = controller)
+        DesktopUiQaScenario.SearchPlaylists -> prepareDesktopSearchPlaylistScenario(controller = controller)
+        DesktopUiQaScenario.SearchEmpty -> prepareDesktopSearchEmptyScenario(controller = controller)
     }
 }
 
@@ -135,6 +178,79 @@ private fun prepareDesktopPlaylistScenario(
     controller.uiState.localPlaylists.firstOrNull()?.let { playlist ->
         controller.toggleManagedLocalPlaylistSelection(playlistId = playlist.id)
     }
+}
+
+/** 保留历史词但清空输入，验证搜索初始态的历史和空态组合。 */
+private fun prepareDesktopSearchLandingScenario(controller: MusicAppController) {
+    controller.openSearch(initialScope = SearchScope.Songs)
+    controller.setSearchQuery(query = "搜索历史")
+    controller.commitSearchQueryToHistory()
+    controller.setSearchQuery(query = "")
+}
+
+/** 搜索歌曲并进入真实播放状态，覆盖底部播放器与搜索结果共存。 */
+private suspend fun prepareDesktopSearchPlayingScenario(controller: MusicAppController) {
+    val song: Song = controller.uiState.songs.first()
+    prepareDesktopSearchQuery(
+        controller = controller,
+        query = song.title,
+        scope = SearchScope.Songs,
+    )
+    prepareDesktopHomePlayingScenario(controller = controller)
+}
+
+/** 选择专辑 Tab，搜索本地已有专辑。 */
+private fun prepareDesktopSearchAlbumScenario(controller: MusicAppController) {
+    controller.openSearch()
+    prepareDesktopSearchQuery(
+        controller = controller,
+        query = requireNotNull(controller.uiState.localAlbums.firstOrNull()).title,
+        scope = SearchScope.Albums,
+    )
+}
+
+/** 选择歌手 Tab，搜索本地已有歌手。 */
+private fun prepareDesktopSearchArtistScenario(controller: MusicAppController) {
+    controller.openSearch()
+    prepareDesktopSearchQuery(
+        controller = controller,
+        query = requireNotNull(controller.uiState.localArtists.firstOrNull()).name,
+        scope = SearchScope.Artists,
+    )
+}
+
+/** 选择歌单 Tab，搜索运行时创建的本地歌单。 */
+private fun prepareDesktopSearchPlaylistScenario(controller: MusicAppController) {
+    val playlistName: String = "QA 搜索歌单"
+    controller.openEmptyPlaylistDialog()
+    controller.setEmptyPlaylistName(name = playlistName)
+    controller.createEmptyPlaylist()
+    prepareDesktopSearchQuery(
+        controller = controller,
+        query = playlistName,
+        scope = SearchScope.All,
+    )
+}
+
+/** 输入不存在的词，验证无结果态而非初始空态。 */
+private fun prepareDesktopSearchEmptyScenario(controller: MusicAppController) {
+    prepareDesktopSearchQuery(
+        controller = controller,
+        query = "不存在的 QA 搜索词",
+        scope = SearchScope.Songs,
+    )
+}
+
+/** 使用控制器完整执行输入、提交和筛选范围切换。 */
+private fun prepareDesktopSearchQuery(
+    controller: MusicAppController,
+    query: String,
+    scope: SearchScope,
+) {
+    controller.openSearch(initialScope = scope)
+    controller.setSearchQuery(query = query)
+    controller.commitSearchQueryToHistory()
+    controller.setSearchScope(scope = scope)
 }
 
 // 播放场景使用真实控制器状态切换，避免静态参数伪造播放中动画。

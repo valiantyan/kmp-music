@@ -57,5 +57,11 @@ private fun resolveDesktopUiQaScrollbarEdgeInset(scenario: DesktopUiQaScenario):
         DesktopUiQaScenario.HomePlaying,
         DesktopUiQaScenario.Playlists,
         DesktopUiQaScenario.PlaylistManagement,
+        DesktopUiQaScenario.Search,
+        DesktopUiQaScenario.SearchPlaying,
+        DesktopUiQaScenario.SearchAlbums,
+        DesktopUiQaScenario.SearchArtists,
+        DesktopUiQaScenario.SearchPlaylists,
+        DesktopUiQaScenario.SearchEmpty,
         -> error("当前场景不支持滚动条拖动")
     }

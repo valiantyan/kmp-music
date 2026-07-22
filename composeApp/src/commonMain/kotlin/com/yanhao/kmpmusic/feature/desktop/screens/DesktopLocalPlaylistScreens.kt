@@ -23,7 +23,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Delete
@@ -53,6 +52,7 @@ import com.yanhao.kmpmusic.feature.components.CoverArtImage
 import com.yanhao.kmpmusic.feature.desktop.DesktopMusicColors
 import com.yanhao.kmpmusic.feature.desktop.DesktopMusicType
 import com.yanhao.kmpmusic.feature.desktop.DesktopPlaylistTokens
+import com.yanhao.kmpmusic.feature.desktop.components.DesktopBackTitleToolbar
 import com.yanhao.kmpmusic.feature.desktop.components.DesktopPageHeader
 import com.yanhao.kmpmusic.feature.desktop.components.DesktopPrimaryButton
 import com.yanhao.kmpmusic.feature.desktop.components.DesktopSectionEmptyMessage
@@ -114,8 +114,8 @@ internal fun DesktopLocalPlaylistListScreen(
             Spacer(modifier = Modifier.height(DesktopPlaylistTokens.GridGap))
             DesktopLocalPlaylistGrid(
                 playlists = playlists,
-                onCreate = onCreate,
                 onPlaylistOpen = onPlaylistOpen,
+                onCreate = onCreate,
             )
         }
     }
@@ -139,7 +139,7 @@ internal fun DesktopLocalPlaylistManagementScreen(
                 .fillMaxSize()
                 .background(DesktopPlaylistTokens.Background),
     ) {
-        DesktopPlaylistTopBar(
+        DesktopBackTitleToolbar(
             title = "管理歌单",
             onBack = onBack,
         )
@@ -265,11 +265,10 @@ internal fun DesktopLocalPlaylistDetailScreen(
     }
 }
 
-/** Figma 内容区顶栏只承载页面标题，管理页按需增加返回操作。 */
+/** Figma 歌单页顶栏只承载页面标题，返回式页面改用公共 Toolbar。 */
 @Composable
 private fun DesktopPlaylistTopBar(
     title: String,
-    onBack: (() -> Unit)? = null,
 ) {
     Row(
         modifier =
@@ -279,23 +278,6 @@ private fun DesktopPlaylistTopBar(
                 .padding(horizontal = DesktopPlaylistTokens.ContentPadding),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        onBack?.let { action: () -> Unit ->
-            Box(
-                modifier =
-                    Modifier
-                        .size(size = 32.dp)
-                        .clickable(onClick = action),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
-                    contentDescription = "返回",
-                    tint = DesktopPlaylistTokens.Title,
-                    modifier = Modifier.size(size = 20.dp),
-                )
-            }
-            Spacer(modifier = Modifier.size(size = 8.dp))
-        }
         Text(
             text = title,
             color = DesktopPlaylistTokens.Title,
@@ -343,25 +325,28 @@ private fun DesktopPlaylistPrimaryAction(
     }
 }
 
-/** 网格始终附带一个创建卡片，并以固定卡片宽度防止宽屏时内容被横向拉伸。 */
+/** 网格按调用方决定是否附带创建卡片，搜索结果始终只展示已有歌单。 */
 @Composable
-private fun DesktopLocalPlaylistGrid(
+internal fun DesktopLocalPlaylistGrid(
     playlists: List<LocalPlaylistCardDisplayModel>,
-    onCreate: () -> Unit,
     onPlaylistOpen: (String) -> Unit,
+    onCreate: (() -> Unit)? = null,
 ) {
     BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
         val columns: Int =
             ((maxWidth + DesktopPlaylistTokens.GridGap) / (DesktopPlaylistTokens.CardCoverSize + DesktopPlaylistTokens.GridGap))
                 .toInt()
                 .coerceIn(minimumValue = 2, maximumValue = 4)
-        val gridItems: List<LocalPlaylistCardDisplayModel?> = playlists + listOf(null)
+        val gridItems: List<LocalPlaylistCardDisplayModel?> =
+            playlists + if (onCreate == null) emptyList() else listOf(null)
         Column(verticalArrangement = Arrangement.spacedBy(DesktopPlaylistTokens.GridGap)) {
             gridItems.chunked(size = columns).forEach { row: List<LocalPlaylistCardDisplayModel?> ->
                 Row(horizontalArrangement = Arrangement.spacedBy(DesktopPlaylistTokens.GridGap)) {
                     row.forEach { playlist: LocalPlaylistCardDisplayModel? ->
                         if (playlist == null) {
-                            DesktopCreatePlaylistCard(onClick = onCreate)
+                            onCreate?.let { action: () -> Unit ->
+                                DesktopCreatePlaylistCard(onClick = action)
+                            }
                         } else {
                             DesktopLocalPlaylistCard(
                                 playlist = playlist,

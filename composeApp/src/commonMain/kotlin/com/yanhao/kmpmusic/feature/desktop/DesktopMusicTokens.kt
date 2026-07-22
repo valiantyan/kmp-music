@@ -66,6 +66,30 @@ object DesktopMusicType {
     val RailLabel: TextUnit = 12.sp
 }
 
+/** 搜索与管理歌单共用的返回式顶栏尺寸和文字规格。 */
+internal object DesktopNavigationToolbarTokens {
+    val Height: Dp = 64.dp
+    val HorizontalPadding: Dp = 24.dp
+    val Title: Color = Color(0xFF111C2D)
+    val TitleSize: TextUnit = 20.sp
+    val TitleLineHeight: TextUnit = 28.sp
+}
+
+/** Figma `1113:1481` 搜索页面专用的视觉令牌。 */
+internal object DesktopSearchTokens {
+    val Background: Color = Color(0xFFF9F9FF)
+    val Title: Color = Color(0xFF111C2D)
+    val SupportingText: Color = Color(0xFF3C4A46)
+    val MutedText: Color = Color(0xFF3C4A46).copy(alpha = 0.4f)
+    val Accent: Color = Color(0xFF006B5C)
+    val InputContainer: Color = Color(0xFFF0F3FF)
+    val HistoryChip: Color = Color(0xFFDEE8FF)
+    val Line: Color = Color(0xFFBBCAC4).copy(alpha = 0.2f)
+    val FaintLine: Color = Color(0xFFBBCAC4).copy(alpha = 0.1f)
+    val ContentPadding: Dp = 32.dp
+    val InputMaxWidth: Dp = 672.dp
+}
+
 /** 歌单与管理歌单 Figma 页面专用的颜色和稳定尺寸，避免影响既有桌面页面。 */
 internal object DesktopPlaylistTokens {
     val Background: Color = Color(0xFFF9F9FF)

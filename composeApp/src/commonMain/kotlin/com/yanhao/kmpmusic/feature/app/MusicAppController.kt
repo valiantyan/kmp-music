@@ -491,20 +491,26 @@ class MusicAppController(
 
     /** 打开歌单详情；空歌单也进入详情，由详情页展示置灰播放入口和空态。 */
     fun openLocalPlaylistDetail(playlistId: String) {
+        commitSearchQueryForResultActionIfNeeded()
         val detail: LocalPlaylistDetailDisplayModel = buildLocalPlaylistDetail(playlistId = playlistId) ?: return
         uiState = uiState.copy(selectedLocalPlaylistDetail = detail)
         navigateToSecondary(screen = SecondaryScreen.LocalPlaylistDetail)
     }
 
     /** 搜索页应按入口上下文拿到对应数据集合，避免搜索结果跨页面串联。 */
-    fun openSearch(context: SearchContext = SearchContext.LocalLibrary) {
+    fun openSearch(
+        context: SearchContext = SearchContext.LocalLibrary,
+        initialScope: SearchScope = SearchScope.All,
+    ) {
         if (context == SearchContext.LocalLibrary) {
             loadLocalMusicLibrary()
+            uiState = uiState.copy(localPlaylists = buildLocalPlaylistCards())
         }
         uiState =
             searchSessionController.openSearch(
                 state = uiState,
                 context = context,
+                initialScope = initialScope,
             )
         navigateToSecondary(screen = SecondaryScreen.Search(context = context))
     }

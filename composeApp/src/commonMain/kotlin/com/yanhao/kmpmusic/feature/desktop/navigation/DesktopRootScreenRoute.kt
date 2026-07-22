@@ -2,6 +2,7 @@ package com.yanhao.kmpmusic.feature.desktop.navigation
 
 import androidx.compose.runtime.Composable
 import com.yanhao.kmpmusic.domain.model.SearchContext
+import com.yanhao.kmpmusic.domain.model.SearchScope
 import com.yanhao.kmpmusic.domain.model.Song
 import com.yanhao.kmpmusic.feature.app.MusicAppController
 import com.yanhao.kmpmusic.feature.app.MusicAppUiState
@@ -27,7 +28,12 @@ fun DesktopRootScreenRoute(
                 scanState = state.scanState,
                 currentSongId = state.currentSongId,
                 isPlaying = state.isPlaying,
-                onSearch = { controller.openSearch(context = SearchContext.LocalLibrary) },
+                onSearch = {
+                    controller.openSearch(
+                        context = SearchContext.LocalLibrary,
+                        initialScope = SearchScope.Songs,
+                    )
+                },
                 onScan = onScanLocalMusic,
                 onSongPlay = { song: Song, queueSongs: List<Song> ->
                     controller.playSong(

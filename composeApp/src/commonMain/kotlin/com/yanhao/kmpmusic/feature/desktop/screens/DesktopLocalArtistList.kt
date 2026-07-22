@@ -33,7 +33,6 @@ internal fun DesktopLocalArtistPage(
     modifier: Modifier = Modifier,
 ) {
     val visualSpec: DesktopLocalArtistListVisualSpec = resolveDesktopLocalArtistListVisualSpec()
-    val listState: LazyListState = rememberLazyListState()
     Column(
         modifier =
             modifier
@@ -51,14 +50,30 @@ internal fun DesktopLocalArtistPage(
             DesktopSectionEmptyMessage(message = "扫描后会按歌手自动聚合。")
             return@Column
         }
-        DesktopLocalArtistList(
+        DesktopLocalArtistResultsList(
             artists = artists,
-            visualSpec = visualSpec,
-            listState = listState,
             onArtistOpen = onArtistOpen,
             modifier = Modifier.weight(weight = 1f),
         )
     }
+}
+
+/** 搜索结果复用歌手一级页的列表容器和行样式，但不重复页面标题与外层内边距。 */
+@Composable
+internal fun DesktopLocalArtistResultsList(
+    artists: List<Artist>,
+    onArtistOpen: (Artist) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val visualSpec: DesktopLocalArtistListVisualSpec = resolveDesktopLocalArtistListVisualSpec()
+    val listState: LazyListState = rememberLazyListState()
+    DesktopLocalArtistList(
+        artists = artists,
+        visualSpec = visualSpec,
+        listState = listState,
+        onArtistOpen = onArtistOpen,
+        modifier = modifier,
+    )
 }
 
 // 列表容器保留 Figma 的浅蓝底和圆角，滚动只发生在列表内部。

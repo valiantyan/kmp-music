@@ -2904,7 +2904,7 @@ class MusicAppControllerTest {
         }
 
     /**
-     * 搜索结果动作应记录当前搜索词，覆盖歌曲播放、专辑打开、歌手打开以及歌曲更多菜单详情入口。
+     * 搜索结果动作应记录当前搜索词，覆盖歌曲播放、专辑、歌手、歌单和歌曲更多菜单详情入口。
      */
     @Test
     fun searchResultActionsCommitCurrentQueryToHistory(): Unit =
@@ -2929,6 +2929,7 @@ class MusicAppControllerTest {
             controller.setSearchQuery(query = "Dream Stories")
             advanceTimeBy(delayTimeMillis = 301L)
             advanceUntilIdle()
+            controller.setSearchScope(scope = SearchScope.Albums)
             val albumResult: SearchResult = controller.search()
             val targetAlbum: Album = albumResult.albums.first()
             controller.openAlbum(album = targetAlbum)
@@ -2941,6 +2942,7 @@ class MusicAppControllerTest {
             controller.setSearchQuery(query = "久石让")
             advanceTimeBy(delayTimeMillis = 301L)
             advanceUntilIdle()
+            controller.setSearchScope(scope = SearchScope.Artists)
             val artistResult: SearchResult = controller.search()
             val targetArtist: Artist = artistResult.artists.first()
             controller.openArtist(artist = targetArtist)
@@ -2971,6 +2973,27 @@ class MusicAppControllerTest {
             assertEquals(
                 expected =
                     listOf(
+                        "Summer Waltz",
+                        "One Summer's Day",
+                        "久石让",
+                        "Dream Stories",
+                    ),
+                actual = controller.uiState.searchHistoryFor(context = SearchContext.LocalLibrary),
+            )
+
+            controller.openEmptyPlaylistDialog()
+            controller.setEmptyPlaylistName(name = "夏夜歌单")
+            controller.createEmptyPlaylist()
+            controller.openSearch(context = SearchContext.LocalLibrary)
+            controller.setSearchQuery(query = "夏夜")
+            advanceTimeBy(delayTimeMillis = 301L)
+            advanceUntilIdle()
+            val targetPlaylist: LocalPlaylistCardDisplayModel = controller.uiState.localPlaylists.first()
+            controller.openLocalPlaylistDetail(playlistId = targetPlaylist.id)
+            assertEquals(
+                expected =
+                    listOf(
+                        "夏夜",
                         "Summer Waltz",
                         "One Summer's Day",
                         "久石让",

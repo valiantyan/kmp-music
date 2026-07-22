@@ -35,11 +35,11 @@ fun DesktopSecondaryScreenRoute(
         is SecondaryScreen.Search -> {
             val searchResult: SearchResult = controller.search()
             DesktopSearchScreen(
-                context = state.searchContext,
                 query = state.searchQuery,
                 activeQuery = state.activeSearchQuery,
                 scope = state.searchScope,
                 result = searchResult,
+                playlists = state.localPlaylists,
                 history = state.searchHistoryFor(),
                 currentSongId = state.currentSongId,
                 currentPlaybackStatus = state.playbackStatus,
@@ -66,12 +66,14 @@ fun DesktopSecondaryScreenRoute(
                     controller.togglePlayback()
                 },
                 onMore = controller::openMore,
+                onLike = controller::toggleFavorite,
                 onAlbumOpen = { album: Album ->
                     controller.openAlbum(album = album)
                 },
                 onArtistOpen = { artist: Artist ->
                     controller.openArtist(artist = artist)
                 },
+                onPlaylistOpen = controller::openLocalPlaylistDetail,
             )
         }
 

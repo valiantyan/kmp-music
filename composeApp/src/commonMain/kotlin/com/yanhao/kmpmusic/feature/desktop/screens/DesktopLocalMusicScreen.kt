@@ -206,10 +206,10 @@ private fun DesktopLocalMusicSegmentedControl(
 }
 
 /**
- * 专辑分段复用现有桌面网格，保持与首页预览一致的阅读节奏。
+ * 专辑结果区复用一级页网格，保持搜索与音乐页一致的阅读节奏。
  */
 @Composable
-private fun DesktopLocalAlbumSection(
+internal fun DesktopLocalAlbumSection(
     albums: List<Album>,
     onAlbumOpen: (Album) -> Unit,
     modifier: Modifier = Modifier,

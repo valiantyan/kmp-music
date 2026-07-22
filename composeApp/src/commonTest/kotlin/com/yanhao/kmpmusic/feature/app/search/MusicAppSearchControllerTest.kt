@@ -49,6 +49,28 @@ class MusicAppSearchControllerTest {
             assertEquals(expected = SearchScope.All, actual = nextState.searchScope)
         }
 
+    /** Desktop 可以显式请求歌曲默认范围，而不会改变其它调用方的默认行为。 */
+    @Test
+    fun openSearchUsesExplicitInitialScopeWhenProvided(): Unit =
+        runTest {
+            val controller =
+                SearchSessionController(
+                    searchHistoryRepository = FakeSearchHistoryRepository(),
+                    controllerScope = this,
+                    debounceMillis = 300L,
+                    publishStateUpdate = { _ -> },
+                )
+
+            val nextState =
+                controller.openSearch(
+                    state = testState(),
+                    context = SearchContext.LocalLibrary,
+                    initialScope = SearchScope.Songs,
+                )
+
+            assertEquals(expected = SearchScope.Songs, actual = nextState.searchScope)
+        }
+
     @Test
     fun clearingUncommittedSearchQueryDoesNotWriteHistory(): Unit =
         runTest {

@@ -6,11 +6,11 @@ project_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 scenario="${1:-artists}"
 
 case "$scenario" in
-    home|home-playing|albums|artists|favorites|playlists|playlist-management)
+    home|home-playing|albums|artists|favorites|playlists|playlist-management|search|search-playing|search-albums|search-artists|search-playlists|search-empty)
         ;;
     *)
         echo "不支持的场景: $scenario" >&2
-        echo "用法: ./scripts/desktop-ui-qa.sh [home|home-playing|albums|artists|favorites|playlists|playlist-management]" >&2
+        echo "用法: ./scripts/desktop-ui-qa.sh [home|home-playing|albums|artists|favorites|playlists|playlist-management|search|search-playing|search-albums|search-artists|search-playlists|search-empty]" >&2
         exit 2
         ;;
 esac
