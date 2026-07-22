@@ -165,8 +165,8 @@ fun DesktopSecondaryScreenRoute(
         SecondaryScreen.LocalPlaylists -> {
             DesktopLocalPlaylistListScreen(
                 playlists = state.localPlaylists,
-                onBack = controller::navigateBack,
                 onManage = controller::openLocalPlaylistManagement,
+                onCreate = controller::openEmptyPlaylistDialog,
                 onPlaylistOpen = controller::openLocalPlaylistDetail,
             )
         }

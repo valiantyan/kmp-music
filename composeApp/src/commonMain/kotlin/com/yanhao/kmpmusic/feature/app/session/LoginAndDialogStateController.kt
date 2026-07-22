@@ -1,6 +1,7 @@
 package com.yanhao.kmpmusic.feature.app.session
 
 import com.yanhao.kmpmusic.feature.app.AddToPlaylistFlowState
+import com.yanhao.kmpmusic.feature.app.EmptyPlaylistDialogState
 import com.yanhao.kmpmusic.feature.app.LocalPlaylistCardDisplayModel
 import com.yanhao.kmpmusic.feature.app.MusicAppUiState
 import com.yanhao.kmpmusic.feature.app.SongMoreSourceContext
@@ -51,6 +52,33 @@ object LoginAndDialogStateController {
 
     /** 关闭添加到歌单流程产生的所有临时弹窗。 */
     fun closeAddToPlaylistFlow(state: MusicAppUiState): MusicAppUiState = state.copy(addToPlaylistFlow = null)
+
+    /** 打开歌单页的空歌单创建弹窗，并填入仓库生成的可用默认名。 */
+    fun openEmptyPlaylistDialog(
+        state: MusicAppUiState,
+        defaultName: String,
+    ): MusicAppUiState = state.copy(emptyPlaylistDialog = EmptyPlaylistDialogState(name = defaultName))
+
+    /** 关闭空歌单创建弹窗，输入和校验错误随临时状态一并清理。 */
+    fun closeEmptyPlaylistDialog(state: MusicAppUiState): MusicAppUiState = state.copy(emptyPlaylistDialog = null)
+
+    /** 更新空歌单名称时清理上一轮校验结果，避免错误信息与最新输入脱节。 */
+    fun setEmptyPlaylistName(
+        state: MusicAppUiState,
+        name: String,
+    ): MusicAppUiState {
+        val dialog: EmptyPlaylistDialogState = state.emptyPlaylistDialog ?: return state
+        return state.copy(emptyPlaylistDialog = dialog.copy(name = name, nameError = null))
+    }
+
+    /** 空歌单名称校验失败后保持弹窗可见，让用户在原输入上下文中修正。 */
+    fun showEmptyPlaylistNameError(
+        state: MusicAppUiState,
+        message: String,
+    ): MusicAppUiState {
+        val dialog: EmptyPlaylistDialogState = state.emptyPlaylistDialog ?: return state
+        return state.copy(emptyPlaylistDialog = dialog.copy(nameError = message))
+    }
 
     /** 打开新建歌单弹窗时填入仓库给出的可用默认名。 */
     fun openCreatePlaylistDialog(

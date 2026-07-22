@@ -10,6 +10,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import com.yanhao.kmpmusic.core.theme.MusicColors
 import com.yanhao.kmpmusic.feature.app.AddToPlaylistFlowState
+import com.yanhao.kmpmusic.feature.app.EmptyPlaylistDialogState
 import com.yanhao.kmpmusic.feature.app.MusicAppController
 import com.yanhao.kmpmusic.feature.app.MusicAppUiState
 
@@ -24,6 +25,12 @@ fun AppDialogs(
     state.addToPlaylistFlow?.let { flow: AddToPlaylistFlowState ->
         AddToPlaylistDialog(
             flow = flow,
+            controller = controller,
+        )
+    }
+    state.emptyPlaylistDialog?.let { dialog: EmptyPlaylistDialogState ->
+        EmptyPlaylistDialog(
+            dialog = dialog,
             controller = controller,
         )
     }

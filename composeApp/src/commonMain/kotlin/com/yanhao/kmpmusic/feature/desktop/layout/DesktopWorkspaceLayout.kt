@@ -84,5 +84,7 @@ private fun MusicAppUiState.usesDesktopFigmaManagedPadding(): Boolean {
     if (isFigmaRootPage) {
         return true
     }
-    return navigationState.secondaryScreen == SecondaryScreen.LocalMusic(initialSection = LocalMusicSection.Artists)
+    return navigationState.secondaryScreen == SecondaryScreen.LocalMusic(initialSection = LocalMusicSection.Artists) ||
+        navigationState.secondaryScreen == SecondaryScreen.LocalPlaylists ||
+        navigationState.secondaryScreen == SecondaryScreen.LocalPlaylistManagement
 }

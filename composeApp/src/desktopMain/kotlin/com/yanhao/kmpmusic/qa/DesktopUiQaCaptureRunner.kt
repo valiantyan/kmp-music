@@ -37,6 +37,10 @@ internal class DesktopUiQaCaptureRunner(
         robot.autoDelay = DesktopUiQaCaptureSpec.ROBOT_ACTION_DELAY_MILLIS
         activateDesktopUiQaWindow(window = window, robot = robot)
         when (config.scenario.captureMode) {
+            DesktopUiQaCaptureMode.Static -> {
+                captureStaticFrames(robot = robot, bounds = bounds)
+            }
+
             DesktopUiQaCaptureMode.Scrollbar -> {
                 captureScrollbarFrames(
                     window = window,
@@ -49,6 +53,35 @@ internal class DesktopUiQaCaptureRunner(
                 capturePlaybackAnimationFrames(robot = robot, bounds = bounds)
             }
         }
+    }
+
+    // 静态设计稿页面仍输出三帧，证明截图来自本次真实窗口但不伪造滚动或动画 claim。
+    private suspend fun captureStaticFrames(
+        robot: Robot,
+        bounds: Rectangle,
+    ) {
+        val initialFrame: BufferedImage =
+            frameVerifier.captureFrame(
+                robot = robot,
+                bounds = bounds,
+                fileName = DesktopUiQaCaptureSpec.INITIAL_FRAME_FILE_NAME,
+            )
+        delay(timeMillis = DesktopUiQaCaptureSpec.FIRST_ANIMATION_FRAME_DELAY_MILLIS)
+        val activeFrame: BufferedImage =
+            frameVerifier.captureFrame(
+                robot = robot,
+                bounds = bounds,
+                fileName = DesktopUiQaCaptureSpec.ACTIVE_FRAME_FILE_NAME,
+            )
+        delay(timeMillis = DesktopUiQaCaptureSpec.SECOND_ANIMATION_FRAME_DELAY_MILLIS)
+        val settledFrame: BufferedImage =
+            frameVerifier.captureFrame(
+                robot = robot,
+                bounds = bounds,
+                fileName = DesktopUiQaCaptureSpec.SETTLED_FRAME_FILE_NAME,
+            )
+        frameVerifier.verifyStableWindowShell(firstFrame = initialFrame, secondFrame = activeFrame)
+        frameVerifier.verifyStableWindowShell(firstFrame = activeFrame, secondFrame = settledFrame)
     }
 
     // 滚动条场景覆盖初始隐藏、滚动后显示和停止五秒后隐藏。

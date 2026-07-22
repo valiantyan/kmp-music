@@ -66,6 +66,30 @@ object DesktopMusicType {
     val RailLabel: TextUnit = 12.sp
 }
 
+/** 歌单与管理歌单 Figma 页面专用的颜色和稳定尺寸，避免影响既有桌面页面。 */
+internal object DesktopPlaylistTokens {
+    val Background: Color = Color(0xFFF9F9FF)
+    val Title: Color = Color(0xFF111C2D)
+    val SupportingText: Color = Color(0xFF3C4A46)
+    val MutedText: Color = Color(0xFF3C4A46).copy(alpha = 0.6f)
+    val Accent: Color = Color(0xFF006B5C)
+    val SelectionOutline: Color = Color(0xFFBBCAC4)
+    val ManagementBorder: Color = Color(0xFFBBCAC4).copy(alpha = 0.2f)
+    val DangerContainer: Color = Color(0xFFFFDAD6)
+    val Danger: Color = Color(0xFFBA1A1A)
+    val CreateBorder: Color = Color(0xFFBBCAC4).copy(alpha = 0.3f)
+    val HeaderHeight: Dp = 64.dp
+    val ContentPadding: Dp = 24.dp
+    val GridGap: Dp = 32.dp
+    val CardCoverSize: Dp = 173.dp
+    val CardCornerRadius: Dp = 16.dp
+    val ManagementContentMaxWidth: Dp = 896.dp
+    val ManagementHorizontalPadding: Dp = 72.dp
+    val ManagementRowHeight: Dp = 96.dp
+    val ManagementRowCornerRadius: Dp = 12.dp
+    val ManagementDeleteBottomPadding: Dp = 32.dp
+}
+
 @Composable
 fun desktopPageHorizontalPadding(width: Dp): Dp {
     val dynamicPadding = width * 0.04f

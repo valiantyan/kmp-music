@@ -1342,6 +1342,85 @@ class MusicAppControllerTest {
         assertEquals(expected = "默认歌单 1", actual = controller.uiState.addToPlaylistFlow?.newPlaylistName)
     }
 
+    /** 空歌单用户也应进入桌面歌单页，而不是被轻提示拦在当前页面。 */
+    @Test
+    fun openDesktopLocalPlaylistsShowsEmptyPlaylistPage() {
+        val controller: MusicAppController = createController()
+
+        controller.openDesktopLocalPlaylists()
+
+        assertEquals(expected = SecondaryScreen.LocalPlaylists, actual = controller.uiState.navigationState.secondaryScreen)
+        assertEquals(expected = emptyList(), actual = controller.uiState.localPlaylists)
+        assertNull(actual = controller.uiState.transientMessage)
+    }
+
+    /** 歌单页创建入口读取仓库默认名，但不要求存在当前歌曲上下文。 */
+    @Test
+    fun emptyPlaylistDialogUsesNextDefaultPlaylistName() {
+        val controller: MusicAppController =
+            createController(
+                localPlaylistRepository = RecordingLocalPlaylistRepository(defaultNames = listOf("默认歌单 7")),
+            )
+
+        controller.openEmptyPlaylistDialog()
+
+        assertEquals(expected = "默认歌单 7", actual = controller.uiState.emptyPlaylistDialog?.name)
+        assertNull(actual = controller.uiState.addToPlaylistFlow)
+    }
+
+    /** 空歌单名称校验失败时保持弹窗，用户可直接修正空白或重复名称。 */
+    @Test
+    fun emptyPlaylistValidationErrorsKeepDialogOpen() {
+        val controller: MusicAppController =
+            createController(
+                localPlaylistRepository =
+                    RecordingLocalPlaylistRepository(
+                        emptyCreateResults =
+                            mutableListOf(
+                                LocalPlaylistCreateResult.BlankName,
+                                LocalPlaylistCreateResult.DuplicateName,
+                            ),
+                    ),
+            )
+
+        controller.openEmptyPlaylistDialog()
+        controller.setEmptyPlaylistName(name = "   ")
+        controller.createEmptyPlaylist()
+
+        assertEquals(expected = "歌单名称不能为空", actual = controller.uiState.emptyPlaylistDialog?.nameError)
+
+        controller.setEmptyPlaylistName(name = "默认歌单 1")
+        controller.createEmptyPlaylist()
+
+        assertEquals(expected = "歌单名称已存在", actual = controller.uiState.emptyPlaylistDialog?.nameError)
+    }
+
+    /** 空歌单创建成功后关闭弹窗、刷新当前网格，并优先展示刚创建的卡片。 */
+    @Test
+    fun createEmptyPlaylistRefreshesGridWithCreatedPlaylistFirst() {
+        val existingPlaylist: LocalPlaylist = testPlaylist(id = "playlist-existing", name = "旧歌单", updatedAt = 10L)
+        val createdPlaylist: LocalPlaylist = testPlaylist(id = "playlist-created", name = "新歌单", updatedAt = 20L)
+        val localPlaylistRepository: RecordingLocalPlaylistRepository =
+            RecordingLocalPlaylistRepository(
+                playlists = mutableListOf(existingPlaylist),
+                emptyCreateResults = mutableListOf(LocalPlaylistCreateResult.Success(playlist = createdPlaylist)),
+            )
+        val controller: MusicAppController = createController(localPlaylistRepository = localPlaylistRepository)
+
+        controller.openDesktopLocalPlaylists()
+        controller.openEmptyPlaylistDialog()
+        controller.setEmptyPlaylistName(name = "新歌单")
+        controller.createEmptyPlaylist()
+
+        assertNull(actual = controller.uiState.emptyPlaylistDialog)
+        assertEquals(expected = listOf("新歌单"), actual = localPlaylistRepository.createPlaylistCalls)
+        assertEquals(
+            expected = listOf(createdPlaylist.id, existingPlaylist.id),
+            actual = controller.uiState.localPlaylists.map { playlist: LocalPlaylistCardDisplayModel -> playlist.id },
+        )
+        assertEquals(expected = SecondaryScreen.LocalPlaylists, actual = controller.uiState.navigationState.secondaryScreen)
+    }
+
     /**
      * 名称校验失败时弹窗不能关闭，并映射为用户可见错误。
      */
@@ -3130,6 +3209,7 @@ private fun createController(
 private class RecordingLocalPlaylistRepository(
     private val defaultNames: List<String> = listOf("默认歌单 1"),
     private val createResults: MutableList<CreateLocalPlaylistWithSongResult> = mutableListOf(),
+    private val emptyCreateResults: MutableList<LocalPlaylistCreateResult> = mutableListOf(),
     // 测试用已有歌单集合，模拟仓库按当前任务读取弹窗候选项。
     private val playlists: MutableList<LocalPlaylist> = mutableListOf(),
     // 测试用详情集合，模拟仓库解析歌单封面和可用歌曲数量。
@@ -3140,6 +3220,9 @@ private class RecordingLocalPlaylistRepository(
     // 记录新建并加入调用，确认控制器传入的是当前歌曲。
     val createWithSongCalls: MutableList<Pair<String, String>> = mutableListOf()
 
+    // 记录空歌单创建调用，确认歌单页不再依赖当前歌曲上下文。
+    val createPlaylistCalls: MutableList<String> = mutableListOf()
+
     // 记录添加到已有歌单调用，确认控制器只保存用户选中的单个目标。
     val addSongCalls: MutableList<Pair<String, String>> = mutableListOf()
 
@@ -3149,16 +3232,30 @@ private class RecordingLocalPlaylistRepository(
     // 添加歌曲后的测试回调，用于模拟仓库事实即时变化。
     var onAddSong: (playlistId: String, songId: String) -> Unit = { _: String, _: String -> }
 
-    /** 当前测试不通过独立创建空歌单入口，返回最小成功值即可。 */
+    /** 记录空歌单创建并将成功结果写回测试列表，模拟控制器刷新后的仓库事实。 */
     override fun createPlaylist(name: String): LocalPlaylistCreateResult {
-        val playlist: LocalPlaylist =
-            LocalPlaylist(
-                id = "created:$name",
-                name = name.trim(),
-                createdAt = 1L,
-                updatedAt = 1L,
+        createPlaylistCalls += name
+        val nextResult: LocalPlaylistCreateResult? =
+            if (emptyCreateResults.isEmpty()) {
+                null
+            } else {
+                emptyCreateResults.removeAt(index = 0)
+            }
+        val result: LocalPlaylistCreateResult =
+            nextResult ?: LocalPlaylistCreateResult.Success(
+                playlist =
+                    LocalPlaylist(
+                        id = "created:$name",
+                        name = name.trim(),
+                        createdAt = 1L,
+                        updatedAt = 1L,
+                    ),
             )
-        return LocalPlaylistCreateResult.Success(playlist = playlist)
+        if (result is LocalPlaylistCreateResult.Success) {
+            playlists.removeAll { playlist: LocalPlaylist -> playlist.id == result.playlist.id }
+            playlists += result.playlist
+        }
+        return result
     }
 
     /** 记录原子流程调用，并按测试预置结果返回。 */

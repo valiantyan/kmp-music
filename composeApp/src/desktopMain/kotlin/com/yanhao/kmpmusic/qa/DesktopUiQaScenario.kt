@@ -11,6 +11,7 @@ import java.nio.file.Path
  * Desktop UI QA 的取证模式。
  */
 internal enum class DesktopUiQaCaptureMode {
+    Static,
     Scrollbar,
     PlaybackAnimation,
 }
@@ -51,6 +52,14 @@ internal enum class DesktopUiQaScenario(
         windowWidth = 1280,
         windowHeight = 1024,
     ),
+    Playlists(
+        argument = "playlists",
+        captureMode = DesktopUiQaCaptureMode.Static,
+    ),
+    PlaylistManagement(
+        argument = "playlist-management",
+        captureMode = DesktopUiQaCaptureMode.Static,
+    ),
     ;
 
     companion object {
@@ -75,7 +84,7 @@ internal data class DesktopUiQaConfig(
         /** 命令行必须明确给出场景和输出目录，避免证据写入未知位置。 */
         fun parse(args: Array<String>): DesktopUiQaConfig {
             require(args.size == EXPECTED_ARGUMENT_COUNT) {
-                "用法: desktopUiQa <home|home-playing|albums|artists|favorites> <output-directory>"
+                "用法: desktopUiQa <home|home-playing|albums|artists|favorites|playlists|playlist-management> <output-directory>"
             }
             return DesktopUiQaConfig(
                 scenario = DesktopUiQaScenario.parse(argument = args[0]),
@@ -102,7 +111,29 @@ internal suspend fun prepareDesktopUiQaScenario(
         DesktopUiQaScenario.Albums -> controller.openLocalMusic(section = LocalMusicSection.Albums)
         DesktopUiQaScenario.Artists -> controller.openLocalMusic(section = LocalMusicSection.Artists)
         DesktopUiQaScenario.Favorites -> controller.navigateToRoot(tab = RootTab.Favorites)
+        DesktopUiQaScenario.Playlists -> prepareDesktopPlaylistScenario(controller = controller, opensManagement = false)
+        DesktopUiQaScenario.PlaylistManagement -> prepareDesktopPlaylistScenario(controller = controller, opensManagement = true)
         DesktopUiQaScenario.HomePlaying -> prepareDesktopHomePlayingScenario(controller = controller)
+    }
+}
+
+/** 使用控制器创建设计稿数量的演示歌单，保证首帧同时呈现网格、创建卡片和选择列表。 */
+private fun prepareDesktopPlaylistScenario(
+    controller: MusicAppController,
+    opensManagement: Boolean,
+) {
+    repeat(times = DESKTOP_UI_QA_PLAYLIST_COUNT) { index: Int ->
+        controller.openEmptyPlaylistDialog()
+        controller.setEmptyPlaylistName(name = "QA 歌单 ${index + 1}")
+        controller.createEmptyPlaylist()
+    }
+    controller.openDesktopLocalPlaylists()
+    if (!opensManagement) {
+        return
+    }
+    controller.openLocalPlaylistManagement()
+    controller.uiState.localPlaylists.firstOrNull()?.let { playlist ->
+        controller.toggleManagedLocalPlaylistSelection(playlistId = playlist.id)
     }
 }
 
@@ -127,3 +158,6 @@ private const val PLAYBACK_STATE_POLL_COUNT: Int = 40
 
 /** 播放状态轮询间隔（50ms）。 */
 private const val PLAYBACK_STATE_POLL_INTERVAL_MILLIS: Long = 50L
+
+/** 歌单 QA 使用 4 条数据，对齐两个 Figma 节点展示的默认内容密度。 */
+private const val DESKTOP_UI_QA_PLAYLIST_COUNT: Int = 4

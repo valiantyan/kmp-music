@@ -19,17 +19,45 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.window.Dialog
 import com.yanhao.kmpmusic.core.theme.MusicColors
 import com.yanhao.kmpmusic.feature.app.AddToPlaylistFlowState
+import com.yanhao.kmpmusic.feature.app.EmptyPlaylistDialogState
 import com.yanhao.kmpmusic.feature.app.MusicAppController
 
-/**
- * 新建歌单弹窗只处理名称校验和确认，成功后由控制器关闭整条添加流程。
- */
+/** 新建歌单弹窗复用名称校验和确认 UI，具体创建语义由调用方控制器决定。 */
 @Composable
 internal fun CreatePlaylistDialog(
     flow: AddToPlaylistFlowState,
     controller: MusicAppController,
+) = PlaylistNameDialog(
+    name = flow.newPlaylistName,
+    nameError = flow.newPlaylistNameError,
+    onDismiss = controller::closeAddToPlaylistFlow,
+    onNameChange = controller::setNewPlaylistName,
+    onCreate = controller::createPlaylistWithCurrentSong,
+)
+
+/** 歌单页创建空歌单时复用名称输入外观，但提交到不绑定歌曲的控制器动作。 */
+@Composable
+internal fun EmptyPlaylistDialog(
+    dialog: EmptyPlaylistDialogState,
+    controller: MusicAppController,
+) = PlaylistNameDialog(
+    name = dialog.name,
+    nameError = dialog.nameError,
+    onDismiss = controller::closeEmptyPlaylistDialog,
+    onNameChange = controller::setEmptyPlaylistName,
+    onCreate = controller::createEmptyPlaylist,
+)
+
+/** 名称输入弹窗只负责视觉和回调分发，让不同创建语义共享相同的校验呈现。 */
+@Composable
+private fun PlaylistNameDialog(
+    name: String,
+    nameError: String?,
+    onDismiss: () -> Unit,
+    onNameChange: (String) -> Unit,
+    onCreate: () -> Unit,
 ) {
-    Dialog(onDismissRequest = controller::closeAddToPlaylistFlow) {
+    Dialog(onDismissRequest = onDismiss) {
         Surface(
             modifier = Modifier.widthIn(max = CreatePlaylistDialogDesignSpec.maxWidth),
             shape = RoundedCornerShape(size = CreatePlaylistDialogDesignSpec.cornerRadius),
@@ -45,13 +73,17 @@ internal fun CreatePlaylistDialog(
             ) {
                 CreatePlaylistHeader()
                 CreatePlaylistNameField(
-                    flow = flow,
-                    controller = controller,
+                    name = name,
+                    nameError = nameError,
+                    onNameChange = onNameChange,
                 )
-                flow.newPlaylistNameError?.let { message: String ->
+                nameError?.let { message: String ->
                     Text(text = message, color = MusicColors.Danger)
                 }
-                RowActions(controller = controller)
+                PlaylistNameDialogActions(
+                    onDismiss = onDismiss,
+                    onCreate = onCreate,
+                )
             }
         }
     }
@@ -73,15 +105,16 @@ private fun CreatePlaylistHeader() {
  */
 @Composable
 private fun CreatePlaylistNameField(
-    flow: AddToPlaylistFlowState,
-    controller: MusicAppController,
+    name: String,
+    nameError: String?,
+    onNameChange: (String) -> Unit,
 ) {
     OutlinedTextField(
         modifier = Modifier.fillMaxWidth().height(height = CreatePlaylistDialogDesignSpec.inputHeight),
-        value = flow.newPlaylistName,
-        onValueChange = controller::setNewPlaylistName,
+        value = name,
+        onValueChange = onNameChange,
         singleLine = true,
-        isError = flow.newPlaylistNameError != null,
+        isError = nameError != null,
         shape = RoundedCornerShape(size = CreatePlaylistDialogDesignSpec.inputRadius),
         placeholder = { Text(text = "请输入歌单名称") },
     )
@@ -91,21 +124,24 @@ private fun CreatePlaylistNameField(
  * 新建弹窗底部动作保持在自绘容器内，避免回退到默认 [androidx.compose.material3.AlertDialog] 视觉。
  */
 @Composable
-private fun RowActions(controller: MusicAppController) {
+private fun PlaylistNameDialogActions(
+    onDismiss: () -> Unit,
+    onCreate: () -> Unit,
+) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(space = CreatePlaylistDialogDesignSpec.actionGap),
     ) {
         TextButton(
             modifier = Modifier.weight(weight = 1f).height(height = CreatePlaylistDialogDesignSpec.buttonHeight),
-            onClick = controller::closeAddToPlaylistFlow,
+            onClick = onDismiss,
         ) {
             Text(text = "取消")
         }
         Button(
             modifier = Modifier.weight(weight = 1f).height(height = CreatePlaylistDialogDesignSpec.buttonHeight),
             shape = RoundedCornerShape(size = CreatePlaylistDialogDesignSpec.actionButtonRadius),
-            onClick = controller::createPlaylistWithCurrentSong,
+            onClick = onCreate,
         ) {
             Text(text = "创建")
         }

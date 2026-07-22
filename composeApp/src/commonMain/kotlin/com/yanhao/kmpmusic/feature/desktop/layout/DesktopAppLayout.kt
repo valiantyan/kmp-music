@@ -84,7 +84,7 @@ fun DesktopAppLayout(
                     onMusic = { controller.navigateToRoot(tab = RootTab.Home) },
                     onAlbums = { controller.openLocalMusic(section = LocalMusicSection.Albums) },
                     onArtists = { controller.openLocalMusic(section = LocalMusicSection.Artists) },
-                    onPlaylists = controller::openLocalPlaylists,
+                    onPlaylists = controller::openDesktopLocalPlaylists,
                     onFavorites = { controller.navigateToRoot(tab = RootTab.Favorites) },
                     onMe = { controller.navigateToRoot(tab = RootTab.Me) },
                 )

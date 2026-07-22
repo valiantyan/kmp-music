@@ -19,6 +19,7 @@ import com.yanhao.kmpmusic.domain.model.CreateLocalPlaylistWithSongResult
 import com.yanhao.kmpmusic.domain.model.LibrarySnapshot
 import com.yanhao.kmpmusic.domain.model.LocalMusicScanRequest
 import com.yanhao.kmpmusic.domain.model.LocalPlaylist
+import com.yanhao.kmpmusic.domain.model.LocalPlaylistCreateResult
 import com.yanhao.kmpmusic.domain.model.LocalPlaylistDeleteResult
 import com.yanhao.kmpmusic.domain.model.LocalPlaylistDetail
 import com.yanhao.kmpmusic.domain.model.PlaybackHistory
@@ -424,6 +425,12 @@ class MusicAppController(
             return
         }
         uiState = uiState.copy(localPlaylists = playlistCards)
+        navigateToSecondary(screen = SecondaryScreen.LocalPlaylists)
+    }
+
+    /** Desktop 导航始终进入歌单页，让零歌单状态也能呈现创建入口。 */
+    fun openDesktopLocalPlaylists() {
+        uiState = uiState.copy(localPlaylists = buildLocalPlaylistCards())
         navigateToSecondary(screen = SecondaryScreen.LocalPlaylists)
     }
 
@@ -896,6 +903,62 @@ class MusicAppController(
     /** 关闭添加到歌单流程，覆盖添加弹窗和新建弹窗。 */
     fun closeAddToPlaylistFlow() {
         uiState = LoginAndDialogStateController.closeAddToPlaylistFlow(state = uiState)
+    }
+
+    /** 打开歌单页的空歌单创建弹窗，不复用需要歌曲上下文的添加到歌单流程。 */
+    fun openEmptyPlaylistDialog() {
+        uiState =
+            LoginAndDialogStateController.openEmptyPlaylistDialog(
+                state = uiState,
+                defaultName = localPlaylistRepository.getNextDefaultPlaylistName(),
+            )
+    }
+
+    /** 关闭歌单页的空歌单创建弹窗。 */
+    fun closeEmptyPlaylistDialog() {
+        uiState = LoginAndDialogStateController.closeEmptyPlaylistDialog(state = uiState)
+    }
+
+    /** 更新空歌单创建弹窗的名称输入。 */
+    fun setEmptyPlaylistName(name: String) {
+        uiState =
+            LoginAndDialogStateController.setEmptyPlaylistName(
+                state = uiState,
+                name = name,
+            )
+    }
+
+    /** 创建空歌单并刷新当前网格；成功后让刚创建的歌单立即排在列表首位。 */
+    fun createEmptyPlaylist() {
+        val dialog: EmptyPlaylistDialogState = uiState.emptyPlaylistDialog ?: return
+        val result: LocalPlaylistCreateResult = localPlaylistRepository.createPlaylist(name = dialog.name)
+        uiState =
+            when (result) {
+                LocalPlaylistCreateResult.BlankName -> {
+                    LoginAndDialogStateController.showEmptyPlaylistNameError(
+                        state = uiState,
+                        message = "歌单名称不能为空",
+                    )
+                }
+
+                LocalPlaylistCreateResult.DuplicateName -> {
+                    LoginAndDialogStateController.showEmptyPlaylistNameError(
+                        state = uiState,
+                        message = "歌单名称已存在",
+                    )
+                }
+
+                is LocalPlaylistCreateResult.Success -> {
+                    val refreshedPlaylists: List<LocalPlaylistCardDisplayModel> = buildLocalPlaylistCards()
+                    val createdFirstPlaylists: List<LocalPlaylistCardDisplayModel> =
+                        refreshedPlaylists.sortedByDescending { playlist: LocalPlaylistCardDisplayModel ->
+                            playlist.id == result.playlist.id
+                        }
+                    LoginAndDialogStateController
+                        .closeEmptyPlaylistDialog(state = uiState)
+                        .copy(localPlaylists = createdFirstPlaylists)
+                }
+            }
     }
 
     /** 打开新建歌单弹窗，并读取仓库生成的可用默认名称。 */

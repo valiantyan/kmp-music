@@ -66,7 +66,7 @@ fun DesktopRootScreenRoute(
                 localPlaylistCount = state.localPlaylistCount,
                 currentSongId = state.currentSongId,
                 onScanMusic = onScanLocalMusic,
-                onLocalPlaylistsOpen = controller::openLocalPlaylists,
+                onLocalPlaylistsOpen = controller::openDesktopLocalPlaylists,
                 onRecentPlayedViewAll = controller::openRecentPlayed,
                 onRecentSongPlay = controller::playRecentSong,
                 onRecentSongMore = controller::openMore,

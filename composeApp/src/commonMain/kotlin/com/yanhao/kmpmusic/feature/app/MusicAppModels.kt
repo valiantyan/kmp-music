@@ -93,6 +93,17 @@ data class AddToPlaylistFlowState(
 }
 
 /**
+ * 歌单页创建空歌单弹窗状态。
+ *
+ * @property name 当前输入的歌单名称。
+ * @property nameError 名称校验失败时展示的错误文案。
+ */
+data class EmptyPlaylistDialogState(
+    val name: String,
+    val nameError: String? = null,
+)
+
+/**
  * 移动端歌单列表卡片展示模型，把仓库详情投影为 UI 可直接渲染的稳定事实。
  *
  * @property id 歌单稳定标识。
@@ -415,6 +426,7 @@ data class MusicAppUiState(
     val moreSongId: String? = null,
     val moreSongSourceContext: SongMoreSourceContext = SongMoreSourceContext.General,
     val addToPlaylistFlow: AddToPlaylistFlowState? = null,
+    val emptyPlaylistDialog: EmptyPlaylistDialogState? = null,
     val transientMessage: String? = null,
     val transientMessageTitle: String = "已添加",
     val isPermissionSettingsDialogOpen: Boolean = false,
