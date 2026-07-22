@@ -21,14 +21,18 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.yanhao.kmpmusic.domain.model.Song
+import com.yanhao.kmpmusic.feature.components.CoverArtImage
 
-/** Figma 收藏页顶部由固定封面、动态数量和两种播放命令组成。 */
+/** Figma 收藏页顶部由动态封面、歌曲数量和两种播放命令组成。 */
 @Composable
 internal fun DesktopFavoritesHeader(
     displayModel: DesktopFavoritesDisplayModel,
@@ -40,7 +44,7 @@ internal fun DesktopFavoritesHeader(
         horizontalArrangement = Arrangement.spacedBy(32.dp),
         verticalAlignment = Alignment.Bottom,
     ) {
-        DesktopFavoritesHeroArtwork()
+        DesktopFavoritesHeroArtwork(song = displayModel.heroArtworkSong)
         Column(
             modifier =
                 Modifier
@@ -80,21 +84,33 @@ internal fun DesktopFavoritesHeader(
     }
 }
 
-/** 渐变封面复用 Material 心形图标，避免引入只服务单页的资源文件。 */
+/** 优先显示收藏列表的第一张真实歌曲封面，全部缺失时保留 Figma 默认封面。 */
 @Composable
-private fun DesktopFavoritesHeroArtwork() {
+private fun DesktopFavoritesHeroArtwork(song: Song?) {
+    val artworkShape: RoundedCornerShape = RoundedCornerShape(16.dp)
+    val artworkModifier: Modifier =
+        Modifier
+            .size(192.dp)
+            .shadow(
+                elevation = 16.dp,
+                shape = artworkShape,
+                clip = false,
+            ).clip(artworkShape)
+    if (song != null) {
+        CoverArtImage(
+            coverArt = song.coverArt,
+            coverImageUri = song.coverImageUri,
+            contentDescription = "${song.title} 收藏封面",
+            modifier = artworkModifier,
+            contentScale = ContentScale.Crop,
+        )
+        return
+    }
     Box(
         modifier =
-            Modifier
-                .size(192.dp)
-                .shadow(
-                    elevation = 16.dp,
-                    shape = RoundedCornerShape(16.dp),
-                    clip = false,
-                ).background(
-                    brush = Brush.linearGradient(colors = listOf(Color(0xFF006B5C), Color(0xFF00BFA5))),
-                    shape = RoundedCornerShape(16.dp),
-                ),
+            artworkModifier.background(
+                brush = Brush.linearGradient(colors = listOf(Color(0xFF006B5C), Color(0xFF00BFA5))),
+            ),
         contentAlignment = Alignment.Center,
     ) {
         Icon(

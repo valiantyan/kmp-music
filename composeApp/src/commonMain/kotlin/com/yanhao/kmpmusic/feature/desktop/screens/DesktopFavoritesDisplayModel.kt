@@ -10,6 +10,7 @@ import com.yanhao.kmpmusic.domain.model.Song
  * @property playAllLabel 主按钮动态数量文案。
  * @property isPlaybackEnabled 是否存在可播放歌曲。
  * @property emptyMessage 空收藏时的列表提示。
+ * @property heroArtworkSong 收藏列表中第一首带真实扫描封面的歌曲。
  */
 internal data class DesktopFavoritesDisplayModel(
     val songs: List<Song>,
@@ -17,6 +18,7 @@ internal data class DesktopFavoritesDisplayModel(
     val playAllLabel: String,
     val isPlaybackEnabled: Boolean,
     val emptyMessage: String?,
+    val heroArtworkSong: Song?,
 )
 
 /** 根据真实收藏歌曲建立稳定显示模型，避免页面层复制数量和空态分支。 */
@@ -29,5 +31,6 @@ internal fun buildDesktopFavoritesDisplayModel(songs: List<Song>): DesktopFavori
         playAllLabel = "播放全部 ($songCount)",
         isPlaybackEnabled = favoriteSongs.isNotEmpty(),
         emptyMessage = if (favoriteSongs.isEmpty()) "暂无收藏歌曲" else null,
+        heroArtworkSong = favoriteSongs.firstOrNull { song: Song -> !song.coverImageUri.isNullOrBlank() },
     )
 }
