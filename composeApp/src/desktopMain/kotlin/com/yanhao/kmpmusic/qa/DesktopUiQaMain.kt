@@ -30,8 +30,8 @@ object DesktopUiQaMain {
         application {
             val windowState: WindowState =
                 rememberWindowState(
-                    width = DESKTOP_UI_QA_WINDOW_WIDTH_DP.dp,
-                    height = DESKTOP_UI_QA_WINDOW_HEIGHT_DP.dp,
+                    width = config.scenario.windowWidth.dp,
+                    height = config.scenario.windowHeight.dp,
                 )
             Window(
                 onCloseRequest = ::exitApplication,
@@ -47,12 +47,6 @@ object DesktopUiQaMain {
             }
         }
     }
-
-    /** QA 窗口固定宽度，与桌面设计验收尺寸一致。 */
-    private const val DESKTOP_UI_QA_WINDOW_WIDTH_DP: Int = 1240
-
-    /** QA 窗口固定高度，与桌面设计验收尺寸一致。 */
-    private const val DESKTOP_UI_QA_WINDOW_HEIGHT_DP: Int = 824
 }
 
 // QA 内容只负责组装内存控制器、真实 App 壳和一次性取证副作用。

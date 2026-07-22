@@ -22,6 +22,7 @@ import com.yanhao.kmpmusic.domain.model.LocalPlaylist
 import com.yanhao.kmpmusic.domain.model.LocalPlaylistDeleteResult
 import com.yanhao.kmpmusic.domain.model.LocalPlaylistDetail
 import com.yanhao.kmpmusic.domain.model.PlaybackHistory
+import com.yanhao.kmpmusic.domain.model.PlaybackMode
 import com.yanhao.kmpmusic.domain.model.PlaybackState
 import com.yanhao.kmpmusic.domain.model.PlaybackStatus
 import com.yanhao.kmpmusic.domain.model.SearchContext
@@ -514,6 +515,23 @@ class MusicAppController(
                     song = song,
                     queueSongs = queueSongs,
                 )
+            uiState = action.state
+            playbackActionController.startPlayback(action = action)
+        }
+    }
+
+    /** 页面级播放命令以指定模式建立完整队列，空列表保持当前播放事实不变。 */
+    fun playSongs(
+        songs: List<Song>,
+        playbackMode: PlaybackMode,
+    ) {
+        launchPlaybackFactMutation {
+            val action: PlaybackActionController.PreparedPlayQueue =
+                playbackActionController.preparePlayQueue(
+                    state = uiState,
+                    songs = songs,
+                    playbackMode = playbackMode,
+                ) ?: return@launchPlaybackFactMutation
             uiState = action.state
             playbackActionController.startPlayback(action = action)
         }

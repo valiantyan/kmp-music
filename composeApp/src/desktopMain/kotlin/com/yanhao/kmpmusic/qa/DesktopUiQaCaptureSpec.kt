@@ -69,18 +69,30 @@ internal object DesktopUiQaCaptureSpec {
     /** 固定 shell 区域允许的少量抗锯齿变化像素数。 */
     const val MAXIMUM_STABLE_SHELL_CHANGED_PIXELS: Int = 500
 
-    /** 返回排除 macOS 原生标题栏后的应用内容区域。 */
-    fun appContentRegion(): Rectangle = Rectangle(0, STABLE_CHROME_TOP, WINDOW_WIDTH, WINDOW_HEIGHT - STABLE_CHROME_TOP)
-
-    /** 返回滚动期间不应变化的顶部 chrome 与侧栏区域。 */
-    fun stableShellRegions(): List<Rectangle> =
-        listOf(
-            Rectangle(0, STABLE_CHROME_TOP, WINDOW_WIDTH, STABLE_CHROME_HEIGHT),
-            Rectangle(0, 70, 240, 658),
+    /** 返回排除 macOS 原生标题栏后的场景应用内容区域。 */
+    fun appContentRegion(scenario: DesktopUiQaScenario): Rectangle =
+        Rectangle(
+            0,
+            STABLE_CHROME_TOP,
+            scenario.windowWidth,
+            scenario.windowHeight - STABLE_CHROME_TOP,
         )
 
-    /** 返回覆盖三种列表右侧滚动条的固定验收区域。 */
-    fun scrollbarChangeRegion(): Rectangle = Rectangle(1170, 120, 70, 610)
+    /** 返回滚动期间不应变化的顶部 chrome 与侧栏区域。 */
+    fun stableShellRegions(scenario: DesktopUiQaScenario): List<Rectangle> =
+        listOf(
+            Rectangle(0, STABLE_CHROME_TOP, scenario.windowWidth, STABLE_CHROME_HEIGHT),
+            Rectangle(0, 70, 240, scenario.windowHeight - 166),
+        )
+
+    /** 返回覆盖目标列表右侧滚动条的场景验收区域。 */
+    fun scrollbarChangeRegion(scenario: DesktopUiQaScenario): Rectangle =
+        Rectangle(
+            scenario.windowWidth - 70,
+            120,
+            70,
+            scenario.windowHeight - 214,
+        )
 
     /** 返回首页当前歌曲均衡器的固定验收区域。 */
     fun playbackAnimationRegion(): Rectangle = Rectangle(980, 245, 64, 80)

@@ -95,11 +95,30 @@ class PlaybackCoordinator(
     }
 
     /**
-     * 按当前列表生成完整队列，并把目标歌曲置为 loading。
+     * 按指定模式从完整歌曲集合启动播放；随机模式使用可注入随机源选择首曲。
+     */
+    suspend fun playSongs(
+        songs: List<Song>,
+        playbackMode: PlaybackMode,
+    ) {
+        if (songs.isEmpty()) {
+            return
+        }
+        val startIndex: Int = resolveQueueStartIndex(songs = songs, playbackMode = playbackMode)
+        playSong(
+            song = songs[startIndex],
+            queueSongs = songs,
+            playbackMode = playbackMode,
+        )
+    }
+
+    /**
+     * 按当前列表生成完整队列，并把目标歌曲置为 loading；未指定模式时延续全局模式。
      */
     suspend fun playSong(
         song: Song,
         queueSongs: List<Song>,
+        playbackMode: PlaybackMode = playbackRepository.getQueueState().playbackMode,
     ) {
         val matchingQueueSongs: List<Song> =
             queueSongs.takeIf { songs ->
@@ -109,16 +128,15 @@ class PlaybackCoordinator(
             matchingQueueSongs.indexOfFirst { candidate -> candidate.id == song.id }.takeIf { index ->
                 index >= 0
             } ?: 0
-        val currentPlaybackMode: PlaybackMode = playbackRepository.getQueueState().playbackMode
         playbackRepository.saveQueueState(
             state =
                 QueueState(
                     songIds = matchingQueueSongs.map { queueSong -> queueSong.id },
                     currentIndex = startIndex,
-                    playbackMode = currentPlaybackMode,
+                    playbackMode = playbackMode,
                     shuffleRemaining =
                         buildInitialShuffleRemaining(
-                            playbackMode = currentPlaybackMode,
+                            playbackMode = playbackMode,
                             queueSize = matchingQueueSongs.size,
                             currentIndex = startIndex,
                         ),
@@ -136,13 +154,24 @@ class PlaybackCoordinator(
         historyRecorder.record(songId = song.id)
         saveSnapshotNow()
         onStateChanged()
-        audioPlayerEngine.setPlaybackMode(playbackMode = currentPlaybackMode)
+        audioPlayerEngine.setPlaybackMode(playbackMode = playbackMode)
         audioPlayerEngine.setQueue(
             items = matchingQueueSongs.map { queueSong -> queueSong.toPlayableMedia() },
             startIndex = startIndex,
             startPositionMs = 0L,
         )
         audioPlayerEngine.play()
+    }
+
+    /** 顺序入口固定从首曲开始，随机入口使用与队列策略相同的可测试随机源。 */
+    private fun resolveQueueStartIndex(
+        songs: List<Song>,
+        playbackMode: PlaybackMode,
+    ): Int {
+        if (playbackMode != PlaybackMode.Shuffle) {
+            return 0
+        }
+        return randomIndex(songs.indices.toList())
     }
 
     /**

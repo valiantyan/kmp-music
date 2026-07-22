@@ -3,6 +3,7 @@ package com.yanhao.kmpmusic.qa
 import com.yanhao.kmpmusic.domain.model.Song
 import com.yanhao.kmpmusic.feature.app.LocalMusicSection
 import com.yanhao.kmpmusic.feature.app.MusicAppController
+import com.yanhao.kmpmusic.feature.app.RootTab
 import kotlinx.coroutines.delay
 import java.nio.file.Path
 
@@ -19,10 +20,14 @@ internal enum class DesktopUiQaCaptureMode {
  *
  * @property argument 命令行场景名。
  * @property captureMode 与场景 claim 对应的取证方式。
+ * @property windowWidth 场景要求的固定窗口宽度。
+ * @property windowHeight 场景要求的固定窗口高度。
  */
 internal enum class DesktopUiQaScenario(
     val argument: String,
     val captureMode: DesktopUiQaCaptureMode,
+    val windowWidth: Int = DesktopUiQaCaptureSpec.WINDOW_WIDTH,
+    val windowHeight: Int = DesktopUiQaCaptureSpec.WINDOW_HEIGHT,
 ) {
     Home(
         argument = "home",
@@ -39,6 +44,12 @@ internal enum class DesktopUiQaScenario(
     Artists(
         argument = "artists",
         captureMode = DesktopUiQaCaptureMode.Scrollbar,
+    ),
+    Favorites(
+        argument = "favorites",
+        captureMode = DesktopUiQaCaptureMode.Scrollbar,
+        windowWidth = 1280,
+        windowHeight = 1024,
     ),
     ;
 
@@ -64,7 +75,7 @@ internal data class DesktopUiQaConfig(
         /** 命令行必须明确给出场景和输出目录，避免证据写入未知位置。 */
         fun parse(args: Array<String>): DesktopUiQaConfig {
             require(args.size == EXPECTED_ARGUMENT_COUNT) {
-                "用法: desktopUiQa <home|home-playing|albums|artists> <output-directory>"
+                "用法: desktopUiQa <home|home-playing|albums|artists|favorites> <output-directory>"
             }
             return DesktopUiQaConfig(
                 scenario = DesktopUiQaScenario.parse(argument = args[0]),
@@ -90,6 +101,7 @@ internal suspend fun prepareDesktopUiQaScenario(
         DesktopUiQaScenario.Home -> Unit
         DesktopUiQaScenario.Albums -> controller.openLocalMusic(section = LocalMusicSection.Albums)
         DesktopUiQaScenario.Artists -> controller.openLocalMusic(section = LocalMusicSection.Artists)
+        DesktopUiQaScenario.Favorites -> controller.navigateToRoot(tab = RootTab.Favorites)
         DesktopUiQaScenario.HomePlaying -> prepareDesktopHomePlayingScenario(controller = controller)
     }
 }

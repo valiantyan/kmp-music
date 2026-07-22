@@ -5,6 +5,7 @@ import com.yanhao.kmpmusic.data.FakeLocalMusicScanner
 import com.yanhao.kmpmusic.data.InMemoryMusicLibraryRepository
 import com.yanhao.kmpmusic.data.InMemoryPlaybackRepository
 import com.yanhao.kmpmusic.domain.model.LocalMusicScanRequest
+import com.yanhao.kmpmusic.domain.model.PlaybackMode
 import com.yanhao.kmpmusic.domain.model.PlaybackStatus
 import com.yanhao.kmpmusic.domain.model.Song
 import com.yanhao.kmpmusic.domain.persistence.InMemoryPlaybackSnapshotStore
@@ -18,6 +19,44 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 
 class PlaybackActionControllerTest {
+    /**
+     * 收藏页队列动作必须先把完整实体列表写入 UI 快照，再交给协调器播放。
+     */
+    @Test
+    fun preparePlayQueueKeepsSongsAndRequestedMode(): Unit =
+        runTest {
+            val songs: List<Song> = buildFakeSongs(count = 4)
+            val fixture: PlaybackFixture = playbackFixture()
+
+            val action: PlaybackActionController.PreparedPlayQueue? =
+                fixture.controller.preparePlayQueue(
+                    state = baseState(),
+                    songs = songs,
+                    playbackMode = PlaybackMode.Shuffle,
+                )
+
+            assertEquals(expected = songs, actual = action?.state?.queueSongsSnapshot)
+            assertEquals(expected = songs, actual = action?.songs)
+            assertEquals(expected = PlaybackMode.Shuffle, actual = action?.playbackMode)
+        }
+
+    /**
+     * 空收藏列表没有可执行队列动作，防止按钮误触改变当前播放。
+     */
+    @Test
+    fun preparePlayQueueReturnsNullForEmptySongs() {
+        val fixture: PlaybackFixture = playbackFixture()
+
+        val action: PlaybackActionController.PreparedPlayQueue? =
+            fixture.controller.preparePlayQueue(
+                state = baseState(),
+                songs = emptyList(),
+                playbackMode = PlaybackMode.LoopAll,
+            )
+
+        assertEquals(expected = null, actual = action)
+    }
+
     /**
      * 未传入队列且目标歌曲在当前队列时，应复用当前队列实体。
      */
@@ -105,3 +144,14 @@ private fun baseState(): MusicAppUiState =
         playbackStatus = PlaybackStatus.Idle,
         queueSongIds = emptyList(),
     )
+
+/** 通过共享内存曲库把 fake 扫描元数据投影为真实 [Song]，避免测试伪造领域对象。 */
+private suspend fun buildFakeSongs(count: Int): List<Song> {
+    val libraryRepository = InMemoryMusicLibraryRepository()
+    libraryRepository.applyScanResult(
+        request = LocalMusicScanRequest.Refresh,
+        scanResult = FakeLocalMusicScanner(demoSongCount = count).scan(request = LocalMusicScanRequest.Refresh),
+        likedSongIds = emptySet(),
+    )
+    return libraryRepository.getHomePreview(limit = count)
+}

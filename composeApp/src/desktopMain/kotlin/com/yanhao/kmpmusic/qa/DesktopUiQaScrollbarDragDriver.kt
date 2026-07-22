@@ -51,6 +51,7 @@ private fun resolveDesktopUiQaScrollbarEdgeInset(scenario: DesktopUiQaScenario):
 
         DesktopUiQaScenario.Home,
         DesktopUiQaScenario.Artists,
+        DesktopUiQaScenario.Favorites,
         -> DesktopUiQaCaptureSpec.HOME_ARTISTS_SCROLLBAR_DRAG_EDGE_INSET_PX
 
         DesktopUiQaScenario.HomePlaying -> error("播放动画场景不支持滚动条拖动")

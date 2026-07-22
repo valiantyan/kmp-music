@@ -1,6 +1,7 @@
 package com.yanhao.kmpmusic.feature.app.playback
 
 import com.yanhao.kmpmusic.domain.model.PlaybackHistory
+import com.yanhao.kmpmusic.domain.model.PlaybackMode
 import com.yanhao.kmpmusic.domain.model.PlaybackSnapshot
 import com.yanhao.kmpmusic.domain.model.Song
 import com.yanhao.kmpmusic.domain.persistence.PlaybackSnapshotStore
@@ -29,6 +30,19 @@ class PlaybackActionController(
         val queueSongs: List<Song>,
     )
 
+    /**
+     * 页面级队列播放动作，保证实体队列快照和指定模式在同一次副作用中提交。
+     *
+     * @property state 写入完整实体队列后的 UI 状态。
+     * @property songs 本次要建立的完整播放队列。
+     * @property playbackMode 本次命令要求的全局播放模式。
+     */
+    data class PreparedPlayQueue(
+        val state: MusicAppUiState,
+        val songs: List<Song>,
+        val playbackMode: PlaybackMode,
+    )
+
     /** 播放歌曲但留在当前页面，未显式传列表时优先复用当前队列上下文。 */
     fun preparePlaySong(
         state: MusicAppUiState,
@@ -53,6 +67,30 @@ class PlaybackActionController(
         playbackCoordinator.playSong(
             song = action.song,
             queueSongs = action.queueSongs,
+        )
+    }
+
+    /** 空列表不生成动作，其余情况先同步实体队列快照供全局 UI 投影。 */
+    fun preparePlayQueue(
+        state: MusicAppUiState,
+        songs: List<Song>,
+        playbackMode: PlaybackMode,
+    ): PreparedPlayQueue? {
+        if (songs.isEmpty()) {
+            return null
+        }
+        return PreparedPlayQueue(
+            state = state.copy(queueSongsSnapshot = songs),
+            songs = songs,
+            playbackMode = playbackMode,
+        )
+    }
+
+    /** 一次性提交队列与模式，避免页面连续触发两个异步动作造成状态竞争。 */
+    suspend fun startPlayback(action: PreparedPlayQueue) {
+        playbackCoordinator.playSongs(
+            songs = action.songs,
+            playbackMode = action.playbackMode,
         )
     }
 

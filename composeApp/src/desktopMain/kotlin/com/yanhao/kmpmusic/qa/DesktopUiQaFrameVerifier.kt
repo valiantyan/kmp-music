@@ -100,7 +100,7 @@ internal class DesktopUiQaFrameVerifier(
         secondFrame: BufferedImage,
     ) {
         var changedPixels: Int = 0
-        for (region: Rectangle in DesktopUiQaCaptureSpec.stableShellRegions()) {
+        for (region: Rectangle in DesktopUiQaCaptureSpec.stableShellRegions(scenario = config.scenario)) {
             for (x: Int in region.x until region.x + region.width) {
                 for (y: Int in region.y until region.y + region.height) {
                     if (firstFrame.getRGB(x, y) != secondFrame.getRGB(x, y)) {

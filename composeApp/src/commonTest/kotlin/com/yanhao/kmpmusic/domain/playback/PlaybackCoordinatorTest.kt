@@ -31,6 +31,90 @@ import kotlin.test.assertTrue
 @OptIn(ExperimentalCoroutinesApi::class)
 class PlaybackCoordinatorTest {
     /**
+     * 播放全部必须覆盖旧随机模式，并从收藏列表第一首开始。
+     */
+    @Test
+    fun playSongsWithLoopAllStartsFromFirstSong(): Unit =
+        runTest {
+            val repository = InMemoryPlaybackRepository()
+            repository.saveQueueState(state = QueueState(playbackMode = PlaybackMode.Shuffle))
+            val engine = FakeAudioPlayerEngine()
+            val coordinator =
+                PlaybackCoordinator(
+                    playbackRepository = repository,
+                    audioPlayerEngine = engine,
+                    snapshotWriteScope = backgroundScope,
+                )
+            val songs: List<Song> = buildSongs(count = 5)
+
+            coordinator.playSongs(
+                songs = songs,
+                playbackMode = PlaybackMode.LoopAll,
+            )
+
+            assertEquals(expected = PlaybackMode.LoopAll, actual = repository.getQueueState().playbackMode)
+            assertEquals(expected = 0, actual = repository.getQueueState().currentIndex)
+            assertEquals(expected = songs.first().id, actual = repository.getPlaybackState().currentSongId)
+            assertEquals(expected = PlaybackMode.LoopAll, actual = engine.playbackMode)
+        }
+
+    /**
+     * 随机播放必须使用协调器的可注入随机源选择首曲，并同步全局模式。
+     */
+    @Test
+    fun playSongsWithShuffleStartsFromInjectedRandomSong(): Unit =
+        runTest {
+            val repository = InMemoryPlaybackRepository()
+            val engine = FakeAudioPlayerEngine()
+            val coordinator =
+                PlaybackCoordinator(
+                    playbackRepository = repository,
+                    audioPlayerEngine = engine,
+                    snapshotWriteScope = backgroundScope,
+                    randomIndex = { candidates: List<Int> -> candidates.last() },
+                )
+            val songs: List<Song> = buildSongs(count = 5)
+
+            coordinator.playSongs(
+                songs = songs,
+                playbackMode = PlaybackMode.Shuffle,
+            )
+
+            assertEquals(expected = PlaybackMode.Shuffle, actual = repository.getQueueState().playbackMode)
+            assertEquals(expected = 4, actual = repository.getQueueState().currentIndex)
+            assertEquals(expected = listOf(0, 1, 2, 3), actual = repository.getQueueState().shuffleRemaining)
+            assertEquals(expected = songs.last().id, actual = repository.getPlaybackState().currentSongId)
+            assertEquals(expected = PlaybackMode.Shuffle, actual = engine.playbackMode)
+        }
+
+    /**
+     * 空收藏列表不能清空或中断当前播放事实。
+     */
+    @Test
+    fun playSongsWithEmptyListKeepsCurrentPlaybackState(): Unit =
+        runTest {
+            val repository = InMemoryPlaybackRepository()
+            val coordinator =
+                PlaybackCoordinator(
+                    playbackRepository = repository,
+                    audioPlayerEngine = FakeAudioPlayerEngine(),
+                    snapshotWriteScope = backgroundScope,
+                )
+            val songs: List<Song> = buildSongs(count = 2)
+            coordinator.playSong(song = songs.first(), queueSongs = songs)
+            val queueBefore: QueueState = repository.getQueueState()
+            val playbackBefore: PlaybackState = repository.getPlaybackState()
+
+            coordinator.playSongs(
+                songs = emptyList(),
+                playbackMode = PlaybackMode.Shuffle,
+            )
+
+            assertEquals(expected = queueBefore, actual = repository.getQueueState())
+            assertEquals(expected = playbackBefore, actual = repository.getPlaybackState())
+        }
+
+    /**
      * 点击列表中的歌曲时，应把整个列表写成播放队列。
      */
     @Test

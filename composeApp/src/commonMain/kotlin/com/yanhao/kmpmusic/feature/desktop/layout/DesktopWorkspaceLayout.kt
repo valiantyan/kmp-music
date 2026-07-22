@@ -78,7 +78,10 @@ fun DesktopWorkspaceLayout(
 
 /** 新版 Figma 页面自己控制内容内边距，外层工作区不再额外叠加旧 padding。 */
 private fun MusicAppUiState.usesDesktopFigmaManagedPadding(): Boolean {
-    if (navigationState.secondaryScreen == null && navigationState.rootTab == RootTab.Home) {
+    val isFigmaRootPage: Boolean =
+        navigationState.secondaryScreen == null &&
+            (navigationState.rootTab == RootTab.Home || navigationState.rootTab == RootTab.Favorites)
+    if (isFigmaRootPage) {
         return true
     }
     return navigationState.secondaryScreen == SecondaryScreen.LocalMusic(initialSection = LocalMusicSection.Artists)

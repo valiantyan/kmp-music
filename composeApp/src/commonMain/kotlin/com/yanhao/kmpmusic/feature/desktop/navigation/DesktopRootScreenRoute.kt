@@ -44,12 +44,9 @@ fun DesktopRootScreenRoute(
         RootTab.Favorites -> {
             DesktopFavoritesRootScreen(
                 songs = state.favoriteSongs,
-                albums = state.favoriteAlbums,
-                artists = state.favoriteArtists,
-                section = state.favoriteSection,
                 currentSongId = state.currentSongId,
-                currentPlaybackStatus = state.playbackStatus,
-                onSection = controller::setFavoriteSection,
+                isPlaying = state.shouldShowPauseControl,
+                onPlaySongs = controller::playSongs,
                 onSongPlay = { song: Song, queueSongs: List<Song> ->
                     controller.playSong(
                         song = song,
@@ -59,8 +56,6 @@ fun DesktopRootScreenRoute(
                 onCurrentSongToggle = controller::togglePlayback,
                 onMore = controller::openMore,
                 onLike = controller::toggleFavorite,
-                onAlbumOpen = controller::openAlbum,
-                onArtistOpen = controller::openArtist,
             )
         }
 

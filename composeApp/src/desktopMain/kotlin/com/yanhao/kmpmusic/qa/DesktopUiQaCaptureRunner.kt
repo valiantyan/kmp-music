@@ -28,8 +28,8 @@ internal class DesktopUiQaCaptureRunner(
                 window.height,
             )
         check(
-            bounds.width == DesktopUiQaCaptureSpec.WINDOW_WIDTH &&
-                bounds.height == DesktopUiQaCaptureSpec.WINDOW_HEIGHT,
+            bounds.width == config.scenario.windowWidth &&
+                bounds.height == config.scenario.windowHeight,
         ) {
             "Desktop UI QA 窗口尺寸错误: ${bounds.width}x${bounds.height}"
         }
@@ -92,7 +92,7 @@ internal class DesktopUiQaCaptureRunner(
         frameVerifier.verifyRegionChange(
             firstFrame = activeFrame,
             secondFrame = settledFrame,
-            region = DesktopUiQaCaptureSpec.appContentRegion(),
+            region = DesktopUiQaCaptureSpec.appContentRegion(scenario = config.scenario),
             minimumChangedPixels = DesktopUiQaCaptureSpec.MINIMUM_SCROLLBAR_CHANGED_PIXELS,
             maximumChangedPixels = DesktopUiQaCaptureSpec.MAXIMUM_SCROLLBAR_CHANGED_PIXELS,
             claim = "停止滚动五秒后滚动条应消失",
@@ -100,7 +100,7 @@ internal class DesktopUiQaCaptureRunner(
         frameVerifier.verifyRegionChange(
             firstFrame = activeFrame,
             secondFrame = settledFrame,
-            region = DesktopUiQaCaptureSpec.scrollbarChangeRegion(),
+            region = DesktopUiQaCaptureSpec.scrollbarChangeRegion(scenario = config.scenario),
             minimumChangedPixels = DesktopUiQaCaptureSpec.MINIMUM_SCROLLBAR_CHANGED_PIXELS,
             maximumChangedPixels = null,
             claim = "滚动条区域应在五秒边界前后发生变化",

@@ -2001,6 +2001,46 @@ class MusicAppControllerTest {
         }
 
     /**
+     * 收藏页播放全部应从首曲开始，并让底栏和播放页共享状态立即投影为顺序播放。
+     */
+    @Test
+    fun playSongsWithLoopAllUpdatesSharedUiState(): Unit =
+        runTest {
+            val controller: MusicAppController = createController(controllerScope = backgroundScope)
+            controller.scanLocalMusic(request = LocalMusicScanRequest.Refresh)
+            val songs: List<Song> = controller.uiState.songs.take(n = 8)
+
+            controller.playSongs(
+                songs = songs,
+                playbackMode = PlaybackMode.LoopAll,
+            )
+
+            assertEquals(expected = songs.map { song: Song -> song.id }, actual = controller.uiState.queueSongIds)
+            assertEquals(expected = songs.first().id, actual = controller.uiState.currentSongId)
+            assertEquals(expected = PlaybackMode.LoopAll, actual = controller.uiState.playbackMode)
+        }
+
+    /**
+     * 收藏页随机播放应写入全局模式，并从收藏队列内选出当前歌曲。
+     */
+    @Test
+    fun playSongsWithShuffleUpdatesSharedUiState(): Unit =
+        runTest {
+            val controller: MusicAppController = createController(controllerScope = backgroundScope)
+            controller.scanLocalMusic(request = LocalMusicScanRequest.Refresh)
+            val songs: List<Song> = controller.uiState.songs.take(n = 8)
+
+            controller.playSongs(
+                songs = songs,
+                playbackMode = PlaybackMode.Shuffle,
+            )
+
+            assertEquals(expected = songs.map { song: Song -> song.id }, actual = controller.uiState.queueSongIds)
+            assertTrue(actual = songs.any { song: Song -> song.id == controller.uiState.currentSongId })
+            assertEquals(expected = PlaybackMode.Shuffle, actual = controller.uiState.playbackMode)
+        }
+
+    /**
      * 列表点击歌曲只应更新播放状态，播放页必须继续由迷你播放器等显式入口打开。
      */
     @Test
