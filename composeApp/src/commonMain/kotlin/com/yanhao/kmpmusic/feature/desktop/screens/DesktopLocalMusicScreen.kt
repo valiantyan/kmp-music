@@ -38,6 +38,7 @@ import com.yanhao.kmpmusic.feature.desktop.DesktopMusicColors
 import com.yanhao.kmpmusic.feature.desktop.DesktopMusicType
 import com.yanhao.kmpmusic.feature.desktop.components.DesktopAlbumCard
 import com.yanhao.kmpmusic.feature.desktop.components.DesktopArtistStrip
+import com.yanhao.kmpmusic.feature.desktop.components.DesktopAutoHideLazyScrollbar
 import com.yanhao.kmpmusic.feature.desktop.components.DesktopContentRow
 import com.yanhao.kmpmusic.feature.desktop.components.DesktopContentRowFolderIcon
 import com.yanhao.kmpmusic.feature.desktop.components.DesktopContentRowSyncIcon
@@ -252,7 +253,7 @@ private fun DesktopLocalAlbumSection(
                     )
                 }
             }
-            DesktopHomeSongScrollbar(
+            DesktopAutoHideLazyScrollbar(
                 listState = listState,
                 modifier = Modifier.align(alignment = Alignment.CenterEnd),
             )

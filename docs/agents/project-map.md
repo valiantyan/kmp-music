@@ -23,9 +23,11 @@
 - `composeApp/src/androidMain`：Android 入口、权限、MediaStore、Media3、通知、数据库和平台适配。
 - `composeApp/src/iosMain`：iOS 入口、导入曲库、系统音乐资料库、AVFoundation 和平台适配。
 - `composeApp/src/desktopMain`：Desktop/macOS 入口、扫描目录、AVFoundation native bridge、数据库和平台适配。
+- `composeApp/src/desktopMain/kotlin/com/yanhao/kmpmusic/qa`：固定 `1240×824` 的 Desktop UI QA 场景、自动取证和帧校验；只使用内存 fake 数据。
 
 ## 测试与记录
 
 - `composeApp/src/commonTest`：共享逻辑测试，覆盖领域、数据、控制器、导航、状态同步、主题算法和显示模型。
 - `composeApp/src/desktopTest`：桌面与 Apple/macOS 播放门禁相关测试。
+- `scripts/desktop-ui-qa.sh`：直接打开 `home / home-playing / albums / artists` 场景，调用 `:composeApp:desktopUiQa` 生成三帧证据并自动退出。
 - `.scratch/<feature-slug>/`：本地 PRD、issue、验证记录和临时研究材料；除非任务要求，不提交原始附件、截图、构建产物或本地缓存。

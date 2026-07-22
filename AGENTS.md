@@ -57,6 +57,7 @@
 - Android 编译：`./gradlew :composeApp:compileDebugKotlinAndroid`
 - 共享逻辑和 Android 编译：`./gradlew :composeApp:compileDebugKotlinAndroid :composeApp:desktopTest`
 - 桌面端测试：`./gradlew :composeApp:desktopTest`
+- Desktop UI 取证：`./scripts/desktop-ui-qa.sh <home|home-playing|albums|artists>`
 - macOS AVFoundation 冒烟验证：`./gradlew :composeApp:macosAvFoundationBridgeSmoke`、`./gradlew :composeApp:macosAvFoundationDefaultRuntimeSmoke`
 
 更多命令和测试选择细则见 `docs/agents/testing.md`；提交前至少运行与改动范围匹配的验证。常规代码改动后，AI 必须主动运行 `./scripts/verify-local.sh`；如果因环境限制、任务范围或更精确的 focused 验证没有运行该脚本，交付说明必须写清原因、已运行的等价命令和人工验收缺口。

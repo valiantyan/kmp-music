@@ -22,6 +22,7 @@
 | 需要安装到已连接 Android 设备 | `./gradlew :composeApp:installDebug` |
 | 共享状态、控制器、导航、播放、队列、收藏、搜索、扫描、偏好 | 先跑对应 focused 测试，再跑 `./scripts/verify-local.sh` |
 | UI 大改 | 至少 Android 编译；涉及共享状态时加 `:composeApp:desktopTest`；按 `docs/agents/ui-state.md` 完成需求相关状态矩阵。显式要求 1:1、截图或动画时，对应视觉或动态证据是硬门禁。 |
+| Desktop 页面、滚动条或播放动画 | 先跑对应测试和默认入口，再用 `./scripts/desktop-ui-qa.sh <scenario>` 取得本次构建三帧证据。 |
 | 领域模型或 UseCase | 更新对应 `domain/model`、`domain/usecase`、`domain/playback` 测试，并运行匹配测试任务。 |
 | Repository、数据库、扫描合并 | 更新 `data`、`domain/persistence` 或扫描控制器测试，并运行匹配测试任务。 |
 | Android MediaStore、Media3 service、通知按钮或权限 | 至少 Android 编译；能用 JVM 或共享测试覆盖的逻辑要补测，可用 `./scripts/verify-local.sh android-unit`。 |
@@ -47,6 +48,14 @@
 - 静态视觉验收使用本次构建在指定尺寸下的截图；动态验收使用本次构建的录屏或能看出实际变化的连续帧，并覆盖需求指定的状态切换。
 - UI 任务先按 `docs/agents/ui-state.md` 建立状态矩阵，再为每个需求 claim 绑定自动化测试、截图、录屏或人工操作结果；不能用某一类证据替代它无法证明的 claim。
 - 无法启动、识别或捕获本次构建时，先解决运行与取证问题。若缺失的是用户显式验收项，任务保持未完成。
+
+### Desktop UI QA
+
+- `home`、`albums`、`artists` 使用真实 Desktop 壳和 120 首内存 fake 曲库，自动采集初始、停止前、停止满 5 秒后三帧；验收时序独立于生产延迟常量。`home-playing` 使用真实控制器进入播放中状态，在不同动画周期采集三帧。
+- QA 窗口固定为 `1240×824` 并在取证期置顶；工具会拒绝空白截图、相同帧、固定 shell 区域漂移，以及停止 5 秒后仍发生大范围变化的结果。
+- 证据默认写入已忽略的 `build/desktop-ui-qa/`，脚本完成后自动退出，不读取用户数据库，不依赖侧栏点击、窗口名猜测或屏幕绝对坐标。
+- 该入口需要可用的图形桌面会话和屏幕捕获权限；无界面 CI 应运行逻辑测试，不能伪称已取得渲染证据。
+- 该入口证明本次构建、固定尺寸、目标路由和动态变化，不能自动证明与 Figma 1:1。显式 1:1 仍需把生成帧与对应设计节点人工或像素对比。
 
 ## 测试落点
 

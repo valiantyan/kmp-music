@@ -23,6 +23,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.yanhao.kmpmusic.domain.model.Song
 import com.yanhao.kmpmusic.feature.desktop.DesktopMusicColors
+import com.yanhao.kmpmusic.feature.desktop.components.DesktopAutoHideLazyScrollbar
 
 // 歌曲列表独立滚动，保留顶部固定搜索与标题区域。
 @Composable
@@ -64,9 +65,9 @@ internal fun DesktopHomeSongList(
                 )
             }
         }
-        DesktopHomeSongScrollbar(
+        DesktopAutoHideLazyScrollbar(
             listState = listState,
-            modifier = Modifier.align(Alignment.CenterEnd),
+            modifier = Modifier.align(alignment = Alignment.CenterEnd),
         )
     }
 }

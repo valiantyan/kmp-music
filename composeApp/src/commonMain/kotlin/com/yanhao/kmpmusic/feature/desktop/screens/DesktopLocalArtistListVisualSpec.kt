@@ -13,9 +13,6 @@ import com.yanhao.kmpmusic.domain.model.Artist
  * @property pageBackgroundColor 页面底色。
  * @property pageHorizontalPadding 页面左右内边距。
  * @property pageTopPadding 页面顶部内边距。
- * @property titleFontSize 标题字号。
- * @property titleLineHeight 标题行高。
- * @property titleBottomSpacing 标题和列表之间的距离。
  * @property listColor 列表容器底色。
  * @property listBorderColor 列表容器描边色。
  * @property listRadius 列表容器圆角。
@@ -39,9 +36,6 @@ internal data class DesktopLocalArtistListVisualSpec(
     val pageBackgroundColor: Color,
     val pageHorizontalPadding: Dp,
     val pageTopPadding: Dp,
-    val titleFontSize: TextUnit,
-    val titleLineHeight: TextUnit,
-    val titleBottomSpacing: Dp,
     val listColor: Color,
     val listBorderColor: Color,
     val listRadius: Dp,
@@ -68,9 +62,6 @@ internal fun resolveDesktopLocalArtistListVisualSpec(): DesktopLocalArtistListVi
         pageBackgroundColor = Color(0xFFF9F9FF),
         pageHorizontalPadding = 24.dp,
         pageTopPadding = 16.dp,
-        titleFontSize = 32.sp,
-        titleLineHeight = 40.sp,
-        titleBottomSpacing = 32.dp,
         listColor = Color(0x66F0F3FF),
         listBorderColor = Color(0x1ABBCAC4),
         listRadius = 12.dp,

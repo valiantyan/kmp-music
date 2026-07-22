@@ -1,3 +1,4 @@
+import org.gradle.api.provider.Provider
 import org.gradle.api.tasks.Exec
 import org.gradle.api.tasks.JavaExec
 import org.gradle.api.tasks.testing.Test
@@ -237,6 +238,33 @@ tasks.withType<JavaExec>().configureEach {
         systemProperty(
             "kmp.music.macos.avfoundation.bridge.path",
             macosAvFoundationBridgeLibrary.get().asFile.absolutePath,
+        )
+    }
+}
+
+tasks.register<JavaExec>("desktopUiQa") {
+    description = "Runs a deterministic Desktop UI scenario and captures three evidence frames."
+    group = "verification"
+    dependsOn("desktopJar")
+    mainClass.set("com.yanhao.kmpmusic.qa.DesktopUiQaMain")
+    classpath(
+        tasks.named("desktopJar"),
+        configurations.named("desktopRuntimeClasspath"),
+    )
+    val scenarioArgument: Provider<String> = providers.gradleProperty("desktopUiQaScenario").orElse("artists")
+    val defaultOutputDirectory: Provider<String> =
+        layout.buildDirectory.dir("desktop-ui-qa").map { directory -> directory.asFile.absolutePath }
+    val outputDirectoryArgument: Provider<String> =
+        providers.gradleProperty("desktopUiQaOutputDir").orElse(defaultOutputDirectory)
+    inputs.property("scenario", scenarioArgument)
+    outputs.dir(outputDirectoryArgument)
+    outputs.upToDateWhen { false }
+    doFirst {
+        setArgs(
+            listOf(
+                scenarioArgument.get(),
+                outputDirectoryArgument.get(),
+            ),
         )
     }
 }

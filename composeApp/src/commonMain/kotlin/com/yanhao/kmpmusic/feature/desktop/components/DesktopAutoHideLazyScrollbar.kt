@@ -1,4 +1,4 @@
-package com.yanhao.kmpmusic.feature.desktop.screens
+package com.yanhao.kmpmusic.feature.desktop.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyListLayoutInfo
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
@@ -18,9 +19,9 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.positionChange
 import androidx.compose.ui.platform.LocalDensity
@@ -32,27 +33,55 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
-// 首页歌曲列表滚动时显示滚动条，停止滚动后延迟隐藏，避免常驻视觉噪音。
+/**
+ * 当前列表滚动位置，用于识别短暂滚轮事件造成的真实位置变化。
+ *
+ * @property firstVisibleItemIndex 首个可见条目索引。
+ * @property firstVisibleItemScrollOffset 首个可见条目像素偏移。
+ */
+private data class DesktopLazyListScrollPosition(
+    val firstVisibleItemIndex: Int,
+    val firstVisibleItemScrollOffset: Int,
+)
+
+/**
+ * 桌面长列表统一滚动条，集中处理滚动观察、拖拽、几何计算与自动隐藏。
+ */
 @Composable
-internal fun DesktopHomeSongScrollbar(
+internal fun DesktopAutoHideLazyScrollbar(
     listState: LazyListState,
     modifier: Modifier = Modifier,
+    style: DesktopLazyScrollbarStyle = DesktopLazyScrollbarStyle.Standard,
 ) {
-    val layoutInfo = listState.layoutInfo
-    val visibleItemsCount: Int = layoutInfo.visibleItemsInfo.size
-    val metrics: DesktopHomeSongScrollbarMetrics =
-        resolveDesktopHomeSongScrollbarMetrics(
+    val layoutInfo: LazyListLayoutInfo = listState.layoutInfo
+    val metrics: DesktopLazyScrollbarMetrics =
+        resolveDesktopLazyScrollbarMetrics(
             totalItemsCount = layoutInfo.totalItemsCount,
-            visibleItemsCount = visibleItemsCount,
+            visibleItemsCount = layoutInfo.visibleItemsInfo.size,
             firstVisibleItemIndex = listState.firstVisibleItemIndex,
             canScrollForward = listState.canScrollForward,
             canScrollBackward = listState.canScrollBackward,
             viewportHeightPx = layoutInfo.viewportSize.height.toFloat(),
         )
+    val scrollPosition: DesktopLazyListScrollPosition =
+        DesktopLazyListScrollPosition(
+            firstVisibleItemIndex = listState.firstVisibleItemIndex,
+            firstVisibleItemScrollOffset = listState.firstVisibleItemScrollOffset,
+        )
+    var previousScrollPosition: DesktopLazyListScrollPosition by remember(listState) {
+        mutableStateOf(value = scrollPosition)
+    }
     var isDraggingScrollbar: Boolean by remember { mutableStateOf(value = false) }
     var isScrollbarVisible: Boolean by remember { mutableStateOf(value = false) }
+    var dragState: DesktopLazyScrollbarDragState by remember(listState) {
+        mutableStateOf(
+            value = startDesktopLazyScrollbarDrag(initialFirstVisibleItemIndex = listState.firstVisibleItemIndex),
+        )
+    }
+    val didScroll: Boolean = scrollPosition != previousScrollPosition
     val isScrollbarActive: Boolean = listState.isScrollInProgress || isDraggingScrollbar
-    LaunchedEffect(metrics.isVisible, isScrollbarActive) {
+    LaunchedEffect(metrics.isVisible, scrollPosition, isScrollbarActive) {
+        previousScrollPosition = scrollPosition
         if (!metrics.isVisible) {
             isScrollbarVisible = false
             return@LaunchedEffect
@@ -61,36 +90,53 @@ internal fun DesktopHomeSongScrollbar(
             isScrollbarVisible = true
             return@LaunchedEffect
         }
+        if (didScroll) {
+            isScrollbarVisible = true
+        }
         if (isScrollbarVisible) {
-            delay(timeMillis = DESKTOP_HOME_SONG_SCROLLBAR_HIDE_DELAY_MILLIS)
+            delay(timeMillis = DESKTOP_AUTO_HIDE_LAZY_SCROLLBAR_DELAY_MILLIS)
             isScrollbarVisible = false
         }
     }
-    if (!isScrollbarVisible) {
+    if (!metrics.isVisible) {
         return
     }
     val coroutineScope: CoroutineScope = rememberCoroutineScope()
+    val visualSpec: DesktopLazyScrollbarVisualSpec = resolveDesktopLazyScrollbarVisualSpec(style = style)
     val thumbHeight: Dp = with(LocalDensity.current) { metrics.thumbHeightPx.toDp() }
+    val visualAlpha: Float = if (isScrollbarVisible) 1f else 0f
     Box(
         modifier =
             modifier
-                .width(10.dp)
+                .width(width = visualSpec.containerWidth)
                 .fillMaxHeight()
                 .pointerInput(listState) {
                     detectVerticalDragGestures(
-                        onDragStart = { _: Offset -> isDraggingScrollbar = true },
+                        onDragStart = { _: Offset ->
+                            dragState =
+                                startDesktopLazyScrollbarDrag(
+                                    initialFirstVisibleItemIndex = listState.firstVisibleItemIndex,
+                                )
+                            isDraggingScrollbar = true
+                        },
                         onDragEnd = { isDraggingScrollbar = false },
                         onDragCancel = { isDraggingScrollbar = false },
-                    ) { change, dragAmount ->
+                    ) { change, dragAmount: Float ->
+                        val updatedDragState: DesktopLazyScrollbarDragState =
+                            accumulateDesktopLazyScrollbarDrag(
+                                state = dragState,
+                                dragAmountPx = dragAmount,
+                            )
+                        dragState = updatedDragState
                         val targetIndex: Int =
-                            resolveDesktopHomeSongScrollbarTargetIndex(
-                                currentFirstVisibleItemIndex = listState.firstVisibleItemIndex,
+                            resolveDesktopLazyScrollbarTargetIndex(
+                                currentFirstVisibleItemIndex = updatedDragState.initialFirstVisibleItemIndex,
                                 totalItemsCount = listState.layoutInfo.totalItemsCount,
                                 visibleItemsCount = listState.layoutInfo.visibleItemsInfo.size,
                                 viewportHeightPx =
                                     listState.layoutInfo.viewportSize.height
                                         .toFloat(),
-                                dragAmountPx = dragAmount,
+                                accumulatedDragAmountPx = updatedDragState.accumulatedDragAmountPx,
                             )
                         if (change.positionChange() != Offset.Zero) {
                             change.consume()
@@ -105,25 +151,27 @@ internal fun DesktopHomeSongScrollbar(
         Box(
             modifier =
                 Modifier
-                    .width(4.dp)
+                    .width(width = visualSpec.trackWidth)
                     .fillMaxHeight()
-                    .clip(RoundedCornerShape(999.dp))
-                    .background(Color(0x14006B5C)),
+                    .alpha(alpha = visualAlpha)
+                    .clip(shape = RoundedCornerShape(size = 999.dp))
+                    .background(color = visualSpec.trackColor),
         )
         Box(
             modifier =
                 Modifier
-                    .verticalScrollbarOffset(offsetPx = metrics.thumbOffsetPx)
-                    .width(4.dp)
-                    .height(thumbHeight)
-                    .clip(RoundedCornerShape(999.dp))
-                    .background(Color(0x99006B5C)),
+                    .desktopLazyScrollbarOffset(offsetPx = metrics.thumbOffsetPx)
+                    .width(width = visualSpec.thumbWidth)
+                    .height(height = thumbHeight)
+                    .alpha(alpha = visualAlpha)
+                    .clip(shape = RoundedCornerShape(size = 999.dp))
+                    .background(color = visualSpec.thumbColor),
         )
     }
 }
 
-// 用像素偏移定位滑块，避免 dp 四舍五入导致滚动到末尾时滑块对不齐。
-private fun Modifier.verticalScrollbarOffset(offsetPx: Float): Modifier =
+// 像素偏移避免 dp 四舍五入导致滚动到末尾时滑块对不齐。
+private fun Modifier.desktopLazyScrollbarOffset(offsetPx: Float): Modifier =
     this.then(
         other =
             Modifier.offset {

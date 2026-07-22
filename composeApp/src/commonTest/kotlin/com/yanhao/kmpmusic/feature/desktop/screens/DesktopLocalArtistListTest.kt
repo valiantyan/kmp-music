@@ -23,9 +23,6 @@ class DesktopLocalArtistListTest {
         assertEquals(expected = Color(0xFFF9F9FF), actual = visualSpec.pageBackgroundColor)
         assertEquals(expected = 24.dp, actual = visualSpec.pageHorizontalPadding)
         assertEquals(expected = 16.dp, actual = visualSpec.pageTopPadding)
-        assertEquals(expected = 32.sp, actual = visualSpec.titleFontSize)
-        assertEquals(expected = 40.sp, actual = visualSpec.titleLineHeight)
-        assertEquals(expected = 32.dp, actual = visualSpec.titleBottomSpacing)
         assertEquals(expected = Color(0x66F0F3FF), actual = visualSpec.listColor)
         assertEquals(expected = Color(0x1ABBCAC4), actual = visualSpec.listBorderColor)
         assertEquals(expected = 12.dp, actual = visualSpec.listRadius)
@@ -50,62 +47,6 @@ class DesktopLocalArtistListTest {
         assertEquals(
             expected = "3 首歌曲 · 2 张专辑",
             actual = formatDesktopLocalArtistSubtitle(artist = artist),
-        )
-    }
-
-    /**
-     * 歌手列表只有内容超出当前列表视口时才显示滚动条。
-     */
-    @Test
-    fun artistScrollbarOnlyShowsForScrollableList() {
-        assertTrue(
-            actual =
-                shouldShowDesktopLocalArtistScrollbar(
-                    totalItemsCount = 40,
-                    visibleItemsCount = 6,
-                    canScrollForward = true,
-                    canScrollBackward = false,
-                ),
-        )
-        assertFalse(
-            actual =
-                shouldShowDesktopLocalArtistScrollbar(
-                    totalItemsCount = 6,
-                    visibleItemsCount = 6,
-                    canScrollForward = false,
-                    canScrollBackward = false,
-                ),
-        )
-    }
-
-    /**
-     * 歌手列表滚动条滚动中显示，停止滚动满 5 秒后隐藏。
-     */
-    @Test
-    fun artistScrollbarHidesAfterFiveSecondIdleDelay() {
-        assertTrue(
-            actual =
-                shouldRenderDesktopLocalArtistScrollbar(
-                    hasScrollableContent = true,
-                    isScrollInProgress = true,
-                    idleDurationMillis = DESKTOP_LOCAL_ARTIST_SCROLLBAR_HIDE_DELAY_MILLIS,
-                ),
-        )
-        assertTrue(
-            actual =
-                shouldRenderDesktopLocalArtistScrollbar(
-                    hasScrollableContent = true,
-                    isScrollInProgress = false,
-                    idleDurationMillis = DESKTOP_LOCAL_ARTIST_SCROLLBAR_HIDE_DELAY_MILLIS - 1L,
-                ),
-        )
-        assertFalse(
-            actual =
-                shouldRenderDesktopLocalArtistScrollbar(
-                    hasScrollableContent = true,
-                    isScrollInProgress = false,
-                    idleDurationMillis = DESKTOP_LOCAL_ARTIST_SCROLLBAR_HIDE_DELAY_MILLIS,
-                ),
         )
     }
 
