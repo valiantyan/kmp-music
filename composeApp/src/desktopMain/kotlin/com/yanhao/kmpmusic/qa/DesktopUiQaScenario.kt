@@ -1,7 +1,11 @@
 package com.yanhao.kmpmusic.qa
 
+import com.yanhao.kmpmusic.data.FakeLocalMusicScanner
+import com.yanhao.kmpmusic.domain.model.LocalMusicScanRequest
+import com.yanhao.kmpmusic.domain.model.LocalMusicScanResult
 import com.yanhao.kmpmusic.domain.model.SearchScope
 import com.yanhao.kmpmusic.domain.model.Song
+import com.yanhao.kmpmusic.domain.repository.LocalMusicScanner
 import com.yanhao.kmpmusic.feature.app.LocalMusicSection
 import com.yanhao.kmpmusic.feature.app.MusicAppController
 import com.yanhao.kmpmusic.feature.app.RootTab
@@ -52,6 +56,14 @@ internal enum class DesktopUiQaScenario(
         captureMode = DesktopUiQaCaptureMode.Scrollbar,
         windowWidth = 1280,
         windowHeight = 1024,
+    ),
+    AlbumDetail(
+        argument = "album-detail",
+        captureMode = DesktopUiQaCaptureMode.Scrollbar,
+    ),
+    AlbumDetailPlaying(
+        argument = "album-detail-playing",
+        captureMode = DesktopUiQaCaptureMode.PlaybackAnimation,
     ),
     Playlists(
         argument = "playlists",
@@ -121,7 +133,7 @@ internal data class DesktopUiQaConfig(
         /** 命令行必须明确给出场景和输出目录，避免证据写入未知位置。 */
         fun parse(args: Array<String>): DesktopUiQaConfig {
             require(args.size == EXPECTED_ARGUMENT_COUNT) {
-                "用法: desktopUiQa <home|home-playing|albums|artists|favorites|playlists|playlist-management|search|search-playing|search-albums|search-artists|search-playlists|search-empty> <output-directory>"
+                "用法: desktopUiQa <home|home-playing|albums|artists|favorites|album-detail|album-detail-playing|playlists|playlist-management|search|search-playing|search-albums|search-artists|search-playlists|search-empty> <output-directory>"
             }
             return DesktopUiQaConfig(
                 scenario = DesktopUiQaScenario.parse(argument = args[0]),
@@ -148,6 +160,8 @@ internal suspend fun prepareDesktopUiQaScenario(
         DesktopUiQaScenario.Albums -> controller.openLocalMusic(section = LocalMusicSection.Albums)
         DesktopUiQaScenario.Artists -> controller.openLocalMusic(section = LocalMusicSection.Artists)
         DesktopUiQaScenario.Favorites -> controller.navigateToRoot(tab = RootTab.Favorites)
+        DesktopUiQaScenario.AlbumDetail -> controller.openAlbumFromSong(song = controller.uiState.songs.first())
+        DesktopUiQaScenario.AlbumDetailPlaying -> prepareDesktopAlbumDetailPlayingScenario(controller = controller)
         DesktopUiQaScenario.Playlists -> prepareDesktopPlaylistScenario(controller = controller, opensManagement = false)
         DesktopUiQaScenario.PlaylistManagement -> prepareDesktopPlaylistScenario(controller = controller, opensManagement = true)
         DesktopUiQaScenario.HomePlaying -> prepareDesktopHomePlayingScenario(controller = controller)
@@ -157,6 +171,35 @@ internal suspend fun prepareDesktopUiQaScenario(
         DesktopUiQaScenario.SearchArtists -> prepareDesktopSearchArtistScenario(controller = controller)
         DesktopUiQaScenario.SearchPlaylists -> prepareDesktopSearchPlaylistScenario(controller = controller)
         DesktopUiQaScenario.SearchEmpty -> prepareDesktopSearchEmptyScenario(controller = controller)
+    }
+}
+
+/** 为每个 QA 场景创建独立内存扫描器，避免测试数据读取或写入用户曲库。 */
+internal fun createDesktopUiQaScanner(scenario: DesktopUiQaScenario): LocalMusicScanner {
+    val scanner: LocalMusicScanner = FakeLocalMusicScanner(demoSongCount = DESKTOP_UI_QA_SONG_COUNT)
+    if (scenario != DesktopUiQaScenario.AlbumDetail && scenario != DesktopUiQaScenario.AlbumDetailPlaying) {
+        return scanner
+    }
+    return DesktopAlbumDetailUiQaScanner(delegate = scanner)
+}
+
+/** 专辑详情滚动验证需要足够长的单专辑队列，仅在 QA 入口重写扫描结果的展示元数据。 */
+private class DesktopAlbumDetailUiQaScanner(
+    // 委托保留既有 fake 音频 URI、时长和收藏数据，仅覆盖专辑归属。
+    private val delegate: LocalMusicScanner,
+) : LocalMusicScanner {
+    /** 先取得既有 fake 结果，再把曲目投影到同一张 QA 专辑以产生真实长列表。 */
+    override suspend fun scan(request: LocalMusicScanRequest): LocalMusicScanResult {
+        val result: LocalMusicScanResult = delegate.scan(request = request)
+        return result.copy(
+            discovered =
+                result.discovered.map { metadata ->
+                    metadata.copy(
+                        artist = DESKTOP_ALBUM_DETAIL_QA_ARTIST,
+                        album = DESKTOP_ALBUM_DETAIL_QA_TITLE,
+                    )
+                },
+        )
     }
 }
 
@@ -269,6 +312,13 @@ private suspend fun prepareDesktopHomePlayingScenario(controller: MusicAppContro
     check(controller.uiState.isPlaying) { "Desktop UI QA 未进入播放中状态" }
 }
 
+/** 专辑详情播放态先进入真实专辑路由，再以完整专辑队列播放首曲。 */
+private suspend fun prepareDesktopAlbumDetailPlayingScenario(controller: MusicAppController) {
+    val song: Song = controller.uiState.songs.first()
+    controller.openAlbumFromSong(song = song)
+    prepareDesktopHomePlayingScenario(controller = controller)
+}
+
 /** 播放状态最多等待 2 秒。 */
 private const val PLAYBACK_STATE_POLL_COUNT: Int = 40
 
@@ -277,3 +327,12 @@ private const val PLAYBACK_STATE_POLL_INTERVAL_MILLIS: Long = 50L
 
 /** 歌单 QA 使用 4 条数据，对齐两个 Figma 节点展示的默认内容密度。 */
 private const val DESKTOP_UI_QA_PLAYLIST_COUNT: Int = 4
+
+/** 专辑详情 QA 使用 120 首数据，以覆盖曲目表滚动与滚动条自动隐藏。 */
+private const val DESKTOP_UI_QA_SONG_COUNT: Int = 120
+
+/** 专辑详情 QA 的统一歌手，避免头部元信息因扫描顺序变化。 */
+private const val DESKTOP_ALBUM_DETAIL_QA_ARTIST: String = "QA Artist"
+
+/** 专辑详情 QA 的统一专辑名，确保全部 fake 曲目进入同一条详情路由。 */
+private const val DESKTOP_ALBUM_DETAIL_QA_TITLE: String = "QA Album Detail"

@@ -170,7 +170,7 @@ internal class DesktopUiQaCaptureRunner(
         frameVerifier.verifyRegionChange(
             firstFrame = initialFrame,
             secondFrame = activeFrame,
-            region = DesktopUiQaCaptureSpec.playbackAnimationRegion(),
+            region = DesktopUiQaCaptureSpec.playbackAnimationRegion(scenario = config.scenario),
             minimumChangedPixels = DesktopUiQaCaptureSpec.MINIMUM_ANIMATION_CHANGED_PIXELS,
             maximumChangedPixels = null,
             claim = "播放动画前两帧应发生变化",
@@ -178,7 +178,7 @@ internal class DesktopUiQaCaptureRunner(
         frameVerifier.verifyRegionChange(
             firstFrame = activeFrame,
             secondFrame = settledFrame,
-            region = DesktopUiQaCaptureSpec.playbackAnimationRegion(),
+            region = DesktopUiQaCaptureSpec.playbackAnimationRegion(scenario = config.scenario),
             minimumChangedPixels = DesktopUiQaCaptureSpec.MINIMUM_ANIMATION_CHANGED_PIXELS,
             maximumChangedPixels = null,
             claim = "播放动画后两帧应发生变化",

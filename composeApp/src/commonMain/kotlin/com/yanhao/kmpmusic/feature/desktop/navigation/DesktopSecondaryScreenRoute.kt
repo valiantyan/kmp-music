@@ -3,6 +3,7 @@ package com.yanhao.kmpmusic.feature.desktop.navigation
 import androidx.compose.runtime.Composable
 import com.yanhao.kmpmusic.domain.model.Album
 import com.yanhao.kmpmusic.domain.model.Artist
+import com.yanhao.kmpmusic.domain.model.PlaybackMode
 import com.yanhao.kmpmusic.domain.model.Song
 import com.yanhao.kmpmusic.domain.usecase.SearchResult
 import com.yanhao.kmpmusic.feature.app.LocalMusicSection
@@ -86,15 +87,23 @@ fun DesktopSecondaryScreenRoute(
                 album = state.selectedAlbum,
                 songs = state.localSongs,
                 currentSongId = state.currentSongId,
-                currentPlaybackStatus = state.playbackStatus,
+                isPlaying = state.shouldShowPauseControl,
                 onBack = controller::navigateBack,
+                onPlaySongs = { albumSongs: List<Song>, playbackMode: PlaybackMode ->
+                    controller.playSongs(
+                        songs = albumSongs,
+                        playbackMode = playbackMode,
+                    )
+                },
                 onSongPlay = { song: Song, queueSongs: List<Song> ->
                     controller.playSong(
                         song = song,
                         queueSongs = queueSongs,
                     )
                 },
+                onCurrentSongToggle = controller::togglePlayback,
                 onMore = controller::openMore,
+                onLike = controller::toggleFavorite,
             )
         }
 

@@ -117,6 +117,22 @@ internal object DesktopPlaylistTokens {
     val ManagementDeleteBottomPadding: Dp = 32.dp
 }
 
+/** Figma `1115:1679`、`1115:1729` 专辑详情页专用的颜色和稳定尺寸。 */
+internal object DesktopAlbumDetailTokens {
+    val Background: Color = Color(0xFFF9F9FF)
+    val Title: Color = Color(0xFF111C2D)
+    val SupportingText: Color = Color(0xFF3C4A46)
+    val MutedText: Color = Color(0x993C4A46)
+    val Accent: Color = Color(0xFF006B5C)
+    val SecondaryAction: Color = Color(0xFFDEE8FF)
+    val Line: Color = Color(0x1ABBCAC4)
+    val ActiveRow: Color = Color(0x0D006B5C)
+    val ContentPadding: Dp = 24.dp
+    val HeroArtworkSize: Dp = 256.dp
+    val DurationColumnWidth: Dp = 128.dp
+    val ActionColumnWidth: Dp = 96.dp
+}
+
 @Composable
 fun desktopPageHorizontalPadding(width: Dp): Dp {
     val dynamicPadding = width * 0.04f

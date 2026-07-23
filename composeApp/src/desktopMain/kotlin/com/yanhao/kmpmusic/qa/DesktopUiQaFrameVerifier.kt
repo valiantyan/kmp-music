@@ -109,7 +109,10 @@ internal class DesktopUiQaFrameVerifier(
                 }
             }
         }
-        check(changedPixels <= DesktopUiQaCaptureSpec.MAXIMUM_STABLE_SHELL_CHANGED_PIXELS) {
+        check(
+            changedPixels <=
+                DesktopUiQaCaptureSpec.maximumStableShellChangedPixels(scenario = config.scenario),
+        ) {
             "Desktop UI QA 窗口身份不稳定，固定 shell 区域变化像素=$changedPixels"
         }
     }

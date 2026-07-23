@@ -9,7 +9,7 @@ import kotlin.test.assertFailsWith
  * Desktop UI QA 命令行契约测试，避免场景名与脚本路由漂移。
  */
 class DesktopUiQaScenarioTest {
-    /** 十三个公开场景名必须稳定解析到对应页面和取证模式。 */
+    /** 十五个公开场景名必须稳定解析到对应页面和取证模式。 */
     @Test
     fun supportedScenariosParseWithExpectedCaptureModes() {
         assertEquals(expected = DesktopUiQaCaptureMode.Scrollbar, actual = DesktopUiQaScenario.parse(argument = "home").captureMode)
@@ -20,6 +20,11 @@ class DesktopUiQaScenarioTest {
         assertEquals(expected = DesktopUiQaCaptureMode.Scrollbar, actual = DesktopUiQaScenario.parse(argument = "albums").captureMode)
         assertEquals(expected = DesktopUiQaCaptureMode.Scrollbar, actual = DesktopUiQaScenario.parse(argument = "artists").captureMode)
         assertEquals(expected = DesktopUiQaCaptureMode.Scrollbar, actual = DesktopUiQaScenario.parse(argument = "favorites").captureMode)
+        assertEquals(expected = DesktopUiQaCaptureMode.Scrollbar, actual = DesktopUiQaScenario.parse(argument = "album-detail").captureMode)
+        assertEquals(
+            expected = DesktopUiQaCaptureMode.PlaybackAnimation,
+            actual = DesktopUiQaScenario.parse(argument = "album-detail-playing").captureMode,
+        )
         assertEquals(expected = DesktopUiQaCaptureMode.Static, actual = DesktopUiQaScenario.parse(argument = "playlists").captureMode)
         assertEquals(
             expected = DesktopUiQaCaptureMode.Static,
@@ -40,6 +45,16 @@ class DesktopUiQaScenarioTest {
         assertEquals(expected = 1024, actual = DesktopUiQaScenario.Favorites.windowHeight)
         assertEquals(expected = DesktopUiQaCaptureSpec.WINDOW_WIDTH, actual = DesktopUiQaScenario.Home.windowWidth)
         assertEquals(expected = DesktopUiQaCaptureSpec.WINDOW_HEIGHT, actual = DesktopUiQaScenario.Home.windowHeight)
+        assertEquals(expected = 1240, actual = DesktopUiQaScenario.AlbumDetail.windowWidth)
+        assertEquals(expected = 824, actual = DesktopUiQaScenario.AlbumDetail.windowHeight)
+        assertEquals(
+            expected = 1_200,
+            actual = DesktopUiQaCaptureSpec.maximumStableShellChangedPixels(scenario = DesktopUiQaScenario.AlbumDetail),
+        )
+        assertEquals(
+            expected = DesktopUiQaCaptureSpec.MAXIMUM_STABLE_SHELL_CHANGED_PIXELS,
+            actual = DesktopUiQaCaptureSpec.maximumStableShellChangedPixels(scenario = DesktopUiQaScenario.Home),
+        )
         assertEquals(expected = DesktopUiQaCaptureSpec.WINDOW_WIDTH, actual = DesktopUiQaScenario.Playlists.windowWidth)
         assertEquals(expected = DesktopUiQaCaptureSpec.WINDOW_HEIGHT, actual = DesktopUiQaScenario.PlaylistManagement.windowHeight)
         assertEquals(expected = 1240, actual = DesktopUiQaScenario.Search.windowWidth)

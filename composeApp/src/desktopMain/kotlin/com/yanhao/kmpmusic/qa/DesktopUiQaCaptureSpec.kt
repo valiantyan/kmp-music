@@ -69,6 +69,9 @@ internal object DesktopUiQaCaptureSpec {
     /** 固定 shell 区域允许的少量抗锯齿变化像素数。 */
     const val MAXIMUM_STABLE_SHELL_CHANGED_PIXELS: Int = 500
 
+    /** 专辑详情首次滚动后 macOS 标题栏文本会产生额外抗锯齿噪声，单独放宽但不影响其他场景。 */
+    const val ALBUM_DETAIL_MAXIMUM_STABLE_SHELL_CHANGED_PIXELS: Int = 1_200
+
     /** 返回排除 macOS 原生标题栏后的场景应用内容区域。 */
     fun appContentRegion(scenario: DesktopUiQaScenario): Rectangle =
         Rectangle(
@@ -85,6 +88,14 @@ internal object DesktopUiQaCaptureSpec {
             Rectangle(0, 70, 240, scenario.windowHeight - 166),
         )
 
+    /** 返回场景专属的 shell 抖动上限，避免宿主像素噪声掩盖页面滚动和滚动条验收。 */
+    fun maximumStableShellChangedPixels(scenario: DesktopUiQaScenario): Int =
+        if (scenario == DesktopUiQaScenario.AlbumDetail) {
+            ALBUM_DETAIL_MAXIMUM_STABLE_SHELL_CHANGED_PIXELS
+        } else {
+            MAXIMUM_STABLE_SHELL_CHANGED_PIXELS
+        }
+
     /** 返回覆盖目标列表右侧滚动条的场景验收区域。 */
     fun scrollbarChangeRegion(scenario: DesktopUiQaScenario): Rectangle =
         Rectangle(
@@ -94,8 +105,13 @@ internal object DesktopUiQaCaptureSpec {
             scenario.windowHeight - 214,
         )
 
-    /** 返回首页当前歌曲均衡器的固定验收区域。 */
-    fun playbackAnimationRegion(): Rectangle = Rectangle(980, 245, 64, 80)
+    /** 返回场景内当前歌曲均衡器的固定验收区域。 */
+    fun playbackAnimationRegion(scenario: DesktopUiQaScenario): Rectangle =
+        if (scenario == DesktopUiQaScenario.AlbumDetailPlaying) {
+            Rectangle(260, 510, 64, 80)
+        } else {
+            Rectangle(980, 245, 64, 80)
+        }
 
     /** 初始状态截图文件名。 */
     const val INITIAL_FRAME_FILE_NAME: String = "01-initial.png"

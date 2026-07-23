@@ -10,7 +10,7 @@ import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.WindowState
 import androidx.compose.ui.window.application
 import androidx.compose.ui.window.rememberWindowState
-import com.yanhao.kmpmusic.data.FakeLocalMusicScanner
+import com.yanhao.kmpmusic.domain.repository.LocalMusicScanner
 import com.yanhao.kmpmusic.feature.app.MusicAppController
 import com.yanhao.kmpmusic.feature.desktop.DesktopMusicApp
 import kotlinx.coroutines.CoroutineScope
@@ -57,10 +57,14 @@ private fun DesktopUiQaContent(
     onComplete: () -> Unit,
 ) {
     val controllerScope: CoroutineScope = rememberCoroutineScope()
+    val localMusicScanner: LocalMusicScanner =
+        remember(config.scenario) {
+            createDesktopUiQaScanner(scenario = config.scenario)
+        }
     val controller: MusicAppController =
-        remember(controllerScope) {
+        remember(controllerScope, localMusicScanner) {
             MusicAppController(
-                localMusicScanner = FakeLocalMusicScanner(demoSongCount = DESKTOP_UI_QA_SONG_COUNT),
+                localMusicScanner = localMusicScanner,
                 controllerScope = controllerScope,
             )
         }
@@ -112,9 +116,6 @@ private fun failDesktopUiQa(error: Throwable): Nothing {
     error.printStackTrace(System.err)
     exitProcess(status = 1)
 }
-
-/** QA fake 曲库固定 120 首，足以覆盖三个长列表而不拖慢启动。 */
-private const val DESKTOP_UI_QA_SONG_COUNT: Int = 120
 
 /** 数据和路由完成后的首帧渲染等待时间（1000ms）。 */
 private const val INITIAL_RENDER_DELAY_MILLIS: Long = 1_000L

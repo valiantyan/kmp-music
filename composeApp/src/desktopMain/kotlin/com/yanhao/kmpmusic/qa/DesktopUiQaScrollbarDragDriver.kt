@@ -52,6 +52,8 @@ private fun resolveDesktopUiQaScrollbarEdgeInset(scenario: DesktopUiQaScenario):
         DesktopUiQaScenario.Home,
         DesktopUiQaScenario.Artists,
         DesktopUiQaScenario.Favorites,
+        DesktopUiQaScenario.AlbumDetail,
+        DesktopUiQaScenario.AlbumDetailPlaying,
         -> DesktopUiQaCaptureSpec.HOME_ARTISTS_SCROLLBAR_DRAG_EDGE_INSET_PX
 
         DesktopUiQaScenario.HomePlaying,

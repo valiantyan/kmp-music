@@ -10,66 +10,9 @@ import com.yanhao.kmpmusic.domain.model.Album
 import com.yanhao.kmpmusic.domain.model.Artist
 import com.yanhao.kmpmusic.domain.model.PlaybackStatus
 import com.yanhao.kmpmusic.domain.model.Song
-import com.yanhao.kmpmusic.domain.model.isSongInAlbum
 import com.yanhao.kmpmusic.feature.desktop.components.DesktopPageHeader
 import com.yanhao.kmpmusic.feature.desktop.components.DesktopPrimaryButton
 import com.yanhao.kmpmusic.feature.desktop.components.DesktopSongTable
-
-/**
- * 专辑详情直接基于当前共享曲库过滤，避免再维护桌面专属数据投影。
- */
-@Composable
-internal fun DesktopAlbumDetailScreen(
-    album: Album?,
-    songs: List<Song>,
-    currentSongId: String?,
-    currentPlaybackStatus: PlaybackStatus,
-    onBack: () -> Unit,
-    onSongPlay: (Song, List<Song>) -> Unit,
-    onMore: (Song) -> Unit,
-) {
-    val albumSongs: List<Song> =
-        album
-            ?.let { selectedAlbum: Album ->
-                songs.filter { song: Song ->
-                    isSongInAlbum(
-                        song = song,
-                        album = selectedAlbum,
-                    )
-                }
-            }.orEmpty()
-    Column(
-        modifier =
-            Modifier
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState()),
-    ) {
-        DesktopPageHeader(
-            title = album?.title ?: "专辑不可用",
-            eyebrow = album?.artist ?: "没有找到专辑信息",
-        ) {
-            DesktopPrimaryButton(text = "返回", onClick = onBack)
-            DesktopPrimaryButton(
-                text = "▶ 播放全部",
-                onClick = {
-                    albumSongs.firstOrNull()?.let { song: Song ->
-                        onSongPlay(song, albumSongs)
-                    }
-                },
-            )
-        }
-        DesktopSongTable(
-            songs = albumSongs,
-            currentSongId = currentSongId,
-            currentPlaybackStatus = currentPlaybackStatus,
-            showFavoriteColumn = false,
-            trailingDateLabel = "添加时间",
-            onSongPlay = onSongPlay,
-            onCurrentSongToggle = {},
-            onMore = onMore,
-        )
-    }
-}
 
 /**
  * 歌手详情页复用桌面表格与统计文案，减少重复布局。

@@ -59,7 +59,7 @@ class DesktopUiQaFrameVerifierTest {
             createVerifier().verifyRegionChange(
                 firstFrame = initialFrame,
                 secondFrame = unrelatedAnimationFrame,
-                region = DesktopUiQaCaptureSpec.playbackAnimationRegion(),
+                region = DesktopUiQaCaptureSpec.playbackAnimationRegion(scenario = DesktopUiQaScenario.HomePlaying),
                 minimumChangedPixels = DesktopUiQaCaptureSpec.MINIMUM_ANIMATION_CHANGED_PIXELS,
                 maximumChangedPixels = null,
                 claim = "播放动画应发生变化",
