@@ -1,5 +1,6 @@
 package com.yanhao.kmpmusic.feature.desktop
 
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
@@ -86,7 +87,9 @@ internal object DesktopSearchTokens {
     val HistoryChip: Color = Color(0xFFDEE8FF)
     val Line: Color = Color(0xFFBBCAC4).copy(alpha = 0.2f)
     val FaintLine: Color = Color(0xFFBBCAC4).copy(alpha = 0.1f)
-    val ContentPadding: Dp = 32.dp
+
+    /** 搜索页只保留顶部和左右间距，使结果列表贴合全局播放器上边界。 */
+    val ContentPadding: PaddingValues = PaddingValues(start = 32.dp, top = 32.dp, end = 32.dp)
     val InputMaxWidth: Dp = 672.dp
 }
 

@@ -23,6 +23,7 @@ class DesktopLocalArtistListTest {
         assertEquals(expected = Color(0xFFF9F9FF), actual = visualSpec.pageBackgroundColor)
         assertEquals(expected = 24.dp, actual = visualSpec.pageHorizontalPadding)
         assertEquals(expected = 16.dp, actual = visualSpec.pageTopPadding)
+        assertEquals(expected = 0.dp, actual = visualSpec.pageBottomPadding)
         assertEquals(expected = Color(0x66F0F3FF), actual = visualSpec.listColor)
         assertEquals(expected = Color(0x1ABBCAC4), actual = visualSpec.listBorderColor)
         assertEquals(expected = 12.dp, actual = visualSpec.listRadius)

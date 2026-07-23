@@ -1,8 +1,10 @@
 package com.yanhao.kmpmusic.feature.desktop.screens
 
+import androidx.compose.ui.unit.dp
 import com.yanhao.kmpmusic.domain.model.CoverArt
 import com.yanhao.kmpmusic.domain.model.SearchScope
 import com.yanhao.kmpmusic.feature.app.LocalPlaylistCardDisplayModel
+import com.yanhao.kmpmusic.feature.desktop.DesktopSearchTokens
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -12,6 +14,15 @@ import kotlin.test.assertTrue
  * 桌面搜索结果显示规则测试，避免 pending 防抖阶段误报“没有找到”。
  */
 class DesktopSearchScreenDisplayModelTest {
+    /** 搜索结果必须延伸到全局播放器上边界，避免出现独立的底部空白带。 */
+    @Test
+    fun doesNotReserveBottomSpaceBelowSearchResults() {
+        assertEquals(
+            expected = 0.dp,
+            actual = DesktopSearchTokens.ContentPadding.calculateBottomPadding(),
+        )
+    }
+
     @Test
     fun pendingQueryKeepsDesktopResultsHidden() {
         assertFalse(actual = shouldShowDesktopSearchResults(query = "雨", activeQuery = ""))

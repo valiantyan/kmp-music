@@ -126,7 +126,7 @@ fun DesktopSearchScreen(
             modifier =
                 Modifier
                     .fillMaxSize()
-                    .padding(all = DesktopSearchTokens.ContentPadding),
+                    .padding(paddingValues = DesktopSearchTokens.ContentPadding),
         ) {
             DesktopSearchInput(
                 value = query,

@@ -42,7 +42,7 @@ internal fun DesktopLocalArtistPage(
                     start = visualSpec.pageHorizontalPadding,
                     top = visualSpec.pageTopPadding,
                     end = visualSpec.pageHorizontalPadding,
-                    bottom = visualSpec.pageHorizontalPadding,
+                    bottom = visualSpec.pageBottomPadding,
                 ),
     ) {
         DesktopPageTitleToolbar(title = "歌手")
