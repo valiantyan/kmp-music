@@ -1,5 +1,6 @@
 package com.yanhao.kmpmusic.qa
 
+import java.awt.Point
 import java.awt.Rectangle
 
 /**
@@ -60,6 +61,9 @@ internal object DesktopUiQaCaptureSpec {
     /** 播放等高器相邻帧至少变化的像素数。 */
     const val MINIMUM_ANIMATION_CHANGED_PIXELS: Int = 10
 
+    /** 交互状态区域至少变化的像素数。 */
+    const val MINIMUM_INTERACTION_CHANGED_PIXELS: Int = 10
+
     /** 跳过会随系统焦点改变的 macOS 原生标题栏。 */
     const val STABLE_CHROME_TOP: Int = 30
 
@@ -109,9 +113,29 @@ internal object DesktopUiQaCaptureSpec {
     fun playbackAnimationRegion(scenario: DesktopUiQaScenario): Rectangle =
         if (scenario == DesktopUiQaScenario.AlbumDetailPlaying) {
             Rectangle(260, 510, 64, 80)
+        } else if (scenario == DesktopUiQaScenario.ArtistDetailPlaying) {
+            Rectangle(240, 400, 160, 160)
         } else {
             Rectangle(980, 245, 64, 80)
         }
+
+    /** 返回应用内容区域内歌手详情悬浮返回按钮的鼠标中心。 */
+    fun artistDetailBackButtonPoint(): Point = Point(280, 72)
+
+    /** 返回应用内容区域内歌手详情主播放按钮的鼠标中心。 */
+    fun artistDetailPlayAllButtonPoint(): Point = Point(366, 312)
+
+    /** 返回应用内容区域内歌手详情第一首歌曲行的鼠标中心。 */
+    fun artistDetailFirstSongRowPoint(): Point = Point(600, 458)
+
+    /** 返回悬浮返回按钮的可视状态层区域。 */
+    fun artistDetailBackButtonRegion(): Rectangle = Rectangle(264, 86, 32, 32)
+
+    /** 返回主播放按钮的可视状态层区域。 */
+    fun artistDetailPlayAllButtonRegion(): Rectangle = Rectangle(264, 318, 203, 48)
+
+    /** 返回第一首歌曲行的可视状态层区域。 */
+    fun artistDetailFirstSongRowRegion(): Rectangle = Rectangle(264, 456, 952, 64)
 
     /** 初始状态截图文件名。 */
     const val INITIAL_FRAME_FILE_NAME: String = "01-initial.png"
@@ -121,4 +145,7 @@ internal object DesktopUiQaCaptureSpec {
 
     /** 停止或后续动画状态截图文件名。 */
     const val SETTLED_FRAME_FILE_NAME: String = "03-settled.png"
+
+    /** 歌手详情交互按下状态截图文件名。 */
+    const val PRESSED_FRAME_FILE_NAME: String = "04-pressed.png"
 }

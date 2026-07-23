@@ -111,17 +111,19 @@ fun DesktopSecondaryScreenRoute(
             DesktopArtistDetailScreen(
                 artist = state.selectedArtist,
                 songs = state.localSongs,
-                albums = state.localAlbums,
                 currentSongId = state.currentSongId,
-                currentPlaybackStatus = state.playbackStatus,
+                isPlaying = state.shouldShowPauseControl,
                 onBack = controller::navigateBack,
+                onPlaySongs = controller::playSongs,
                 onSongPlay = { song: Song, queueSongs: List<Song> ->
                     controller.playSong(
                         song = song,
                         queueSongs = queueSongs,
                     )
                 },
+                onCurrentSongToggle = controller::togglePlayback,
                 onMore = controller::openMore,
+                onLike = controller::toggleFavorite,
             )
         }
 

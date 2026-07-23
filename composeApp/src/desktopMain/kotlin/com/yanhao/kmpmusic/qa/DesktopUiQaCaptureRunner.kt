@@ -5,6 +5,7 @@ import kotlinx.coroutines.delay
 import java.awt.Point
 import java.awt.Rectangle
 import java.awt.Robot
+import java.awt.event.InputEvent
 import java.awt.image.BufferedImage
 
 /**
@@ -51,6 +52,10 @@ internal class DesktopUiQaCaptureRunner(
 
             DesktopUiQaCaptureMode.PlaybackAnimation -> {
                 capturePlaybackAnimationFrames(robot = robot, bounds = bounds)
+            }
+
+            DesktopUiQaCaptureMode.Interaction -> {
+                captureArtistDetailInteractionFrames(window = window, robot = robot, bounds = bounds)
             }
         }
     }
@@ -185,5 +190,104 @@ internal class DesktopUiQaCaptureRunner(
         )
         frameVerifier.verifyStableWindowShell(firstFrame = initialFrame, secondFrame = activeFrame)
         frameVerifier.verifyStableWindowShell(firstFrame = activeFrame, secondFrame = settledFrame)
+    }
+
+    /** 依次取证返回、hero 主动作和歌曲行的悬停/按下反馈，避免仅凭代码声明交互态。 */
+    private suspend fun captureArtistDetailInteractionFrames(
+        window: ComposeWindow,
+        robot: Robot,
+        bounds: Rectangle,
+    ) {
+        val initialFrame: BufferedImage =
+            frameVerifier.captureFrame(
+                robot = robot,
+                bounds = bounds,
+                fileName = DesktopUiQaCaptureSpec.INITIAL_FRAME_FILE_NAME,
+            )
+        moveMouseToArtistDetailInteractionTarget(
+            robot = robot,
+            window = window,
+            point = DesktopUiQaCaptureSpec.artistDetailBackButtonPoint(),
+        )
+        val backHoveredFrame: BufferedImage =
+            frameVerifier.captureFrame(
+                robot = robot,
+                bounds = bounds,
+                fileName = DesktopUiQaCaptureSpec.ACTIVE_FRAME_FILE_NAME,
+            )
+        frameVerifier.verifyRegionChange(
+            firstFrame = initialFrame,
+            secondFrame = backHoveredFrame,
+            region = DesktopUiQaCaptureSpec.artistDetailBackButtonRegion(),
+            minimumChangedPixels = DesktopUiQaCaptureSpec.MINIMUM_INTERACTION_CHANGED_PIXELS,
+            claim = "悬浮返回按钮应提高背景不透明度",
+        )
+        moveMouseToArtistDetailInteractionTarget(
+            robot = robot,
+            window = window,
+            point = DesktopUiQaCaptureSpec.artistDetailPlayAllButtonPoint(),
+        )
+        val playAllHoveredFrame: BufferedImage =
+            frameVerifier.captureFrame(
+                robot = robot,
+                bounds = bounds,
+                fileName = DesktopUiQaCaptureSpec.SETTLED_FRAME_FILE_NAME,
+            )
+        frameVerifier.verifyRegionChange(
+            firstFrame = backHoveredFrame,
+            secondFrame = playAllHoveredFrame,
+            region = DesktopUiQaCaptureSpec.artistDetailPlayAllButtonRegion(),
+            minimumChangedPixels = DesktopUiQaCaptureSpec.MINIMUM_INTERACTION_CHANGED_PIXELS,
+            claim = "悬浮播放全部按钮应提高背景亮度",
+        )
+        moveMouseToArtistDetailInteractionTarget(
+            robot = robot,
+            window = window,
+            point = DesktopUiQaCaptureSpec.artistDetailFirstSongRowPoint(),
+        )
+        val rowHoveredFrame: BufferedImage =
+            frameVerifier.captureFrame(
+                robot = robot,
+                bounds = bounds,
+                fileName = "04-row-hover.png",
+            )
+        frameVerifier.verifyRegionChange(
+            firstFrame = playAllHoveredFrame,
+            secondFrame = rowHoveredFrame,
+            region = DesktopUiQaCaptureSpec.artistDetailFirstSongRowRegion(),
+            minimumChangedPixels = DesktopUiQaCaptureSpec.MINIMUM_INTERACTION_CHANGED_PIXELS,
+            claim = "悬浮歌曲行应显示浅色背景",
+        )
+        robot.mousePress(InputEvent.BUTTON1_DOWN_MASK)
+        delay(timeMillis = DesktopUiQaCaptureSpec.ROBOT_ACTION_DELAY_MILLIS.toLong())
+        val rowPressedFrame: BufferedImage =
+            frameVerifier.captureFrame(
+                robot = robot,
+                bounds = bounds,
+                fileName = DesktopUiQaCaptureSpec.PRESSED_FRAME_FILE_NAME,
+            )
+        robot.mouseRelease(InputEvent.BUTTON1_DOWN_MASK)
+        frameVerifier.verifyRegionChange(
+            firstFrame = rowHoveredFrame,
+            secondFrame = rowPressedFrame,
+            region = DesktopUiQaCaptureSpec.artistDetailFirstSongRowRegion(),
+            minimumChangedPixels = DesktopUiQaCaptureSpec.MINIMUM_INTERACTION_CHANGED_PIXELS,
+            claim = "按下歌曲行应加深浅色背景",
+        )
+        frameVerifier.verifyStableWindowShell(firstFrame = initialFrame, secondFrame = backHoveredFrame)
+        frameVerifier.verifyStableWindowShell(firstFrame = backHoveredFrame, secondFrame = playAllHoveredFrame)
+        frameVerifier.verifyStableWindowShell(firstFrame = playAllHoveredFrame, secondFrame = rowHoveredFrame)
+        frameVerifier.verifyStableWindowShell(firstFrame = rowHoveredFrame, secondFrame = rowPressedFrame)
+    }
+
+    /** 坐标以应用内容区域为基准，避免 macOS 标题栏偏移后把鼠标移动到错误控件。 */
+    private suspend fun moveMouseToArtistDetailInteractionTarget(
+        robot: Robot,
+        window: ComposeWindow,
+        point: Point,
+    ) {
+        val contentLocation: Point = window.contentPane.locationOnScreen
+        robot.mouseMove(contentLocation.x + point.x, contentLocation.y + point.y)
+        delay(timeMillis = DesktopUiQaCaptureSpec.ROBOT_ACTION_DELAY_MILLIS.toLong())
     }
 }

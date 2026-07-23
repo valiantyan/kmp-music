@@ -9,7 +9,7 @@ import kotlin.test.assertFailsWith
  * Desktop UI QA 命令行契约测试，避免场景名与脚本路由漂移。
  */
 class DesktopUiQaScenarioTest {
-    /** 十五个公开场景名必须稳定解析到对应页面和取证模式。 */
+    /** 歌手详情与既有公开场景名必须稳定解析到对应页面和取证模式。 */
     @Test
     fun supportedScenariosParseWithExpectedCaptureModes() {
         assertEquals(expected = DesktopUiQaCaptureMode.Scrollbar, actual = DesktopUiQaScenario.parse(argument = "home").captureMode)
@@ -24,6 +24,27 @@ class DesktopUiQaScenarioTest {
         assertEquals(
             expected = DesktopUiQaCaptureMode.PlaybackAnimation,
             actual = DesktopUiQaScenario.parse(argument = "album-detail-playing").captureMode,
+        )
+        assertEquals(
+            expected = DesktopUiQaCaptureMode.Scrollbar,
+            actual = DesktopUiQaScenario.parse(argument = "artist-detail-compact").captureMode,
+        )
+        assertEquals(expected = DesktopUiQaCaptureMode.Static, actual = DesktopUiQaScenario.parse(argument = "artist-detail").captureMode)
+        assertEquals(
+            expected = DesktopUiQaCaptureMode.Scrollbar,
+            actual = DesktopUiQaScenario.parse(argument = "artist-detail-wide").captureMode,
+        )
+        assertEquals(
+            expected = DesktopUiQaCaptureMode.PlaybackAnimation,
+            actual = DesktopUiQaScenario.parse(argument = "artist-detail-playing").captureMode,
+        )
+        assertEquals(
+            expected = DesktopUiQaCaptureMode.Static,
+            actual = DesktopUiQaScenario.parse(argument = "artist-detail-no-cover").captureMode,
+        )
+        assertEquals(
+            expected = DesktopUiQaCaptureMode.Interaction,
+            actual = DesktopUiQaScenario.parse(argument = "artist-detail-interaction").captureMode,
         )
         assertEquals(expected = DesktopUiQaCaptureMode.Static, actual = DesktopUiQaScenario.parse(argument = "playlists").captureMode)
         assertEquals(
@@ -47,6 +68,12 @@ class DesktopUiQaScenarioTest {
         assertEquals(expected = DesktopUiQaCaptureSpec.WINDOW_HEIGHT, actual = DesktopUiQaScenario.Home.windowHeight)
         assertEquals(expected = 1240, actual = DesktopUiQaScenario.AlbumDetail.windowWidth)
         assertEquals(expected = 824, actual = DesktopUiQaScenario.AlbumDetail.windowHeight)
+        assertEquals(expected = 1120, actual = DesktopUiQaScenario.ArtistDetailCompact.windowWidth)
+        assertEquals(expected = 760, actual = DesktopUiQaScenario.ArtistDetailCompact.windowHeight)
+        assertEquals(expected = 1240, actual = DesktopUiQaScenario.ArtistDetail.windowWidth)
+        assertEquals(expected = 800, actual = DesktopUiQaScenario.ArtistDetail.windowHeight)
+        assertEquals(expected = 1440, actual = DesktopUiQaScenario.ArtistDetailWide.windowWidth)
+        assertEquals(expected = 900, actual = DesktopUiQaScenario.ArtistDetailWide.windowHeight)
         assertEquals(
             expected = 1_200,
             actual = DesktopUiQaCaptureSpec.maximumStableShellChangedPixels(scenario = DesktopUiQaScenario.AlbumDetail),

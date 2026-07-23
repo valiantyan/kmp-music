@@ -133,6 +133,26 @@ internal object DesktopAlbumDetailTokens {
     val ActionColumnWidth: Dp = 96.dp
 }
 
+/** Figma `1118:1834` 歌手详情页专用的颜色和稳定尺寸，避免覆盖其他详情页。 */
+internal object DesktopArtistDetailTokens {
+    val Background: Color = Color(0xFFF9F9FF)
+    val Title: Color = Color(0xFF111C2D)
+    val SupportingText: Color = Color(0xFF3C4A46)
+    val Accent: Color = Color(0xFF00BFA5)
+    val AccentHover: Color = Color(0xFF20CCB4)
+    val AccentPressed: Color = Color(0xFF36D8C0)
+    val AccentContent: Color = Color(0xFF00473C)
+    val ActiveRow: Color = Color(0x0D006B5C)
+    val ActiveRowHover: Color = Color(0x14006B5C)
+    val ActiveRowPressed: Color = Color(0x1F006B5C)
+    val RowHover: Color = Color(0x08006B5C)
+    val RowPressed: Color = Color(0x12006B5C)
+    val HeroHeight: Dp = 320.dp
+    val ContentPadding: Dp = 24.dp
+    val DurationColumnWidth: Dp = 80.dp
+    val ActionColumnWidth: Dp = 100.dp
+}
+
 @Composable
 fun desktopPageHorizontalPadding(width: Dp): Dp {
     val dynamicPadding = width * 0.04f

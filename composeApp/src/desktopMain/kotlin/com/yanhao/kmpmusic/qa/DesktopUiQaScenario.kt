@@ -1,6 +1,7 @@
 package com.yanhao.kmpmusic.qa
 
 import com.yanhao.kmpmusic.data.FakeLocalMusicScanner
+import com.yanhao.kmpmusic.domain.model.CoverArt
 import com.yanhao.kmpmusic.domain.model.LocalMusicScanRequest
 import com.yanhao.kmpmusic.domain.model.LocalMusicScanResult
 import com.yanhao.kmpmusic.domain.model.SearchScope
@@ -19,6 +20,7 @@ internal enum class DesktopUiQaCaptureMode {
     Static,
     Scrollbar,
     PlaybackAnimation,
+    Interaction,
 }
 
 /**
@@ -64,6 +66,42 @@ internal enum class DesktopUiQaScenario(
     AlbumDetailPlaying(
         argument = "album-detail-playing",
         captureMode = DesktopUiQaCaptureMode.PlaybackAnimation,
+    ),
+    ArtistDetailCompact(
+        argument = "artist-detail-compact",
+        captureMode = DesktopUiQaCaptureMode.Scrollbar,
+        windowWidth = 1120,
+        windowHeight = 760,
+    ),
+    ArtistDetail(
+        argument = "artist-detail",
+        captureMode = DesktopUiQaCaptureMode.Static,
+        windowWidth = 1240,
+        windowHeight = 800,
+    ),
+    ArtistDetailWide(
+        argument = "artist-detail-wide",
+        captureMode = DesktopUiQaCaptureMode.Scrollbar,
+        windowWidth = 1440,
+        windowHeight = 900,
+    ),
+    ArtistDetailPlaying(
+        argument = "artist-detail-playing",
+        captureMode = DesktopUiQaCaptureMode.PlaybackAnimation,
+        windowWidth = 1240,
+        windowHeight = 800,
+    ),
+    ArtistDetailNoCover(
+        argument = "artist-detail-no-cover",
+        captureMode = DesktopUiQaCaptureMode.Static,
+        windowWidth = 1240,
+        windowHeight = 800,
+    ),
+    ArtistDetailInteraction(
+        argument = "artist-detail-interaction",
+        captureMode = DesktopUiQaCaptureMode.Interaction,
+        windowWidth = 1240,
+        windowHeight = 800,
     ),
     Playlists(
         argument = "playlists",
@@ -133,7 +171,7 @@ internal data class DesktopUiQaConfig(
         /** 命令行必须明确给出场景和输出目录，避免证据写入未知位置。 */
         fun parse(args: Array<String>): DesktopUiQaConfig {
             require(args.size == EXPECTED_ARGUMENT_COUNT) {
-                "用法: desktopUiQa <home|home-playing|albums|artists|favorites|album-detail|album-detail-playing|playlists|playlist-management|search|search-playing|search-albums|search-artists|search-playlists|search-empty> <output-directory>"
+                "用法: desktopUiQa <home|home-playing|albums|artists|favorites|album-detail|album-detail-playing|artist-detail-compact|artist-detail|artist-detail-wide|artist-detail-playing|artist-detail-no-cover|artist-detail-interaction|playlists|playlist-management|search|search-playing|search-albums|search-artists|search-playlists|search-empty> <output-directory>"
             }
             return DesktopUiQaConfig(
                 scenario = DesktopUiQaScenario.parse(argument = args[0]),
@@ -157,19 +195,42 @@ internal suspend fun prepareDesktopUiQaScenario(
     check(controller.uiState.songs.isNotEmpty()) { "Desktop UI QA fake 曲库为空" }
     when (scenario) {
         DesktopUiQaScenario.Home -> Unit
+
         DesktopUiQaScenario.Albums -> controller.openLocalMusic(section = LocalMusicSection.Albums)
+
         DesktopUiQaScenario.Artists -> controller.openLocalMusic(section = LocalMusicSection.Artists)
+
         DesktopUiQaScenario.Favorites -> controller.navigateToRoot(tab = RootTab.Favorites)
+
         DesktopUiQaScenario.AlbumDetail -> controller.openAlbumFromSong(song = controller.uiState.songs.first())
+
         DesktopUiQaScenario.AlbumDetailPlaying -> prepareDesktopAlbumDetailPlayingScenario(controller = controller)
+
+        DesktopUiQaScenario.ArtistDetailCompact,
+        DesktopUiQaScenario.ArtistDetail,
+        DesktopUiQaScenario.ArtistDetailWide,
+        DesktopUiQaScenario.ArtistDetailNoCover,
+        DesktopUiQaScenario.ArtistDetailInteraction,
+        -> controller.openArtistFromSong(song = controller.uiState.songs.first())
+
+        DesktopUiQaScenario.ArtistDetailPlaying -> prepareDesktopArtistDetailPlayingScenario(controller = controller)
+
         DesktopUiQaScenario.Playlists -> prepareDesktopPlaylistScenario(controller = controller, opensManagement = false)
+
         DesktopUiQaScenario.PlaylistManagement -> prepareDesktopPlaylistScenario(controller = controller, opensManagement = true)
+
         DesktopUiQaScenario.HomePlaying -> prepareDesktopHomePlayingScenario(controller = controller)
+
         DesktopUiQaScenario.Search -> prepareDesktopSearchLandingScenario(controller = controller)
+
         DesktopUiQaScenario.SearchPlaying -> prepareDesktopSearchPlayingScenario(controller = controller)
+
         DesktopUiQaScenario.SearchAlbums -> prepareDesktopSearchAlbumScenario(controller = controller)
+
         DesktopUiQaScenario.SearchArtists -> prepareDesktopSearchArtistScenario(controller = controller)
+
         DesktopUiQaScenario.SearchPlaylists -> prepareDesktopSearchPlaylistScenario(controller = controller)
+
         DesktopUiQaScenario.SearchEmpty -> prepareDesktopSearchEmptyScenario(controller = controller)
     }
 }
@@ -177,10 +238,30 @@ internal suspend fun prepareDesktopUiQaScenario(
 /** 为每个 QA 场景创建独立内存扫描器，避免测试数据读取或写入用户曲库。 */
 internal fun createDesktopUiQaScanner(scenario: DesktopUiQaScenario): LocalMusicScanner {
     val scanner: LocalMusicScanner = FakeLocalMusicScanner(demoSongCount = DESKTOP_UI_QA_SONG_COUNT)
-    if (scenario != DesktopUiQaScenario.AlbumDetail && scenario != DesktopUiQaScenario.AlbumDetailPlaying) {
-        return scanner
+    return when (scenario) {
+        DesktopUiQaScenario.AlbumDetail,
+        DesktopUiQaScenario.AlbumDetailPlaying,
+        -> {
+            DesktopAlbumDetailUiQaScanner(delegate = scanner)
+        }
+
+        DesktopUiQaScenario.ArtistDetailCompact,
+        DesktopUiQaScenario.ArtistDetail,
+        DesktopUiQaScenario.ArtistDetailWide,
+        DesktopUiQaScenario.ArtistDetailPlaying,
+        DesktopUiQaScenario.ArtistDetailInteraction,
+        -> {
+            DesktopArtistDetailUiQaScanner(delegate = scanner, usesDefaultArtwork = false)
+        }
+
+        DesktopUiQaScenario.ArtistDetailNoCover -> {
+            DesktopArtistDetailUiQaScanner(delegate = scanner, usesDefaultArtwork = true)
+        }
+
+        else -> {
+            scanner
+        }
     }
-    return DesktopAlbumDetailUiQaScanner(delegate = scanner)
 }
 
 /** 专辑详情滚动验证需要足够长的单专辑队列，仅在 QA 入口重写扫描结果的展示元数据。 */
@@ -197,6 +278,27 @@ private class DesktopAlbumDetailUiQaScanner(
                     metadata.copy(
                         artist = DESKTOP_ALBUM_DETAIL_QA_ARTIST,
                         album = DESKTOP_ALBUM_DETAIL_QA_TITLE,
+                    )
+                },
+        )
+    }
+}
+
+/** 歌手详情 QA 将 fake 曲目投影为同一歌手；缺封面场景额外清空所有候选封面。 */
+private class DesktopArtistDetailUiQaScanner(
+    private val delegate: LocalMusicScanner,
+    private val usesDefaultArtwork: Boolean,
+) : LocalMusicScanner {
+    /** 仅改写 QA 展示元数据，保证 120 首曲目在真实详情列表内形成可滚动队列。 */
+    override suspend fun scan(request: LocalMusicScanRequest): LocalMusicScanResult {
+        val result: LocalMusicScanResult = delegate.scan(request = request)
+        return result.copy(
+            discovered =
+                result.discovered.map { metadata ->
+                    metadata.copy(
+                        artist = DESKTOP_ARTIST_DETAIL_QA_ARTIST,
+                        coverArt = if (usesDefaultArtwork) CoverArt.HeroLocalMusic else metadata.coverArt,
+                        coverImageUri = if (usesDefaultArtwork) null else metadata.coverImageUri,
                     )
                 },
         )
@@ -319,6 +421,13 @@ private suspend fun prepareDesktopAlbumDetailPlayingScenario(controller: MusicAp
     prepareDesktopHomePlayingScenario(controller = controller)
 }
 
+/** 歌手详情播放态先进入真实详情路由，再以该歌手的完整 fake 队列播放首曲。 */
+private suspend fun prepareDesktopArtistDetailPlayingScenario(controller: MusicAppController) {
+    val song: Song = controller.uiState.songs.first()
+    controller.openArtistFromSong(song = song)
+    prepareDesktopHomePlayingScenario(controller = controller)
+}
+
 /** 播放状态最多等待 2 秒。 */
 private const val PLAYBACK_STATE_POLL_COUNT: Int = 40
 
@@ -336,3 +445,6 @@ private const val DESKTOP_ALBUM_DETAIL_QA_ARTIST: String = "QA Artist"
 
 /** 专辑详情 QA 的统一专辑名，确保全部 fake 曲目进入同一条详情路由。 */
 private const val DESKTOP_ALBUM_DETAIL_QA_TITLE: String = "QA Album Detail"
+
+/** 歌手详情 QA 的统一歌手，保证长列表与 hero 标题不受 fake catalog 分组影响。 */
+private const val DESKTOP_ARTIST_DETAIL_QA_ARTIST: String = "QA Artist Detail"
