@@ -6,11 +6,11 @@ project_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 scenario="${1:-artists}"
 
 case "$scenario" in
-    home|home-playing|albums|artists|favorites|me|album-detail|album-detail-playing|artist-detail-compact|artist-detail|artist-detail-wide|artist-detail-playing|artist-detail-no-cover|artist-detail-interaction|playlists|playlist-management|search|search-playing|search-albums|search-artists|search-playlists|search-empty)
+    home|home-playing|albums|artists|favorites|me|recent-played|album-detail|album-detail-playing|artist-detail-compact|artist-detail|artist-detail-wide|artist-detail-playing|artist-detail-no-cover|artist-detail-interaction|playlists|playlist-management|search|search-playing|search-albums|search-artists|search-playlists|search-empty)
         ;;
     *)
         echo "不支持的场景: $scenario" >&2
-        echo "用法: ./scripts/desktop-ui-qa.sh [home|home-playing|albums|artists|favorites|me|album-detail|album-detail-playing|artist-detail-compact|artist-detail|artist-detail-wide|artist-detail-playing|artist-detail-no-cover|artist-detail-interaction|playlists|playlist-management|search|search-playing|search-albums|search-artists|search-playlists|search-empty]" >&2
+        echo "用法: ./scripts/desktop-ui-qa.sh [home|home-playing|albums|artists|favorites|me|recent-played|album-detail|album-detail-playing|artist-detail-compact|artist-detail|artist-detail-wide|artist-detail-playing|artist-detail-no-cover|artist-detail-interaction|playlists|playlist-management|search|search-playing|search-albums|search-artists|search-playlists|search-empty]" >&2
         exit 2
         ;;
 esac

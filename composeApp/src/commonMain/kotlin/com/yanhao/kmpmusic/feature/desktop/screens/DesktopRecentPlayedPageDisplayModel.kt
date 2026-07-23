@@ -4,10 +4,10 @@ import com.yanhao.kmpmusic.domain.model.Song
 import com.yanhao.kmpmusic.feature.app.MusicAppUiState
 
 /**
- * 桌面最近播放页使用工作区表格宽度，不复用移动端窄列表布局。
+ * 桌面最近播放页复用首页歌曲卡片列表，保持页面间列表视觉一致。
  */
 internal enum class DesktopRecentPlayedLayoutPolicy {
-    WorkspaceTable,
+    HomeSongCards,
 }
 
 /**
@@ -92,7 +92,7 @@ internal fun buildDesktopRecentPlayedPageDisplayModel(
         eyebrow = eyebrow,
         emptyTitle = "暂无最近播放",
         emptyDetail = "播放歌曲后会在这里显示最近听过的音乐。",
-        layoutPolicy = DesktopRecentPlayedLayoutPolicy.WorkspaceTable,
+        layoutPolicy = DesktopRecentPlayedLayoutPolicy.HomeSongCards,
         rows = rows,
         hasManagementActions = false,
     )

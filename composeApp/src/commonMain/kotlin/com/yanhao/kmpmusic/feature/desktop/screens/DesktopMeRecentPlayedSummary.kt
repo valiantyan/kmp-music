@@ -89,15 +89,15 @@ internal fun DesktopMeRecentPlayedSummary(
         )
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(16.dp)) {
         Row(
-            modifier = Modifier.fillMaxWidth().height(20.dp).padding(horizontal = 8.dp),
+            modifier = Modifier.fillMaxWidth().height(24.dp).padding(horizontal = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             androidx.compose.material3.Text(
                 text = displayModel.title,
                 modifier = Modifier.weight(1f),
                 color = DesktopMeFigmaTokens.Muted.copy(alpha = 0.4f),
-                fontSize = 14.sp,
-                lineHeight = 20.sp,
+                fontSize = 18.sp,
+                lineHeight = 24.sp,
                 fontWeight = FontWeight.Medium,
             )
             androidx.compose.material3.Text(
@@ -109,8 +109,8 @@ internal fun DesktopMeRecentPlayedSummary(
                         Modifier
                     },
                 color = DesktopMeFigmaTokens.Accent,
-                fontSize = 12.sp,
-                lineHeight = 16.sp,
+                fontSize = 16.sp,
+                lineHeight = 20.sp,
                 fontWeight = FontWeight.Medium,
             )
         }

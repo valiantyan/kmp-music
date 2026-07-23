@@ -142,17 +142,17 @@ class DesktopRecentPlayedScreenTest {
     }
 
     /**
-     * 桌面页明确使用 workspace 表格策略，避免退回手机稿窄列表。
+     * 桌面页复用首页歌曲卡片列表，避免独立页面悄悄分叉成另一套行样式。
      */
     @Test
-    fun desktopRecentPlayedPageUsesWorkspaceTableLayout() {
+    fun desktopRecentPlayedPageUsesHomeSongCardLayout() {
         val model: DesktopRecentPlayedPageDisplayModel =
             buildDesktopRecentPlayedPageDisplayModel(
                 songs = listOf(testSong(id = "song-1", title = "Song 1")),
             )
 
         assertEquals(
-            expected = DesktopRecentPlayedLayoutPolicy.WorkspaceTable,
+            expected = DesktopRecentPlayedLayoutPolicy.HomeSongCards,
             actual = model.layoutPolicy,
         )
     }

@@ -1,6 +1,7 @@
 package com.yanhao.kmpmusic.feature.desktop.screens
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -8,9 +9,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -23,8 +22,7 @@ import androidx.compose.ui.unit.dp
 import com.yanhao.kmpmusic.domain.model.Song
 import com.yanhao.kmpmusic.feature.desktop.DesktopMusicColors
 import com.yanhao.kmpmusic.feature.desktop.DesktopMusicType
-import com.yanhao.kmpmusic.feature.desktop.components.DesktopPageHeader
-import com.yanhao.kmpmusic.feature.desktop.components.DesktopPrimaryButton
+import com.yanhao.kmpmusic.feature.desktop.components.DesktopBackTitleToolbar
 
 /**
  * 桌面最近播放页复用最近播放专用播放入口，保证点击任意行都使用完整最近播放队列。
@@ -33,9 +31,12 @@ import com.yanhao.kmpmusic.feature.desktop.components.DesktopPrimaryButton
 internal fun DesktopRecentPlayedScreen(
     songs: List<Song>,
     currentSongId: String?,
+    isPlaying: Boolean,
     onBack: () -> Unit,
     onSongPlay: (Song) -> Unit,
+    onCurrentSongToggle: () -> Unit,
     onSongMore: (Song) -> Unit,
+    onSongLike: (String) -> Unit,
 ) {
     val displayModel: DesktopRecentPlayedPageDisplayModel =
         buildDesktopRecentPlayedPageDisplayModel(
@@ -46,24 +47,27 @@ internal fun DesktopRecentPlayedScreen(
         modifier =
             Modifier
                 .fillMaxSize()
-                .verticalScroll(rememberScrollState()),
+                .background(Color(0xFFF9F9FF)),
     ) {
-        DesktopPageHeader(
+        DesktopBackTitleToolbar(
             title = displayModel.title,
-            eyebrow = displayModel.eyebrow,
-        ) {
-            DesktopPrimaryButton(
-                text = "返回",
-                onClick = onBack,
-            )
-        }
+            onBack = onBack,
+        )
         if (displayModel.rows.isEmpty()) {
-            DesktopRecentPlayedEmptyState(displayModel = displayModel)
+            DesktopRecentPlayedEmptyState(
+                displayModel = displayModel,
+                modifier = Modifier.weight(1f).padding(horizontal = 24.dp),
+            )
         } else {
-            DesktopRecentPlayedSongTable(
-                rows = displayModel.rows,
-                onSongPlay = onSongPlay,
-                onSongMore = onSongMore,
+            DesktopHomeSongList(
+                songs = songs,
+                currentSongId = currentSongId,
+                isPlaying = isPlaying,
+                onSongPlay = { song: Song, _: List<Song> -> onSongPlay(song) },
+                onCurrentSongToggle = onCurrentSongToggle,
+                onMore = onSongMore,
+                onLike = onSongLike,
+                modifier = Modifier.weight(1f).padding(horizontal = 24.dp),
             )
         }
     }
@@ -75,10 +79,11 @@ internal fun DesktopRecentPlayedScreen(
 @Composable
 private fun DesktopRecentPlayedEmptyState(
     displayModel: DesktopRecentPlayedPageDisplayModel,
+    modifier: Modifier,
 ) {
     Surface(
         modifier =
-            Modifier
+            modifier
                 .fillMaxWidth()
                 .height(180.dp),
         shape = RoundedCornerShape(18.dp),

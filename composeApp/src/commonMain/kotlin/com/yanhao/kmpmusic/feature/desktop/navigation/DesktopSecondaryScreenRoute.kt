@@ -169,9 +169,12 @@ fun DesktopSecondaryScreenRoute(
             DesktopRecentPlayedScreen(
                 songs = state.recentSongs,
                 currentSongId = state.currentSongId,
+                isPlaying = state.isPlaying,
                 onBack = controller::navigateBack,
                 onSongPlay = controller::playRecentSong,
+                onCurrentSongToggle = controller::togglePlayback,
                 onSongMore = controller::openMore,
+                onSongLike = controller::toggleFavorite,
             )
         }
 

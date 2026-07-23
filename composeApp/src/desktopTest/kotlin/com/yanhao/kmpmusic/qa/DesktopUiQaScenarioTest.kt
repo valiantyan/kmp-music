@@ -21,6 +21,10 @@ class DesktopUiQaScenarioTest {
         assertEquals(expected = DesktopUiQaCaptureMode.Scrollbar, actual = DesktopUiQaScenario.parse(argument = "artists").captureMode)
         assertEquals(expected = DesktopUiQaCaptureMode.Scrollbar, actual = DesktopUiQaScenario.parse(argument = "favorites").captureMode)
         assertEquals(expected = DesktopUiQaCaptureMode.Static, actual = DesktopUiQaScenario.parse(argument = "me").captureMode)
+        assertEquals(
+            expected = DesktopUiQaCaptureMode.Scrollbar,
+            actual = DesktopUiQaScenario.parse(argument = "recent-played").captureMode,
+        )
         assertEquals(expected = DesktopUiQaCaptureMode.Scrollbar, actual = DesktopUiQaScenario.parse(argument = "album-detail").captureMode)
         assertEquals(
             expected = DesktopUiQaCaptureMode.PlaybackAnimation,

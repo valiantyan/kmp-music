@@ -67,6 +67,10 @@ internal enum class DesktopUiQaScenario(
         windowWidth = 1280,
         windowHeight = 1024,
     ),
+    RecentPlayed(
+        argument = "recent-played",
+        captureMode = DesktopUiQaCaptureMode.Scrollbar,
+    ),
     AlbumDetail(
         argument = "album-detail",
         captureMode = DesktopUiQaCaptureMode.Scrollbar,
@@ -179,7 +183,7 @@ internal data class DesktopUiQaConfig(
         /** 命令行必须明确给出场景和输出目录，避免证据写入未知位置。 */
         fun parse(args: Array<String>): DesktopUiQaConfig {
             require(args.size == EXPECTED_ARGUMENT_COUNT) {
-                "用法: desktopUiQa <home|home-playing|albums|artists|favorites|me|album-detail|album-detail-playing|artist-detail-compact|artist-detail|artist-detail-wide|artist-detail-playing|artist-detail-no-cover|artist-detail-interaction|playlists|playlist-management|search|search-playing|search-albums|search-artists|search-playlists|search-empty> <output-directory>"
+                "用法: desktopUiQa <home|home-playing|albums|artists|favorites|me|recent-played|album-detail|album-detail-playing|artist-detail-compact|artist-detail|artist-detail-wide|artist-detail-playing|artist-detail-no-cover|artist-detail-interaction|playlists|playlist-management|search|search-playing|search-albums|search-artists|search-playlists|search-empty> <output-directory>"
             }
             return DesktopUiQaConfig(
                 scenario = DesktopUiQaScenario.parse(argument = args[0]),
@@ -211,6 +215,8 @@ internal suspend fun prepareDesktopUiQaScenario(
         DesktopUiQaScenario.Favorites -> controller.navigateToRoot(tab = RootTab.Favorites)
 
         DesktopUiQaScenario.Me -> prepareDesktopMeScenario(controller = controller)
+
+        DesktopUiQaScenario.RecentPlayed -> prepareDesktopRecentPlayedScenario(controller = controller)
 
         DesktopUiQaScenario.AlbumDetail -> controller.openAlbumFromSong(song = controller.uiState.songs.first())
 
@@ -485,6 +491,28 @@ private suspend fun prepareDesktopMeScenario(controller: MusicAppController) {
     }
 }
 
+/** 通过真实最近播放历史构造可滚动列表，再进入完整列表页面验证固定顶栏。 */
+private suspend fun prepareDesktopRecentPlayedScenario(controller: MusicAppController) {
+    controller.loadLocalMusicLibrary()
+    val songs: List<Song> = controller.uiState.localSongs.take(n = DESKTOP_RECENT_PLAYED_UI_QA_SONG_COUNT)
+    check(songs.size == DESKTOP_RECENT_PLAYED_UI_QA_SONG_COUNT) { "最近播放 QA 缺少足够的假歌曲" }
+    songs.asReversed().forEach { song: Song ->
+        controller.playSong(
+            song = song,
+            queueSongs = songs,
+        )
+        waitForDesktopUiQaCurrentSong(
+            controller = controller,
+            songId = song.id,
+        )
+    }
+    controller.pause()
+    controller.openRecentPlayed()
+    check(controller.uiState.recentSongs.size >= DESKTOP_RECENT_PLAYED_UI_QA_SONG_COUNT) {
+        "最近播放 QA 未生成足够的真实播放历史"
+    }
+}
+
 /** 逐首等待真实播放状态回写，避免异步播放历史记录被下一次 QA 命令覆盖。 */
 private suspend fun waitForDesktopUiQaCurrentSong(
     controller: MusicAppController,
@@ -521,6 +549,9 @@ private const val PLAYBACK_STATE_POLL_INTERVAL_MILLIS: Long = 50L
 
 /** 我的页 Figma 网格固定展示 4 张最近播放卡。 */
 private const val DESKTOP_ME_UI_QA_RECENT_SONG_COUNT: Int = 4
+
+/** 最近播放页 QA 最少需要 12 条真实历史，确保首页卡片列表可滚动。 */
+private const val DESKTOP_RECENT_PLAYED_UI_QA_SONG_COUNT: Int = 12
 
 /** Figma 最近播放第一张封面。 */
 private const val DESKTOP_ME_UI_QA_COVER_VITAS: String = "drawable/desktop_me_qa_vitas.png"

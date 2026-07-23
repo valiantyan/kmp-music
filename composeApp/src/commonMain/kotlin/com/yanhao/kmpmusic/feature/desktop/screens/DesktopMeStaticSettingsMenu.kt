@@ -61,8 +61,8 @@ internal fun DesktopMeStaticSettingsMenu(modifier: Modifier = Modifier) {
             text = "系统设置",
             modifier = Modifier.padding(horizontal = 16.dp),
             color = DesktopMeFigmaTokens.Muted.copy(alpha = 0.4f),
-            fontSize = 14.sp,
-            lineHeight = 20.sp,
+            fontSize = 18.sp,
+            lineHeight = 24.sp,
             fontWeight = FontWeight.Medium,
         )
         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
