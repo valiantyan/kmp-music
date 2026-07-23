@@ -21,7 +21,7 @@ import androidx.compose.ui.unit.sp
 import com.yanhao.kmpmusic.feature.desktop.DesktopMusicDimens
 
 /**
- * 桌面左侧导航栏按 Figma 固定入口渲染，点击仍只转发既有导航动作。
+ * 桌面左侧导航栏按 Figma 固定入口渲染，底部账户区承接“我的”页的既有导航动作。
  */
 @Composable
 fun DesktopRail(
@@ -51,10 +51,12 @@ fun DesktopRail(
             onArtists = onArtists,
             onPlaylists = onPlaylists,
             onFavorites = onFavorites,
-            onMe = onMe,
         )
         Spacer(modifier = Modifier.weight(1f))
-        DesktopRailAccount()
+        DesktopRailAccount(
+            activeDestination = activeDestination,
+            onClick = onMe,
+        )
     }
 }
 

@@ -27,7 +27,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
-// 六个入口顺序与 Figma 一致，设置入口后续由“我的”页承接。
+// 五个入口顺序与 Figma 一致，“我的”页由底部账户区承接。
 @Composable
 internal fun DesktopRailItems(
     activeDestination: DesktopRailDestination,
@@ -36,7 +36,6 @@ internal fun DesktopRailItems(
     onArtists: () -> Unit,
     onPlaylists: () -> Unit,
     onFavorites: () -> Unit,
-    onMe: () -> Unit,
 ) {
     Column(
         modifier = Modifier.fillMaxWidth(),
@@ -76,13 +75,6 @@ internal fun DesktopRailItems(
             icon = Icons.Rounded.Favorite,
             label = "收藏",
             onClick = onFavorites,
-        )
-        DesktopRailItem(
-            destination = DesktopRailDestination.Me,
-            activeDestination = activeDestination,
-            icon = Icons.Rounded.Person,
-            label = "我的",
-            onClick = onMe,
         )
     }
 }
