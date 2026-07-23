@@ -6,6 +6,7 @@ import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.yanhao.kmpmusic.domain.model.Artist
+import com.yanhao.kmpmusic.feature.desktop.DesktopMusicType
 
 /**
  * 桌面歌手列表 Figma `1085:709` 的关键视觉参数。
@@ -77,7 +78,7 @@ internal fun resolveDesktopLocalArtistListVisualSpec(): DesktopLocalArtistListVi
         avatarInset = 2.dp,
         avatarShadowElevation = 1.dp,
         contentGap = 16.dp,
-        artistNameFontSize = 20.sp,
+        artistNameFontSize = DesktopMusicType.Body,
         artistNameLineHeight = 28.sp,
         artistSubtitleFontSize = 13.sp,
         artistSubtitleLineHeight = 18.sp,

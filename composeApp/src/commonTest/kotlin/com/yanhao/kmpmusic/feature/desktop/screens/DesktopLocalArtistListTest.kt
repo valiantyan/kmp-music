@@ -5,6 +5,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.yanhao.kmpmusic.domain.model.Artist
 import com.yanhao.kmpmusic.domain.model.CoverArt
+import com.yanhao.kmpmusic.feature.desktop.DesktopMusicType
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -31,7 +32,7 @@ class DesktopLocalArtistListTest {
         assertEquals(expected = 97.dp, actual = visualSpec.regularRowHeight)
         assertEquals(expected = 96.dp, actual = visualSpec.lastRowHeight)
         assertEquals(expected = 64.dp, actual = visualSpec.avatarOuterSize)
-        assertEquals(expected = 20.sp, actual = visualSpec.artistNameFontSize)
+        assertEquals(expected = DesktopMusicType.Body, actual = visualSpec.artistNameFontSize)
         assertEquals(expected = 28.sp, actual = visualSpec.artistNameLineHeight)
         assertEquals(expected = 13.sp, actual = visualSpec.artistSubtitleFontSize)
         assertEquals(expected = 18.sp, actual = visualSpec.artistSubtitleLineHeight)

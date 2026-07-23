@@ -82,7 +82,7 @@ internal fun DesktopLocalArtistRow(
     }
 }
 
-// 歌手名和统计文案按 Figma 使用 20sp/13sp 两行固定高度。
+// 歌手名复用音乐页歌曲标题字号，统计文案继续保持既有 13sp 规格。
 @Composable
 private fun DesktopLocalArtistText(
     artist: Artist,
