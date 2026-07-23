@@ -10,7 +10,9 @@ import com.yanhao.kmpmusic.domain.repository.LocalMusicScanner
 import com.yanhao.kmpmusic.feature.app.LocalMusicSection
 import com.yanhao.kmpmusic.feature.app.MusicAppController
 import com.yanhao.kmpmusic.feature.app.RootTab
+import kmpmusic.composeapp.generated.resources.Res
 import kotlinx.coroutines.delay
+import org.jetbrains.compose.resources.ExperimentalResourceApi
 import java.nio.file.Path
 
 /**
@@ -56,6 +58,12 @@ internal enum class DesktopUiQaScenario(
     Favorites(
         argument = "favorites",
         captureMode = DesktopUiQaCaptureMode.Scrollbar,
+        windowWidth = 1280,
+        windowHeight = 1024,
+    ),
+    Me(
+        argument = "me",
+        captureMode = DesktopUiQaCaptureMode.Static,
         windowWidth = 1280,
         windowHeight = 1024,
     ),
@@ -171,7 +179,7 @@ internal data class DesktopUiQaConfig(
         /** 命令行必须明确给出场景和输出目录，避免证据写入未知位置。 */
         fun parse(args: Array<String>): DesktopUiQaConfig {
             require(args.size == EXPECTED_ARGUMENT_COUNT) {
-                "用法: desktopUiQa <home|home-playing|albums|artists|favorites|album-detail|album-detail-playing|artist-detail-compact|artist-detail|artist-detail-wide|artist-detail-playing|artist-detail-no-cover|artist-detail-interaction|playlists|playlist-management|search|search-playing|search-albums|search-artists|search-playlists|search-empty> <output-directory>"
+                "用法: desktopUiQa <home|home-playing|albums|artists|favorites|me|album-detail|album-detail-playing|artist-detail-compact|artist-detail|artist-detail-wide|artist-detail-playing|artist-detail-no-cover|artist-detail-interaction|playlists|playlist-management|search|search-playing|search-albums|search-artists|search-playlists|search-empty> <output-directory>"
             }
             return DesktopUiQaConfig(
                 scenario = DesktopUiQaScenario.parse(argument = args[0]),
@@ -201,6 +209,8 @@ internal suspend fun prepareDesktopUiQaScenario(
         DesktopUiQaScenario.Artists -> controller.openLocalMusic(section = LocalMusicSection.Artists)
 
         DesktopUiQaScenario.Favorites -> controller.navigateToRoot(tab = RootTab.Favorites)
+
+        DesktopUiQaScenario.Me -> prepareDesktopMeScenario(controller = controller)
 
         DesktopUiQaScenario.AlbumDetail -> controller.openAlbumFromSong(song = controller.uiState.songs.first())
 
@@ -258,6 +268,10 @@ internal fun createDesktopUiQaScanner(scenario: DesktopUiQaScenario): LocalMusic
             DesktopArtistDetailUiQaScanner(delegate = scanner, usesDefaultArtwork = true)
         }
 
+        DesktopUiQaScenario.Me -> {
+            DesktopMeUiQaScanner(delegate = scanner)
+        }
+
         else -> {
             scanner
         }
@@ -304,6 +318,42 @@ private class DesktopArtistDetailUiQaScanner(
         )
     }
 }
+
+/** 我的页 QA 将前四首 fake 曲目投影为 Figma 参考内容，仅用于固定截图取证。 */
+@OptIn(ExperimentalResourceApi::class)
+private class DesktopMeUiQaScanner(
+    private val delegate: LocalMusicScanner,
+) : LocalMusicScanner {
+    /** 保留 fake 音频和播放链路，只替换最近播放网格的可视元数据。 */
+    override suspend fun scan(request: LocalMusicScanRequest): LocalMusicScanResult {
+        val result: LocalMusicScanResult = delegate.scan(request = request)
+        return result.copy(
+            discovered =
+                result.discovered.mapIndexed { index: Int, metadata ->
+                    val fixture: DesktopMeUiQaSongFixture? = DESKTOP_ME_UI_QA_SONG_FIXTURES.getOrNull(index = index)
+                    if (fixture == null) {
+                        metadata
+                    } else {
+                        metadata.copy(
+                            title = fixture.title,
+                            artist = fixture.artist,
+                            coverImageUri = Res.getUri(path = fixture.coverImageResourcePath),
+                        )
+                    }
+                },
+        )
+    }
+}
+
+/** 我的页 QA 最近播放卡的固定展示元数据。 */
+private data class DesktopMeUiQaSongFixture(
+    /** 卡片标题。 */
+    val title: String,
+    /** 卡片歌手。 */
+    val artist: String,
+    /** 仓库内可复现封面的 Compose 资源路径。 */
+    val coverImageResourcePath: String,
+)
 
 /** 使用控制器创建设计稿数量的演示歌单，保证首帧同时呈现网格、创建卡片和选择列表。 */
 private fun prepareDesktopPlaylistScenario(
@@ -414,6 +464,41 @@ private suspend fun prepareDesktopHomePlayingScenario(controller: MusicAppContro
     check(controller.uiState.isPlaying) { "Desktop UI QA 未进入播放中状态" }
 }
 
+/** 通过真实播放历史生成四张最近播放卡，再回到我的页作为 Figma 默认内容密度。 */
+private suspend fun prepareDesktopMeScenario(controller: MusicAppController) {
+    val songs: List<Song> = controller.uiState.songs.take(n = DESKTOP_ME_UI_QA_RECENT_SONG_COUNT)
+    check(songs.size == DESKTOP_ME_UI_QA_RECENT_SONG_COUNT) { "我的页 QA 缺少四首假歌曲" }
+    songs.asReversed().forEach { song: Song ->
+        controller.playSong(
+            song = song,
+            queueSongs = songs,
+        )
+        waitForDesktopUiQaCurrentSong(
+            controller = controller,
+            songId = song.id,
+        )
+    }
+    controller.pause()
+    controller.navigateToRoot(tab = RootTab.Me)
+    check(controller.uiState.recentSongs.size >= DESKTOP_ME_UI_QA_RECENT_SONG_COUNT) {
+        "我的页 QA 未生成四条真实最近播放记录"
+    }
+}
+
+/** 逐首等待真实播放状态回写，避免异步播放历史记录被下一次 QA 命令覆盖。 */
+private suspend fun waitForDesktopUiQaCurrentSong(
+    controller: MusicAppController,
+    songId: String,
+) {
+    repeat(times = PLAYBACK_STATE_POLL_COUNT) {
+        if (controller.uiState.currentSongId == songId) {
+            return
+        }
+        delay(timeMillis = PLAYBACK_STATE_POLL_INTERVAL_MILLIS)
+    }
+    check(controller.uiState.currentSongId == songId) { "Desktop UI QA 未切换到目标歌曲: $songId" }
+}
+
 /** 专辑详情播放态先进入真实专辑路由，再以完整专辑队列播放首曲。 */
 private suspend fun prepareDesktopAlbumDetailPlayingScenario(controller: MusicAppController) {
     val song: Song = controller.uiState.songs.first()
@@ -433,6 +518,46 @@ private const val PLAYBACK_STATE_POLL_COUNT: Int = 40
 
 /** 播放状态轮询间隔（50ms）。 */
 private const val PLAYBACK_STATE_POLL_INTERVAL_MILLIS: Long = 50L
+
+/** 我的页 Figma 网格固定展示 4 张最近播放卡。 */
+private const val DESKTOP_ME_UI_QA_RECENT_SONG_COUNT: Int = 4
+
+/** Figma 最近播放第一张封面。 */
+private const val DESKTOP_ME_UI_QA_COVER_VITAS: String = "drawable/desktop_me_qa_vitas.png"
+
+/** Figma 最近播放第二张封面。 */
+private const val DESKTOP_ME_UI_QA_COVER_M83: String = "drawable/desktop_me_qa_m83.jpg"
+
+/** Figma 最近播放第三张封面。 */
+private const val DESKTOP_ME_UI_QA_COVER_ZEDD: String = "drawable/desktop_me_qa_zedd.jpg"
+
+/** Figma 最近播放第四张封面。 */
+private const val DESKTOP_ME_UI_QA_COVER_BILLIE_EILISH: String = "drawable/desktop_me_qa_billie_eilish.jpg"
+
+/** 我的页 QA 使用 Figma 对应的四首歌曲和封面，以便固定窗口截图逐项比对。 */
+private val DESKTOP_ME_UI_QA_SONG_FIXTURES: List<DesktopMeUiQaSongFixture> =
+    listOf(
+        DesktopMeUiQaSongFixture(
+            title = "Я тебя никогда не забуду",
+            artist = "Vitas",
+            coverImageResourcePath = DESKTOP_ME_UI_QA_COVER_VITAS,
+        ),
+        DesktopMeUiQaSongFixture(
+            title = "Midnight City",
+            artist = "M83",
+            coverImageResourcePath = DESKTOP_ME_UI_QA_COVER_M83,
+        ),
+        DesktopMeUiQaSongFixture(
+            title = "Clarity",
+            artist = "Zedd",
+            coverImageResourcePath = DESKTOP_ME_UI_QA_COVER_ZEDD,
+        ),
+        DesktopMeUiQaSongFixture(
+            title = "Ocean Eyes",
+            artist = "Billie Eilish",
+            coverImageResourcePath = DESKTOP_ME_UI_QA_COVER_BILLIE_EILISH,
+        ),
+    )
 
 /** 歌单 QA 使用 4 条数据，对齐两个 Figma 节点展示的默认内容密度。 */
 private const val DESKTOP_UI_QA_PLAYLIST_COUNT: Int = 4

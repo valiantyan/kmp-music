@@ -1,11 +1,9 @@
 package com.yanhao.kmpmusic.feature.desktop.screens
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -26,127 +24,98 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.yanhao.kmpmusic.feature.desktop.DesktopMusicColors
-import com.yanhao.kmpmusic.feature.desktop.DesktopMusicType
-import com.yanhao.kmpmusic.feature.desktop.components.DesktopSectionHeader
+import androidx.compose.ui.unit.sp
 
-/**
- * 桌面“我的”页静态设置菜单项，只表达当前个人中心信息结构，不承载导航目标。
- *
- * @property icon 菜单行左侧图标。
- * @property title 菜单行标题。
- * @property subtitle 菜单行说明。
- * @property isNavigationEnabled 是否允许从该行触发页面导航；当前 PRD 要求固定为 false。
- */
+/** 桌面“我的”页静态设置行，只表达设计信息结构，不暴露未完成路由。 */
 internal data class DesktopMeStaticSettingsMenuItemDisplayModel(
     val icon: ImageVector,
     val title: String,
-    val subtitle: String,
     val isNavigationEnabled: Boolean,
 )
 
-/**
- * 构造桌面“我的”页静态设置菜单；这些行不能接入旧设置、关于或来源管理路由。
- */
+/** 构造固定的三项展示入口，任何一项都不允许连接设置或关于页面。 */
 internal fun buildDesktopMeStaticSettingsMenuItemDisplayModels(): List<DesktopMeStaticSettingsMenuItemDisplayModel> =
     listOf(
         DesktopMeStaticSettingsMenuItemDisplayModel(
             icon = Icons.Rounded.Storage,
             title = "存储管理",
-            subtitle = "本地音乐空间与缓存概览",
             isNavigationEnabled = false,
         ),
         DesktopMeStaticSettingsMenuItemDisplayModel(
             icon = Icons.Rounded.Palette,
-            title = "主题与外观",
-            subtitle = "界面颜色与显示偏好",
+            title = "主题外观",
             isNavigationEnabled = false,
         ),
         DesktopMeStaticSettingsMenuItemDisplayModel(
             icon = Icons.Rounded.Info,
-            title = "关于",
-            subtitle = "版本信息与项目说明",
+            title = "关于软件",
             isNavigationEnabled = false,
         ),
     )
 
-/**
- * 静态设置菜单复用桌面卡片层级，但行本身不声明点击回调。
- */
+/** 以节点的三分之一列宽呈现静态设置菜单。 */
 @Composable
-internal fun DesktopMeStaticSettingsMenu() {
-    DesktopSectionHeader(title = "设置")
-    Spacer(modifier = Modifier.height(14.dp))
-    Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-        buildDesktopMeStaticSettingsMenuItemDisplayModels().forEach { item: DesktopMeStaticSettingsMenuItemDisplayModel ->
-            DesktopMeStaticSettingsMenuRow(item = item)
+internal fun DesktopMeStaticSettingsMenu(modifier: Modifier = Modifier) {
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        Text(
+            text = "系统设置",
+            modifier = Modifier.padding(horizontal = 16.dp),
+            color = DesktopMeFigmaTokens.Muted.copy(alpha = 0.4f),
+            fontSize = 14.sp,
+            lineHeight = 20.sp,
+            fontWeight = FontWeight.Medium,
+        )
+        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            buildDesktopMeStaticSettingsMenuItemDisplayModels().forEach { item: DesktopMeStaticSettingsMenuItemDisplayModel ->
+                DesktopMeStaticSettingsMenuRow(item = item)
+            }
         }
     }
 }
 
-/**
- * 单行只展示箭头视觉，不使用 [Surface] 的 onClick 重载，避免跳转半成品页面。
- */
+/** 保留箭头的视觉暗示，但不添加点击修饰符，防止进入半成品页面。 */
 @Composable
-private fun DesktopMeStaticSettingsMenuRow(
-    item: DesktopMeStaticSettingsMenuItemDisplayModel,
-) {
+private fun DesktopMeStaticSettingsMenuRow(item: DesktopMeStaticSettingsMenuItemDisplayModel) {
     Surface(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth().height(72.dp),
         shape = RoundedCornerShape(16.dp),
-        color = Color.White.copy(alpha = 0.72f),
-        border = BorderStroke(width = 1.dp, color = DesktopMusicColors.Line),
+        color = Color.White.copy(alpha = 0.4f),
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 18.dp, vertical = 18.dp),
-            horizontalArrangement = Arrangement.spacedBy(14.dp),
+            modifier = Modifier.padding(16.dp),
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            DesktopMeStaticSettingsIcon(item = item)
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(6.dp),
+            Box(
+                modifier = Modifier.size(40.dp),
+                contentAlignment = Alignment.Center,
             ) {
-                Text(
-                    text = item.title,
-                    color = DesktopMusicColors.Ink,
-                    fontSize = DesktopMusicType.StatTitle,
-                    fontWeight = FontWeight.Bold,
-                )
-                Text(
-                    text = item.subtitle,
-                    color = DesktopMusicColors.MutedStrong,
-                    fontSize = DesktopMusicType.Body,
-                )
+                Surface(
+                    modifier = Modifier.size(40.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    color = Color(0xFFDEE8FF),
+                ) {
+                    Icon(
+                        imageVector = item.icon,
+                        contentDescription = null,
+                        tint = DesktopMeFigmaTokens.Muted,
+                        modifier = Modifier.padding(10.dp),
+                    )
+                }
             }
+            Text(
+                text = item.title,
+                modifier = Modifier.weight(1f),
+                color = Color.Black,
+                fontSize = 15.sp,
+                lineHeight = 22.sp,
+                fontWeight = FontWeight.Medium,
+            )
             Icon(
                 imageVector = Icons.Rounded.ChevronRight,
                 contentDescription = null,
-                tint = DesktopMusicColors.MutedStrong,
+                tint = DesktopMeFigmaTokens.Muted.copy(alpha = 0.4f),
                 modifier = Modifier.size(16.dp),
-            )
-        }
-    }
-}
-
-/**
- * 图标容器复用桌面入口卡片视觉，但不提供独立交互热区。
- */
-@Composable
-private fun DesktopMeStaticSettingsIcon(
-    item: DesktopMeStaticSettingsMenuItemDisplayModel,
-) {
-    Surface(
-        modifier = Modifier.size(38.dp),
-        shape = RoundedCornerShape(12.dp),
-        color = DesktopMusicColors.AccentSoft,
-    ) {
-        Box(contentAlignment = Alignment.Center) {
-            Icon(
-                imageVector = item.icon,
-                contentDescription = null,
-                tint = DesktopMusicColors.AccentDeep,
-                modifier = Modifier.size(18.dp),
             )
         }
     }

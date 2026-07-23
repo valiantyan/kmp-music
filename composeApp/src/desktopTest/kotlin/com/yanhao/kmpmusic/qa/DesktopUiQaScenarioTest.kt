@@ -20,6 +20,7 @@ class DesktopUiQaScenarioTest {
         assertEquals(expected = DesktopUiQaCaptureMode.Scrollbar, actual = DesktopUiQaScenario.parse(argument = "albums").captureMode)
         assertEquals(expected = DesktopUiQaCaptureMode.Scrollbar, actual = DesktopUiQaScenario.parse(argument = "artists").captureMode)
         assertEquals(expected = DesktopUiQaCaptureMode.Scrollbar, actual = DesktopUiQaScenario.parse(argument = "favorites").captureMode)
+        assertEquals(expected = DesktopUiQaCaptureMode.Static, actual = DesktopUiQaScenario.parse(argument = "me").captureMode)
         assertEquals(expected = DesktopUiQaCaptureMode.Scrollbar, actual = DesktopUiQaScenario.parse(argument = "album-detail").captureMode)
         assertEquals(
             expected = DesktopUiQaCaptureMode.PlaybackAnimation,
@@ -59,11 +60,13 @@ class DesktopUiQaScenarioTest {
         assertEquals(expected = DesktopUiQaCaptureMode.Static, actual = DesktopUiQaScenario.parse(argument = "search-empty").captureMode)
     }
 
-    /** 收藏页使用用户确认的 1280x1024，既有场景继续保持原始尺寸。 */
+    /** 收藏页与我的页使用用户确认的 1280x1024，既有场景继续保持原始尺寸。 */
     @Test
     fun favoritesUsesFigmaWindowSizeWithoutChangingExistingScenarios() {
         assertEquals(expected = 1280, actual = DesktopUiQaScenario.Favorites.windowWidth)
         assertEquals(expected = 1024, actual = DesktopUiQaScenario.Favorites.windowHeight)
+        assertEquals(expected = 1280, actual = DesktopUiQaScenario.Me.windowWidth)
+        assertEquals(expected = 1024, actual = DesktopUiQaScenario.Me.windowHeight)
         assertEquals(expected = DesktopUiQaCaptureSpec.WINDOW_WIDTH, actual = DesktopUiQaScenario.Home.windowWidth)
         assertEquals(expected = DesktopUiQaCaptureSpec.WINDOW_HEIGHT, actual = DesktopUiQaScenario.Home.windowHeight)
         assertEquals(expected = 1240, actual = DesktopUiQaScenario.AlbumDetail.windowWidth)

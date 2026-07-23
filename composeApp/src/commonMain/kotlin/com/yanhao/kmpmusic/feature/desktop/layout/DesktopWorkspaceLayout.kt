@@ -80,7 +80,11 @@ fun DesktopWorkspaceLayout(
 private fun MusicAppUiState.usesDesktopFigmaManagedPadding(): Boolean {
     val isFigmaRootPage: Boolean =
         navigationState.secondaryScreen == null &&
-            (navigationState.rootTab == RootTab.Home || navigationState.rootTab == RootTab.Favorites)
+            (
+                navigationState.rootTab == RootTab.Home ||
+                    navigationState.rootTab == RootTab.Favorites ||
+                    navigationState.rootTab == RootTab.Me
+            )
     if (isFigmaRootPage) {
         return true
     }

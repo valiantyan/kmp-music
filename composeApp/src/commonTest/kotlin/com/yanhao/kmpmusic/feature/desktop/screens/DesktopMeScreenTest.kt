@@ -1,9 +1,11 @@
 package com.yanhao.kmpmusic.feature.desktop.screens
 
+import androidx.compose.ui.geometry.Size
 import com.yanhao.kmpmusic.domain.model.CoverArt
 import com.yanhao.kmpmusic.domain.model.LibraryStats
 import com.yanhao.kmpmusic.domain.model.LocalMusicSourceKind
 import com.yanhao.kmpmusic.domain.model.Song
+import kotlin.math.abs
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -31,10 +33,10 @@ class DesktopMeScreenTest {
     }
 
     /**
-     * 桌面摘要只露出统一最近播放列表的前三首，完整列表由 workspace 最近播放页承载。
+     * 桌面摘要以 Figma 四卡网格露出统一最近播放列表的前四首，完整列表由 workspace 最近播放页承载。
      */
     @Test
-    fun desktopMeRecentPlayedSummaryKeepsOnlyTopThreeSongs() {
+    fun desktopMeRecentPlayedSummaryKeepsOnlyTopFourSongs() {
         val songs: List<Song> =
             (1..5).map { index: Int ->
                 testSong(id = "song-$index", title = "Song $index")
@@ -46,7 +48,7 @@ class DesktopMeScreenTest {
             )
 
         assertEquals(
-            expected = listOf("song-1", "song-2", "song-3"),
+            expected = listOf("song-1", "song-2", "song-3", "song-4"),
             actual = model.rows.map { row: DesktopMeRecentPlayedSongDisplayModel -> row.song.id },
         )
     }
@@ -110,7 +112,7 @@ class DesktopMeScreenTest {
     }
 
     /**
-     * 桌面摘要只给当前播放歌曲附加播放中标识，避免 Top3 之外或非当前行误高亮。
+     * 桌面摘要只给当前播放歌曲附加播放中标识，避免 Top4 之外或非当前行误高亮。
      */
     @Test
     fun desktopMeRecentPlayedSummaryMarksOnlyCurrentVisibleSong() {
@@ -127,13 +129,29 @@ class DesktopMeScreenTest {
             )
 
         assertEquals(
-            expected = listOf(false, true, false),
+            expected = listOf(false, true, false, false),
             actual = model.rows.map { row: DesktopMeRecentPlayedSongDisplayModel -> row.isCurrentSong },
         )
         assertEquals(
-            expected = listOf(null, "播放中", null),
+            expected = listOf(null, "播放中", null, null),
             actual = model.rows.map { row: DesktopMeRecentPlayedSongDisplayModel -> row.playingIndicatorLabel },
         )
+    }
+
+    /**
+     * 暂停后当前曲目仍可保留在播放器，但最近播放摘要不能继续显示播放中反馈。
+     */
+    @Test
+    fun desktopMeRecentPlayedSummaryDoesNotMarkPausedSongAsPlaying() {
+        val model: DesktopMeRecentPlayedSummaryDisplayModel =
+            buildDesktopMeRecentPlayedSummaryDisplayModel(
+                recentSongs = listOf(testSong(id = "song-1", title = "Song 1")),
+                currentSongId = "song-1",
+                isPlaying = false,
+            )
+
+        assertFalse(actual = model.rows.single().isCurrentSong)
+        assertEquals(expected = null, actual = model.rows.single().playingIndicatorLabel)
     }
 
     /**
@@ -143,7 +161,7 @@ class DesktopMeScreenTest {
     fun desktopMeStaticSettingsMenuShowsThreeNonNavigatingRows() {
         val items: List<DesktopMeStaticSettingsMenuItemDisplayModel> = buildDesktopMeStaticSettingsMenuItemDisplayModels()
         assertEquals(
-            expected = listOf("存储管理", "主题与外观", "关于"),
+            expected = listOf("存储管理", "主题外观", "关于软件"),
             actual = items.map { item: DesktopMeStaticSettingsMenuItemDisplayModel -> item.title },
         )
         assertEquals(
@@ -165,17 +183,17 @@ class DesktopMeScreenTest {
             actual = action.action,
         )
         assertEquals(
-            expected = "扫描音乐",
+            expected = "扫描本地音乐",
             actual = action.title,
         )
         assertEquals(
-            expected = "添加文件夹",
-            actual = action.actionLabel,
+            expected = "更新媒体库资源",
+            actual = action.subtitle,
         )
     }
 
     /**
-     * 桌面统计区只显示歌曲、歌单和听歌时长三项，避免回退到旧的专辑/歌手/收藏/最近播放组合。
+     * 桌面统计区只显示音乐、歌单和听歌时长三项，避免回退到旧的专辑/歌手/收藏/最近播放组合。
      */
     @Test
     fun desktopMeStatsUseSongPlaylistAndListeningHoursOnly() {
@@ -193,8 +211,12 @@ class DesktopMeScreenTest {
             )
 
         assertEquals(
-            expected = listOf("歌曲", "歌单", "听歌时长"),
+            expected = listOf("音乐", "创建歌单", "累计收听"),
             actual = models.map { model: DesktopMeStatDisplayModel -> model.title },
+        )
+        assertEquals(
+            expected = listOf("SONGS", "PLAYLISTS", "DURATION"),
+            actual = models.map { model: DesktopMeStatDisplayModel -> model.heading },
         )
         assertEquals(expected = 3, actual = models.size)
     }
@@ -224,10 +246,10 @@ class DesktopMeScreenTest {
     }
 
     /**
-     * 只有歌单统计卡具备点击入口，避免歌曲或听歌时长误导航。
+     * 音乐和歌单统计卡必须复用既有入口，听歌时长仍保持静态展示。
      */
     @Test
-    fun desktopMeStatsExposePlaylistNavigationActionOnly() {
+    fun desktopMeStatsExposeMusicAndPlaylistNavigationActions() {
         val stats: LibraryStats = LibraryStats(songCount = 7)
 
         val actions: List<DesktopMeStatAction?> =
@@ -237,9 +259,24 @@ class DesktopMeScreenTest {
             ).map { model: DesktopMeStatDisplayModel -> model.action }
 
         assertEquals(
-            expected = listOf(null, DesktopMeStatAction.OpenLocalPlaylists, null),
+            expected = listOf(DesktopMeStatAction.OpenHomeSongs, DesktopMeStatAction.OpenLocalPlaylists, null),
             actual = actions,
         )
+    }
+
+    /**
+     * 资料横幅背景沿 Figma 的近垂直方向推进，避免 Compose 默认横向渐变形成色块。
+     */
+    @Test
+    fun desktopMeProfileGradientUsesFigmaVerticalAngle() {
+        val headerSize: Size = Size(width = 1_000f, height = 194f)
+        val startpoint = DesktopMeFigmaTokens.profileBackgroundGradientStart(size = headerSize)
+        val endpoint = DesktopMeFigmaTokens.profileBackgroundGradientEnd(size = headerSize)
+
+        assertTrue(actual = abs(x = (startpoint.x + endpoint.x) / 2f - headerSize.width / 2f) < 0.001f)
+        assertTrue(actual = abs(x = (startpoint.y + endpoint.y) / 2f - headerSize.height / 2f) < 0.001f)
+        assertTrue(actual = endpoint.x - startpoint.x < headerSize.width * 0.1f)
+        assertTrue(actual = endpoint.y - startpoint.y > headerSize.height)
     }
 
     // 构造已过滤的可播放歌曲，避免测试依赖 demo catalog 或全库扫描。
