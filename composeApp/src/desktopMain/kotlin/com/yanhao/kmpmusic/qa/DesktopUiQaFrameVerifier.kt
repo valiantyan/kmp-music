@@ -1,5 +1,6 @@
 package com.yanhao.kmpmusic.qa
 
+import com.yanhao.kmpmusic.isMacosHost
 import java.awt.Rectangle
 import java.awt.Robot
 import java.awt.image.BufferedImage
@@ -31,6 +32,9 @@ internal class DesktopUiQaFrameVerifier(
         val wasWritten: Boolean = ImageIO.write(image, "png", outputPath.toFile())
         check(wasWritten && Files.size(outputPath) > 0L) { "Desktop UI QA 截图写入失败: $outputPath" }
         println("[desktop-ui-qa] captured=$outputPath size=${image.width}x${image.height}")
+        if (isMacosHost() && fileName == DesktopUiQaCaptureSpec.INITIAL_FRAME_FILE_NAME) {
+            DesktopUiQaMacosTitleBarVerifier.verifyBrandAlignment(frame = image)
+        }
         return image
     }
 

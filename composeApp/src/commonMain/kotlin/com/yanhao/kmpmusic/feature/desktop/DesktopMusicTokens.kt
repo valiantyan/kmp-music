@@ -67,6 +67,23 @@ object DesktopMusicType {
     val RailLabel: TextUnit = 12.sp
 }
 
+/**
+ * macOS 原生标题栏中的应用品牌布局令牌。
+ */
+internal object DesktopNativeTitleBarTokens {
+    /** 避开 macOS traffic lights 后，品牌文字距窗口左侧的起点。 */
+    val BrandStart: Dp = 84.dp
+
+    /** 保持品牌文字不贴近侧栏分界线的末端留白。 */
+    val BrandEnd: Dp = 8.dp
+
+    /**
+     * 透明原生标题栏的 traffic lights 中心高于 42dp Compose 标题栏中线 8dp，
+     * 品牌向上偏移后与系统控件保持同一视觉中心轴。
+     */
+    val BrandVerticalAlignmentOffset: Dp = (-8).dp
+}
+
 /** 搜索与管理歌单共用的返回式顶栏尺寸和文字规格。 */
 internal object DesktopNavigationToolbarTokens {
     val Height: Dp = 64.dp

@@ -1,6 +1,7 @@
 package com.yanhao.kmpmusic.qa
 
 import androidx.compose.ui.awt.ComposeWindow
+import kotlinx.coroutines.delay
 import java.awt.Point
 import java.awt.Robot
 import java.awt.event.InputEvent
@@ -19,6 +20,29 @@ internal fun activateDesktopUiQaWindow(
     )
     robot.mousePress(InputEvent.BUTTON1_DOWN_MASK)
     robot.mouseRelease(InputEvent.BUTTON1_DOWN_MASK)
+}
+
+/**
+ * 拖动标题栏右侧空白区并确认窗口坐标变化，防止品牌覆盖后破坏 macOS 原生拖拽行为。
+ */
+internal suspend fun verifyDesktopUiQaTitleBarCanDrag(
+    window: ComposeWindow,
+    robot: Robot,
+) {
+    val locationBefore: Point = window.locationOnScreen
+    val contentLocation: Point = window.contentPane.locationOnScreen
+    val startScreenX: Int = contentLocation.x + DesktopUiQaCaptureSpec.TITLE_BAR_DRAG_START_X_PX
+    val startScreenY: Int = contentLocation.y + DesktopUiQaCaptureSpec.TITLE_BAR_DRAG_Y_PX
+    robot.mouseMove(startScreenX, startScreenY)
+    robot.mousePress(InputEvent.BUTTON1_DOWN_MASK)
+    robot.mouseMove(startScreenX + DesktopUiQaCaptureSpec.TITLE_BAR_DRAG_DISTANCE_X_PX, startScreenY)
+    robot.mouseRelease(InputEvent.BUTTON1_DOWN_MASK)
+    delay(timeMillis = DesktopUiQaCaptureSpec.ROBOT_ACTION_DELAY_MILLIS.toLong())
+    val locationAfter: Point = window.locationOnScreen
+    check(locationAfter != locationBefore) {
+        "macOS 标题栏拖拽后窗口位置未变化: before=$locationBefore, after=$locationAfter"
+    }
+    println("[desktop-ui-qa] claim=macOS 标题栏拖拽可用 before=$locationBefore after=$locationAfter")
 }
 
 /**

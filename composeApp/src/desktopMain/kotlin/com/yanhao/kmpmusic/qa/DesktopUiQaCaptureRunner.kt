@@ -1,6 +1,7 @@
 package com.yanhao.kmpmusic.qa
 
 import androidx.compose.ui.awt.ComposeWindow
+import com.yanhao.kmpmusic.isMacosHost
 import kotlinx.coroutines.delay
 import java.awt.Point
 import java.awt.Rectangle
@@ -20,6 +21,12 @@ internal class DesktopUiQaCaptureRunner(
     /** 根据场景执行滚动条或播放动画取证。 */
     suspend fun capture(window: ComposeWindow) {
         frameVerifier.prepareOutputDirectory()
+        val robot: Robot = Robot(window.graphicsConfiguration.device)
+        robot.autoDelay = DesktopUiQaCaptureSpec.ROBOT_ACTION_DELAY_MILLIS
+        activateDesktopUiQaWindow(window = window, robot = robot)
+        if (isMacosHost()) {
+            verifyDesktopUiQaTitleBarCanDrag(window = window, robot = robot)
+        }
         val location: Point = window.locationOnScreen
         val bounds: Rectangle =
             Rectangle(
@@ -34,9 +41,6 @@ internal class DesktopUiQaCaptureRunner(
         ) {
             "Desktop UI QA 窗口尺寸错误: ${bounds.width}x${bounds.height}"
         }
-        val robot: Robot = Robot(window.graphicsConfiguration.device)
-        robot.autoDelay = DesktopUiQaCaptureSpec.ROBOT_ACTION_DELAY_MILLIS
-        activateDesktopUiQaWindow(window = window, robot = robot)
         when (config.scenario.captureMode) {
             DesktopUiQaCaptureMode.Static -> {
                 captureStaticFrames(robot = robot, bounds = bounds)

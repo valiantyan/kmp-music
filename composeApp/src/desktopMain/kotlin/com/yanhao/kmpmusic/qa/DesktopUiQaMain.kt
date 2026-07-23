@@ -1,18 +1,25 @@
 package com.yanhao.kmpmusic.qa
 
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.window.WindowDraggableArea
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.awt.ComposeWindow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.WindowState
 import androidx.compose.ui.window.application
 import androidx.compose.ui.window.rememberWindowState
+import com.yanhao.kmpmusic.applyMacosNativeTitleBar
+import com.yanhao.kmpmusic.clearMacosNativeTitleBar
 import com.yanhao.kmpmusic.domain.repository.LocalMusicScanner
 import com.yanhao.kmpmusic.feature.app.MusicAppController
 import com.yanhao.kmpmusic.feature.desktop.DesktopMusicApp
+import com.yanhao.kmpmusic.isMacosHost
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import java.awt.AWTException
@@ -43,6 +50,11 @@ object DesktopUiQaMain {
                     config = config,
                     window = window,
                     onComplete = ::exitApplication,
+                    titleBarDragArea = {
+                        if (isMacosHost()) {
+                            WindowDraggableArea(modifier = Modifier.fillMaxSize())
+                        }
+                    },
                 )
             }
         }
@@ -55,7 +67,16 @@ private fun DesktopUiQaContent(
     config: DesktopUiQaConfig,
     window: ComposeWindow,
     onComplete: () -> Unit,
+    titleBarDragArea: @Composable () -> Unit,
 ) {
+    if (isMacosHost()) {
+        DisposableEffect(window) {
+            window.rootPane.applyMacosNativeTitleBar()
+            onDispose {
+                window.rootPane.clearMacosNativeTitleBar()
+            }
+        }
+    }
     val controllerScope: CoroutineScope = rememberCoroutineScope()
     val localMusicScanner: LocalMusicScanner =
         remember(config.scenario) {
@@ -68,7 +89,11 @@ private fun DesktopUiQaContent(
                 controllerScope = controllerScope,
             )
         }
-    DesktopMusicApp(controller = controller)
+    DesktopMusicApp(
+        controller = controller,
+        showTitleBarBrand = isMacosHost(),
+        titleBarDragArea = titleBarDragArea,
+    )
     LaunchedEffect(config) {
         runDesktopUiQaWorkflow(
             config = config,

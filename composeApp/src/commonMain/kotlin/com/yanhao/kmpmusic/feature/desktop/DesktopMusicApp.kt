@@ -14,11 +14,16 @@ import com.yanhao.kmpmusic.feature.app.RootTab
 import com.yanhao.kmpmusic.feature.desktop.layout.DesktopAppLayout
 
 /**
- * 桌面端公开入口，仅负责主题、扫描回调和首屏资料库加载。
+ * 桌面端公开入口，仅负责主题、扫描回调、首屏资料库加载和宿主提供的标题栏拖拽区。
+ *
+ * @param showTitleBarBrand 是否在宿主原生标题栏中显示 Compose 品牌。
+ * @param titleBarDragArea Desktop 宿主提供的标题栏拖拽区域，保持共享层不直接依赖窗口 API。
  */
 @Composable
 fun DesktopMusicApp(
     controller: MusicAppController,
+    showTitleBarBrand: Boolean = false,
+    titleBarDragArea: @Composable () -> Unit = {},
 ) {
     val state: MusicAppUiState = controller.uiState
     val scanLocalMusic: () -> Unit = {
@@ -45,6 +50,8 @@ fun DesktopMusicApp(
             controller = controller,
             saveableStateHolder = saveableStateHolder,
             onScanLocalMusic = scanLocalMusic,
+            showTitleBarBrand = showTitleBarBrand,
+            titleBarDragArea = titleBarDragArea,
             modifier = Modifier.fillMaxSize(),
         )
     }

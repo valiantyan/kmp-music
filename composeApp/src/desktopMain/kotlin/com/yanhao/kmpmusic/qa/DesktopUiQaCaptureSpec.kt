@@ -19,6 +19,15 @@ internal object DesktopUiQaCaptureSpec {
     /** 点击应用顶部非交互区时相对内容区域的纵向偏移。 */
     const val WINDOW_ACTIVATION_Y_OFFSET_PX: Int = 20
 
+    /** 标题栏拖拽从右侧空白区域开始，避开 traffic lights 与应用品牌。 */
+    const val TITLE_BAR_DRAG_START_X_PX: Int = 300
+
+    /** 标题栏拖拽使用的纵向位置，保持在原生标题栏可拖动区域内。 */
+    const val TITLE_BAR_DRAG_Y_PX: Int = 20
+
+    /** 标题栏拖拽的水平位移，用于验证窗口仍保有原生拖动行为。 */
+    const val TITLE_BAR_DRAG_DISTANCE_X_PX: Int = 24
+
     /** 首页和歌手页滚动条中心距离窗口右边缘约 30px。 */
     const val HOME_ARTISTS_SCROLLBAR_DRAG_EDGE_INSET_PX: Int = 30
 

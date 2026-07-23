@@ -26,6 +26,9 @@ import com.yanhao.kmpmusic.feature.desktop.player.DesktopPlayerDetailScreen
 
 /**
  * 桌面顶层 layout 负责窗口布局、全屏播放器和全局弹层，不持有具体页面路由。
+ *
+ * @param showTitleBarBrand 是否在宿主原生标题栏中显示 Compose 品牌。
+ * @param titleBarDragArea Desktop 宿主提供的标题栏拖拽区域，避免共享 UI 依赖平台窗口 API。
  */
 @Composable
 fun DesktopAppLayout(
@@ -33,6 +36,8 @@ fun DesktopAppLayout(
     controller: MusicAppController,
     saveableStateHolder: SaveableStateHolder,
     onScanLocalMusic: () -> Unit,
+    showTitleBarBrand: Boolean = false,
+    titleBarDragArea: @Composable () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     Box(modifier = modifier.fillMaxSize()) {
@@ -77,6 +82,8 @@ fun DesktopAppLayout(
         ) {
             DesktopTitleBar(
                 modifier = Modifier.fillMaxWidth(),
+                showTitleBarBrand = showTitleBarBrand,
+                titleBarDragArea = titleBarDragArea,
             )
             Row(modifier = Modifier.weight(1f)) {
                 DesktopRail(
