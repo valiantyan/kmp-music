@@ -18,7 +18,9 @@
 python3 -m unittest scripts.tests.test_agent_delivery
 ```
 
-该测试在临时 Git 仓库中覆盖原始验收合同、版本化返工、任务前快照、用户已有修改隔离、逐条规格审查、接管终止确认、完整文件清单、文本任务级 Diff、二进制摘要、唯一且不可覆盖的 Manifest、验证证据、固定三行输出、500 字符上限，以及“只迁移倍速设置并保留既有主题”的回归场景。
+该测试在临时 Git 仓库中覆盖原始验收合同、版本化返工、任务前快照、用户已有修改隔离、逐条规格审查、接管终止确认、完整文件清单、文本任务级 Diff、二进制摘要、唯一 Manifest、验证证据、固定三行输出和 500 字符上限。生命周期回归还必须覆盖：writer 一任务绑定、snapshot/task_id 碰撞拒绝、新任务新 agent/task_id、同任务澄清与审查修复、reviewer 同任务复核与跨任务/角色复用拒绝、FAIL review 阻断、v3 显式迁移、受审 render receipt 与 reviewer approval、COMPLETED 命令矩阵拒绝、snapshot 副本/回滚与终态双写中断不能绕过 tombstone，以及并发 `complete` 只有一个原子成功者。
+
+本组测试通过不等于任务已完成。真实交付还需按 `docs/agents/harness.md` 由当前 task 的全新只读 reviewer 检查实际 diff、验证证据、Manifest 与候选三行，再运行 `complete`；终态后只可用 `status` 检查，不得为补验证重新打开旧 task。
 
 ## 命令选择
 

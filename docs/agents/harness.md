@@ -15,21 +15,29 @@
 | `scripts/desktop-ui-qa.sh` 和 `:composeApp:desktopUiQa` | Desktop UI 取证依赖本机数据库、侧栏坐标、窗口名猜测和手工截图。 | 场景不能直接进入目标页、窗口不是 `1240×824`、三帧缺失或相同、外部窗口遮挡仍通过、进程不自动退出，说明 QA 入口或 artifact identity 校验失效。 |
 | `.scratch/<feature-slug>/` 和 `.scratch/github-bugs/issues/` | 经验只留在对话里，缺陷修复缺少审计证据。 | 修复完成后没有复现信息、根因、验证结果、对抗式审查或剩余风险记录，说明对应工作流需要补门禁。 |
 | 子代理交付模式 | 用户要求由子代理承担工作时，主代理自行探索、分析、调用工具、实现、验证或审查，造成角色承诺与实际轨迹不一致。 | 主代理越过协调接口从事实际工作、交付子代理体系没有承担被委派的工作，或审查发现未回流复核，说明委派契约失效。 |
-| `scripts/agent_delivery.py` | 子代理实际修改了文件，但自由文本结论遗漏改动，主代理又没有权限检查工作区。 | 任务期间存在仓库文件变化时，交付结论没有链接到包含完整清单和任务级 Diff 的 Manifest 却仍能通过，或主代理收到缺字段结论后自行补写，说明交付边界失效。 |
+| `scripts/agent_delivery.py` | 子代理实际修改了文件但遗漏改动，或完成旧任务后继续接受新目标。 | 交付结论缺少完整 Manifest、同一 agent 绑定多个 task、COMPLETED 后仍能返工/接管/review/render，或 reviewer 跨 task 复用，说明机器门禁失效。 |
 
 ## 子代理交付契约
 
 ### 触发与主代理接口
 
 - 涉及探索、分析、工具调用、代码或文档变更、测试、验证或审查的工作，默认使用交付子代理；只有用户明确要求主代理亲自处理时才例外。
-- 主代理的接口固定为：接收任务、创建交付子代理、转发新增用户指令、等待结果、检查结论是否具有固定三项、原样转发结论。创建、转发、等待和三项结构检查是它唯一允许的任务操作；它不得调用其他工具，包括终端、文件、网络、MCP、仓库读取或状态检查，也不对交付子代理的结论补充检查、判断或重写。
-- 交付子代理交回的结论必须是“改了什么 / 验证了什么 / 剩余风险”三行且不超过 500 个字符。缺少任一项时，主代理必须向同一交付子代理发送“使用原快照重新运行交付渲染器并原样返回标准输出”，然后继续等待；不得把工具调用、工作区共享或主代理记忆当作修改已经上报的证据。
+- 主代理的接口固定为：接收任务、创建交付子代理、只向 ACTIVE 任务转发同一合同内的澄清/审查修复/重新验证、等待结果、检查结论是否具有固定三项、原样转发结论。新目标、新合同或 COMPLETED 后请求必须创建新的交付子代理与 snapshot；无法可靠判断语义时，由主代理保守创建新任务，脚本不做 NLP 分类。
+- 交付子代理交回的结论必须是“改了什么 / 验证了什么 / 剩余风险”三行且不超过 500 个字符。ACTIVE 任务缺少任一项时，主代理退回同一交付子代理重新生成；COMPLETED 后不得唤回旧 agent。创建、转发、等待和三项结构检查是主代理唯一允许的任务操作；它不得调用终端、文件、网络、MCP 或仓库读取，也不补写、判断或重写结论。
 
 ### 交付子代理职责
 
 - 交付子代理拥有任务的完整结果，负责所有实际工作：读取上下文、探索代码和文档、分析、制定最小方案、调用工具、实现、生成或更新文档、运行验证、整理证据并完成交付。
 - 需要并行探索、专项分析、实现或审查时，交付子代理可以继续派发子代理；这些子代理的结论、文件变更和验证结果由交付子代理整合。主代理不介入中间工作。
 - 用户明确要求“子代理实现”时，交付子代理或其明确指派的实现子代理必须实际拥有产品代码、测试、脚本和任务文档的变更。只读任务则由交付子代理体系完成所需探索、分析、工具调用和结论，无须虚构实现变更。主代理不得代写后再把结果称为子代理实现。
+
+### 一任务一代理生命周期
+
+- v4 snapshot 自动生成不可变 UUID `task_id`，并同时绑定原始合同摘要、唯一 writer、`ACTIVE` 生命周期以及 OPEN 的合同/writer 资源。仓库外单一身份注册表在同一锁内登记 task、agent、规范 snapshot 路径与权威 lifecycle；注册表存续期间同一 writer 只属于一个 task，新 snapshot 必须使用新 agent，snapshot 输出路径与 task_id 都不能复用。
+- 生命周期只有 `ACTIVE -> COMPLETED`。同一 task 内可追加澄清、处理审查发现、重新验证和重新 render；`complete` 成功后合同与 writer 都变为 CLOSED，旧 agent 不得接受任何新指令。
+- 每个 v4 写命令都交叉校验本地 snapshot 与注册表中的 task、合同摘要、规范路径和 lifecycle。COMPLETED tombstone 优先于本地文件；完成前复制 snapshot、完成后覆盖回 ACTIVE 备份、或从非规范路径运行，都不能复活任务。
+- COMPLETED 后，`append-rework`、`confirm-terminated`、`takeover`、`review`、`render`、`approve`、再次 `complete` 全部机器拒绝。唯一允许的脚本操作是只读 `status --snapshot <路径>`；它报告权威 lifecycle、本地 lifecycle 与路径是否匹配，不能恢复、改写或重新打开任务。
+- 每个新目标或新合同都必须重新运行 `snapshot`，从而取得新 `task_id`，并由主代理创建新交付子代理。脚本只验证 task、摘要、writer 和状态，不伪造自然语言意图判断。
 
 ### 结构化交付
 
@@ -42,7 +50,7 @@ python3 scripts/agent_delivery.py snapshot \
   --writer-id <当前写入者 ID>
 ```
 
-命令会把用户原话、原始合同摘要、唯一写入者、当前所有受 Git 管理及未忽略文件的内容指纹写入系统临时目录，并复制任务开始前已经脏的文件作为最小基线，然后输出快照路径。干净文件从快照记录的原始 `HEAD` 还原，因此不需要复制整个仓库；用户已有修改也不会被自动算作本任务改动。原始合同摘要不匹配时后续命令拒绝执行。返工必须在 snapshot 进程锁内追加连续版本，不能覆盖原始合同：
+命令会把用户原话、原始合同摘要、唯一写入者、不可变 `task_id`、ACTIVE 生命周期、当前所有受 Git 管理及未忽略文件的内容指纹写入系统临时目录，并复制任务开始前已经脏的文件作为最小基线，同时原子登记 task/writer。默认身份注册表也位于仓库外系统临时目录；需要跨系统清理周期保留 agent/task 绑定时，必须用 `KMP_MUSIC_AGENT_DELIVERY_STATE_DIR` 指向持久目录。注册表被外部删除后，脚本无法恢复此前的身份历史。已绑定其他 task 或 reviewer 角色的 agent、新旧 task_id 碰撞、已有 snapshot 输出路径都会拒绝。干净文件从快照记录的原始 `HEAD` 还原；用户已有修改不会被自动算作本任务改动。返工必须保持同一 task 和原合同边界，在 snapshot 进程锁内追加连续版本，不能覆盖原始合同：
 
 ```bash
 python3 scripts/agent_delivery.py append-rework \
@@ -66,12 +74,23 @@ python3 scripts/agent_delivery.py takeover \
   --new-writer <新写入者 ID>
 ```
 
+执行中的 v3 快照不会静默获得 task 身份；写命令会拒绝并要求显式迁移。迁移保留原合同、返工历史、writer、基线提交、文件指纹和基线目录，但生成或接收一个规范 UUID，并使旧 v1 review 报告失效；迁移后必须重新 review/render：
+
+```bash
+python3 scripts/agent_delivery.py status --snapshot <v3 快照路径>
+python3 scripts/agent_delivery.py migrate-v3 \
+  --snapshot <v3 快照路径> \
+  --expected-writer <当前写入者 ID> \
+  [--task-id <已有规范 UUID>]
+```
+
 验证完成后准备逐条规格结论 JSON。每项包含合同中的 `id`、`PASS / FAIL` 和非空 `evidence`；证据来源可为 `raw_request / original_contract / rework_instruction / task_diff / test / runtime / build`，但每个 requirement 至少要有一条 `task_diff / test / runtime` 证据，只有构建通过不能证明规格。先生成审查报告，再生成交付 Manifest：
 
 ```bash
 python3 scripts/agent_delivery.py review \
   --snapshot <快照路径> \
   --writer-id <当前写入者 ID> \
+  --reviewer-id <本 task 的全新 reviewer ID> \
   --verdicts-file <逐条规格结论 JSON> \
   --verification-evidence-file <验证命令与结果文件>
 
@@ -81,24 +100,42 @@ python3 scripts/agent_delivery.py render \
   --review-report <review 输出路径> \
   --changes '<行为或产物改动摘要>' \
   --verification '<验证命令、结果和独立审查结论>' \
-  --risks '<剩余风险；没有时明确写无已知剩余风险>'
+  --risks '<剩余风险；没有时明确写无已知剩余风险>' \
+  --receipt-output <仓库外 render receipt 路径>
+
+python3 scripts/agent_delivery.py approve \
+  --snapshot <快照路径> \
+  --reviewer-id <本 task reviewer ID> \
+  --review-report <review 输出路径> \
+  --render-receipt <reviewer 已检查的 receipt 路径> \
+  --output <仓库外 reviewer approval 路径>
+
+python3 scripts/agent_delivery.py complete \
+  --snapshot <快照路径> \
+  --writer-id <当前写入者 ID> \
+  --review-report <review 输出路径> \
+  --render-receipt <reviewer 已检查的 receipt 路径> \
+  --review-approval <reviewer approval 路径>
 ```
 
-`review` 同时绑定原始合同、用户原话、全部返工指令和当前任务级 diff，要求逐个 requirement 给出结论与证据；任务 diff、合同或 writer 状态变化后旧报告失效。`render` 根据前后文件指纹每次生成一个新的仓库外临时 Markdown Manifest，并在“改了什么”中输出可点击链接；同一快照的旧 Manifest 不会被后续 render 覆盖。Manifest 包含本轮变化、基线既有和用户已有改动的归因、全部新增/修改/删除文件、任务级 unified diff、验证证据、逐条规格审查和剩余风险；UTF-8 文本内嵌行差异，二进制内容只记录变化与前后 SHA-256，避免把原始二进制塞进文档。
+`review` 同时绑定 reviewer ID、task_id、原始合同摘要、用户原话、全部返工指令和当前任务级 diff，要求逐个 requirement 给出结论与证据。reviewer 必须与当前及历史 writer 不同；同一 task 的复核可复用，不同角色或 task 复用直接拒绝。任务 diff、合同、writer 或 reviewer 状态变化后旧报告失效；任一 requirement 为 FAIL 时禁止 render/complete。
 
-`render` 拒绝缺少或过期的规格审查、“存在文件变化但没有改动摘要”、缺少验证、缺少风险或超过 500 个字符的结论。交付子代理必须把该命令的三行标准输出原样作为 `final`；命令失败时先修正交付内容，不能绕过。脚本只追踪未被 Git 忽略的仓库文件；截图、构建产物等忽略项仍在验证说明中按对应门禁报告。Manifest、审查报告和基线目录依赖系统临时目录生命周期，不作为长期项目文档；BUG 的累计根因与验证仍记录在对应 `.scratch/<feature-slug>/`。
+`render` 在 ACTIVE 内生成新的仓库外 Markdown Manifest、三行候选结论和 receipt，不关闭任务。Manifest 包含 task/reviewer 身份、本轮变化、基线归因、完整文件清单、任务级 unified diff、验证证据、逐条规格审查和剩余风险；同一快照的旧 Manifest 不会被覆盖。receipt 绑定 task、合同、reviewer、当前 diff、review 报告、Manifest 内容和三行候选，任何一项变化都会使它过期。
+
+独立 reviewer 检查实际 diff、验证证据、Manifest 和候选三行；发现回流修复后，同一 reviewer 重新运行 review/render 复核。确认无发现后运行 `approve`，批准凭据绑定最终 receipt、Manifest、diff 与三行摘要；缺少或过期 approval 时禁止 `complete`。`complete` 在 snapshot 锁内重新校验全部绑定，原子关闭合同与 writer，并原样重放 reviewer 已检查的三行；并发 complete 只有一个成功。交付子代理必须把 `complete` 的标准输出原样作为 final。
 
 ### 审查与复核
 
-- 交付前，代码、文档和任务结论的审查由独立、只读的审查子代理完成；审查子代理不修改实现文件或任务文档，并核对实际 diff、验证证据与 `render` 三行输出是否一致。
+- 交付前，代码、文档和任务结论的审查由本 task 全新、独立、只读的审查子代理完成；审查子代理不修改实现文件或任务文档，并核对 task_id、合同摘要、实际 diff、验证证据、Manifest 与 `render` 候选三行是否一致。
 - 审查发现先回流给交付子代理或实现子代理修复，再由审查子代理复核最终 diff 和验证证据。没有完成该回流时，不得给出“无问题”结论。
+- 同一 task 可让同一 reviewer 完成复核循环；新 task 必须创建新 reviewer。reviewer 检查候选后才能 complete，且完成后该 reviewer 不得用于后续任务。
 - 对抗审查、Figma 对照、截图、测试和运行态验证仍按任务类型执行；其探索、工具调用、判断和结论均由交付子代理体系完成。
 
 ### 可证伪标准
 
 - 会话轨迹中，主代理调用创建、转发或等待子代理以外的工具，或出现仓库探索或分析、代码或任务文档的文件变更、验证命令、审查判断，均视为本契约失败；仅检查三项标题是否齐全不算实际工作。
 - 交付子代理只进行审查、研究或汇报，却没有完成其被委派的实际工作；含变更的任务没有由其完成实现；或产物未经独立审查和必要验证，均视为本契约失败。
-- 交付子代理没有在首次修改前冻结原话、三类合同和快照，返工覆盖原始合同，未确认旧 writer 终止就接管，没有逐 requirement 审查，缺少 `render`，Manifest 被覆盖或缺少基线归因、完整文件清单、任务级 Diff、验证证据，修改存在却未在“改了什么”中报告，或主代理接受缺少固定三项的自由文本，均视为本契约失败。
+- 交付子代理没有在首次修改前冻结原话、三类合同和快照，返工覆盖原始合同，未确认旧 writer 终止就接管，缺少 task/reviewer/diff 绑定、受审 receipt 或 `complete`，Manifest 被覆盖或缺少基线归因、完整文件清单、任务级 Diff、验证证据，修改存在却未上报，或 COMPLETED 后继续复用 agent/reviewer，均视为本契约失败。
 - 后续任务需以新会话验证：主代理只派发、退回不合格结论并原样转发；交付子代理体系完成实际工作并交回不超过 500 个字符、可核查的三行结论。
 
 ## 升级顺序

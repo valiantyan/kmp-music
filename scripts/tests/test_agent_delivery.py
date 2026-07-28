@@ -5,7 +5,11 @@ import shutil
 import subprocess
 import tempfile
 import unittest
+import uuid
 from pathlib import Path
+from unittest import mock
+
+from scripts import agent_delivery
 
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
@@ -18,6 +22,8 @@ class AgentDeliveryTest(unittest.TestCase):
         self.repository = Path(self.temp_directory.name)
         self.inputs_directory = tempfile.TemporaryDirectory()
         self.inputs = Path(self.inputs_directory.name)
+        self.state_directory = tempfile.TemporaryDirectory()
+        self.reviewer_id = f"reviewer-{uuid.uuid4()}"
         self.run_git("init", "-q")
         self.run_git("config", "user.email", "agent@example.com")
         self.run_git("config", "user.name", "Agent")
@@ -25,6 +31,7 @@ class AgentDeliveryTest(unittest.TestCase):
         self.run_git("add", "tracked.txt")
         self.run_git("commit", "-qm", "baseline")
         self.snapshot = self.repository / "snapshot.json"
+        self.snapshot_paths = [self.snapshot]
         self.generated_artifacts: list[Path] = []
         self.request_file = self.inputs / "request.md"
         self.requirements_file = self.inputs / "requirements.json"
@@ -50,9 +57,11 @@ class AgentDeliveryTest(unittest.TestCase):
         )
 
     def tearDown(self) -> None:
-        if self.snapshot.exists():
+        for snapshot_path in self.snapshot_paths:
+            if not snapshot_path.exists():
+                continue
             try:
-                snapshot = json.loads(self.snapshot.read_text(encoding="utf-8"))
+                snapshot = json.loads(snapshot_path.read_text(encoding="utf-8"))
                 if isinstance(snapshot, dict):
                     baseline_directory = snapshot.get("baseline_directory")
                     if isinstance(baseline_directory, str):
@@ -62,6 +71,7 @@ class AgentDeliveryTest(unittest.TestCase):
         for artifact in self.generated_artifacts:
             artifact.unlink(missing_ok=True)
         self.inputs_directory.cleanup()
+        self.state_directory.cleanup()
         self.temp_directory.cleanup()
 
     def test_render_reports_changed_files(self) -> None:
@@ -450,12 +460,33 @@ class AgentDeliveryTest(unittest.TestCase):
 
         data = json.loads(self.snapshot.read_text(encoding="utf-8"))
 
-        self.assertEqual(3, data["version"])
+        self.assertEqual(4, data["version"])
         self.assertEqual(str(self.repository.resolve()), data["repository_root"])
         self.assertIn("tracked.txt", data["files"])
         self.assertTrue(Path(data["baseline_directory"]).is_dir())
         self.assertEqual("只迁移倍速设置，保留既有主题，不新增主题。", data["contract"]["raw_request"])
         self.assertEqual("writer-a", data["writer"]["current"])
+        self.assertEqual("ACTIVE", data["task"]["lifecycle"])
+        self.assertEqual(data["contract"]["digest"], data["task"]["contract_digest"])
+        self.assertEqual(str(uuid.UUID(data["task"]["id"])), data["task"]["id"])
+
+    def test_task_id_digest_rejects_silent_replacement(self) -> None:
+        self.run_script("snapshot", "--output", str(self.snapshot))
+        snapshot = json.loads(self.snapshot.read_text(encoding="utf-8"))
+        snapshot["task"]["id"] = str(uuid.uuid4())
+        self.snapshot.write_text(
+            json.dumps(snapshot, ensure_ascii=False, indent=2) + "\n",
+            encoding="utf-8",
+        )
+
+        result = self.run_script(
+            "status",
+            "--snapshot",
+            str(self.snapshot),
+            check=False,
+        )
+        self.assertNotEqual(0, result.returncode)
+        self.assertIn("task_id 身份摘要不匹配", result.stderr)
 
     def test_render_reports_binary_change_without_embedding_bytes(self) -> None:
         binary = self.repository / "binary.dat"
@@ -564,6 +595,10 @@ class AgentDeliveryTest(unittest.TestCase):
             "--instruction-file",
             str(instruction),
         ]
+        environment = {
+            **os.environ,
+            "KMP_MUSIC_AGENT_DELIVERY_STATE_DIR": self.state_directory.name,
+        }
 
         processes = [
             subprocess.Popen(
@@ -572,6 +607,7 @@ class AgentDeliveryTest(unittest.TestCase):
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 text=True,
+                env=environment,
             )
             for _ in range(6)
         ]
@@ -837,6 +873,641 @@ class AgentDeliveryTest(unittest.TestCase):
             [event["event"] for event in snapshot["writer"]["history"]],
         )
 
+    def test_same_task_clarification_and_review_fix_can_complete(self) -> None:
+        self.run_script("snapshot", "--output", str(self.snapshot))
+        instruction = self.inputs / "clarification.md"
+        instruction.write_text("仍只迁移倍速设置，并重新验证。\n", encoding="utf-8")
+        self.run_script(
+            "append-rework",
+            "--snapshot",
+            str(self.snapshot),
+            "--writer-id",
+            "writer-a",
+            "--expected-version",
+            "1",
+            "--instruction-file",
+            str(instruction),
+        )
+        (self.repository / "tracked.txt").write_text("first fix\n", encoding="utf-8")
+        first_review = self.create_review(self.snapshot, "writer-a")
+        _, first_receipt = self.render_candidate(self.snapshot, first_review)
+        first_approval = self.approve_candidate(first_review, first_receipt)
+
+        (self.repository / "tracked.txt").write_text("review fix\n", encoding="utf-8")
+        stale = self.run_script(
+            "complete",
+            "--snapshot",
+            str(self.snapshot),
+            "--writer-id",
+            "writer-a",
+            "--review-report",
+            str(first_review),
+            "--render-receipt",
+            str(first_receipt),
+            "--review-approval",
+            str(first_approval),
+            check=False,
+        )
+        self.assertNotEqual(0, stale.returncode)
+        self.assertIn("任务级 diff 已过期", stale.stderr)
+
+        second_review = self.create_review(self.snapshot, "writer-a")
+        candidate, second_receipt = self.render_candidate(self.snapshot, second_review)
+        second_approval = self.approve_candidate(second_review, second_receipt)
+        completed = self.run_script(
+            "complete",
+            "--snapshot",
+            str(self.snapshot),
+            "--writer-id",
+            "writer-a",
+            "--review-report",
+            str(second_review),
+            "--render-receipt",
+            str(second_receipt),
+            "--review-approval",
+            str(second_approval),
+        )
+        self.assertEqual(candidate.stdout, completed.stdout)
+        snapshot = json.loads(self.snapshot.read_text(encoding="utf-8"))
+        self.assertEqual("COMPLETED", snapshot["task"]["lifecycle"])
+        self.assertEqual("closed", snapshot["writer"]["status"])
+        self.assertEqual("CLOSED", snapshot["task"]["resources"]["contract"])
+        self.assertEqual("CLOSED", snapshot["task"]["resources"]["writer"])
+
+    def test_completed_task_rejects_all_delivery_reuse_commands(self) -> None:
+        self.run_script("snapshot", "--output", str(self.snapshot))
+        review_path = self.create_review(self.snapshot, "writer-a")
+        _, receipt_path = self.render_candidate(self.snapshot, review_path)
+        approval_path = self.approve_candidate(review_path, receipt_path)
+        self.run_script(
+            "complete",
+            "--snapshot",
+            str(self.snapshot),
+            "--writer-id",
+            "writer-a",
+            "--review-report",
+            str(review_path),
+            "--render-receipt",
+            str(receipt_path),
+            "--review-approval",
+            str(approval_path),
+        )
+        instruction = self.inputs / "post-complete.md"
+        instruction.write_text("开始另一个目标。\n", encoding="utf-8")
+        verdicts = self.write_passing_verdicts()
+        rejected_commands = [
+            (
+                "append-rework", "--snapshot", str(self.snapshot), "--writer-id", "writer-a",
+                "--expected-version", "1", "--instruction-file", str(instruction),
+            ),
+            (
+                "confirm-terminated", "--snapshot", str(self.snapshot), "--expected-writer",
+                "writer-a", "--confirmed-by", "coordinator", "--evidence", "已终止",
+            ),
+            (
+                "takeover", "--snapshot", str(self.snapshot), "--expected-writer", "writer-a",
+                "--new-writer", "writer-b",
+            ),
+            (
+                "review", "--snapshot", str(self.snapshot), "--writer-id", "writer-a",
+                "--reviewer-id", self.reviewer_id, "--verdicts-file", str(verdicts),
+                "--verification-evidence-file", str(self.verification_evidence_file),
+            ),
+            (
+                "render", "--snapshot", str(self.snapshot), "--writer-id", "writer-a",
+                "--review-report", str(review_path), "--changes", "未修改文件",
+                "--verification", "单元测试通过", "--risks", "无已知剩余风险",
+                "--receipt-output", str(self.inputs / "post-complete-receipt.json"),
+            ),
+            (
+                "approve", "--snapshot", str(self.snapshot), "--reviewer-id",
+                self.reviewer_id, "--review-report", str(review_path),
+                "--render-receipt", str(receipt_path), "--output",
+                str(self.inputs / "post-complete-approval.json"),
+            ),
+            (
+                "complete", "--snapshot", str(self.snapshot), "--writer-id", "writer-a",
+                "--review-report", str(review_path), "--render-receipt", str(receipt_path),
+                "--review-approval", str(approval_path),
+            ),
+        ]
+        for command in rejected_commands:
+            with self.subTest(command=command[0]):
+                result = self.run_script(*command, check=False)
+                self.assertNotEqual(0, result.returncode)
+                self.assertIn("已 COMPLETED", result.stderr)
+
+        status = self.run_script("status", "--snapshot", str(self.snapshot))
+        self.assertEqual("COMPLETED", json.loads(status.stdout)["lifecycle"])
+        new_snapshot = self.run_script(
+            "snapshot",
+            "--output",
+            str(self.inputs / "post-complete-new-task.json"),
+            "--writer-id",
+            "writer-a",
+            check=False,
+        )
+        self.assertNotEqual(0, new_snapshot.returncode)
+        self.assertIn("新任务必须创建新 agent", new_snapshot.stderr)
+
+    def test_completed_registry_tombstone_rejects_copy_and_rollback(self) -> None:
+        self.run_script("snapshot", "--output", str(self.snapshot))
+        active_snapshot = self.snapshot.read_text(encoding="utf-8")
+        copied_snapshot = self.inputs / "active-copy.json"
+        copied_snapshot.write_text(active_snapshot, encoding="utf-8")
+        self.snapshot_paths.append(copied_snapshot)
+        instruction = self.inputs / "rollback-rework.md"
+        instruction.write_text("复活旧任务。\n", encoding="utf-8")
+        active_copy_reuse = self.run_script(
+            "append-rework",
+            "--snapshot",
+            str(copied_snapshot),
+            "--writer-id",
+            "writer-a",
+            "--expected-version",
+            "1",
+            "--instruction-file",
+            str(instruction),
+            check=False,
+        )
+        self.assertNotEqual(0, active_copy_reuse.returncode)
+        self.assertIn("规范 snapshot 路径", active_copy_reuse.stderr)
+        review_path = self.create_review(self.snapshot, "writer-a")
+        _, receipt_path = self.render_candidate(self.snapshot, review_path)
+        approval_path = self.approve_candidate(review_path, receipt_path)
+        self.run_script(
+            "complete",
+            "--snapshot",
+            str(self.snapshot),
+            "--writer-id",
+            "writer-a",
+            "--review-report",
+            str(review_path),
+            "--render-receipt",
+            str(receipt_path),
+            "--review-approval",
+            str(approval_path),
+        )
+        copied_reuse = self.run_script(
+            "append-rework",
+            "--snapshot",
+            str(copied_snapshot),
+            "--writer-id",
+            "writer-a",
+            "--expected-version",
+            "1",
+            "--instruction-file",
+            str(instruction),
+            check=False,
+        )
+        self.assertNotEqual(0, copied_reuse.returncode)
+        self.assertIn("已 COMPLETED", copied_reuse.stderr)
+
+        self.snapshot.write_text(active_snapshot, encoding="utf-8")
+        rollback_reuse = self.run_script(
+            "append-rework",
+            "--snapshot",
+            str(self.snapshot),
+            "--writer-id",
+            "writer-a",
+            "--expected-version",
+            "1",
+            "--instruction-file",
+            str(instruction),
+            check=False,
+        )
+        self.assertNotEqual(0, rollback_reuse.returncode)
+        self.assertIn("已 COMPLETED", rollback_reuse.stderr)
+        status = json.loads(
+            self.run_script("status", "--snapshot", str(self.snapshot)).stdout
+        )
+        self.assertEqual("COMPLETED", status["lifecycle"])
+        self.assertEqual("ACTIVE", status["local_lifecycle"])
+        self.assertTrue(status["snapshot_path_match"])
+
+    def test_completed_registry_tombstone_survives_snapshot_write_failure(self) -> None:
+        self.run_script("snapshot", "--output", str(self.snapshot))
+        completed_snapshot = json.loads(self.snapshot.read_text(encoding="utf-8"))
+        completed_snapshot["task"]["completed_at"] = "2026-07-29T00:00:00+00:00"
+        registry_path = Path(self.state_directory.name) / "identity-registry.json"
+        written_paths: list[Path] = []
+        real_atomic_write_json = agent_delivery.atomic_write_json
+
+        def fail_after_first_write(path: Path, payload: object) -> None:
+            real_atomic_write_json(path, payload)
+            written_paths.append(path.resolve())
+            raise OSError("simulated process failure after the first terminal write")
+
+        with mock.patch.dict(
+            os.environ,
+            {"KMP_MUSIC_AGENT_DELIVERY_STATE_DIR": self.state_directory.name},
+        ):
+            with mock.patch.object(
+                agent_delivery,
+                "atomic_write_json",
+                side_effect=fail_after_first_write,
+            ):
+                with self.assertRaises(agent_delivery.DeliveryError):
+                    agent_delivery.mark_registered_task_completed(
+                        self.snapshot,
+                        completed_snapshot,
+                    )
+
+        self.assertEqual([registry_path.resolve()], written_paths)
+        registry = json.loads(registry_path.read_text(encoding="utf-8"))
+        task_id = completed_snapshot["task"]["id"]
+        self.assertEqual("COMPLETED", registry["tasks"][task_id]["lifecycle"])
+        local_snapshot = json.loads(self.snapshot.read_text(encoding="utf-8"))
+        self.assertEqual("ACTIVE", local_snapshot["task"]["lifecycle"])
+
+        instruction = self.inputs / "interrupted-complete-rework.md"
+        instruction.write_text("复活中断的旧任务。\n", encoding="utf-8")
+        rejected = self.run_script(
+            "append-rework",
+            "--snapshot",
+            str(self.snapshot),
+            "--writer-id",
+            "writer-a",
+            "--expected-version",
+            "1",
+            "--instruction-file",
+            str(instruction),
+            check=False,
+        )
+        self.assertNotEqual(0, rejected.returncode)
+        self.assertIn("已 COMPLETED", rejected.stderr)
+
+    def test_new_snapshot_gets_new_task_id(self) -> None:
+        self.run_script("snapshot", "--output", str(self.snapshot))
+        rejected_snapshot = self.inputs / "reused-writer-snapshot.json"
+        rejected = self.run_script(
+            "snapshot",
+            "--output",
+            str(rejected_snapshot),
+            "--writer-id",
+            "writer-a",
+            check=False,
+        )
+        self.assertNotEqual(0, rejected.returncode)
+        self.assertIn("新任务必须创建新 agent", rejected.stderr)
+
+        other_snapshot = self.inputs / "other-snapshot.json"
+        self.snapshot_paths.append(other_snapshot)
+        self.run_script(
+            "snapshot",
+            "--output",
+            str(other_snapshot),
+            "--writer-id",
+            "writer-b",
+        )
+
+        first = json.loads(self.snapshot.read_text(encoding="utf-8"))
+        second = json.loads(other_snapshot.read_text(encoding="utf-8"))
+        self.assertNotEqual(first["task"]["id"], second["task"]["id"])
+        self.assertEqual("ACTIVE", first["task"]["lifecycle"])
+        self.assertEqual("ACTIVE", second["task"]["lifecycle"])
+
+    def test_reviewer_cannot_be_reused_for_different_task(self) -> None:
+        self.run_script("snapshot", "--output", str(self.snapshot))
+        self.create_review(self.snapshot, "writer-a")
+        other_snapshot = self.inputs / "reviewer-other-snapshot.json"
+        self.snapshot_paths.append(other_snapshot)
+        self.run_script(
+            "snapshot",
+            "--output",
+            str(other_snapshot),
+            "--writer-id",
+            "writer-b",
+        )
+        verdicts = self.write_passing_verdicts(other_snapshot)
+
+        rejected = self.run_script(
+            "review",
+            "--snapshot",
+            str(other_snapshot),
+            "--writer-id",
+            "writer-b",
+            "--reviewer-id",
+            self.reviewer_id,
+            "--verdicts-file",
+            str(verdicts),
+            "--verification-evidence-file",
+            str(self.verification_evidence_file),
+            check=False,
+        )
+        self.assertNotEqual(0, rejected.returncode)
+        self.assertIn("已绑定其他角色或 task_id", rejected.stderr)
+
+    def test_writer_and_reviewer_roles_cannot_overlap(self) -> None:
+        self.run_script("snapshot", "--output", str(self.snapshot))
+        verdicts = self.write_passing_verdicts()
+        self_review = self.run_script(
+            "review",
+            "--snapshot",
+            str(self.snapshot),
+            "--writer-id",
+            "writer-a",
+            "--reviewer-id",
+            "writer-a",
+            "--verdicts-file",
+            str(verdicts),
+            "--verification-evidence-file",
+            str(self.verification_evidence_file),
+            check=False,
+        )
+        self.assertNotEqual(0, self_review.returncode)
+        self.assertIn("不能与当前 task 的任一 writer 相同", self_review.stderr)
+
+        self.create_review(self.snapshot, "writer-a")
+        self.run_script(
+            "confirm-terminated",
+            "--snapshot",
+            str(self.snapshot),
+            "--expected-writer",
+            "writer-a",
+            "--confirmed-by",
+            "coordinator",
+            "--evidence",
+            "writer-a 已终止",
+        )
+        reviewer_takeover = self.run_script(
+            "takeover",
+            "--snapshot",
+            str(self.snapshot),
+            "--expected-writer",
+            "writer-a",
+            "--new-writer",
+            self.reviewer_id,
+            check=False,
+        )
+        self.assertNotEqual(0, reviewer_takeover.returncode)
+        self.assertIn("已绑定 task_id", reviewer_takeover.stderr)
+
+    def test_fail_review_cannot_render_or_complete(self) -> None:
+        self.run_script("snapshot", "--output", str(self.snapshot))
+        verdicts_path = self.inputs / "failed-verdicts.json"
+        verdicts = json.loads(self.write_passing_verdicts().read_text(encoding="utf-8"))
+        verdicts[0]["status"] = "FAIL"
+        verdicts_path.write_text(
+            json.dumps(verdicts, ensure_ascii=False),
+            encoding="utf-8",
+        )
+        review = self.run_script(
+            "review",
+            "--snapshot",
+            str(self.snapshot),
+            "--writer-id",
+            "writer-a",
+            "--verdicts-file",
+            str(verdicts_path),
+            "--verification-evidence-file",
+            str(self.verification_evidence_file),
+        )
+        review_path = Path(review.stdout.strip())
+        self.generated_artifacts.append(review_path)
+        rejected = self.run_script(
+            "render",
+            "--snapshot",
+            str(self.snapshot),
+            "--writer-id",
+            "writer-a",
+            "--review-report",
+            str(review_path),
+            "--changes",
+            "未修改文件",
+            "--verification",
+            "发现失败规格",
+            "--risks",
+            "任务未通过",
+            "--receipt-output",
+            str(self.inputs / "failed-receipt.json"),
+            check=False,
+        )
+        self.assertNotEqual(0, rejected.returncode)
+        self.assertIn("规格审查仍有 FAIL", rejected.stderr)
+
+    def test_complete_requires_final_reviewer_approval(self) -> None:
+        self.run_script("snapshot", "--output", str(self.snapshot))
+        review_path = self.create_review(self.snapshot, "writer-a")
+        _, receipt_path = self.render_candidate(self.snapshot, review_path)
+        rejected = self.run_script(
+            "complete",
+            "--snapshot",
+            str(self.snapshot),
+            "--writer-id",
+            "writer-a",
+            "--review-report",
+            str(review_path),
+            "--render-receipt",
+            str(receipt_path),
+            "--review-approval",
+            str(self.inputs / "missing-approval.json"),
+            check=False,
+        )
+        self.assertNotEqual(0, rejected.returncode)
+        self.assertIn("无法读取reviewer approval", rejected.stderr)
+        snapshot = json.loads(self.snapshot.read_text(encoding="utf-8"))
+        self.assertEqual("ACTIVE", snapshot["task"]["lifecycle"])
+
+    def test_snapshot_output_and_task_id_cannot_be_reused(self) -> None:
+        self.run_script("snapshot", "--output", str(self.snapshot))
+        overwrite = self.run_script(
+            "snapshot",
+            "--output",
+            str(self.snapshot),
+            "--writer-id",
+            "writer-b",
+            check=False,
+        )
+        self.assertNotEqual(0, overwrite.returncode)
+        self.assertIn("禁止覆盖", overwrite.stderr)
+
+        other_snapshot = self.inputs / "collision-snapshot.json"
+        self.snapshot_paths.append(other_snapshot)
+        self.run_script(
+            "snapshot",
+            "--output",
+            str(other_snapshot),
+            "--writer-id",
+            "writer-b",
+        )
+        snapshots = [self.snapshot, other_snapshot]
+        for snapshot_path in snapshots:
+            data = json.loads(snapshot_path.read_text(encoding="utf-8"))
+            data["version"] = 3
+            data.pop("task")
+            data.pop("reviewer")
+            snapshot_path.write_text(
+                json.dumps(data, ensure_ascii=False, indent=2) + "\n",
+                encoding="utf-8",
+            )
+        (Path(self.state_directory.name) / "identity-registry.json").unlink()
+
+        collision_id = str(uuid.uuid4())
+        self.run_script(
+            "migrate-v3",
+            "--snapshot",
+            str(self.snapshot),
+            "--expected-writer",
+            "writer-a",
+            "--task-id",
+            collision_id,
+        )
+        collision = self.run_script(
+            "migrate-v3",
+            "--snapshot",
+            str(other_snapshot),
+            "--expected-writer",
+            "writer-b",
+            "--task-id",
+            collision_id,
+            check=False,
+        )
+        self.assertNotEqual(0, collision.returncode)
+        self.assertIn("task_id", collision.stderr)
+        self.assertIn("已注册", collision.stderr)
+
+    def test_v3_snapshot_requires_explicit_migration(self) -> None:
+        self.run_script("snapshot", "--output", str(self.snapshot))
+        v4 = json.loads(self.snapshot.read_text(encoding="utf-8"))
+        expected_baseline = v4["baseline_directory"]
+        expected_contract = v4["contract"]
+        expected_writer = v4["writer"]
+        v4["version"] = 3
+        v4.pop("task")
+        v4.pop("reviewer")
+        self.snapshot.write_text(
+            json.dumps(v4, ensure_ascii=False, indent=2) + "\n",
+            encoding="utf-8",
+        )
+        (Path(self.state_directory.name) / "identity-registry.json").unlink()
+
+        status = self.run_script("status", "--snapshot", str(self.snapshot))
+        self.assertEqual("migrate-v3", json.loads(status.stdout)["next_command"])
+        rejected = self.run_script(
+            "append-rework",
+            "--snapshot",
+            str(self.snapshot),
+            "--writer-id",
+            "writer-a",
+            "--expected-version",
+            "1",
+            "--instruction-file",
+            str(self.request_file),
+            check=False,
+        )
+        self.assertIn("必须先运行 migrate-v3", rejected.stderr)
+
+        migrated_task_id = str(uuid.uuid4())
+        result = self.run_script(
+            "migrate-v3",
+            "--snapshot",
+            str(self.snapshot),
+            "--expected-writer",
+            "writer-a",
+            "--task-id",
+            migrated_task_id,
+        )
+        self.assertEqual(migrated_task_id, result.stdout.strip())
+        migrated = json.loads(self.snapshot.read_text(encoding="utf-8"))
+        self.assertEqual(4, migrated["version"])
+        self.assertEqual(expected_baseline, migrated["baseline_directory"])
+        self.assertEqual(expected_contract, migrated["contract"])
+        self.assertEqual(expected_writer, migrated["writer"])
+        self.assertEqual(migrated_task_id, migrated["task"]["id"])
+
+    def test_concurrent_complete_has_one_atomic_winner(self) -> None:
+        self.run_script("snapshot", "--output", str(self.snapshot))
+        review_path = self.create_review(self.snapshot, "writer-a")
+        candidate, receipt_path = self.render_candidate(self.snapshot, review_path)
+        approval_path = self.approve_candidate(review_path, receipt_path)
+        command = [
+            "python3", str(SCRIPT), "complete", "--snapshot", str(self.snapshot),
+            "--writer-id", "writer-a", "--review-report", str(review_path),
+            "--render-receipt", str(receipt_path), "--review-approval", str(approval_path),
+        ]
+        environment = {
+            **os.environ,
+            "KMP_MUSIC_AGENT_DELIVERY_STATE_DIR": self.state_directory.name,
+        }
+        processes = [
+            subprocess.Popen(
+                command,
+                cwd=self.repository,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+                env=environment,
+            )
+            for _ in range(6)
+        ]
+        results = [process.communicate() + (process.returncode,) for process in processes]
+
+        winners = [result for result in results if result[2] == 0]
+        self.assertEqual(1, len(winners))
+        self.assertEqual(candidate.stdout, winners[0][0])
+        self.assertTrue(
+            all("已 COMPLETED" in stderr for _, stderr, code in results if code != 0)
+        )
+        snapshot = json.loads(self.snapshot.read_text(encoding="utf-8"))
+        self.assertEqual("COMPLETED", snapshot["task"]["lifecycle"])
+        self.assertEqual(
+            ["claimed", "completed"],
+            [event["event"] for event in snapshot["writer"]["history"]],
+        )
+
+    def render_candidate(
+        self,
+        snapshot_path: Path,
+        review_path: Path,
+        writer: str = "writer-a",
+    ) -> tuple[subprocess.CompletedProcess[str], Path]:
+        receipt_path = self.inputs / f"receipt-{uuid.uuid4()}.json"
+        result = self.run_script(
+            "render",
+            "--snapshot",
+            str(snapshot_path),
+            "--writer-id",
+            writer,
+            "--review-report",
+            str(review_path),
+            "--changes",
+            "更新 harness 生命周期门禁",
+            "--verification",
+            "单元测试通过；独立审查候选待确认",
+            "--risks",
+            "无已知剩余风险",
+            "--receipt-output",
+            str(receipt_path),
+        )
+        manifest_path = self.manifest_path(result)
+        self.generated_artifacts.append(manifest_path)
+        self.assertTrue(receipt_path.is_file())
+        return result, receipt_path
+
+    def approve_candidate(
+        self,
+        review_path: Path,
+        receipt_path: Path,
+        snapshot_path: Path | None = None,
+    ) -> Path:
+        approval_path = self.inputs / f"approval-{uuid.uuid4()}.json"
+        self.run_script(
+            "approve",
+            "--snapshot",
+            str(snapshot_path or self.snapshot),
+            "--reviewer-id",
+            self.reviewer_id,
+            "--review-report",
+            str(review_path),
+            "--render-receipt",
+            str(receipt_path),
+            "--output",
+            str(approval_path),
+        )
+        self.assertTrue(approval_path.is_file())
+        return approval_path
+
     def read_manifest(self, result: subprocess.CompletedProcess[str]) -> str:
         manifest_path = self.manifest_path(result)
         self.generated_artifacts.append(manifest_path)
@@ -865,24 +1536,32 @@ class AgentDeliveryTest(unittest.TestCase):
     ) -> subprocess.CompletedProcess[str]:
         prepared = list(arguments)
         if prepared and prepared[0] == "snapshot":
-            prepared.extend(
-                (
-                    "--request-file",
-                    str(self.request_file),
-                    "--requirements-file",
-                    str(self.requirements_file),
-                    "--writer-id",
-                    "writer-a",
-                )
-            )
+            if "--request-file" not in prepared:
+                prepared.extend(("--request-file", str(self.request_file)))
+            if "--requirements-file" not in prepared:
+                prepared.extend(("--requirements-file", str(self.requirements_file)))
+            if "--writer-id" not in prepared:
+                prepared.extend(("--writer-id", "writer-a"))
+        if prepared and prepared[0] == "review" and "--reviewer-id" not in prepared:
+            prepared.extend(("--reviewer-id", self.reviewer_id))
         if prepared and prepared[0] == "render":
             prepared = self.prepare_render_arguments(prepared)
+            if "--receipt-output" not in prepared:
+                prepared.extend(
+                    (
+                        "--receipt-output",
+                        str(self.inputs / f"render-{uuid.uuid4()}.json"),
+                    )
+                )
+        environment = os.environ.copy()
+        environment["KMP_MUSIC_AGENT_DELIVERY_STATE_DIR"] = self.state_directory.name
         return subprocess.run(
             ["python3", str(SCRIPT), *prepared],
             cwd=cwd or self.repository,
             check=check,
             capture_output=True,
             text=True,
+            env=environment,
         )
 
     def prepare_render_arguments(self, arguments: list[str]) -> list[str]:
@@ -891,7 +1570,7 @@ class AgentDeliveryTest(unittest.TestCase):
             snapshot = json.loads(snapshot_path.read_text(encoding="utf-8"))
         except (OSError, json.JSONDecodeError):
             return arguments
-        if not isinstance(snapshot, dict) or snapshot.get("version") != 3:
+        if not isinstance(snapshot, dict) or snapshot.get("version") != 4:
             return arguments
         writer = snapshot["writer"]["current"]
         if "--writer-id" not in arguments:
@@ -912,6 +1591,8 @@ class AgentDeliveryTest(unittest.TestCase):
                 str(snapshot_path),
                 "--writer-id",
                 writer,
+                "--reviewer-id",
+                self.reviewer_id,
                 "--verdicts-file",
                 str(verdicts_file),
                 "--verification-evidence-file",
@@ -921,6 +1602,10 @@ class AgentDeliveryTest(unittest.TestCase):
             check=True,
             capture_output=True,
             text=True,
+            env={
+                **os.environ,
+                "KMP_MUSIC_AGENT_DELIVERY_STATE_DIR": self.state_directory.name,
+            },
         )
         review_path = Path(result.stdout.strip())
         self.generated_artifacts.append(review_path)
