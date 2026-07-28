@@ -12,6 +12,14 @@
 
 该脚本运行 Android Kotlin 编译和 Desktop 测试，覆盖共享逻辑与 Android 编译风险；在 macOS host 上，`desktopTest` 会带上 AVFoundation bridge 编译依赖，非 macOS 环境由 Gradle `onlyIf` 跳过相关 bridge 编译。它不是所有任务的唯一验收：平台播放、安装、截图、iOS framework、DMG 或真实设备行为仍要按改动范围补跑 focused 命令，并在交付说明中写明。只有纯文档改动、脚本因环境限制不可运行，或已运行更精确的 focused 验证时，才允许不跑默认入口；这种情况必须说明原因和等价证据。
 
+子代理结构化交付脚本改动使用以下 focused 验证：
+
+```bash
+python3 -m unittest scripts.tests.test_agent_delivery
+```
+
+该测试在临时 Git 仓库中覆盖任务前快照、用户已有修改隔离、完整文件清单、文本任务级 Diff、二进制摘要、稳定 Manifest 链接、缺少改动说明拒绝、固定三行输出和 500 字符上限。
+
 ## 命令选择
 
 | 改动范围 | 最低验证 |
