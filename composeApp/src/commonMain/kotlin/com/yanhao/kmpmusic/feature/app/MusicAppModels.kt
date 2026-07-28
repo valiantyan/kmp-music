@@ -10,6 +10,7 @@ import com.yanhao.kmpmusic.domain.model.LocalMusicScanState
 import com.yanhao.kmpmusic.domain.model.LocalMusicSourceSummary
 import com.yanhao.kmpmusic.domain.model.PlaybackError
 import com.yanhao.kmpmusic.domain.model.PlaybackMode
+import com.yanhao.kmpmusic.domain.model.PlaybackSpeed
 import com.yanhao.kmpmusic.domain.model.PlaybackStatus
 import com.yanhao.kmpmusic.domain.model.SearchContext
 import com.yanhao.kmpmusic.domain.model.SearchScope
@@ -401,6 +402,7 @@ data class MusicAppUiState(
     val playbackPositionMs: Long = 0L,
     val playbackDurationMs: Long? = null,
     val playbackMode: PlaybackMode = PlaybackMode.LoopAll,
+    val playbackSpeed: PlaybackSpeed = PlaybackSpeed.resolveDefault(),
     val playbackVolume: Float = DEFAULT_PLAYBACK_VOLUME,
     val playbackError: PlaybackError? = null,
     val queueSongIds: List<String>,
@@ -423,6 +425,7 @@ data class MusicAppUiState(
     val themeMode: ThemeMode = ThemeMode.Light,
     val localMusicDiscoveryPreferences: LocalMusicDiscoveryPreferences = LocalMusicDiscoveryPreferences(),
     val isQueueOpen: Boolean = false,
+    val isPlaybackSpeedPanelOpen: Boolean = false,
     val moreSongId: String? = null,
     val moreSongSourceContext: SongMoreSourceContext = SongMoreSourceContext.General,
     val addToPlaylistFlow: AddToPlaylistFlowState? = null,
@@ -560,6 +563,7 @@ data class MusicAppUiState(
             transientMessage != null ||
             addToPlaylistFlow != null ||
             moreSongId != null ||
+            isPlaybackSpeedPanelOpen ||
             isQueueOpen ||
             !navigationState.isTopLevel
 

@@ -4,6 +4,7 @@ import com.yanhao.kmpmusic.domain.model.PlayableMedia
 import com.yanhao.kmpmusic.domain.model.PlaybackError
 import com.yanhao.kmpmusic.domain.model.PlaybackMode
 import com.yanhao.kmpmusic.domain.model.PlaybackSnapshot
+import com.yanhao.kmpmusic.domain.model.PlaybackSpeed
 import com.yanhao.kmpmusic.domain.model.PlaybackState
 import com.yanhao.kmpmusic.domain.model.PlaybackStatus
 import com.yanhao.kmpmusic.domain.model.QueueState
@@ -414,6 +415,13 @@ class PlaybackCoordinator(
      */
     fun setVolume(volume: Float) {
         audioPlayerEngine.setVolume(volume = volume.coerceIn(minimumValue = 0f, maximumValue = 1f))
+    }
+
+    /**
+     * 同步全局倍速到平台引擎，当前媒体和后续队列都由引擎保持该值。
+     */
+    fun setPlaybackSpeed(playbackSpeed: PlaybackSpeed) {
+        audioPlayerEngine.setPlaybackSpeed(playbackSpeed = playbackSpeed)
     }
 
     /**

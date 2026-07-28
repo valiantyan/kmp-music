@@ -1,6 +1,7 @@
 package com.yanhao.kmpmusic.feature.app.preferences
 
 import com.yanhao.kmpmusic.domain.model.LocalMusicDiscoveryPreferences
+import com.yanhao.kmpmusic.domain.model.PlaybackSpeed
 import com.yanhao.kmpmusic.domain.model.ThemeMode
 import com.yanhao.kmpmusic.domain.repository.UserPreferencesRepository
 import com.yanhao.kmpmusic.feature.app.MusicAppUiState
@@ -27,6 +28,21 @@ internal class PreferenceStateController(
     ): MusicAppUiState {
         userPreferencesRepository.saveThemeMode(themeMode = themeMode)
         return state.copy(themeMode = themeMode)
+    }
+
+    /**
+     * 保存全局播放倍速，并返回已经同步新倍速的状态副本。
+     *
+     * @param state 当前门面状态。
+     * @param playbackSpeed 用户选中的播放倍速。
+     * @return 已同步新倍速的状态。
+     */
+    fun setPlaybackSpeed(
+        state: MusicAppUiState,
+        playbackSpeed: PlaybackSpeed,
+    ): MusicAppUiState {
+        userPreferencesRepository.savePlaybackSpeed(playbackSpeed = playbackSpeed)
+        return state.copy(playbackSpeed = playbackSpeed)
     }
 
     /**

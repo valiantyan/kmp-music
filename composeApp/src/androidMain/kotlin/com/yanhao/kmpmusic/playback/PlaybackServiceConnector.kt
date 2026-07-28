@@ -9,6 +9,7 @@ import com.yanhao.kmpmusic.domain.model.PlayableMedia
 import com.yanhao.kmpmusic.domain.model.PlaybackError
 import com.yanhao.kmpmusic.domain.model.PlaybackErrorType
 import com.yanhao.kmpmusic.domain.model.PlaybackMode
+import com.yanhao.kmpmusic.domain.model.PlaybackSpeed
 import com.yanhao.kmpmusic.domain.model.PlaybackStatus
 import com.yanhao.kmpmusic.domain.playback.AudioPlayerEngine
 import com.yanhao.kmpmusic.domain.playback.PlaybackEngineEvent
@@ -33,6 +34,9 @@ class PlaybackServiceConnector(
 
     // 最近一次同步给平台播放器的播放模式。
     private var playbackMode: PlaybackMode = PlaybackMode.LoopAll
+
+    // 最近一次同步给平台播放器的播放倍速，controller 重连后需要补发。
+    private var playbackSpeed: PlaybackSpeed = PlaybackSpeed.resolveDefault()
 
     // applicationContext 供媒体项 mapper 读取 Compose resources assets。
     private var appContext: Context? = null
@@ -97,6 +101,7 @@ class PlaybackServiceConnector(
             controller = controller,
             playbackMode = playbackMode,
         )
+        applyPlaybackSpeed(controller = controller)
         if (controller.isCommandAvailable(Player.COMMAND_PREPARE)) {
             controller.prepare()
         }
@@ -142,6 +147,14 @@ class PlaybackServiceConnector(
                 controller = controller,
                 playbackMode = playbackMode,
             )
+        }
+    }
+
+    /** 同步倍速到 Media3，并在 controller 尚未连接时缓存给下一次连接。 */
+    override fun setPlaybackSpeed(playbackSpeed: PlaybackSpeed) {
+        this.playbackSpeed = playbackSpeed
+        controllerConnection.currentController?.let { controller: MediaController ->
+            applyPlaybackSpeed(controller = controller)
         }
     }
 
@@ -215,10 +228,20 @@ class PlaybackServiceConnector(
             controller = controller,
             playbackMode = playbackMode,
         )
+        applyPlaybackSpeed(controller = controller)
         MediaButtonStateSender.send(
             controller = controller,
             state = pendingMediaButtonState,
         )
+    }
+
+    // Media3 controller 支持 speed/pitch 命令时才下发，避免不支持的 session 抛出错误。
+    private fun applyPlaybackSpeed(controller: MediaController) {
+        if (!controller.isCommandAvailable(Player.COMMAND_SET_SPEED_AND_PITCH)) {
+            emitEngineUnavailable(message = "Android 播放控制器不允许设置倍速")
+            return
+        }
+        controller.setPlaybackSpeed(playbackSpeed.multiplier)
     }
 
     // 统一抛出 controller 不可用错误，供 shared 协调器和 UI 显式兜底。

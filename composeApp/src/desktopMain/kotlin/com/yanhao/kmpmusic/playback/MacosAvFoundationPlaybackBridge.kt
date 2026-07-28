@@ -2,6 +2,7 @@ package com.yanhao.kmpmusic.playback
 
 import com.yanhao.kmpmusic.domain.model.PlaybackError
 import com.yanhao.kmpmusic.domain.model.PlaybackErrorType
+import com.yanhao.kmpmusic.domain.model.PlaybackSpeed
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.receiveAsFlow
@@ -105,6 +106,14 @@ internal class MacosAvFoundationPlaybackBridge(
             session
                 ?: return failedAck(error = unavailableError(songId = null))
         return ackFromStatus(status = activeSession.setVolume(volume = volume), songId = null)
+    }
+
+    /** 设置 native 播放器倍速。 */
+    override suspend fun setPlaybackSpeed(playbackSpeed: PlaybackSpeed): ApplePlaybackBridgeCommandAck {
+        val activeSession: MacosAvFoundationNativeBridgeSession =
+            session
+                ?: return failedAck(error = unavailableError(songId = null))
+        return ackFromStatus(status = activeSession.setPlaybackSpeed(speed = playbackSpeed.multiplier), songId = null)
     }
 
     /** 释放 native session，并阻止 release 后的延迟 callback 外泄。 */

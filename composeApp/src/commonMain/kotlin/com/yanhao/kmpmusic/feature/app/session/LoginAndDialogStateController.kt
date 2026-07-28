@@ -16,6 +16,12 @@ object LoginAndDialogStateController {
     /** 关闭播放队列弹层。 */
     fun closeQueue(state: MusicAppUiState): MusicAppUiState = state.copy(isQueueOpen = false)
 
+    /** 打开移动端播放倍速底部面板。 */
+    fun openPlaybackSpeedPanel(state: MusicAppUiState): MusicAppUiState = state.copy(isPlaybackSpeedPanelOpen = true)
+
+    /** 关闭移动端播放倍速底部面板。 */
+    fun closePlaybackSpeedPanel(state: MusicAppUiState): MusicAppUiState = state.copy(isPlaybackSpeedPanelOpen = false)
+
     /** 打开歌曲更多操作弹层，并记录目标歌曲 id。 */
     fun openMore(
         state: MusicAppUiState,

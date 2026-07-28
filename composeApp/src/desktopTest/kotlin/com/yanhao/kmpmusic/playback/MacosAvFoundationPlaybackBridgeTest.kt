@@ -2,6 +2,7 @@ package com.yanhao.kmpmusic.playback
 
 import com.yanhao.kmpmusic.domain.model.PlaybackError
 import com.yanhao.kmpmusic.domain.model.PlaybackErrorType
+import com.yanhao.kmpmusic.domain.model.PlaybackSpeed
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.toList
@@ -168,6 +169,27 @@ class MacosAvFoundationPlaybackBridgeTest {
             assertTrue(actual = sessionFactory.session.isReleased)
             assertFalse(actual = events.any { event: ApplePlaybackBridgeEvent -> event is ApplePlaybackBridgeEvent.Failed })
             collectJob.cancel()
+        }
+
+    /** 验证 macOS bridge 会把全局倍速倍率原样转发给 native AVFoundation session。 */
+    @Test
+    fun setPlaybackSpeedForwardsMultiplierToNativeSession(): Unit =
+        runTest {
+            val sessionFactory = FakeMacosAvFoundationSessionFactory()
+            val bridge: MacosAvFoundationPlaybackBridge =
+                MacosAvFoundationPlaybackBridge.create(
+                    libraryLoader =
+                        FakeMacosAvFoundationLibraryLoader(
+                            result = MacosAvFoundationNativeLibraryLoadResult.Loaded,
+                        ),
+                    sessionFactory = sessionFactory,
+                )
+
+            val ack: ApplePlaybackBridgeCommandAck = bridge.setPlaybackSpeed(playbackSpeed = PlaybackSpeed.Double)
+
+            assertEquals(expected = ApplePlaybackBridgeCommandAck.Accepted, actual = ack)
+            assertEquals(expected = listOf(2.0f), actual = sessionFactory.session.playbackSpeeds)
+            bridge.release()
         }
 
     /** 验证当前平台具备真实 JNI bridge 加载能力；非 macOS 或未配置产物时不伪造通过。 */

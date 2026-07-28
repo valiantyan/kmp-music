@@ -24,6 +24,7 @@ import com.yanhao.kmpmusic.core.theme.PlayerPagePalette
 import com.yanhao.kmpmusic.core.theme.scaledDp
 import com.yanhao.kmpmusic.domain.model.PlaybackError
 import com.yanhao.kmpmusic.domain.model.PlaybackMode
+import com.yanhao.kmpmusic.domain.model.PlaybackSpeed
 import com.yanhao.kmpmusic.domain.model.Song
 import com.yanhao.kmpmusic.feature.components.rememberPlayerPagePalette
 
@@ -37,6 +38,7 @@ fun PlayerScreen(
     playbackPositionMs: Long,
     playbackDurationMs: Long?,
     playbackMode: PlaybackMode,
+    playbackSpeed: PlaybackSpeed,
     playbackError: PlaybackError?,
     onBack: () -> Unit,
     onToggle: () -> Unit,
@@ -44,6 +46,7 @@ fun PlayerScreen(
     onNext: () -> Unit,
     onSeek: (Long) -> Unit,
     onMode: () -> Unit,
+    onSpeed: () -> Unit,
     onLike: (String) -> Unit,
     onQueue: () -> Unit,
     modifier: Modifier = Modifier,
@@ -139,7 +142,9 @@ fun PlayerScreen(
             Spacer(modifier = Modifier.weight(weight = 1f))
             PlayerAuxiliaryActions(
                 song = song,
+                playbackSpeed = playbackSpeed,
                 onLike = onLike,
+                onSpeed = onSpeed,
             )
         }
     }

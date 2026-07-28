@@ -3,6 +3,7 @@ package com.yanhao.kmpmusic
 import com.yanhao.kmpmusic.data.createDesktopPlaybackDatabaseAtPath
 import com.yanhao.kmpmusic.domain.model.CoverArt
 import com.yanhao.kmpmusic.domain.model.LocalMusicSourceKind
+import com.yanhao.kmpmusic.domain.model.PlaybackSpeed
 import com.yanhao.kmpmusic.domain.model.Song
 import com.yanhao.kmpmusic.domain.persistence.LocalSongEntity
 import com.yanhao.kmpmusic.domain.persistence.PlaybackDatabase
@@ -78,6 +79,9 @@ internal class RecordingApplePlaybackBridge(
 
     /** 转发音量命令。 */
     override suspend fun setVolume(volume: Float): ApplePlaybackBridgeCommandAck = delegate.setVolume(volume = volume)
+
+    /** 转发倍速命令。 */
+    override suspend fun setPlaybackSpeed(playbackSpeed: PlaybackSpeed): ApplePlaybackBridgeCommandAck = delegate.setPlaybackSpeed(playbackSpeed = playbackSpeed)
 
     /** 释放真实 bridge。 */
     override suspend fun release(): ApplePlaybackBridgeCommandAck = delegate.release()

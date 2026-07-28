@@ -52,6 +52,7 @@ internal class MusicAppInitialStateBuilder(
             favoriteSongs = favoriteSongsBuilder(initialLikedSongIds, previewWithLikes),
             recentSongs = recentSongsBuilder(baseState, previewWithLikes),
             themeMode = userPreferencesRepository.getThemeMode(),
+            playbackSpeed = userPreferencesRepository.getPlaybackSpeed(),
             localMusicDiscoveryPreferences = userPreferencesRepository.getLocalMusicDiscoveryPreferences(),
             localLibrarySearchHistory =
                 searchHistoryRepository.getSearchHistory(

@@ -1,6 +1,7 @@
 package com.yanhao.kmpmusic.data
 
 import com.yanhao.kmpmusic.domain.model.LocalMusicDiscoveryPreferences
+import com.yanhao.kmpmusic.domain.model.PlaybackSpeed
 import com.yanhao.kmpmusic.domain.model.ThemeMode
 import com.yanhao.kmpmusic.domain.persistence.UserPreferenceDao
 import com.yanhao.kmpmusic.domain.persistence.UserPreferenceEntity
@@ -9,7 +10,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 
 /**
- * 验证 [PersistentUserPreferencesRepository] 能持久化主题和本地音频发现偏好。
+ * 验证 [PersistentUserPreferencesRepository] 能持久化主题、倍速和本地音频发现偏好。
  */
 class PersistentUserPreferencesRepositoryTest {
     /**
@@ -31,6 +32,7 @@ class PersistentUserPreferencesRepositoryTest {
             )
 
         repository.saveThemeMode(themeMode = ThemeMode.Dark)
+        repository.savePlaybackSpeed(playbackSpeed = PlaybackSpeed.OneQuarter)
         repository.saveLocalMusicDiscoveryPreferences(preferences = preferences)
         val restoredRepository: UserPreferencesRepository =
             PersistentUserPreferencesRepository(
@@ -38,8 +40,27 @@ class PersistentUserPreferencesRepositoryTest {
             )
 
         assertEquals(expected = ThemeMode.Dark, actual = restoredRepository.getThemeMode())
+        assertEquals(expected = PlaybackSpeed.OneQuarter, actual = restoredRepository.getPlaybackSpeed())
         assertEquals(expected = preferences, actual = restoredRepository.getLocalMusicDiscoveryPreferences())
+        assertEquals(expected = "1.25", actual = dao.getSavedValue(key = "playback.speed"))
         assertEquals(expected = "false", actual = dao.getSavedValue(key = "localMusic.ignoreShortAudio"))
+    }
+
+    /**
+     * 旧版本或异常写入的倍速值必须回退默认 1.0，避免冷启动带入非法播放器参数。
+     */
+    @Test
+    fun invalidPlaybackSpeedFallsBackToDefault() {
+        val dao: FakeUserPreferenceDao = FakeUserPreferenceDao()
+        dao.saveRawValue(
+            key = "playback.speed",
+            value = "3.0",
+        )
+        val repository: UserPreferencesRepository =
+            PersistentUserPreferencesRepository(
+                userPreferenceDao = dao,
+            )
+        assertEquals(expected = PlaybackSpeed.resolveDefault(), actual = repository.getPlaybackSpeed())
     }
 
     /**
@@ -86,5 +107,18 @@ class PersistentUserPreferencesRepositoryTest {
 
         /** 读取已保存值，供测试断言具体落库内容。 */
         fun getSavedValue(key: String): String? = rows[key]?.value
+
+        /** 写入原始偏好值，供测试模拟旧版本或异常数据。 */
+        fun saveRawValue(
+            key: String,
+            value: String,
+        ) {
+            rows[key] =
+                UserPreferenceEntity(
+                    key = key,
+                    value = value,
+                    updatedAt = 0L,
+                )
+        }
     }
 }

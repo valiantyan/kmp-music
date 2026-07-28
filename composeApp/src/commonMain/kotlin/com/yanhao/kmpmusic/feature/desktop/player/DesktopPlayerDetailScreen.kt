@@ -15,6 +15,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.yanhao.kmpmusic.core.theme.PlayerPagePalette
 import com.yanhao.kmpmusic.domain.model.PlaybackMode
+import com.yanhao.kmpmusic.domain.model.PlaybackSpeed
 import com.yanhao.kmpmusic.domain.model.Song
 
 /**
@@ -28,12 +29,14 @@ fun DesktopPlayerDetailScreen(
     playbackPositionMs: Long,
     playbackDurationMs: Long?,
     playbackMode: PlaybackMode,
+    playbackSpeed: PlaybackSpeed,
     volume: Float,
     onBack: () -> Unit,
     onToggle: () -> Unit,
     onPrev: () -> Unit,
     onNext: () -> Unit,
     onMode: () -> Unit,
+    onPlaybackSpeedChange: (PlaybackSpeed) -> Unit,
     onLike: (String) -> Unit,
     onSeek: (Long) -> Unit,
     onVolumeChange: (Float) -> Unit,
@@ -86,11 +89,13 @@ fun DesktopPlayerDetailScreen(
                     playbackPositionMs = playbackPositionMs,
                     playbackDurationMs = playbackDurationMs,
                     playbackMode = playbackMode,
+                    playbackSpeed = playbackSpeed,
                     volume = volume,
                     onToggle = onToggle,
                     onPrev = onPrev,
                     onNext = onNext,
                     onMode = onMode,
+                    onPlaybackSpeedChange = onPlaybackSpeedChange,
                     onLike = onLike,
                     onSeek = onSeek,
                     onVolumeChange = onVolumeChange,

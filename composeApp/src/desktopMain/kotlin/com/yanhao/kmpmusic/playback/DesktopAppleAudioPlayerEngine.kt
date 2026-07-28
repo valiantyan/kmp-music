@@ -4,6 +4,7 @@ import com.yanhao.kmpmusic.domain.model.PlayableMedia
 import com.yanhao.kmpmusic.domain.model.PlaybackError
 import com.yanhao.kmpmusic.domain.model.PlaybackErrorType
 import com.yanhao.kmpmusic.domain.model.PlaybackMode
+import com.yanhao.kmpmusic.domain.model.PlaybackSpeed
 import com.yanhao.kmpmusic.domain.model.PlaybackStatus
 import com.yanhao.kmpmusic.domain.playback.AudioPlayerEngine
 import com.yanhao.kmpmusic.domain.playback.PlaybackEngineEvent
@@ -170,6 +171,16 @@ internal class DesktopAppleAudioPlayerEngine(
         )
     }
 
+    /** 将全局倍速交给命令循环串行处理，避免 UI 线程直接触碰 native bridge。 */
+    override fun setPlaybackSpeed(playbackSpeed: PlaybackSpeed) {
+        if (isReleased || isReleasing) {
+            return
+        }
+        commandChannel.trySend(
+            element = DesktopApplePlaybackCommand.SetPlaybackSpeed(playbackSpeed = playbackSpeed),
+        )
+    }
+
     /** 停止当前媒体并把引擎推回 idle。 */
     override fun stop() {
         if (isReleased || isReleasing) {
@@ -209,6 +220,7 @@ internal class DesktopAppleAudioPlayerEngine(
             is DesktopApplePlaybackCommand.SkipToIndex -> handleSkipToIndex(index = command.index)
             is DesktopApplePlaybackCommand.SetPlaybackMode -> Unit
             is DesktopApplePlaybackCommand.SetVolume -> handleSetVolume(volume = command.volume)
+            is DesktopApplePlaybackCommand.SetPlaybackSpeed -> handleSetPlaybackSpeed(playbackSpeed = command.playbackSpeed)
             DesktopApplePlaybackCommand.Stop -> handleStop()
             DesktopApplePlaybackCommand.Release -> handleRelease()
             is DesktopApplePlaybackCommand.BridgeEventReceived -> handleBridgeEvent(event = command.event)
@@ -295,6 +307,11 @@ internal class DesktopAppleAudioPlayerEngine(
     /** 将 0.0-1.0 的共享音量交给 Apple bridge。 */
     private suspend fun handleSetVolume(volume: Float) {
         handleBridgeAck(ack = bridge.setVolume(volume = volume.coerceIn(minimumValue = 0f, maximumValue = 1f)))
+    }
+
+    /** 将共享倍速交给 Apple bridge，当前播放中媒体应即时生效。 */
+    private suspend fun handleSetPlaybackSpeed(playbackSpeed: PlaybackSpeed) {
+        handleBridgeAck(ack = bridge.setPlaybackSpeed(playbackSpeed = playbackSpeed))
     }
 
     /** 切歌会重置上一代待播放/待 seek 状态，并让新媒体从头开始准备。 */

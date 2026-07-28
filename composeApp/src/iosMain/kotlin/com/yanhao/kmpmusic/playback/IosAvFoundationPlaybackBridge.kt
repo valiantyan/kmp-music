@@ -2,6 +2,7 @@ package com.yanhao.kmpmusic.playback
 
 import com.yanhao.kmpmusic.domain.model.PlaybackError
 import com.yanhao.kmpmusic.domain.model.PlaybackErrorType
+import com.yanhao.kmpmusic.domain.model.PlaybackSpeed
 import kotlinx.cinterop.CValue
 import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.coroutines.channels.Channel
@@ -22,7 +23,7 @@ import platform.AVFoundation.currentItem
 import platform.AVFoundation.currentTime
 import platform.AVFoundation.duration
 import platform.AVFoundation.pause
-import platform.AVFoundation.play
+import platform.AVFoundation.playImmediatelyAtRate
 import platform.AVFoundation.removeTimeObserver
 import platform.AVFoundation.replaceCurrentItemWithPlayerItem
 import platform.AVFoundation.seekToTime
@@ -75,6 +76,12 @@ internal class IosAvFoundationPlaybackBridge(
     // 当前媒体的最后已知进度。
     private var lastPositionMs: Long = 0L
 
+    // 当前全局播放倍速，暂停时只缓存，播放中即时应用到 AVPlayer。
+    private var playbackSpeed: PlaybackSpeed = PlaybackSpeed.resolveDefault()
+
+    // 记录共享引擎认为的播放态，避免暂停状态下切换倍速误启动播放器。
+    private var isPlaying: Boolean = false
+
     init {
         installAudioSessionObservers()
     }
@@ -117,12 +124,13 @@ internal class IosAvFoundationPlaybackBridge(
         return IosPlaybackBridgeCommandAck.Accepted
     }
 
-    /** 调用 [AVPlayer.play] 并回传播放中事实。 */
+    /** 按当前倍速启动 [AVPlayer] 并回传播放中事实。 */
     override suspend fun play(generation: Long): IosPlaybackBridgeCommandAck {
         if (!isGenerationCurrent(generation = generation)) {
             return IosPlaybackBridgeCommandAck.Accepted
         }
-        player.play()
+        isPlaying = true
+        player.playImmediatelyAtRate(rate = playbackSpeed.multiplier)
         eventChannel.trySend(
             IosPlaybackBridgeEvent.Playing(
                 generation = generation,
@@ -138,6 +146,7 @@ internal class IosAvFoundationPlaybackBridge(
         if (!isGenerationCurrent(generation = generation)) {
             return IosPlaybackBridgeCommandAck.Accepted
         }
+        isPlaying = false
         player.pause()
         eventChannel.trySend(
             IosPlaybackBridgeEvent.Paused(
@@ -171,6 +180,7 @@ internal class IosAvFoundationPlaybackBridge(
         if (!isGenerationCurrent(generation = generation)) {
             return IosPlaybackBridgeCommandAck.Accepted
         }
+        isPlaying = false
         player.pause()
         removeObservers()
         player.replaceCurrentItemWithPlayerItem(item = null)
@@ -184,12 +194,22 @@ internal class IosAvFoundationPlaybackBridge(
         return IosPlaybackBridgeCommandAck.Accepted
     }
 
+    /** 设置播放倍速，播放中媒体立即使用新 rate。 */
+    override suspend fun setPlaybackSpeed(playbackSpeed: PlaybackSpeed): IosPlaybackBridgeCommandAck {
+        this.playbackSpeed = playbackSpeed
+        if (isPlaying) {
+            player.playImmediatelyAtRate(rate = playbackSpeed.multiplier)
+        }
+        return IosPlaybackBridgeCommandAck.Accepted
+    }
+
     /** 释放观察器和当前 [AVPlayerItem]。 */
     override suspend fun release(): IosPlaybackBridgeCommandAck {
         if (isReleased) {
             return IosPlaybackBridgeCommandAck.Accepted
         }
         isReleased = true
+        isPlaying = false
         player.pause()
         removeObservers()
         removeAudioSessionObservers()
@@ -208,6 +228,7 @@ internal class IosAvFoundationPlaybackBridge(
                 name = AVPlayerItemDidPlayToEndTimeNotification,
                 item = item,
             ) {
+                isPlaying = false
                 eventChannel.trySend(element = IosPlaybackBridgeEvent.Ended(generation = activeGeneration))
             }
         itemObserverTokens +=
@@ -215,6 +236,7 @@ internal class IosAvFoundationPlaybackBridge(
                 name = AVPlayerItemFailedToPlayToEndTimeNotification,
                 item = item,
             ) {
+                isPlaying = false
                 eventChannel.trySend(
                     element =
                         IosPlaybackBridgeEvent.Failed(
@@ -331,6 +353,7 @@ internal class IosAvFoundationPlaybackBridge(
             ) ?: return
         when (type) {
             IOS_INTERRUPTION_TYPE_BEGAN -> {
+                isPlaying = false
                 eventChannel.trySend(
                     element =
                         IosPlaybackBridgeEvent.InterruptionBegan(

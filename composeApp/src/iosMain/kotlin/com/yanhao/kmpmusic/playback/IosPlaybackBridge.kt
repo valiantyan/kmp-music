@@ -1,6 +1,7 @@
 package com.yanhao.kmpmusic.playback
 
 import com.yanhao.kmpmusic.domain.model.PlaybackError
+import com.yanhao.kmpmusic.domain.model.PlaybackSpeed
 import kotlinx.coroutines.flow.Flow
 
 /**
@@ -57,6 +58,14 @@ internal interface IosPlaybackBridge {
      * @return native 命令同步确认结果。
      */
     suspend fun setVolume(volume: Float): IosPlaybackBridgeCommandAck
+
+    /**
+     * 设置 App 内全局播放倍速。
+     *
+     * @param playbackSpeed 产品支持的离散倍速。
+     * @return native 命令同步确认结果。
+     */
+    suspend fun setPlaybackSpeed(playbackSpeed: PlaybackSpeed): IosPlaybackBridgeCommandAck
 
     /**
      * 释放原生播放器和观察器。

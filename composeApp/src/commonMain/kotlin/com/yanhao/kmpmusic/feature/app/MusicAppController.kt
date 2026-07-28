@@ -24,6 +24,7 @@ import com.yanhao.kmpmusic.domain.model.LocalPlaylistDeleteResult
 import com.yanhao.kmpmusic.domain.model.LocalPlaylistDetail
 import com.yanhao.kmpmusic.domain.model.PlaybackHistory
 import com.yanhao.kmpmusic.domain.model.PlaybackMode
+import com.yanhao.kmpmusic.domain.model.PlaybackSpeed
 import com.yanhao.kmpmusic.domain.model.PlaybackState
 import com.yanhao.kmpmusic.domain.model.PlaybackStatus
 import com.yanhao.kmpmusic.domain.model.SearchContext
@@ -263,6 +264,7 @@ class MusicAppController(
                 ).copy(
                     localPlaylists = buildLocalPlaylistCards(),
                 )
+        playbackActionController.applyPlaybackSpeed(playbackSpeed = uiState.playbackSpeed)
         playbackCoordinator.start(scope = controllerScope) {
             syncPlaybackState(playbackState = playbackRepository.getPlaybackState())
         }
@@ -646,6 +648,20 @@ class MusicAppController(
             )
     }
 
+    /** 设置全局播放倍速，先持久化偏好，再下发给平台播放引擎。 */
+    fun setPlaybackSpeed(playbackSpeed: PlaybackSpeed) {
+        val preferredState: MusicAppUiState =
+            preferenceStateController.setPlaybackSpeed(
+                state = uiState,
+                playbackSpeed = playbackSpeed,
+            )
+        uiState =
+            playbackActionController.setPlaybackSpeed(
+                state = preferredState,
+                playbackSpeed = playbackSpeed,
+            )
+    }
+
     /**
      * Android 播放 service 退出前，通过协调器补写最终暂停快照，避免恢复时丢掉最后位置。
      */
@@ -858,6 +874,16 @@ class MusicAppController(
     /** 关闭队列弹层。 */
     fun closeQueue() {
         uiState = LoginAndDialogStateController.closeQueue(state = uiState)
+    }
+
+    /** 打开移动端播放倍速底部面板。 */
+    fun openPlaybackSpeedPanel() {
+        uiState = LoginAndDialogStateController.openPlaybackSpeedPanel(state = uiState)
+    }
+
+    /** 关闭移动端播放倍速底部面板。 */
+    fun closePlaybackSpeedPanel() {
+        uiState = LoginAndDialogStateController.closePlaybackSpeedPanel(state = uiState)
     }
 
     /** 从队列移除歌曲，至少保留一首。 */

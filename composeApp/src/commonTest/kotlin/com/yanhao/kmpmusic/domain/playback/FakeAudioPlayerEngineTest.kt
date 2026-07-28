@@ -6,6 +6,7 @@ import com.yanhao.kmpmusic.domain.model.PlayableMedia
 import com.yanhao.kmpmusic.domain.model.PlaybackError
 import com.yanhao.kmpmusic.domain.model.PlaybackErrorType
 import com.yanhao.kmpmusic.domain.model.PlaybackMode
+import com.yanhao.kmpmusic.domain.model.PlaybackSpeed
 import com.yanhao.kmpmusic.domain.model.PlaybackStatus
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.take
@@ -177,6 +178,18 @@ class FakeAudioPlayerEngineTest {
         engine.setPlaybackMode(playbackMode = PlaybackMode.Shuffle)
 
         assertEquals(expected = PlaybackMode.Shuffle, actual = engine.playbackMode)
+    }
+
+    /**
+     * [setPlaybackSpeed] 需要可观测，供协调器测试验证平台倍速同步。
+     */
+    @Test
+    fun setPlaybackSpeedRecordsLatestSpeed() {
+        val engine = FakeAudioPlayerEngine()
+
+        engine.setPlaybackSpeed(playbackSpeed = PlaybackSpeed.OneHalf)
+
+        assertEquals(expected = PlaybackSpeed.OneHalf, actual = engine.playbackSpeed)
     }
 
     /**

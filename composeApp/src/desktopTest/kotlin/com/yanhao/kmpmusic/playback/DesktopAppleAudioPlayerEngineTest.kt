@@ -4,6 +4,7 @@ import com.yanhao.kmpmusic.domain.model.CoverArt
 import com.yanhao.kmpmusic.domain.model.PlayableMedia
 import com.yanhao.kmpmusic.domain.model.PlaybackError
 import com.yanhao.kmpmusic.domain.model.PlaybackErrorType
+import com.yanhao.kmpmusic.domain.model.PlaybackSpeed
 import com.yanhao.kmpmusic.domain.model.PlaybackStatus
 import com.yanhao.kmpmusic.domain.playback.PlaybackEngineEvent
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -430,6 +431,21 @@ class DesktopAppleAudioPlayerEngineTest {
             engine.release()
             advanceUntilIdle()
             collectJob.cancel()
+            advanceUntilIdle()
+        }
+
+    /** 验证桌面倍速入口会进入 Apple bridge 命令队列，而不是停留在 UI 状态。 */
+    @Test
+    fun setPlaybackSpeedSendsBridgeCommand(): Unit =
+        runTest {
+            val bridge: FakeApplePlaybackBridge = FakeApplePlaybackBridge()
+            val engine: DesktopAppleAudioPlayerEngine = testEngine(bridge = bridge)
+
+            engine.setPlaybackSpeed(playbackSpeed = PlaybackSpeed.OneHalf)
+            runCurrent()
+
+            assertEquals(expected = "speed:1.5", actual = bridge.commands.single())
+            engine.release()
             advanceUntilIdle()
         }
 

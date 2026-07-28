@@ -6,6 +6,7 @@ import com.yanhao.kmpmusic.data.InMemoryMusicLibraryRepository
 import com.yanhao.kmpmusic.data.InMemoryPlaybackRepository
 import com.yanhao.kmpmusic.domain.model.LocalMusicScanRequest
 import com.yanhao.kmpmusic.domain.model.PlaybackMode
+import com.yanhao.kmpmusic.domain.model.PlaybackSpeed
 import com.yanhao.kmpmusic.domain.model.PlaybackStatus
 import com.yanhao.kmpmusic.domain.model.Song
 import com.yanhao.kmpmusic.domain.persistence.InMemoryPlaybackSnapshotStore
@@ -106,6 +107,23 @@ class PlaybackActionControllerTest {
 
         assertEquals(expected = 1f, actual = nextState.playbackVolume)
         assertEquals(expected = 1f, actual = fixture.audioPlayerEngine.volume)
+    }
+
+    /**
+     * 倍速入口要同时写 UI 状态和播放引擎，避免出现只改按钮文案的假生效。
+     */
+    @Test
+    fun setPlaybackSpeedUpdatesStateAndEngine() {
+        val fixture = playbackFixture()
+
+        val nextState: MusicAppUiState =
+            fixture.controller.setPlaybackSpeed(
+                state = baseState(),
+                playbackSpeed = PlaybackSpeed.Double,
+            )
+
+        assertEquals(expected = PlaybackSpeed.Double, actual = nextState.playbackSpeed)
+        assertEquals(expected = PlaybackSpeed.Double, actual = fixture.audioPlayerEngine.playbackSpeed)
     }
 }
 

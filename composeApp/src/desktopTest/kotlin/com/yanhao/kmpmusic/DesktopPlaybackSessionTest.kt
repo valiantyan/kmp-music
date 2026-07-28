@@ -6,6 +6,7 @@ import com.yanhao.kmpmusic.domain.model.LocalMusicSourceKind
 import com.yanhao.kmpmusic.domain.model.PlayableMedia
 import com.yanhao.kmpmusic.domain.model.PlaybackMode
 import com.yanhao.kmpmusic.domain.model.PlaybackSnapshot
+import com.yanhao.kmpmusic.domain.model.PlaybackSpeed
 import com.yanhao.kmpmusic.domain.model.PlaybackState
 import com.yanhao.kmpmusic.domain.model.PlaybackStatus
 import com.yanhao.kmpmusic.domain.model.QueueState
@@ -269,6 +270,8 @@ private class RecordingAudioPlayerEngine : AudioPlayerEngine {
     override fun skipToIndex(index: Int) = Unit
 
     override fun setPlaybackMode(playbackMode: PlaybackMode) = Unit
+
+    override fun setPlaybackSpeed(playbackSpeed: PlaybackSpeed) = Unit
 
     override fun setVolume(volume: Float) = Unit
 

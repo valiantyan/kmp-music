@@ -4,6 +4,7 @@ import com.yanhao.kmpmusic.domain.model.PlayableMedia
 import com.yanhao.kmpmusic.domain.model.PlaybackError
 import com.yanhao.kmpmusic.domain.model.PlaybackErrorType
 import com.yanhao.kmpmusic.domain.model.PlaybackMode
+import com.yanhao.kmpmusic.domain.model.PlaybackSpeed
 import com.yanhao.kmpmusic.domain.model.PlaybackStatus
 import com.yanhao.kmpmusic.domain.playback.AudioPlayerEngine
 import com.yanhao.kmpmusic.domain.playback.PlaybackEngineEvent
@@ -207,6 +208,18 @@ internal class IosAvFoundationAudioPlayerEngine(
                 handleBridgeAck(
                     ack = bridge.setVolume(volume = volume.coerceIn(minimumValue = 0f, maximumValue = 1f)),
                 )
+            }
+        }
+    }
+
+    /** 将全局倍速下发给 AVFoundation bridge。 */
+    override fun setPlaybackSpeed(playbackSpeed: PlaybackSpeed) {
+        engineScope.launch(start = CoroutineStart.UNDISPATCHED) {
+            stateMutex.withLock {
+                if (isReleased) {
+                    return@withLock
+                }
+                handleBridgeAck(ack = bridge.setPlaybackSpeed(playbackSpeed = playbackSpeed))
             }
         }
     }

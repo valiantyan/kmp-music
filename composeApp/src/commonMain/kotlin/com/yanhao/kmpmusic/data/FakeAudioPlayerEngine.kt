@@ -4,6 +4,7 @@ import com.yanhao.kmpmusic.domain.model.PlayableMedia
 import com.yanhao.kmpmusic.domain.model.PlaybackError
 import com.yanhao.kmpmusic.domain.model.PlaybackErrorType
 import com.yanhao.kmpmusic.domain.model.PlaybackMode
+import com.yanhao.kmpmusic.domain.model.PlaybackSpeed
 import com.yanhao.kmpmusic.domain.model.PlaybackStatus
 import com.yanhao.kmpmusic.domain.playback.AudioPlayerEngine
 import com.yanhao.kmpmusic.domain.playback.PlaybackEngineEvent
@@ -32,6 +33,10 @@ class FakeAudioPlayerEngine : AudioPlayerEngine {
 
     /** 最近一次由协调器同步到平台引擎的播放模式。 */
     var playbackMode: PlaybackMode = PlaybackMode.LoopAll
+        private set
+
+    /** 最近一次由协调器同步到平台引擎的播放倍速。 */
+    var playbackSpeed: PlaybackSpeed = PlaybackSpeed.resolveDefault()
         private set
 
     /** 最近一次由协调器同步到平台引擎的归一化音量。 */
@@ -135,6 +140,11 @@ class FakeAudioPlayerEngine : AudioPlayerEngine {
     /** 记录 common 层同步下来的模式，确保测试可以验证平台模式接线。 */
     override fun setPlaybackMode(playbackMode: PlaybackMode) {
         this.playbackMode = playbackMode
+    }
+
+    /** 记录 common 层同步下来的倍速，确保测试可以验证真实引擎接线。 */
+    override fun setPlaybackSpeed(playbackSpeed: PlaybackSpeed) {
+        this.playbackSpeed = playbackSpeed
     }
 
     /** 记录 common 层同步下来的音量，确保测试可以验证平台音量接线。 */

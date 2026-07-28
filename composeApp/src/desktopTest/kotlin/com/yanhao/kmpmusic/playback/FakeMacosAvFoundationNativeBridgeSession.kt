@@ -28,6 +28,9 @@ internal class FakeMacosAvFoundationNativeBridgeSession(
     // fake session 是否已经释放。
     var isReleased: Boolean = false
 
+    /** 记录收到的倍速倍率，验证 JVM bridge 到 native session 的真实边界。 */
+    val playbackSpeeds: MutableList<Float> = mutableListOf()
+
     /** fake prepare 只返回 accepted，事件由测试手动驱动。 */
     override fun prepare(
         songId: String,
@@ -53,6 +56,12 @@ internal class FakeMacosAvFoundationNativeBridgeSession(
 
     /** fake volume 只返回 accepted。 */
     override fun setVolume(volume: Float): Int = MACOS_AVFOUNDATION_NATIVE_STATUS_ACCEPTED
+
+    /** fake 倍速只返回 accepted。 */
+    override fun setPlaybackSpeed(speed: Float): Int {
+        playbackSpeeds += speed
+        return MACOS_AVFOUNDATION_NATIVE_STATUS_ACCEPTED
+    }
 
     /** fake release 标记已释放并返回 accepted。 */
     override fun release(): Int {

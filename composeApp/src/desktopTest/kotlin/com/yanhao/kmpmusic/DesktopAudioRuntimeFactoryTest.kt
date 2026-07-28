@@ -59,9 +59,10 @@ class DesktopAudioRuntimeFactoryTest {
             val firstSong: Song = queueSongs[0]
             controller.playSong(song = firstSong, queueSongs = queueSongs)
             advanceUntilIdle()
+            assertEquals(expected = "speed:1.0", actual = bridge.commands.first())
             assertEquals(
                 expected = "prepare:${firstSong.id}:${firstSong.localUri}:1:0",
-                actual = bridge.commands.single(),
+                actual = bridge.commands.last(),
             )
             bridge.emitPrepared(generation = 1L, durationMs = firstSong.durationMs)
             bridge.emitPlaying(generation = 1L, positionMs = 1_000L, durationMs = firstSong.durationMs)

@@ -91,6 +91,9 @@ interface MacosAvFoundationNativeBridgeSession {
     /** 设置 App 内归一化音量。 */
     fun setVolume(volume: Float): Int
 
+    /** 设置 App 内全局播放倍速。 */
+    fun setPlaybackSpeed(speed: Float): Int
+
     /** 释放 native 会话。 */
     fun release(): Int
 }
@@ -196,6 +199,13 @@ object MacosAvFoundationNativeBindings {
     external fun setVolume(
         handle: Long,
         volume: Float,
+    ): Int
+
+    /** 设置播放倍速。 */
+    @JvmStatic
+    external fun setPlaybackSpeed(
+        handle: Long,
+        speed: Float,
     ): Int
 
     /** 释放 native bridge。 */

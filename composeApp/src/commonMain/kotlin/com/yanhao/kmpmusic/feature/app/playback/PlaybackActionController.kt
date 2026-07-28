@@ -3,6 +3,7 @@ package com.yanhao.kmpmusic.feature.app.playback
 import com.yanhao.kmpmusic.domain.model.PlaybackHistory
 import com.yanhao.kmpmusic.domain.model.PlaybackMode
 import com.yanhao.kmpmusic.domain.model.PlaybackSnapshot
+import com.yanhao.kmpmusic.domain.model.PlaybackSpeed
 import com.yanhao.kmpmusic.domain.model.Song
 import com.yanhao.kmpmusic.domain.persistence.PlaybackSnapshotStore
 import com.yanhao.kmpmusic.domain.playback.PlaybackCoordinator
@@ -171,6 +172,20 @@ class PlaybackActionController(
         val safeVolume: Float = volume.coerceIn(minimumValue = 0f, maximumValue = 1f)
         playbackCoordinator.setVolume(volume = safeVolume)
         return state.copy(playbackVolume = safeVolume)
+    }
+
+    /** 同步全局倍速到播放引擎，并返回供 UI 共享的最新状态。 */
+    fun setPlaybackSpeed(
+        state: MusicAppUiState,
+        playbackSpeed: PlaybackSpeed,
+    ): MusicAppUiState {
+        applyPlaybackSpeed(playbackSpeed = playbackSpeed)
+        return state.copy(playbackSpeed = playbackSpeed)
+    }
+
+    /** 冷启动时先同步已持久化倍速，避免首播短暂使用默认值。 */
+    fun applyPlaybackSpeed(playbackSpeed: PlaybackSpeed) {
+        playbackCoordinator.setPlaybackSpeed(playbackSpeed = playbackSpeed)
     }
 
     /** Android 播放 service 退出前补写最终暂停快照。 */

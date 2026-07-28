@@ -21,6 +21,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.PlaylistAdd
 import androidx.compose.material.icons.rounded.Album
+import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material.icons.rounded.FavoriteBorder
 import androidx.compose.material.icons.rounded.Person
@@ -42,6 +43,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.yanhao.kmpmusic.core.theme.MusicColors
+import com.yanhao.kmpmusic.domain.model.PlaybackSpeed
 import com.yanhao.kmpmusic.domain.model.Song
 import com.yanhao.kmpmusic.feature.app.MusicAppController
 import com.yanhao.kmpmusic.feature.app.MusicAppUiState
@@ -94,6 +96,16 @@ fun AppPanels(
             }
         }
     }
+    if (state.isPlaybackSpeedPanelOpen) {
+        PlaybackSpeedPanel(
+            selectedSpeed = state.playbackSpeed,
+            onSelect = { playbackSpeed: PlaybackSpeed ->
+                controller.setPlaybackSpeed(playbackSpeed = playbackSpeed)
+                controller.closePlaybackSpeedPanel()
+            },
+            onDismiss = controller::closePlaybackSpeedPanel,
+        )
+    }
     state.moreSongId?.let { songId ->
         val song: Song? =
             resolveMorePanelSong(
@@ -106,6 +118,108 @@ fun AppPanels(
                 state = state,
                 controller = controller,
             )
+        }
+    }
+}
+
+/**
+ * 移动端播放倍速底部面板，选择项只来自 [PlaybackSpeed] 支持集合。
+ */
+@Composable
+@OptIn(ExperimentalMaterial3Api::class)
+private fun PlaybackSpeedPanel(
+    selectedSpeed: PlaybackSpeed,
+    onSelect: (PlaybackSpeed) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+        shape =
+            RoundedCornerShape(
+                topStart = SongMorePanelDesignSpec.cornerRadius,
+                topEnd = SongMorePanelDesignSpec.cornerRadius,
+            ),
+        containerColor = Color.White,
+        scrimColor = MusicColors.DialogText.copy(alpha = 0.4f),
+        dragHandle = null,
+    ) {
+        Column(
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .navigationBarsPadding(),
+        ) {
+            SongMoreDragHandle()
+            SongMoreHeader(songTitle = "播放倍速")
+            Column(
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(
+                            horizontal = SongMorePanelDesignSpec.contentHorizontalPadding,
+                            vertical = SongMorePanelDesignSpec.contentVerticalPadding,
+                        ),
+                verticalArrangement = Arrangement.spacedBy(space = 10.dp),
+            ) {
+                PlaybackSpeed.entries.forEach { playbackSpeed: PlaybackSpeed ->
+                    PlaybackSpeedRow(
+                        playbackSpeed = playbackSpeed,
+                        isSelected = playbackSpeed == selectedSpeed,
+                        onSelect = { onSelect(playbackSpeed) },
+                    )
+                }
+            }
+        }
+    }
+}
+
+// 倍速选项保持固定高度，避免选中勾出现时挤压面板布局。
+@Composable
+private fun PlaybackSpeedRow(
+    playbackSpeed: PlaybackSpeed,
+    isSelected: Boolean,
+    onSelect: () -> Unit,
+) {
+    Surface(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .heightIn(min = 54.dp),
+        shape = RoundedCornerShape(size = 14.dp),
+        color =
+            if (isSelected) {
+                MusicColors.AccentSoft
+            } else {
+                MusicColors.DialogDivider.copy(alpha = 0.5f)
+            },
+        onClick = onSelect,
+    ) {
+        Row(
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 18.dp, vertical = 14.dp),
+            horizontalArrangement = Arrangement.spacedBy(space = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = playbackSpeed.label,
+                color = if (isSelected) MusicColors.AccentDeep else MusicColors.DialogText,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.SemiBold,
+                lineHeight = 22.sp,
+            )
+            Spacer(modifier = Modifier.weight(weight = 1f))
+            if (isSelected) {
+                Icon(
+                    imageVector = Icons.Rounded.Check,
+                    contentDescription = "已选中",
+                    tint = MusicColors.AccentDeep,
+                    modifier = Modifier.size(size = 20.dp),
+                )
+            }
         }
     }
 }

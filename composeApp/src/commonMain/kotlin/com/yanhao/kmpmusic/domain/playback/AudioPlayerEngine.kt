@@ -3,6 +3,7 @@ package com.yanhao.kmpmusic.domain.playback
 import com.yanhao.kmpmusic.domain.model.PlayableMedia
 import com.yanhao.kmpmusic.domain.model.PlaybackError
 import com.yanhao.kmpmusic.domain.model.PlaybackMode
+import com.yanhao.kmpmusic.domain.model.PlaybackSpeed
 import com.yanhao.kmpmusic.domain.model.PlaybackStatus
 import kotlinx.coroutines.flow.Flow
 
@@ -62,6 +63,11 @@ interface AudioPlayerEngine {
      * 同步当前播放模式，让平台播放器和系统媒体控制遵循同一套队列规则。
      */
     fun setPlaybackMode(playbackMode: PlaybackMode)
+
+    /**
+     * 同步当前全局播放倍速，平台实现需要在当前媒体和后续媒体上持续生效。
+     */
+    fun setPlaybackSpeed(playbackSpeed: PlaybackSpeed)
 
     /**
      * 设置当前播放器音量。

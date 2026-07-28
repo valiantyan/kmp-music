@@ -2,6 +2,7 @@ package com.yanhao.kmpmusic.data
 
 import androidx.room3.withWriteTransaction
 import com.yanhao.kmpmusic.domain.model.LocalMusicDiscoveryPreferences
+import com.yanhao.kmpmusic.domain.model.PlaybackSpeed
 import com.yanhao.kmpmusic.domain.model.ThemeMode
 import com.yanhao.kmpmusic.domain.persistence.PlaybackDatabase
 import com.yanhao.kmpmusic.domain.persistence.UserPreferenceDao
@@ -32,6 +33,22 @@ class PersistentUserPreferencesRepository(
             saveValue(
                 key = KEY_THEME_MODE,
                 value = themeMode.name,
+            )
+        }
+    }
+
+    /** 读取全局播放倍速，非法旧值回退到产品默认值。 */
+    override fun getPlaybackSpeed(): PlaybackSpeed =
+        runBlocking {
+            PlaybackSpeed.resolveStoredValue(value = userPreferenceDao.getValue(key = KEY_PLAYBACK_SPEED))
+        }
+
+    /** 保存全局播放倍速。 */
+    override fun savePlaybackSpeed(playbackSpeed: PlaybackSpeed) {
+        runBlocking {
+            saveValue(
+                key = KEY_PLAYBACK_SPEED,
+                value = playbackSpeed.label,
             )
         }
     }
@@ -108,6 +125,9 @@ class PersistentUserPreferencesRepository(
     companion object {
         /** 主题模式偏好键。 */
         private const val KEY_THEME_MODE: String = "themeMode"
+
+        /** 全局播放倍速偏好键。 */
+        private const val KEY_PLAYBACK_SPEED: String = "playback.speed"
 
         /** 启动时自动扫描偏好键。 */
         private const val KEY_LOCAL_MUSIC_AUTO_SCAN_ON_LAUNCH: String = "localMusic.autoScanOnLaunch"

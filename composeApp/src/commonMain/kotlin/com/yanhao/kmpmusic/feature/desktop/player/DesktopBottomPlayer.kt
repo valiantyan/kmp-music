@@ -19,6 +19,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.yanhao.kmpmusic.domain.model.PlaybackMode
+import com.yanhao.kmpmusic.domain.model.PlaybackSpeed
 import com.yanhao.kmpmusic.domain.model.Song
 import com.yanhao.kmpmusic.feature.desktop.DesktopMusicColors
 import com.yanhao.kmpmusic.feature.desktop.DesktopMusicDimens
@@ -33,12 +34,14 @@ fun DesktopBottomPlayer(
     playbackPositionMs: Long,
     playbackDurationMs: Long?,
     playbackMode: PlaybackMode,
+    playbackSpeed: PlaybackSpeed,
     volume: Float,
     onOpen: () -> Unit,
     onToggle: () -> Unit,
     onPrev: () -> Unit,
     onNext: () -> Unit,
     onMode: () -> Unit,
+    onPlaybackSpeedChange: (PlaybackSpeed) -> Unit,
     onLike: (String) -> Unit,
     onSeek: (Long) -> Unit,
     onVolumeChange: (Float) -> Unit,
@@ -77,6 +80,10 @@ fun DesktopBottomPlayer(
             horizontalArrangement = Arrangement.spacedBy(14.dp, Alignment.End),
             verticalAlignment = Alignment.CenterVertically,
         ) {
+            DesktopPlaybackSpeedMenu(
+                selectedSpeed = playbackSpeed,
+                onSpeedChange = onPlaybackSpeedChange,
+            )
             Icon(
                 imageVector = Icons.AutoMirrored.Rounded.VolumeUp,
                 contentDescription = "音量",

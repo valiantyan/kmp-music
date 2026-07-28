@@ -30,6 +30,7 @@ import com.yanhao.kmpmusic.domain.model.MusicFileMetadata
 import com.yanhao.kmpmusic.domain.model.PlaybackHistory
 import com.yanhao.kmpmusic.domain.model.PlaybackMode
 import com.yanhao.kmpmusic.domain.model.PlaybackSnapshot
+import com.yanhao.kmpmusic.domain.model.PlaybackSpeed
 import com.yanhao.kmpmusic.domain.model.PlaybackState
 import com.yanhao.kmpmusic.domain.model.PlaybackStatus
 import com.yanhao.kmpmusic.domain.model.QueueState
@@ -2042,6 +2043,36 @@ class MusicAppControllerTest {
 
         assertEquals(expected = 0f, actual = controller.uiState.playbackVolume)
         assertEquals(expected = 0f, actual = audioPlayerEngine.volume)
+    }
+
+    /**
+     * 播放倍速是全局偏好，设置后必须持久化，并在新控制器冷启动时重新下发给引擎。
+     */
+    @Test
+    fun playbackSpeedPersistsAndAppliesAcrossControllerInstances() {
+        val preferencesRepository: InMemoryUserPreferencesRepository = InMemoryUserPreferencesRepository()
+        val audioPlayerEngine = FakeAudioPlayerEngine()
+        val controller =
+            createController(
+                audioPlayerEngine = audioPlayerEngine,
+                userPreferencesRepository = preferencesRepository,
+            )
+
+        controller.setPlaybackSpeed(playbackSpeed = PlaybackSpeed.OneQuarter)
+
+        assertEquals(expected = PlaybackSpeed.OneQuarter, actual = controller.uiState.playbackSpeed)
+        assertEquals(expected = PlaybackSpeed.OneQuarter, actual = preferencesRepository.getPlaybackSpeed())
+        assertEquals(expected = PlaybackSpeed.OneQuarter, actual = audioPlayerEngine.playbackSpeed)
+
+        val restoredAudioPlayerEngine = FakeAudioPlayerEngine()
+        val restoredController =
+            createController(
+                audioPlayerEngine = restoredAudioPlayerEngine,
+                userPreferencesRepository = preferencesRepository,
+            )
+
+        assertEquals(expected = PlaybackSpeed.OneQuarter, actual = restoredController.uiState.playbackSpeed)
+        assertEquals(expected = PlaybackSpeed.OneQuarter, actual = restoredAudioPlayerEngine.playbackSpeed)
     }
 
     /**
@@ -4117,6 +4148,10 @@ private class RecordingAudioPlayerEngine : AudioPlayerEngine {
 
     override fun setPlaybackMode(playbackMode: PlaybackMode) {
         delegate.setPlaybackMode(playbackMode = playbackMode)
+    }
+
+    override fun setPlaybackSpeed(playbackSpeed: PlaybackSpeed) {
+        delegate.setPlaybackSpeed(playbackSpeed = playbackSpeed)
     }
 
     override fun setVolume(volume: Float) {

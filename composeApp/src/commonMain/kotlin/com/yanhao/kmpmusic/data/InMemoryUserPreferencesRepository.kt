@@ -1,6 +1,7 @@
 package com.yanhao.kmpmusic.data
 
 import com.yanhao.kmpmusic.domain.model.LocalMusicDiscoveryPreferences
+import com.yanhao.kmpmusic.domain.model.PlaybackSpeed
 import com.yanhao.kmpmusic.domain.model.ThemeMode
 import com.yanhao.kmpmusic.domain.repository.UserPreferencesRepository
 
@@ -11,6 +12,9 @@ class InMemoryUserPreferencesRepository : UserPreferencesRepository {
     // 当前主题模式。
     private var themeMode: ThemeMode = ThemeMode.Light
 
+    // 当前全局播放倍速。
+    private var playbackSpeed: PlaybackSpeed = PlaybackSpeed.resolveDefault()
+
     // 当前本地音频发现偏好。
     private var localMusicDiscoveryPreferences: LocalMusicDiscoveryPreferences = LocalMusicDiscoveryPreferences()
 
@@ -20,6 +24,14 @@ class InMemoryUserPreferencesRepository : UserPreferencesRepository {
     /** 保存主题模式。 */
     override fun saveThemeMode(themeMode: ThemeMode) {
         this.themeMode = themeMode
+    }
+
+    /** 获取全局播放倍速。 */
+    override fun getPlaybackSpeed(): PlaybackSpeed = playbackSpeed
+
+    /** 保存全局播放倍速。 */
+    override fun savePlaybackSpeed(playbackSpeed: PlaybackSpeed) {
+        this.playbackSpeed = playbackSpeed
     }
 
     /** 获取本地音频发现偏好。 */

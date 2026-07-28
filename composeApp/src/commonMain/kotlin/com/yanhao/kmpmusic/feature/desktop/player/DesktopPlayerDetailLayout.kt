@@ -34,6 +34,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.yanhao.kmpmusic.core.theme.PlayerPagePalette
 import com.yanhao.kmpmusic.domain.model.PlaybackMode
+import com.yanhao.kmpmusic.domain.model.PlaybackSpeed
 import com.yanhao.kmpmusic.domain.model.Song
 import com.yanhao.kmpmusic.feature.components.CoverArtImage
 import com.yanhao.kmpmusic.feature.components.defaultPlayerPagePalette
@@ -90,11 +91,13 @@ internal fun DesktopPlayerContent(
     playbackPositionMs: Long,
     playbackDurationMs: Long?,
     playbackMode: PlaybackMode,
+    playbackSpeed: PlaybackSpeed,
     volume: Float,
     onToggle: () -> Unit,
     onPrev: () -> Unit,
     onNext: () -> Unit,
     onMode: () -> Unit,
+    onPlaybackSpeedChange: (PlaybackSpeed) -> Unit,
     onLike: (String) -> Unit,
     onSeek: (Long) -> Unit,
     onVolumeChange: (Float) -> Unit,
@@ -156,7 +159,9 @@ internal fun DesktopPlayerContent(
                 )
                 Spacer(modifier = Modifier.height(22.dp))
                 DesktopPlayerVolume(
+                    playbackSpeed = playbackSpeed,
                     volume = volume,
+                    onPlaybackSpeedChange = onPlaybackSpeedChange,
                     onVolumeChange = onVolumeChange,
                 )
             }
@@ -196,17 +201,23 @@ private fun DesktopPlayerMetadata(
     }
 }
 
-// 桌面播放页暴露音量，匹配桌面用户对完整控制的预期。
+// 桌面播放页暴露倍速和音量，匹配桌面用户对完整控制的预期。
 @Composable
 private fun DesktopPlayerVolume(
+    playbackSpeed: PlaybackSpeed,
     volume: Float,
+    onPlaybackSpeedChange: (PlaybackSpeed) -> Unit,
     onVolumeChange: (Float) -> Unit,
 ) {
     Row(
-        modifier = Modifier.width(260.dp),
+        modifier = Modifier.width(360.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
+        DesktopPlaybackSpeedMenu(
+            selectedSpeed = playbackSpeed,
+            onSpeedChange = onPlaybackSpeedChange,
+        )
         Icon(
             imageVector = Icons.AutoMirrored.Rounded.VolumeUp,
             contentDescription = "音量",

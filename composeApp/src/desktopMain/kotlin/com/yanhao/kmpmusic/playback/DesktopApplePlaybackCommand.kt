@@ -2,6 +2,7 @@ package com.yanhao.kmpmusic.playback
 
 import com.yanhao.kmpmusic.domain.model.PlayableMedia
 import com.yanhao.kmpmusic.domain.model.PlaybackMode
+import com.yanhao.kmpmusic.domain.model.PlaybackSpeed
 import kotlinx.coroutines.CompletableDeferred
 
 /**
@@ -42,6 +43,11 @@ internal sealed interface DesktopApplePlaybackCommand {
     /** 请求设置当前播放器音量，值为 0.0 到 1.0。 */
     data class SetVolume(
         val volume: Float,
+    ) : DesktopApplePlaybackCommand
+
+    /** 请求设置当前播放器倍速。 */
+    data class SetPlaybackSpeed(
+        val playbackSpeed: PlaybackSpeed,
     ) : DesktopApplePlaybackCommand
 
     /** 请求停止当前媒体并回到 idle。 */

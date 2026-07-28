@@ -1,6 +1,7 @@
 package com.yanhao.kmpmusic.domain.repository
 
 import com.yanhao.kmpmusic.domain.model.LocalMusicDiscoveryPreferences
+import com.yanhao.kmpmusic.domain.model.PlaybackSpeed
 import com.yanhao.kmpmusic.domain.model.ThemeMode
 
 /**
@@ -16,6 +17,16 @@ interface UserPreferencesRepository {
      * 保存主题偏好。
      */
     fun saveThemeMode(themeMode: ThemeMode)
+
+    /**
+     * 获取全局播放倍速。
+     */
+    fun getPlaybackSpeed(): PlaybackSpeed
+
+    /**
+     * 保存全局播放倍速。
+     */
+    fun savePlaybackSpeed(playbackSpeed: PlaybackSpeed)
 
     /**
      * 获取本地音频发现偏好。

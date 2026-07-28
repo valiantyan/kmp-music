@@ -1,6 +1,7 @@
 package com.yanhao.kmpmusic.playback
 
 import com.yanhao.kmpmusic.domain.model.PlaybackError
+import com.yanhao.kmpmusic.domain.model.PlaybackSpeed
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.receiveAsFlow
@@ -55,6 +56,12 @@ internal class FakeIosPlaybackBridge(
     /** 记录归一化音量并同步确认。 */
     override suspend fun setVolume(volume: Float): IosPlaybackBridgeCommandAck {
         order += "volume:$volume"
+        return IosPlaybackBridgeCommandAck.Accepted
+    }
+
+    /** 记录倍速命令并同步确认。 */
+    override suspend fun setPlaybackSpeed(playbackSpeed: PlaybackSpeed): IosPlaybackBridgeCommandAck {
+        order += "speed:${playbackSpeed.label}"
         return IosPlaybackBridgeCommandAck.Accepted
     }
 

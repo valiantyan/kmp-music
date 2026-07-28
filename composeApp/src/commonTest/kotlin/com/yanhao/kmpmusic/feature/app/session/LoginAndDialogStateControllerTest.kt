@@ -51,6 +51,15 @@ class LoginAndDialogStateControllerTest {
         assertNull(actual = closedState.moreSongId)
     }
 
+    @Test
+    fun playbackSpeedPanelCanOpenAndClose() {
+        val controller = LoginAndDialogStateController
+        val openState: MusicAppUiState = controller.openPlaybackSpeedPanel(state = testState())
+        val closedState: MusicAppUiState = controller.closePlaybackSpeedPanel(state = openState)
+        assertTrue(actual = openState.isPlaybackSpeedPanelOpen)
+        assertFalse(actual = closedState.isPlaybackSpeedPanelOpen)
+    }
+
     /** 构造最小可用 [MusicAppUiState]，避免测试依赖无关初始化细节。 */
     private fun testState(): MusicAppUiState =
         MusicAppUiState(

@@ -61,6 +61,12 @@ internal class JniMacosAvFoundationNativeBridgeSession(
         return MacosAvFoundationNativeBindings.setVolume(handle = activeHandle, volume = volume)
     }
 
+    /** 设置 App 内全局播放倍速。 */
+    override fun setPlaybackSpeed(speed: Float): Int {
+        val activeHandle: Long = activeHandleOrUnavailable() ?: return unavailable()
+        return MacosAvFoundationNativeBindings.setPlaybackSpeed(handle = activeHandle, speed = speed)
+    }
+
     /** 释放 native 会话。 */
     override fun release(): Int {
         val activeHandle: Long =

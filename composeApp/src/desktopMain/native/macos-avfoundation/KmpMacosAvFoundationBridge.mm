@@ -77,6 +77,7 @@ static int64_t KmpClampPositionToDuration(int64_t positionMs, int64_t durationMs
 @property(nonatomic, copy) NSString *songId;
 @property(nonatomic, assign) int64_t generation;
 @property(nonatomic, assign) int64_t lastPositionMs;
+@property(nonatomic, assign) float playbackRate;
 @property(nonatomic, assign) BOOL didEmitEnded;
 @property(nonatomic, assign) BOOL released;
 @end
@@ -97,6 +98,7 @@ static int64_t KmpClampPositionToDuration(int64_t positionMs, int64_t durationMs
     _songId = @"";
     _generation = 0;
     _lastPositionMs = 0;
+    _playbackRate = 1.0f;
     _didEmitEnded = NO;
     _released = NO;
     jclass callbackClass = env->GetObjectClass(callback);
@@ -271,7 +273,7 @@ static int64_t KmpClampPositionToDuration(int64_t positionMs, int64_t durationMs
         if (![self isGenerationCurrent:generation]) {
             return;
         }
-        [self.player play];
+        self.player.rate = self.playbackRate;
         [self emitPlaying:generation];
         [self emitProgress:generation];
     }];
@@ -331,6 +333,17 @@ static int64_t KmpClampPositionToDuration(int64_t positionMs, int64_t durationMs
 - (jint)setVolume:(float)volume {
     [self performOnCommandQueueSync:^{
         self.player.volume = MIN(MAX(volume, 0.0f), 1.0f);
+    }];
+    return KMP_STATUS_ACCEPTED;
+}
+
+- (jint)setPlaybackSpeed:(float)speed {
+    [self performOnCommandQueueSync:^{
+        float safeSpeed = speed > 0.0f ? speed : 1.0f;
+        self.playbackRate = safeSpeed;
+        if (self.player.rate > 0.0f) {
+            self.player.rate = safeSpeed;
+        }
     }];
     return KMP_STATUS_ACCEPTED;
 }
@@ -546,6 +559,11 @@ extern "C" JNIEXPORT jint JNICALL Java_com_yanhao_kmpmusic_playback_MacosAvFound
 extern "C" JNIEXPORT jint JNICALL Java_com_yanhao_kmpmusic_playback_MacosAvFoundationNativeBindings_setVolume(JNIEnv *, jclass, jlong handle, jfloat volume) {
     KmpMacosAvFoundationBridge *bridge = KmpBridgeFromHandle(handle);
     return bridge == nil ? KMP_STATUS_ENGINE_UNAVAILABLE : [bridge setVolume:volume];
+}
+
+extern "C" JNIEXPORT jint JNICALL Java_com_yanhao_kmpmusic_playback_MacosAvFoundationNativeBindings_setPlaybackSpeed(JNIEnv *, jclass, jlong handle, jfloat speed) {
+    KmpMacosAvFoundationBridge *bridge = KmpBridgeFromHandle(handle);
+    return bridge == nil ? KMP_STATUS_ENGINE_UNAVAILABLE : [bridge setPlaybackSpeed:speed];
 }
 
 extern "C" JNIEXPORT jint JNICALL Java_com_yanhao_kmpmusic_playback_MacosAvFoundationNativeBindings_release(JNIEnv *, jclass, jlong handle) {
