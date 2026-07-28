@@ -33,25 +33,60 @@
 
 ### 结构化交付
 
-交付子代理在首次文件修改前运行：
+交付子代理在首次文件修改前先把用户原话保存为 UTF-8 文件，并把原始验收项保存为 JSON 数组；每项必须包含唯一 `id`、`kind`（`MUST / FORBIDDEN / UNCHANGED`）和 `text`。然后运行：
 
 ```bash
-python3 scripts/agent_delivery.py snapshot
+python3 scripts/agent_delivery.py snapshot \
+  --request-file <用户原话文件> \
+  --requirements-file <验收合同 JSON> \
+  --writer-id <当前写入者 ID>
 ```
 
-命令会把当前所有受 Git 管理及未忽略文件的内容指纹写入系统临时目录，并复制任务开始前已经脏的文件作为最小基线，然后输出快照路径。干净文件从快照记录的原始 `HEAD` 还原，因此不需要复制整个仓库；用户已有修改也不会被自动算作本任务改动。任务完成后运行：
+命令会把用户原话、原始合同摘要、唯一写入者、当前所有受 Git 管理及未忽略文件的内容指纹写入系统临时目录，并复制任务开始前已经脏的文件作为最小基线，然后输出快照路径。干净文件从快照记录的原始 `HEAD` 还原，因此不需要复制整个仓库；用户已有修改也不会被自动算作本任务改动。原始合同摘要不匹配时后续命令拒绝执行。返工必须在 snapshot 进程锁内追加连续版本，不能覆盖原始合同：
 
 ```bash
+python3 scripts/agent_delivery.py append-rework \
+  --snapshot <快照路径> \
+  --writer-id <当前写入者 ID> \
+  --expected-version <已读取的合同版本> \
+  --instruction-file <返工原话文件>
+```
+
+超时或接管时，协调者先确认旧写入者已经终止并记录证据，再允许接管；确认者必须与旧写入者不同，旧写入者不能自证终止。`takeover` 在没有有效 `confirm-terminated` 记录时直接失败。确认前，新代理禁止写同一任务文件：
+
+```bash
+python3 scripts/agent_delivery.py confirm-terminated \
+  --snapshot <快照路径> \
+  --expected-writer <旧写入者 ID> \
+  --confirmed-by <确认者 ID> \
+  --evidence '<终止确认依据>'
+python3 scripts/agent_delivery.py takeover \
+  --snapshot <快照路径> \
+  --expected-writer <旧写入者 ID> \
+  --new-writer <新写入者 ID>
+```
+
+验证完成后准备逐条规格结论 JSON。每项包含合同中的 `id`、`PASS / FAIL` 和非空 `evidence`；证据来源可为 `raw_request / original_contract / rework_instruction / task_diff / test / runtime / build`，但每个 requirement 至少要有一条 `task_diff / test / runtime` 证据，只有构建通过不能证明规格。先生成审查报告，再生成交付 Manifest：
+
+```bash
+python3 scripts/agent_delivery.py review \
+  --snapshot <快照路径> \
+  --writer-id <当前写入者 ID> \
+  --verdicts-file <逐条规格结论 JSON> \
+  --verification-evidence-file <验证命令与结果文件>
+
 python3 scripts/agent_delivery.py render \
   --snapshot <快照路径> \
+  --writer-id <当前写入者 ID> \
+  --review-report <review 输出路径> \
   --changes '<行为或产物改动摘要>' \
   --verification '<验证命令、结果和独立审查结论>' \
   --risks '<剩余风险；没有时明确写无已知剩余风险>'
 ```
 
-`render` 根据前后文件指纹生成仓库外的唯一临时 Markdown Manifest，并在“改了什么”中输出可点击链接。Manifest 包含全部新增、修改、删除文件、任务级 unified diff、验证和剩余风险；UTF-8 文本内嵌行差异，二进制内容只记录变化与前后 SHA-256，避免把原始二进制塞进文档。同一快照重复 `render` 会覆盖同一个 Manifest，适合结论压缩或审查修正后的重新交付。
+`review` 同时绑定原始合同、用户原话、全部返工指令和当前任务级 diff，要求逐个 requirement 给出结论与证据；任务 diff、合同或 writer 状态变化后旧报告失效。`render` 根据前后文件指纹每次生成一个新的仓库外临时 Markdown Manifest，并在“改了什么”中输出可点击链接；同一快照的旧 Manifest 不会被后续 render 覆盖。Manifest 包含本轮变化、基线既有和用户已有改动的归因、全部新增/修改/删除文件、任务级 unified diff、验证证据、逐条规格审查和剩余风险；UTF-8 文本内嵌行差异，二进制内容只记录变化与前后 SHA-256，避免把原始二进制塞进文档。
 
-`render` 拒绝“存在文件变化但没有改动摘要”、缺少验证、缺少风险或超过 500 个字符的结论。交付子代理必须把该命令的三行标准输出原样作为 `final`；命令失败时先修正交付内容，不能绕过。脚本只追踪未被 Git 忽略的仓库文件；截图、构建产物等忽略项仍在验证说明中按对应门禁报告。Manifest 和基线目录依赖系统临时目录生命周期，不作为长期项目文档；BUG 的累计根因与验证仍记录在对应 `.scratch/<feature-slug>/`。
+`render` 拒绝缺少或过期的规格审查、“存在文件变化但没有改动摘要”、缺少验证、缺少风险或超过 500 个字符的结论。交付子代理必须把该命令的三行标准输出原样作为 `final`；命令失败时先修正交付内容，不能绕过。脚本只追踪未被 Git 忽略的仓库文件；截图、构建产物等忽略项仍在验证说明中按对应门禁报告。Manifest、审查报告和基线目录依赖系统临时目录生命周期，不作为长期项目文档；BUG 的累计根因与验证仍记录在对应 `.scratch/<feature-slug>/`。
 
 ### 审查与复核
 
@@ -63,7 +98,7 @@ python3 scripts/agent_delivery.py render \
 
 - 会话轨迹中，主代理调用创建、转发或等待子代理以外的工具，或出现仓库探索或分析、代码或任务文档的文件变更、验证命令、审查判断，均视为本契约失败；仅检查三项标题是否齐全不算实际工作。
 - 交付子代理只进行审查、研究或汇报，却没有完成其被委派的实际工作；含变更的任务没有由其完成实现；或产物未经独立审查和必要验证，均视为本契约失败。
-- 交付子代理没有在首次修改前保存快照、没有运行 `render`、Manifest 缺少完整文件清单或任务级 Diff、修改存在却未在“改了什么”中报告，或主代理接受缺少固定三项的自由文本，均视为本契约失败。
+- 交付子代理没有在首次修改前冻结原话、三类合同和快照，返工覆盖原始合同，未确认旧 writer 终止就接管，没有逐 requirement 审查，缺少 `render`，Manifest 被覆盖或缺少基线归因、完整文件清单、任务级 Diff、验证证据，修改存在却未在“改了什么”中报告，或主代理接受缺少固定三项的自由文本，均视为本契约失败。
 - 后续任务需以新会话验证：主代理只派发、退回不合格结论并原样转发；交付子代理体系完成实际工作并交回不超过 500 个字符、可核查的三行结论。
 
 ## 升级顺序
