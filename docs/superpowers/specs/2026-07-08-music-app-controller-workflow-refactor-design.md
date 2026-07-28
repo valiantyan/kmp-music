@@ -70,7 +70,7 @@ LoginAndDialogStateController
 | `PlaybackActionController` | 管理会改变播放事实的播放动作、队列动作、进度跳转、音量、播放模式和退出前快照补写 | `PlaybackCoordinator`、`PlaybackRepository`、`PlaybackSnapshotStore` |
 | `ContentNavigationController` | 管理打开首页分段、本地音乐、扫描页、最近播放、专辑详情和歌手详情 | `NavigationStateController`、`LibraryStateSynchronizer` |
 | `SearchResultController` | 管理搜索数据源选择和结果派生 | `MusicLibraryRepository` |
-| `PreferenceStateController` | 管理主题模式和本地音乐发现偏好的保存与状态同步 | `UserPreferencesRepository` |
+| `PreferenceStateController` | 管理播放倍速和本地音乐发现偏好的保存与状态同步 | `UserPreferencesRepository` |
 | `SystemBackController` | 管理系统返回时关闭弹窗、面板、队列和二级页面的优先级 | `NavigationStateController`、`LoginAndDialogStateController` |
 
 搜索结果动作前的历史提交不归 `PlaybackActionController` 或 `ContentNavigationController` 各自处理，而是由 `MusicAppController` 在委派播放、打开专辑和打开歌手之前统一执行。若实现时这条前置规则开始重复，可抽成很小的 `SearchActionRecorder`，但它只负责“当前路由是搜索页时提交当前搜索词”，不负责播放或导航。
@@ -268,7 +268,7 @@ LocalMusicScanControllerTest
 | 行为区域 | 聚焦测试目标 | 门面回归测试必须保留 |
 | --- | --- | --- |
 | 系统返回 | `SystemBackControllerTest` 覆盖关闭权限弹窗、清缓存弹窗、单曲更多面板、队列和二级页面优先级 | `systemBackClosesPermissionSettingsDialog`、`systemBackReturnsFromSecondaryScreen`、`systemBackClosesOverlayBeforeSecondaryScreen` |
-| 偏好设置 | `PreferenceStateControllerTest` 覆盖主题、本地扫描偏好持久化和状态同步 | `localMusicDiscoveryPreferencesPersistAndFlowIntoScanner` |
+| 偏好设置 | `PreferenceStateControllerTest` 覆盖播放倍速、本地扫描偏好持久化和状态同步 | `localMusicDiscoveryPreferencesPersistAndFlowIntoScanner` |
 | 搜索输入和历史 | 保留 `MusicAppSearchControllerTest`，新增或迁移搜索结果数据源测试到 `SearchResultControllerTest` | `pendingSearchQueryDoesNotReturnFullLibraryBeforeDebounce`、`debouncedSearchQueryPublishesActiveQueryThroughFacade`、`nonBlankSearchQueryDoesNotCommitToHistoryWhenLeavingSearchBeforeDebounce` |
 | 搜索结果动作 | `SearchResultControllerTest` 只覆盖结果派生；搜索历史前置动作保留门面测试或小型 `SearchActionRecorderTest` | `searchResultActionsCommitCurrentQueryToHistory`、`nonSearchResultActionsDoNotCommitSearchHistory` |
 | 内容导航 | `ContentNavigationControllerTest` 覆盖本地音乐、扫描页、最近播放、首页分段、专辑详情、歌手详情 | `openLocalMusicUsesSecondaryFixedBarMode`、`openAudioScanUsesDedicatedScanRoute`、`meViewAllRecentPlayedOpensRecentPageAndReturnsToMe`、`openArtistFromSongUsesNormalizedArtistName` |

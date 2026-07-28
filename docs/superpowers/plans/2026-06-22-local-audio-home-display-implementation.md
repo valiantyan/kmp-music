@@ -1639,7 +1639,6 @@ In `createInitialState()`:
             recentSongs = buildRecentSongs(songs = snapshot.songs),
             localSongPreview = snapshot.songs.take(n = 6),
             scanState = snapshot.scanState,
-            themeMode = userPreferencesRepository.getThemeMode(),
         )
 ```
 

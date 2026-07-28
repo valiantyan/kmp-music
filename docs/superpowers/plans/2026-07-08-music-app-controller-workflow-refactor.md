@@ -41,7 +41,7 @@
 
 - 修改 `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/app/MusicAppController.kt`：保留公开门面，新增统一状态写入口，逐步把公开方法委派给工作流协作者。
 - 创建 `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/app/system/SystemBackController.kt`：系统返回优先级 reducer。
-- 创建 `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/app/preferences/PreferenceStateController.kt`：主题和本地音频发现偏好保存与状态同步。
+- 创建 `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/app/preferences/PreferenceStateController.kt`：播放倍速和本地音频发现偏好保存与状态同步。
 - 创建 `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/app/search/SearchResultController.kt`：搜索结果数据源选择和结果派生。
 - 创建 `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/app/navigation/ContentNavigationController.kt`：首页分段、本地音乐、扫描页、最近播放、专辑详情和歌手详情导航。
 - 创建 `composeApp/src/commonMain/kotlin/com/yanhao/kmpmusic/feature/app/playback/PlaybackActionController.kt`：播放动作、队列动作、进度、音量、播放模式和退出快照委派。
@@ -452,23 +452,6 @@ import kotlin.test.assertTrue
 
 class PreferenceStateControllerTest {
     /**
-     * 主题设置必须同时写入仓库和 UI 状态。
-     */
-    @Test
-    fun setThemeModePersistsAndUpdatesState(): Unit {
-        val repository = InMemoryUserPreferencesRepository()
-        val controller = PreferenceStateController(userPreferencesRepository = repository)
-
-        val state: MusicAppUiState = controller.setThemeMode(
-            state = baseState(),
-            themeMode = ThemeMode.Dark,
-        )
-
-        assertEquals(expected = ThemeMode.Dark, actual = state.themeMode)
-        assertEquals(expected = ThemeMode.Dark, actual = repository.getThemeMode())
-    }
-
-    /**
      * 本地发现偏好切换必须保留其他偏好字段。
      */
     @Test
@@ -523,25 +506,15 @@ private fun baseState(): MusicAppUiState {
 package com.yanhao.kmpmusic.feature.app.preferences
 
 import com.yanhao.kmpmusic.domain.model.LocalMusicDiscoveryPreferences
-import com.yanhao.kmpmusic.domain.model.ThemeMode
 import com.yanhao.kmpmusic.domain.repository.UserPreferencesRepository
 import com.yanhao.kmpmusic.feature.app.MusicAppUiState
 
 /**
- * 用户偏好 reducer，统一保存主题和本地音频发现偏好。
+ * 用户偏好 reducer，统一保存播放倍速和本地音频发现偏好。
  */
 class PreferenceStateController(
     private val userPreferencesRepository: UserPreferencesRepository,
 ) {
-    /** 设置主题模式并同步 UI 状态。 */
-    fun setThemeMode(
-        state: MusicAppUiState,
-        themeMode: ThemeMode,
-    ): MusicAppUiState {
-        userPreferencesRepository.saveThemeMode(themeMode = themeMode)
-        return state.copy(themeMode = themeMode)
-    }
-
     /** 设置启动时自动扫描偏好。 */
     fun setLocalMusicAutoScanOnLaunchEnabled(
         state: MusicAppUiState,
@@ -604,10 +577,7 @@ import com.yanhao.kmpmusic.feature.app.preferences.PreferenceStateController
 ```kotlin
     /** 设置主题模式。 */
     fun setThemeMode(themeMode: ThemeMode) {
-        uiState = preferenceStateController.setThemeMode(
-            state = uiState,
-            themeMode = themeMode,
-        )
+        uiState = uiState.copy(themeMode = themeMode)
     }
 
     /** 设置启动时自动扫描偏好。 */
@@ -2907,7 +2877,7 @@ git commit -m "加固加载上次播放数据请求身份"
 
 ```markdown
 - `SystemBackController`：系统返回时关闭权限弹窗、清缓存弹窗、单曲更多面板、队列和二级页面。
-- `PreferenceStateController`：主题和本地音频发现偏好保存与 UI 状态同步。
+- `PreferenceStateController`：播放倍速和本地音频发现偏好保存与 UI 状态同步。
 - `SearchResultController`：按搜索上下文派生歌曲、专辑和歌手结果。
 - `ContentNavigationController`：首页分段、本地音乐、扫描页、最近播放、专辑详情和歌手详情导航。
 - `PlaybackActionController`：播放、队列、进度、音量、播放模式和退出快照动作。
@@ -2920,7 +2890,7 @@ git commit -m "加固加载上次播放数据请求身份"
 
 ```markdown
 - `feature/app/system/SystemBackControllerTest.kt`：系统返回优先级。
-- `feature/app/preferences/PreferenceStateControllerTest.kt`：主题和本地音乐发现偏好。
+- `feature/app/preferences/PreferenceStateControllerTest.kt`：播放倍速和本地音乐发现偏好。
 - `feature/app/search/SearchResultControllerTest.kt`：搜索结果数据源和 pending query 空结果。
 - `feature/app/navigation/ContentNavigationControllerTest.kt`：内容导航、按需加载完整曲库和详情入口。
 - `feature/app/playback/PlaybackActionControllerTest.kt`：播放动作、队列复用、音量和队列不变量。
