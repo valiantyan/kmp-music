@@ -1,7 +1,10 @@
 package com.yanhao.kmpmusic
 
 import android.content.Context
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
 import com.yanhao.kmpmusic.data.createAndroidPlaybackDatabase
+import com.yanhao.kmpmusic.data.createAndroidUserPreferencesDataStore
 import com.yanhao.kmpmusic.domain.persistence.PlaybackDatabase
 import com.yanhao.kmpmusic.domain.repository.LocalMusicScanner
 import com.yanhao.kmpmusic.feature.app.MusicAppController
@@ -21,8 +24,10 @@ internal fun createAndroidPlaybackController(
     nowMillis: () -> Long = { System.currentTimeMillis() },
 ): MusicAppController {
     val playbackDatabase: PlaybackDatabase = createAndroidPlaybackDatabase(context = context)
+    val userPreferencesDataStore: DataStore<Preferences> = createAndroidUserPreferencesDataStore(context = context)
     return createPersistentMusicAppController(
         playbackDatabase = playbackDatabase,
+        userPreferencesDataStore = userPreferencesDataStore,
         localMusicScanner = localMusicScanner,
         audioPlayerEngine = audioPlayerEngine,
         permissionSettingsOpener = permissionSettingsOpener,

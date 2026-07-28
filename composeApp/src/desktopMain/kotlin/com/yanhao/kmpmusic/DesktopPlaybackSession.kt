@@ -1,6 +1,9 @@
 package com.yanhao.kmpmusic
 
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
 import com.yanhao.kmpmusic.data.createDesktopPlaybackDatabase
+import com.yanhao.kmpmusic.data.createDesktopUserPreferencesDataStore
 import com.yanhao.kmpmusic.domain.persistence.PlaybackDatabase
 import com.yanhao.kmpmusic.feature.app.MusicAppController
 import kotlinx.coroutines.CoroutineScope
@@ -14,6 +17,7 @@ object DesktopPlaybackSession {
     private val runtime: DesktopPlaybackSessionRuntime by lazy {
         val sessionScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
         val playbackDatabase: PlaybackDatabase = createDesktopPlaybackDatabase()
+        val userPreferencesDataStore: DataStore<Preferences> = createDesktopUserPreferencesDataStore()
         val audioRuntime: DesktopAudioRuntime =
             DesktopAudioRuntimeFactory.create(
                 sessionScope = sessionScope,
@@ -22,6 +26,7 @@ object DesktopPlaybackSession {
             controller =
                 createDesktopPlaybackController(
                     playbackDatabase = playbackDatabase,
+                    userPreferencesDataStore = userPreferencesDataStore,
                     audioPlayerEngine = audioRuntime.audioEngine,
                     controllerScope = sessionScope,
                 ),

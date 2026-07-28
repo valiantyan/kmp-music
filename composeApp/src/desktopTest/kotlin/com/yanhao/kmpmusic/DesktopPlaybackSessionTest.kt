@@ -1,6 +1,9 @@
 package com.yanhao.kmpmusic
 
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
 import com.yanhao.kmpmusic.data.createDesktopPlaybackDatabaseAtPath
+import com.yanhao.kmpmusic.data.createDesktopUserPreferencesDataStoreAtPath
 import com.yanhao.kmpmusic.domain.model.CoverArt
 import com.yanhao.kmpmusic.domain.model.LocalMusicSourceKind
 import com.yanhao.kmpmusic.domain.model.PlayableMedia
@@ -48,6 +51,10 @@ class DesktopPlaybackSessionTest {
                 createDesktopPlaybackDatabaseAtPath(
                     databasePath = tempDir.resolve("playback.db").toString(),
                 )
+            val userPreferencesDataStore: DataStore<Preferences> =
+                createDesktopUserPreferencesDataStoreAtPath(
+                    dataStorePath = tempDir.resolve("user_preferences.preferences_pb").toString(),
+                )
             val sessionScope = CoroutineScope(SupervisorJob() + Default)
             val audioEngine = RecordingAudioPlayerEngine()
             val expectedSong = persistedSongEntity()
@@ -77,6 +84,7 @@ class DesktopPlaybackSessionTest {
             val controller =
                 createDesktopPlaybackController(
                     playbackDatabase = playbackDatabase,
+                    userPreferencesDataStore = userPreferencesDataStore,
                     audioPlayerEngine = audioEngine,
                     controllerScope = sessionScope,
                     nowMillis = { 1L },

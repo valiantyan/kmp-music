@@ -7,7 +7,7 @@ import com.yanhao.kmpmusic.domain.repository.UserPreferencesRepository
 import com.yanhao.kmpmusic.feature.app.MusicAppUiState
 
 /**
- * 偏好设置工作流控制器，统一保存主题与本地音频发现偏好。
+ * 偏好设置工作流控制器，统一保存主题、倍速与本地音频发现偏好。
  *
  * @property userPreferencesRepository 承载偏好持久化的仓库接口。
  */

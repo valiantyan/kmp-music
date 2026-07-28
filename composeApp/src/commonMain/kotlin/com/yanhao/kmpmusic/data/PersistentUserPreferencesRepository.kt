@@ -1,5 +1,7 @@
 package com.yanhao.kmpmusic.data
 
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
 import androidx.room3.withWriteTransaction
 import com.yanhao.kmpmusic.domain.model.LocalMusicDiscoveryPreferences
 import com.yanhao.kmpmusic.domain.model.PlaybackSpeed
@@ -11,10 +13,14 @@ import com.yanhao.kmpmusic.domain.repository.UserPreferencesRepository
 import kotlinx.coroutines.runBlocking
 
 /**
- * 基于 Room 的用户偏好仓库，保存主题和本地音频发现偏好。
+ * 基于 Room 和 DataStore 的用户偏好仓库，倍速走轻量 DataStore，其他既有偏好暂留 Room。
+ *
+ * @property userPreferenceDao 读写仍保留在 Room 的主题和本地音频发现偏好。
+ * @property playbackSpeedPreferencesStore 读写播放倍速的 Preferences DataStore 封装。
  */
-class PersistentUserPreferencesRepository(
+internal class PersistentUserPreferencesRepository(
     private val userPreferenceDao: UserPreferenceDao,
+    private val playbackSpeedPreferencesStore: PlaybackSpeedPreferencesStore,
     private val runInWriteTransaction: suspend (suspend () -> Unit) -> Unit = { block -> block() },
     private val nowMillis: () -> Long = { currentTimeMillis() },
 ) : UserPreferencesRepository {
@@ -40,16 +46,13 @@ class PersistentUserPreferencesRepository(
     /** 读取全局播放倍速，非法旧值回退到产品默认值。 */
     override fun getPlaybackSpeed(): PlaybackSpeed =
         runBlocking {
-            PlaybackSpeed.resolveStoredValue(value = userPreferenceDao.getValue(key = KEY_PLAYBACK_SPEED))
+            playbackSpeedPreferencesStore.readPlaybackSpeed()
         }
 
     /** 保存全局播放倍速。 */
     override fun savePlaybackSpeed(playbackSpeed: PlaybackSpeed) {
         runBlocking {
-            saveValue(
-                key = KEY_PLAYBACK_SPEED,
-                value = playbackSpeed.label,
-            )
+            playbackSpeedPreferencesStore.savePlaybackSpeed(playbackSpeed = playbackSpeed)
         }
     }
 
@@ -123,11 +126,8 @@ class PersistentUserPreferencesRepository(
     }
 
     companion object {
-        /** 主题模式偏好键。 */
+        /** 主题模式偏好键，保留既有 Room 行为，本轮不迁入 DataStore。 */
         private const val KEY_THEME_MODE: String = "themeMode"
-
-        /** 全局播放倍速偏好键。 */
-        private const val KEY_PLAYBACK_SPEED: String = "playback.speed"
 
         /** 启动时自动扫描偏好键。 */
         private const val KEY_LOCAL_MUSIC_AUTO_SCAN_ON_LAUNCH: String = "localMusic.autoScanOnLaunch"
@@ -143,10 +143,15 @@ class PersistentUserPreferencesRepository(
          */
         fun create(
             playbackDatabase: PlaybackDatabase,
+            userPreferencesDataStore: DataStore<Preferences>,
             nowMillis: () -> Long = { currentTimeMillis() },
         ): PersistentUserPreferencesRepository =
             PersistentUserPreferencesRepository(
                 userPreferenceDao = playbackDatabase.userPreferenceDao(),
+                playbackSpeedPreferencesStore =
+                    PlaybackSpeedPreferencesStore(
+                        dataStore = userPreferencesDataStore,
+                    ),
                 runInWriteTransaction = { block: suspend () -> Unit ->
                     playbackDatabase.withWriteTransaction {
                         block()

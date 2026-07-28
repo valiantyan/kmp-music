@@ -1,5 +1,7 @@
 package com.yanhao.kmpmusic
 
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
 import com.yanhao.kmpmusic.data.PersistentFavoritesRepository
 import com.yanhao.kmpmusic.data.PersistentLocalPlaylistRepository
 import com.yanhao.kmpmusic.data.PersistentMusicLibraryRepository
@@ -22,6 +24,7 @@ import kotlinx.coroutines.runBlocking
  */
 internal fun createPersistentMusicAppController(
     playbackDatabase: PlaybackDatabase,
+    userPreferencesDataStore: DataStore<Preferences>,
     localMusicScanner: LocalMusicScanner,
     audioPlayerEngine: AudioPlayerEngine,
     controllerScope: CoroutineScope,
@@ -75,6 +78,7 @@ internal fun createPersistentMusicAppController(
         userPreferencesRepository =
             PersistentUserPreferencesRepository.create(
                 playbackDatabase = playbackDatabase,
+                userPreferencesDataStore = userPreferencesDataStore,
                 nowMillis = nowMillis,
             ),
         permissionSettingsOpener = permissionSettingsOpener,

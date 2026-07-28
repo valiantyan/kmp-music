@@ -1,5 +1,7 @@
 package com.yanhao.kmpmusic
 
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
 import com.yanhao.kmpmusic.data.createDesktopPlaybackDatabaseAtPath
 import com.yanhao.kmpmusic.domain.model.CoverArt
 import com.yanhao.kmpmusic.domain.model.LocalMusicSourceKind
@@ -90,6 +92,7 @@ internal class RecordingApplePlaybackBridge(
 /** 创建一段独立桌面会话，模拟一次新的 App 进程。 */
 internal suspend fun createRestartResumeSmokeSession(
     databasePath: Path,
+    userPreferencesDataStore: DataStore<Preferences>,
     seedSongs: List<Song>,
 ): RestartResumeSmokeSession {
     val sessionScope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
@@ -114,6 +117,7 @@ internal suspend fun createRestartResumeSmokeSession(
     val controller: MusicAppController =
         createDesktopPlaybackController(
             playbackDatabase = playbackDatabase,
+            userPreferencesDataStore = userPreferencesDataStore,
             audioPlayerEngine = audioRuntime.audioEngine,
             controllerScope = sessionScope,
         )

@@ -1,6 +1,11 @@
 package com.yanhao.kmpmusic
 
+import com.yanhao.kmpmusic.data.DataStorePlaybackSpeedUserPreferencesRepository
+import com.yanhao.kmpmusic.data.InMemoryUserPreferencesRepository
 import com.yanhao.kmpmusic.data.IosFolderMusicScanner
+import com.yanhao.kmpmusic.data.PlaybackSpeedPreferencesStore
+import com.yanhao.kmpmusic.data.createIosUserPreferencesDataStore
+import com.yanhao.kmpmusic.domain.repository.UserPreferencesRepository
 import com.yanhao.kmpmusic.feature.app.MusicAppController
 import com.yanhao.kmpmusic.playback.IosAudioSessionController
 import com.yanhao.kmpmusic.playback.IosAvAudioSessionController
@@ -22,11 +27,20 @@ object IosPlaybackSession {
                 audioSessionController = audioSessionController,
                 scope = sessionScope,
             )
+        val userPreferencesRepository: UserPreferencesRepository =
+            DataStorePlaybackSpeedUserPreferencesRepository(
+                delegate = InMemoryUserPreferencesRepository(),
+                playbackSpeedPreferencesStore =
+                    PlaybackSpeedPreferencesStore(
+                        dataStore = createIosUserPreferencesDataStore(),
+                    ),
+            )
         IosPlaybackSessionRuntime(
             controller =
                 MusicAppController(
                     localMusicScanner = IosFolderMusicScanner(),
                     audioPlayerEngine = audioEngine,
+                    userPreferencesRepository = userPreferencesRepository,
                     controllerScope = sessionScope,
                 ),
             sessionScope = sessionScope,

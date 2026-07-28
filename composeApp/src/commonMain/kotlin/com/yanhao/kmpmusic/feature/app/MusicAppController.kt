@@ -108,7 +108,7 @@ class MusicAppController(
     // 内容导航工作流统一处理曲库预热与内容路由，facade 只保留门面时序。
     private val contentNavigationController: ContentNavigationController
 
-    // 偏好设置工作流统一处理主题与本地发现设置的持久化和状态同步。
+    // 偏好设置工作流统一处理主题、倍速与本地发现设置的持久化和状态同步。
     private val preferenceStateController: PreferenceStateController =
         PreferenceStateController(
             userPreferencesRepository = userPreferencesRepository,

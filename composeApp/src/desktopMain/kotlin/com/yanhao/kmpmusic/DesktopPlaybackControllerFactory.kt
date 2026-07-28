@@ -1,5 +1,7 @@
 package com.yanhao.kmpmusic
 
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
 import com.yanhao.kmpmusic.data.DesktopFolderMusicScanner
 import com.yanhao.kmpmusic.domain.persistence.PlaybackDatabase
 import com.yanhao.kmpmusic.domain.playback.AudioPlayerEngine
@@ -12,6 +14,7 @@ import kotlinx.coroutines.CoroutineScope
  */
 internal fun createDesktopPlaybackController(
     playbackDatabase: PlaybackDatabase,
+    userPreferencesDataStore: DataStore<Preferences>,
     audioPlayerEngine: AudioPlayerEngine,
     controllerScope: CoroutineScope,
     localMusicScanner: LocalMusicScanner = DesktopFolderMusicScanner(),
@@ -19,6 +22,7 @@ internal fun createDesktopPlaybackController(
 ): MusicAppController =
     createPersistentMusicAppController(
         playbackDatabase = playbackDatabase,
+        userPreferencesDataStore = userPreferencesDataStore,
         localMusicScanner = localMusicScanner,
         audioPlayerEngine = audioPlayerEngine,
         controllerScope = controllerScope,

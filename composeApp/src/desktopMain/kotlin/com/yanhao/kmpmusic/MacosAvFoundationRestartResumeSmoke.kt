@@ -1,5 +1,8 @@
 package com.yanhao.kmpmusic
 
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
+import com.yanhao.kmpmusic.data.createDesktopUserPreferencesDataStoreAtPath
 import com.yanhao.kmpmusic.domain.model.PlaybackStatus
 import com.yanhao.kmpmusic.domain.model.Song
 import com.yanhao.kmpmusic.feature.app.MusicAppController
@@ -28,26 +31,41 @@ object MacosAvFoundationRestartResumeSmoke {
             Files.copy(firstMediaPath, secondMediaPath, StandardCopyOption.REPLACE_EXISTING)
             val databasePath: Path = workDir.resolve("macos-avfoundation-restart-resume.db")
             deleteRestartResumeSmokeDatabaseFiles(databasePath = databasePath)
+            val userPreferencesDataStore: DataStore<Preferences> =
+                createDesktopUserPreferencesDataStoreAtPath(
+                    dataStorePath = workDir.resolve("macos-avfoundation-restart-resume.user_preferences.preferences_pb").toString(),
+                )
             val songs: List<Song> =
                 listOf(
                     createRestartResumeSmokeSong(id = "macos-avfoundation-restart-resume-1", mediaPath = firstMediaPath, trackNumber = 1),
                     createRestartResumeSmokeSong(id = "macos-avfoundation-restart-resume-2", mediaPath = secondMediaPath, trackNumber = 2),
                 )
             val restoredSong: Song = songs[1]
-            runFirstProcess(databasePath = databasePath, songs = songs, restoredSong = restoredSong)
-            runSecondProcess(databasePath = databasePath, restoredSong = restoredSong)
+            runFirstProcess(
+                databasePath = databasePath,
+                userPreferencesDataStore = userPreferencesDataStore,
+                songs = songs,
+                restoredSong = restoredSong,
+            )
+            runSecondProcess(
+                databasePath = databasePath,
+                userPreferencesDataStore = userPreferencesDataStore,
+                restoredSong = restoredSong,
+            )
             println("macOS AVFoundation 重启恢复 smoke 通过：songId=${restoredSong.id}, mediaUri=${restoredSong.localUri}")
         }
 
     /** 执行第一次进程：播放第二首，seek 后关闭并持久化最后进度。 */
     private suspend fun runFirstProcess(
         databasePath: Path,
+        userPreferencesDataStore: DataStore<Preferences>,
         songs: List<Song>,
         restoredSong: Song,
     ) {
         val session: RestartResumeSmokeSession =
             createRestartResumeSmokeSession(
                 databasePath = databasePath,
+                userPreferencesDataStore = userPreferencesDataStore,
                 seedSongs = songs,
             )
         try {
@@ -87,11 +105,13 @@ object MacosAvFoundationRestartResumeSmoke {
     /** 执行第二次进程：从 Room 快照恢复同一首歌，再继续播放并确认进度前进。 */
     private suspend fun runSecondProcess(
         databasePath: Path,
+        userPreferencesDataStore: DataStore<Preferences>,
         restoredSong: Song,
     ) {
         val session: RestartResumeSmokeSession =
             createRestartResumeSmokeSession(
                 databasePath = databasePath,
+                userPreferencesDataStore = userPreferencesDataStore,
                 seedSongs = emptyList(),
             )
         try {
