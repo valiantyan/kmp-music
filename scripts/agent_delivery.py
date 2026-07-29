@@ -28,6 +28,16 @@ REVIEW_APPROVAL_VERSION = 1
 MAX_SUMMARY_CHARACTERS = 500
 TASK_ACTIVE = "ACTIVE"
 TASK_COMPLETED = "COMPLETED"
+TASK_FAILED = "FAILED"
+TASK_CANCELLED = "CANCELLED"
+TASK_DEGRADED_REPORT = "DEGRADED_REPORT"
+TASK_TERMINAL_LIFECYCLES = {
+    TASK_COMPLETED,
+    TASK_FAILED,
+    TASK_CANCELLED,
+    TASK_DEGRADED_REPORT,
+}
+TASK_NON_SUCCESS_LIFECYCLES = TASK_TERMINAL_LIFECYCLES - {TASK_COMPLETED}
 RESOURCE_OPEN = "OPEN"
 RESOURCE_CLOSED = "CLOSED"
 REQUIREMENT_KINDS = {"MUST", "FORBIDDEN", "UNCHANGED"}
@@ -315,6 +325,7 @@ def build_task(
         "created_at": created_at,
         "completed_at": None,
         "completion": None,
+        "terminal": None,
     }
 
 
@@ -545,20 +556,54 @@ def validate_task(
     resource_states = (resources.get("contract"), resources.get("writer"))
     completed_at = value.get("completed_at")
     completion = value.get("completion")
+    terminal = value.get("terminal")
     if lifecycle == TASK_ACTIVE:
         if resource_states != (RESOURCE_OPEN, RESOURCE_OPEN):
             raise DeliveryError("ACTIVE 任务的合同与 writer 必须保持 OPEN")
-        if writer["status"] == "closed" or completed_at is not None or completion is not None:
+        if (
+            writer["status"] == "closed"
+            or completed_at is not None
+            or completion is not None
+            or terminal is not None
+        ):
             raise DeliveryError("ACTIVE 任务不能包含终态关闭记录")
-    elif lifecycle == TASK_COMPLETED:
+    elif lifecycle in TASK_TERMINAL_LIFECYCLES:
         if resource_states != (RESOURCE_CLOSED, RESOURCE_CLOSED):
-            raise DeliveryError("COMPLETED 任务的合同与 writer 必须关闭")
+            raise DeliveryError(f"{lifecycle} 任务的合同与 writer 必须关闭")
         if writer["status"] != "closed":
-            raise DeliveryError("COMPLETED 任务的 writer 必须关闭")
-        if not isinstance(completed_at, str) or not isinstance(completion, dict):
-            raise DeliveryError("COMPLETED 任务缺少终态记录")
+            raise DeliveryError(f"{lifecycle} 任务的 writer 必须关闭")
+        if not isinstance(completed_at, str):
+            raise DeliveryError(f"{lifecycle} 任务缺少终态时间")
+        validate_terminal_record(terminal, lifecycle)
+        if lifecycle == TASK_COMPLETED:
+            if not isinstance(completion, dict):
+                raise DeliveryError("COMPLETED 任务缺少成功交付记录")
+        elif completion is not None:
+            raise DeliveryError(f"{lifecycle} 不能包含成功交付记录")
     else:
-        raise DeliveryError("任务生命周期只支持 ACTIVE 或 COMPLETED")
+        raise DeliveryError("任务生命周期无效")
+    return value
+
+
+def validate_terminal_record(value: Any, lifecycle: str) -> dict[str, Any] | None:
+    if value is None:
+        if lifecycle == TASK_COMPLETED:
+            return None
+        raise DeliveryError(f"{lifecycle} 任务缺少非成功终态记录")
+    if not isinstance(value, dict) or value.get("outcome") != lifecycle:
+        raise DeliveryError("终态记录与生命周期不匹配")
+    actor = value.get("actor")
+    at = value.get("at")
+    reason = value.get("reason")
+    evidence = value.get("evidence")
+    if not isinstance(actor, str) or not actor:
+        raise DeliveryError("终态记录缺少 actor")
+    if not isinstance(at, str) or not at:
+        raise DeliveryError("终态记录缺少时间")
+    if not isinstance(reason, dict) or not reason:
+        raise DeliveryError("终态记录缺少结构化 reason")
+    if not isinstance(evidence, dict) or not evidence:
+        raise DeliveryError("终态记录缺少结构化 evidence")
     return value
 
 
@@ -581,7 +626,7 @@ def require_active_task(snapshot: dict[str, Any]) -> dict[str, Any]:
     task = validate_task(snapshot["task"], snapshot["contract"], snapshot["writer"])
     if task["lifecycle"] != TASK_ACTIVE:
         raise DeliveryError(
-            f"任务 {task['id']} 已 COMPLETED；必须创建新的 snapshot、task_id 和 agent"
+            f"任务 {task['id']} 已 {task['lifecycle']}；必须创建新的 snapshot、task_id 和 agent"
         )
     return task
 
@@ -668,6 +713,7 @@ def status_command(arguments: argparse.Namespace) -> int:
         registered_lifecycle = registration["lifecycle"]
         canonical_path = Path(registration["snapshot_path"]).resolve()
         local_path = Path(arguments.snapshot).resolve()
+        terminal = terminal_status(registration, task, snapshot["writer"])
         result = {
             "version": version,
             "task_id": task["id"],
@@ -679,11 +725,12 @@ def status_command(arguments: argparse.Namespace) -> int:
             "canonical_snapshot_path": str(canonical_path),
             "resources": (
                 {"contract": RESOURCE_CLOSED, "writer": RESOURCE_CLOSED}
-                if registered_lifecycle == TASK_COMPLETED
+                if registered_lifecycle in TASK_TERMINAL_LIFECYCLES
                 else task["resources"]
             ),
             "writer": snapshot["writer"],
             "reviewer_id": reviewer["id"] if reviewer else None,
+            "terminal": terminal,
         }
     print(json.dumps(result, ensure_ascii=False, indent=2))
     return 0
@@ -742,6 +789,106 @@ def confirm_terminated_command(arguments: argparse.Namespace) -> int:
         )
         atomic_write_json(path, snapshot)
     print(f"已确认终止：{expected_writer}")
+    return 0
+
+
+def terminal_status(
+    registration: dict[str, Any],
+    task: dict[str, Any],
+    writer: dict[str, Any],
+) -> dict[str, Any] | None:
+    lifecycle = registration["lifecycle"]
+    if lifecycle not in TASK_TERMINAL_LIFECYCLES:
+        return None
+    terminal = registration.get("terminal")
+    if isinstance(terminal, dict):
+        return terminal
+    local_terminal = task.get("terminal")
+    if isinstance(local_terminal, dict):
+        return local_terminal
+    if lifecycle == TASK_COMPLETED:
+        return {
+            "outcome": TASK_COMPLETED,
+            "actor": writer["current"],
+            "at": task.get("completed_at"),
+            "reason": {"summary": "旧版 v4 成功终态未记录结构化原因"},
+            "evidence": {"summary": "旧版 v4 completion 记录"},
+        }
+    return None
+
+
+def terminal_confirmation(writer: dict[str, Any]) -> dict[str, Any] | None:
+    for event in reversed(writer["history"]):
+        if event.get("event") == "termination_confirmed":
+            return event
+    return None
+
+
+def terminal_detail(value: str | None, label: str) -> dict[str, str]:
+    summary = single_line_field(value or "", label)
+    if not summary:
+        raise DeliveryError(f"{label}不能为空")
+    return {"summary": summary}
+
+
+def terminate_command(arguments: argparse.Namespace) -> int:
+    snapshot_path = Path(arguments.snapshot)
+    with snapshot_lock(snapshot_path):
+        snapshot = load_snapshot(snapshot_path)
+        require_current_snapshot(snapshot)
+        task = require_registered_active_task(snapshot_path, snapshot)
+        writer = validate_writer(snapshot["writer"])
+        outcome = arguments.outcome
+        reason = terminal_detail(arguments.reason, "终态原因")
+        evidence = terminal_detail(arguments.evidence, "终态证据")
+
+        if arguments.writer_id is not None:
+            actor = single_line_field(arguments.writer_id, "写入者 ID")
+            if outcome != TASK_FAILED:
+                raise DeliveryError("活动 writer 只能自报 FAILED")
+            if writer["status"] != "active" or writer["current"] != actor:
+                raise DeliveryError("当前活动 writer 才能自报 FAILED")
+        else:
+            actor = single_line_field(arguments.coordinator_id, "协调者 ID")
+            if writer["status"] != "terminated_confirmed":
+                raise DeliveryError("旧 writer 尚未确认终止，协调者不能收口任务")
+            confirmation = terminal_confirmation(writer)
+            if (
+                confirmation is None
+                or confirmation.get("writer") != writer["current"]
+                or confirmation.get("confirmed_by") != actor
+            ):
+                raise DeliveryError("协调者必须是记录旧 writer 终止证据的确认者")
+
+        terminated_at = utc_now()
+        writer["status"] = "closed"
+        writer["history"].append(
+            {
+                "event": "terminated",
+                "writer": writer["current"],
+                "actor": actor,
+                "outcome": outcome,
+                "reason": reason,
+                "evidence": evidence,
+                "at": terminated_at,
+            }
+        )
+        task["lifecycle"] = outcome
+        task["resources"] = {
+            "contract": RESOURCE_CLOSED,
+            "writer": RESOURCE_CLOSED,
+        }
+        task["completed_at"] = terminated_at
+        task["completion"] = None
+        task["terminal"] = {
+            "outcome": outcome,
+            "actor": actor,
+            "at": terminated_at,
+            "reason": reason,
+            "evidence": evidence,
+        }
+        mark_registered_task_terminal(snapshot_path, snapshot)
+    print(f"已收口：{outcome}")
     return 0
 
 
@@ -935,7 +1082,7 @@ def registered_task_binding(
     if not isinstance(canonical_path, str):
         raise DeliveryError("权威注册记录缺少规范 snapshot 路径")
     lifecycle = binding.get("lifecycle")
-    if lifecycle not in {TASK_ACTIVE, TASK_COMPLETED}:
+    if lifecycle not in {TASK_ACTIVE, *TASK_TERMINAL_LIFECYCLES}:
         raise DeliveryError("权威注册记录的 lifecycle 无效")
     return binding
 
@@ -948,7 +1095,7 @@ def require_registered_active_task(
     binding = registered_task_binding(snapshot_path, snapshot)
     if binding["lifecycle"] != TASK_ACTIVE:
         raise DeliveryError(
-            f"任务 {task['id']} 已 COMPLETED；旧 snapshot 或备份不能恢复任务"
+            f"任务 {task['id']} 已 {binding['lifecycle']}；旧 snapshot 或备份不能恢复任务"
         )
     if Path(binding["snapshot_path"]).resolve() != snapshot_path.resolve():
         raise DeliveryError("当前文件不是 task 注册的规范 snapshot 路径，禁止执行写命令")
@@ -1013,21 +1160,35 @@ def register_takeover_writer(snapshot: dict[str, Any], writer_id: str) -> None:
         atomic_write_json(registry_path, registry)
 
 
-def mark_registered_task_completed(
+def mark_registered_task_terminal(
     snapshot_path: Path,
     snapshot: dict[str, Any],
+    lifecycle: str | None = None,
 ) -> None:
     task = snapshot["task"]
+    terminal_lifecycle = lifecycle or task["lifecycle"]
+    if terminal_lifecycle not in TASK_TERMINAL_LIFECYCLES:
+        raise DeliveryError("只能登记任务终态")
     registry_path = identity_registry_path()
     with snapshot_lock(registry_path):
         registry = load_identity_registry(registry_path)
         binding = registry["tasks"].get(task["id"])
         if not isinstance(binding, dict) or binding.get("contract_digest") != task["contract_digest"]:
             raise DeliveryError("当前 task_id 缺少有效的全局注册")
-        binding["lifecycle"] = TASK_COMPLETED
+        binding["lifecycle"] = terminal_lifecycle
         binding["completed_at"] = task["completed_at"]
+        terminal = task.get("terminal")
+        if isinstance(terminal, dict):
+            binding["terminal"] = terminal
         atomic_write_json(registry_path, registry)
         atomic_write_json(snapshot_path, snapshot)
+
+
+def mark_registered_task_completed(
+    snapshot_path: Path,
+    snapshot: dict[str, Any],
+) -> None:
+    mark_registered_task_terminal(snapshot_path, snapshot, TASK_COMPLETED)
 
 
 def bind_reviewer(
@@ -1475,7 +1636,18 @@ def complete_command(arguments: argparse.Namespace) -> int:
             "manifest_path": receipt["manifest_path"],
             "summary_digest": receipt["summary_digest"],
         }
-        mark_registered_task_completed(snapshot_path, snapshot)
+        task["terminal"] = {
+            "outcome": TASK_COMPLETED,
+            "actor": writer["current"],
+            "at": completed_at,
+            "reason": {"summary": "完整 reviewer 门禁通过后完成交付"},
+            "evidence": {
+                "review_report_digest": receipt["review_report_digest"],
+                "render_receipt_digest": structured_digest(receipt),
+                "review_approval_digest": structured_digest(approval),
+            },
+        }
+        mark_registered_task_terminal(snapshot_path, snapshot)
     print(receipt["summary"])
     return 0
 
@@ -1900,6 +2072,30 @@ def build_parser() -> argparse.ArgumentParser:
     takeover.add_argument("--expected-writer", required=True, help="已终止的 writer ID")
     takeover.add_argument("--new-writer", required=True, help="新 writer ID")
     takeover.set_defaults(handler=takeover_command)
+
+    terminate = subparsers.add_parser(
+        "terminate",
+        help="以 FAILED、CANCELLED 或 DEGRADED_REPORT 原子收口 ACTIVE 任务",
+    )
+    terminate.add_argument("--snapshot", required=True, help="ACTIVE v4 快照路径")
+    terminator = terminate.add_mutually_exclusive_group(required=True)
+    terminator.add_argument(
+        "--writer-id",
+        help="仅当前活动 writer 可用，且只能自报 FAILED",
+    )
+    terminator.add_argument(
+        "--coordinator-id",
+        help="必须与已记录的 writer 终止确认者一致",
+    )
+    terminate.add_argument(
+        "--outcome",
+        required=True,
+        choices=sorted(TASK_NON_SUCCESS_LIFECYCLES),
+        help="非成功终态",
+    )
+    terminate.add_argument("--reason", required=True, help="单行收口原因")
+    terminate.add_argument("--evidence", required=True, help="单行收口证据")
+    terminate.set_defaults(handler=terminate_command)
 
     review = subparsers.add_parser("review", help="生成绑定合同与任务 diff 的逐条规格审查")
     review.add_argument("--snapshot", required=True, help="ACTIVE v4 快照路径")

@@ -43,12 +43,17 @@
 
 ## 子代理交付模式
 
-- 除非用户明确要求主代理亲自处理，涉及代码或文档探索、分析、工具调用、修改、测试、验证或审查的任务，均由交付子代理端到端完成。
-- 一个交付子代理只绑定一个 `task_id`。主代理只可把同一合同内的澄清、审查修复和重新验证转发给 ACTIVE 任务；新目标、新合同或 COMPLETED 后的请求必须创建新的交付子代理和 snapshot，不能靠自然语言猜测复用边界。
-- 主代理仅可创建交付子代理、转发同任务新增指令、等待结果，并原样转发交付子代理不超过 500 个字符的结论。结论缺少“改了什么 / 验证了什么 / 剩余风险”任一项时，ACTIVE 任务可退回同一交付子代理；COMPLETED 任务不得唤回，必须创建新任务。除这些协调动作外，主代理不得调用终端、文件、网络或 MCP 等工具，也不得自行检查、补写或推断。
-- 交付子代理负责任务的全部实际工作。首次修改前冻结原话与 `MUST / FORBIDDEN / UNCHANGED` 合同并运行 `snapshot`；v4 snapshot 自动绑定 `task_id`、合同摘要、writer 和 ACTIVE，并在仓库外原子注册 agent/task 身份。权威注册表存续期间，同一 writer 不能创建第二个 task；接管者也必须从未绑定其他 task 或 reviewer 角色。注册表的规范 snapshot 路径和 lifecycle 是权威状态，副本或回滚不能复活终态。返工只能在同一 task 和合同边界内用 `append-rework` 追加；执行中的 v3 快照必须显式运行 `migrate-v3`，不得静默升级。
-- 每个 task 必须使用全新独立 reviewer，且 reviewer 不能是该 task 的当前或历史 writer；同一 task 的复核循环可复用该 reviewer，不同 `task_id` 会被机器拒绝。交付顺序固定为全 PASS `review`、带仓库外 receipt 的 `render`、reviewer 检查候选三行与 Manifest、`approve` 生成候选批准凭据、`complete`。`complete` 原子执行唯一的 `ACTIVE -> COMPLETED` 转换并原样重放已审候选；终态后只允许 `status`，所有返工、接管、review、render、approve 或再次 complete 均拒绝。
-- 超时或接管前先用 `confirm-terminated` 记录旧写入者终止证据，再运行 `takeover`；未确认时禁止新代理写同一任务文件。用户明确要求“子代理实现”时，产品代码、测试、脚本和任务文档的实际变更必须由交付子代理体系完成。完整职责契约、命令参数、Manifest 和失效标准见 `docs/agents/harness.md`。
+- 先由人按任务事实选择，不使用语义分类器；用户明确要求优先。判断不清时默认 `STANDARD`，出现任一严格条件立即升级为 `STRICT`。
+
+| 档位 | 人工判断 | 执行方式 |
+| --- | --- | --- |
+| `LIGHT` | 简单问答、状态查询、单文件只读检查；无写入且无需广泛探索。 | 主代理可直接完成；不运行 `agent_delivery`，不强制交付子代理或 reviewer。 |
+| `STANDARD` | 多文件分析、小文档、普通代码修复。 | 一个全新交付子代理端到端完成；按改动运行 focused 验证，常规代码再运行 `./scripts/verify-local.sh`。默认不要求完整 v4 或独立 reviewer。 |
+| `STRICT` | 破坏性清理、commit/push/外部写入、迁移、安全、资金、数据丢失风险、显式 1:1/UI 证据或复杂跨层改动。 | 运行完整 v4：冻结原话与 `MUST / FORBIDDEN / UNCHANGED`、`snapshot`、独立 reviewer、`review`、`render`、`approve` 与成功 `complete`。 |
+
+- 一个 `STANDARD` 或 `STRICT` 交付只使用一个全新交付 agent；已完成或已收口的 agent 不接受新目标。`STRICT` 的 `task_id`、writer 和 reviewer 仍受 registry 绑定，终态（`COMPLETED`、`FAILED`、`CANCELLED`、`DEGRADED_REPORT`）后只允许 `status`。
+- `STRICT` 成功路径不降级：只有全 PASS `review`、受审 receipt 与独立 reviewer approval 后才能 `complete`。发生 writer/reviewer/tool/systemError 时，脚本不能自动察觉；协调者取得宿主终止证据后，先 `confirm-terminated`，再用 `terminate` 收口为 `FAILED`、`CANCELLED` 或 `DEGRADED_REPORT`。脚本无法调用时必须如实报告“生命周期未闭环”。
+- 同一工作若在 `STANDARD` 中出现严格条件，旧 agent 不得补套 v4；必须创建新的 `STRICT` task、agent 和 snapshot。用户明确要求完整 v4、独立 reviewer 或指定证据时同样按 `STRICT` 处理。完整接口与场景表见 `docs/agents/harness.md`。
 
 ## 总边界
 

@@ -990,6 +990,10 @@ class AgentDeliveryTest(unittest.TestCase):
                 "--review-report", str(review_path), "--render-receipt", str(receipt_path),
                 "--review-approval", str(approval_path),
             ),
+            (
+                "terminate", "--snapshot", str(self.snapshot), "--writer-id", "writer-a",
+                "--outcome", "FAILED", "--reason", "重复关闭", "--evidence", "无",
+            ),
         ]
         for command in rejected_commands:
             with self.subTest(command=command[0]):
@@ -1009,6 +1013,381 @@ class AgentDeliveryTest(unittest.TestCase):
         )
         self.assertNotEqual(0, new_snapshot.returncode)
         self.assertIn("新任务必须创建新 agent", new_snapshot.stderr)
+
+    def test_writer_can_self_report_failed_with_auditable_terminal_status(self) -> None:
+        self.run_script("snapshot", "--output", str(self.snapshot))
+
+        self.run_script(
+            "terminate",
+            "--snapshot",
+            str(self.snapshot),
+            "--writer-id",
+            "writer-a",
+            "--outcome",
+            "FAILED",
+            "--reason",
+            "验证环境不可用",
+            "--evidence",
+            "focused 测试无法启动",
+        )
+
+        snapshot = json.loads(self.snapshot.read_text(encoding="utf-8"))
+        self.assertEqual("FAILED", snapshot["task"]["lifecycle"])
+        self.assertEqual("closed", snapshot["writer"]["status"])
+        self.assertEqual("FAILED", snapshot["task"]["terminal"]["outcome"])
+        self.assertEqual("writer-a", snapshot["task"]["terminal"]["actor"])
+        self.assertEqual(
+            {"summary": "验证环境不可用"},
+            snapshot["task"]["terminal"]["reason"],
+        )
+        self.assertEqual(
+            {"summary": "focused 测试无法启动"},
+            snapshot["task"]["terminal"]["evidence"],
+        )
+        status = json.loads(
+            self.run_script("status", "--snapshot", str(self.snapshot)).stdout
+        )
+        self.assertEqual("FAILED", status["lifecycle"])
+        self.assertEqual("FAILED", status["terminal"]["outcome"])
+        self.assertEqual("验证环境不可用", status["terminal"]["reason"]["summary"])
+
+    def test_coordinator_terminate_requires_confirmed_writer_termination(self) -> None:
+        self.run_script("snapshot", "--output", str(self.snapshot))
+
+        rejected = self.run_script(
+            "terminate",
+            "--snapshot",
+            str(self.snapshot),
+            "--coordinator-id",
+            "coordinator",
+            "--outcome",
+            "CANCELLED",
+            "--reason",
+            "owner 已取消",
+            "--evidence",
+            "用户停止指令",
+            check=False,
+        )
+
+        self.assertNotEqual(0, rejected.returncode)
+        self.assertIn("尚未确认终止", rejected.stderr)
+
+    def test_confirmed_coordinator_can_close_each_non_success_outcome(self) -> None:
+        for outcome in ("FAILED", "CANCELLED", "DEGRADED_REPORT"):
+            with self.subTest(outcome=outcome):
+                snapshot_path = self.inputs / f"{outcome.lower()}-snapshot.json"
+                self.snapshot_paths.append(snapshot_path)
+                self.run_script(
+                    "snapshot",
+                    "--output",
+                    str(snapshot_path),
+                    "--writer-id",
+                    f"writer-{outcome.lower()}",
+                )
+                self.run_script(
+                    "confirm-terminated",
+                    "--snapshot",
+                    str(snapshot_path),
+                    "--expected-writer",
+                    f"writer-{outcome.lower()}",
+                    "--confirmed-by",
+                    f"coordinator-{outcome.lower()}",
+                    "--evidence",
+                    "宿主终止证据",
+                )
+                self.run_script(
+                    "terminate",
+                    "--snapshot",
+                    str(snapshot_path),
+                    "--coordinator-id",
+                    f"coordinator-{outcome.lower()}",
+                    "--outcome",
+                    outcome,
+                    "--reason",
+                    "协调者收口",
+                    "--evidence",
+                    "宿主终止证据",
+                )
+
+                snapshot = json.loads(snapshot_path.read_text(encoding="utf-8"))
+                self.assertEqual(outcome, snapshot["task"]["lifecycle"])
+                self.assertEqual("closed", snapshot["writer"]["status"])
+                self.assertEqual(
+                    f"coordinator-{outcome.lower()}",
+                    snapshot["task"]["terminal"]["actor"],
+                )
+
+    def test_degraded_report_needs_no_and_records_no_reviewer_approval(self) -> None:
+        self.run_script("snapshot", "--output", str(self.snapshot))
+        self.create_review(self.snapshot, "writer-a")
+        self.run_script(
+            "confirm-terminated",
+            "--snapshot",
+            str(self.snapshot),
+            "--expected-writer",
+            "writer-a",
+            "--confirmed-by",
+            "coordinator",
+            "--evidence",
+            "reviewer 派发失败",
+        )
+        self.run_script(
+            "terminate",
+            "--snapshot",
+            str(self.snapshot),
+            "--coordinator-id",
+            "coordinator",
+            "--outcome",
+            "DEGRADED_REPORT",
+            "--reason",
+            "只有部分只读报告",
+            "--evidence",
+            "reviewer 工具 systemError",
+        )
+
+        snapshot = json.loads(self.snapshot.read_text(encoding="utf-8"))
+        self.assertIsNotNone(snapshot["reviewer"])
+        self.assertNotIn("review_approval", snapshot["task"]["terminal"])
+        self.assertNotIn("completion", snapshot["task"]["terminal"])
+        self.assertEqual("DEGRADED_REPORT", snapshot["task"]["terminal"]["outcome"])
+
+    def test_non_success_terminal_rejects_all_delivery_reuse_commands(self) -> None:
+        instruction = self.inputs / "post-terminal.md"
+        instruction.write_text("复活旧任务。\n", encoding="utf-8")
+        for outcome in ("FAILED", "CANCELLED", "DEGRADED_REPORT"):
+            with self.subTest(outcome=outcome):
+                snapshot_path = self.inputs / f"{outcome.lower()}-terminal.json"
+                self.snapshot_paths.append(snapshot_path)
+                writer = f"writer-{outcome.lower()}"
+                coordinator = f"coordinator-{outcome.lower()}"
+                self.run_script(
+                    "snapshot",
+                    "--output",
+                    str(snapshot_path),
+                    "--writer-id",
+                    writer,
+                )
+                if outcome == "FAILED":
+                    self.run_script(
+                        "terminate",
+                        "--snapshot",
+                        str(snapshot_path),
+                        "--writer-id",
+                        writer,
+                        "--outcome",
+                        outcome,
+                        "--reason",
+                        "无可交付结果",
+                        "--evidence",
+                        "测试失败",
+                    )
+                else:
+                    self.run_script(
+                        "confirm-terminated",
+                        "--snapshot",
+                        str(snapshot_path),
+                        "--expected-writer",
+                        writer,
+                        "--confirmed-by",
+                        coordinator,
+                        "--evidence",
+                        "宿主终止证据",
+                    )
+                    self.run_script(
+                        "terminate",
+                        "--snapshot",
+                        str(snapshot_path),
+                        "--coordinator-id",
+                        coordinator,
+                        "--outcome",
+                        outcome,
+                        "--reason",
+                        "协调者收口",
+                        "--evidence",
+                        "宿主终止证据",
+                    )
+
+                verdicts = self.write_passing_verdicts(snapshot_path)
+                rejected_commands = [
+                    (
+                        "append-rework", "--snapshot", str(snapshot_path), "--writer-id", writer,
+                        "--expected-version", "1", "--instruction-file", str(instruction),
+                    ),
+                    (
+                        "confirm-terminated", "--snapshot", str(snapshot_path), "--expected-writer",
+                        writer, "--confirmed-by", coordinator, "--evidence", "已终止",
+                    ),
+                    (
+                        "takeover", "--snapshot", str(snapshot_path), "--expected-writer", writer,
+                        "--new-writer", f"next-{outcome.lower()}",
+                    ),
+                    (
+                        "review", "--snapshot", str(snapshot_path), "--writer-id", writer,
+                        "--reviewer-id", self.reviewer_id, "--verdicts-file", str(verdicts),
+                        "--verification-evidence-file", str(self.verification_evidence_file),
+                    ),
+                    (
+                        "render", "--snapshot", str(snapshot_path), "--writer-id", writer,
+                        "--review-report", str(self.inputs / "missing-review.json"), "--changes", "未修改文件",
+                        "--verification", "未运行", "--risks", "任务已终态",
+                        "--receipt-output", str(self.inputs / f"{outcome.lower()}-receipt.json"),
+                    ),
+                    (
+                        "approve", "--snapshot", str(snapshot_path), "--reviewer-id", self.reviewer_id,
+                        "--review-report", str(self.inputs / "missing-review.json"), "--render-receipt",
+                        str(self.inputs / "missing-receipt.json"), "--output",
+                        str(self.inputs / f"{outcome.lower()}-approval.json"),
+                    ),
+                    (
+                        "complete", "--snapshot", str(snapshot_path), "--writer-id", writer,
+                        "--review-report", str(self.inputs / "missing-review.json"), "--render-receipt",
+                        str(self.inputs / "missing-receipt.json"), "--review-approval",
+                        str(self.inputs / "missing-approval.json"),
+                    ),
+                    (
+                        "terminate", "--snapshot", str(snapshot_path), "--writer-id", writer,
+                        "--outcome", "FAILED", "--reason", "重复关闭", "--evidence", "无",
+                    ),
+                ]
+                for command in rejected_commands:
+                    with self.subTest(command=command[0]):
+                        result = self.run_script(*command, check=False)
+                        self.assertNotEqual(0, result.returncode)
+                        self.assertIn(f"已 {outcome}", result.stderr)
+                status = json.loads(
+                    self.run_script("status", "--snapshot", str(snapshot_path)).stdout
+                )
+                self.assertEqual(outcome, status["lifecycle"])
+
+    def test_non_success_registry_tombstone_rejects_snapshot_rollback(self) -> None:
+        self.run_script("snapshot", "--output", str(self.snapshot))
+        active_snapshot = self.snapshot.read_text(encoding="utf-8")
+        self.run_script(
+            "terminate",
+            "--snapshot",
+            str(self.snapshot),
+            "--writer-id",
+            "writer-a",
+            "--outcome",
+            "FAILED",
+            "--reason",
+            "任务失败",
+            "--evidence",
+            "验证记录",
+        )
+        self.snapshot.write_text(active_snapshot, encoding="utf-8")
+        instruction = self.inputs / "rollback-after-failure.md"
+        instruction.write_text("复活失败任务。\n", encoding="utf-8")
+
+        rejected = self.run_script(
+            "append-rework",
+            "--snapshot",
+            str(self.snapshot),
+            "--writer-id",
+            "writer-a",
+            "--expected-version",
+            "1",
+            "--instruction-file",
+            str(instruction),
+            check=False,
+        )
+        self.assertNotEqual(0, rejected.returncode)
+        self.assertIn("已 FAILED", rejected.stderr)
+        status = json.loads(
+            self.run_script("status", "--snapshot", str(self.snapshot)).stdout
+        )
+        self.assertEqual("FAILED", status["lifecycle"])
+        self.assertEqual("ACTIVE", status["local_lifecycle"])
+
+    def test_terminal_operations_are_atomic_for_success_and_double_terminate(self) -> None:
+        self.run_script("snapshot", "--output", str(self.snapshot))
+        review_path = self.create_review(self.snapshot, "writer-a")
+        _, receipt_path = self.render_candidate(self.snapshot, review_path)
+        approval_path = self.approve_candidate(review_path, receipt_path)
+        success_command = [
+            "python3", str(SCRIPT), "complete", "--snapshot", str(self.snapshot),
+            "--writer-id", "writer-a", "--review-report", str(review_path),
+            "--render-receipt", str(receipt_path), "--review-approval", str(approval_path),
+        ]
+        failed_command = [
+            "python3", str(SCRIPT), "terminate", "--snapshot", str(self.snapshot),
+            "--writer-id", "writer-a", "--outcome", "FAILED", "--reason", "并发失败",
+            "--evidence", "并发测试",
+        ]
+        environment = {
+            **os.environ,
+            "KMP_MUSIC_AGENT_DELIVERY_STATE_DIR": self.state_directory.name,
+        }
+        processes = [
+            subprocess.Popen(
+                command,
+                cwd=self.repository,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+                env=environment,
+            )
+            for command in (success_command, failed_command)
+        ]
+        results = [process.communicate() + (process.returncode,) for process in processes]
+        self.assertEqual(1, sum(returncode == 0 for _, _, returncode in results))
+        terminal = json.loads(self.snapshot.read_text(encoding="utf-8"))["task"]["lifecycle"]
+        self.assertIn(terminal, {"COMPLETED", "FAILED"})
+
+        second_snapshot = self.inputs / "double-terminate.json"
+        self.snapshot_paths.append(second_snapshot)
+        self.run_script(
+            "snapshot", "--output", str(second_snapshot), "--writer-id", "writer-b"
+        )
+        terminate_command = [
+            "python3", str(SCRIPT), "terminate", "--snapshot", str(second_snapshot),
+            "--writer-id", "writer-b", "--outcome", "FAILED", "--reason", "并发失败",
+            "--evidence", "并发测试",
+        ]
+        processes = [
+            subprocess.Popen(
+                terminate_command,
+                cwd=self.repository,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+                env=environment,
+            )
+            for _ in range(2)
+        ]
+        results = [process.communicate() + (process.returncode,) for process in processes]
+        self.assertEqual(1, sum(returncode == 0 for _, _, returncode in results))
+
+    def test_pre_terminal_field_v4_completed_snapshot_remains_readable(self) -> None:
+        self.run_script("snapshot", "--output", str(self.snapshot))
+        review_path = self.create_review(self.snapshot, "writer-a")
+        _, receipt_path = self.render_candidate(self.snapshot, review_path)
+        approval_path = self.approve_candidate(review_path, receipt_path)
+        self.run_script(
+            "complete",
+            "--snapshot",
+            str(self.snapshot),
+            "--writer-id",
+            "writer-a",
+            "--review-report",
+            str(review_path),
+            "--render-receipt",
+            str(receipt_path),
+            "--review-approval",
+            str(approval_path),
+        )
+        snapshot = json.loads(self.snapshot.read_text(encoding="utf-8"))
+        snapshot["task"].pop("terminal", None)
+        self.snapshot.write_text(
+            json.dumps(snapshot, ensure_ascii=False, indent=2) + "\n",
+            encoding="utf-8",
+        )
+
+        status = json.loads(
+            self.run_script("status", "--snapshot", str(self.snapshot)).stdout
+        )
+        self.assertEqual("COMPLETED", status["lifecycle"])
+        self.assertEqual("COMPLETED", status["terminal"]["outcome"])
 
     def test_completed_registry_tombstone_rejects_copy_and_rollback(self) -> None:
         self.run_script("snapshot", "--output", str(self.snapshot))
