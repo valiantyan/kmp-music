@@ -31,7 +31,7 @@
 
 `STANDARD` 和 `STRICT` 的首要风险是交付代理尚未执行首个工具动作，就被父会话历史、重复规范读取或协调层打断耗尽。以下规则用于保持启动路径可预测：
 
-- 新交付代理必须使用不继承父会话历史的上下文（Codex 为 `fork_turns="none"`）。派发提示只传递任务目标、冻结的 `MUST / FORBIDDEN / UNCHANGED`、已知工作区状态、必读路径和下一步动作；不传递父会话时间线、已停止 agent、完整技能目录或历史 manifest。
+- 新交付代理必须使用不继承父会话历史的上下文（Codex 为 `fork_turns="none"`）。派发提示固定为 dispatch brief：`Outcome`（目标与验收）、`Sources`（权威证据与必读路径）、`Scope`（`MUST / FORBIDDEN / UNCHANGED` 与已知工作区状态）、`Checks`（验证与证据）、`Stop when`（必须返回协调者的条件）、`Return`（回传格式与下一步动作）。不传递父会话时间线、已停止 agent、完整技能目录或历史 manifest。
 - 交付代理先用 3 至 5 行说明目标、最小改动和验证，再只读取任务路由要求与系统/用户明确要求的技能。不得为“可能有用”自行加载 pipeline、无关语言规范或第二层领域文档。
 - `STRICT` 在上述最小前置读取结束后，必须立即保存原话和合同并执行 `snapshot`；在 `snapshot` 前不做第二层调用链分析、全库搜索、长验证或多次状态汇报。`STANDARD` 则在最小定位后直接进入实现或 focused 验证。
 - 协调者从 agent `started` 起，直到收到首个实际里程碑（`snapshot` 路径、首个文件变更、已启动的验证命令或明确 blocker）前，只能等待。首个 7 分钟窗口内禁止 `ping`、追加指令或 `interrupt`。
@@ -189,6 +189,7 @@ python3 scripts/agent_delivery.py complete \
 ### STRICT 审查与复核
 
 - 交付前，代码、文档和任务结论的审查由本 task 全新、独立、只读的审查子代理完成；审查子代理不修改实现文件或任务文档，并核对 task_id、合同摘要、实际 diff、验证证据、Manifest 与 `render` 候选三行是否一致。
+- reviewer 派发提示除上述完整审查输入外，固定附带风险包：`Risk focus`（本轮最需要证伪的未决风险）、`Evidence`（可直接检查的路径、命令或产物）、`Passed checks`、`Do not repeat`、`Stop when`、`Return`。风险包用于避免重复已通过的宽泛验证；reviewer 仍必须完成合同要求的逐条规格审查、review、render 与 approval。
 - 审查发现先回流给交付子代理或实现子代理修复，再由审查子代理复核最终 diff 和验证证据。没有完成该回流时，不得给出“无问题”结论。
 - 同一 task 可让同一 reviewer 完成复核循环；新 task 必须创建新 reviewer。reviewer 检查候选后才能 complete，且完成后该 reviewer 不得用于后续任务。
 - 对抗审查、Figma 对照、截图、测试和运行态验证仍按任务类型执行；其探索、工具调用、判断和结论均由交付子代理体系完成。

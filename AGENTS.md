@@ -46,7 +46,7 @@
 - 先按当前任务的事实人工路由，不使用语义分类器。依据是需求是否明确、影响面是否局部、改动是否可逆、是否命中严格风险、验证路径是否确定；不能用“是否写文件”、文件数量或关键词代替判断。
 - 用户明确要求“子代理端到端完成”时，主代理不探索仓库，直接派发一个全新交付子代理；无严格条件时按 `STANDARD`，命中严格条件时按 `STRICT`。
 - 除上述明确委派外，主代理只可做最小只读分诊：读取适用 `AGENTS.md` 与工作区状态；一次针对用户明确路径或符号的 `rg`；读取目标文件及至多一个直接相邻的调用点或测试文件。若需要第二层调用链、领域规则、多模块或验证策略探索，立即进入 `STANDARD`，其余探索、分析、实现和验证由新交付子代理完成。
-- 派发 `STANDARD` 或 `STRICT` 时使用不继承父会话历史的新上下文（Codex 为 `fork_turns="none"`）。启动提示只包含任务目标、冻结的 `MUST / FORBIDDEN / UNCHANGED`、已知工作区状态、必读路径和下一步动作；不得复制父会话时间线、旧代理状态、完整技能目录或已停止任务的内容。
+- 派发 `STANDARD` 或 `STRICT` 时使用不继承父会话历史的新上下文（Codex 为 `fork_turns="none"`）。启动提示固定为 dispatch brief：`Outcome`（目标与验收）、`Sources`（权威证据与必读路径）、`Scope`（`MUST / FORBIDDEN / UNCHANGED` 与已知工作区状态）、`Checks`（验证与证据）、`Stop when`（必须返回协调者的条件）、`Return`（回传格式与下一步动作）。不得复制父会话时间线、旧代理状态、完整技能目录或已停止任务的内容。
 - 交付代理先给出 3 至 5 行方案，再只读取任务路由要求和系统/用户明确要求的技能；不要为“可能有用”而加载 pipeline 或无关 Kotlin 技能。`STRICT` 在完成这些最小前置读取后，必须先冻结合同并创建 `snapshot`，再进行第二层代码探索。
 - 协调者在交付代理启动后的首个进度窗口只使用等待接口：首次实际里程碑或 7 分钟前不得 `ping`、追加指令或 `interrupt`。超过窗口仍无里程碑时，只能先发送一次不打断的状态请求；只有用户取消、宿主已报不可恢复错误，或状态请求已回复且明确无法继续时才允许中断。不得把状态请求和中断连发。
 
@@ -61,6 +61,7 @@
 - 本地 `commit` 不单独触发 `STRICT`，应随待提交变更的风险路由；仍须取得用户授权，并在提交前核实 `git status --short --branch`、暂存内容与 diff、匹配验证和对抗式审查。`push`、PR 回写及其他外部写入仍是 `STRICT`。
 - 一个 `STANDARD` 或 `STRICT` 交付只使用一个全新交付 agent；已完成或已收口的 agent 不接受新目标。`STRICT` 的 `task_id`、writer 和 reviewer 仍受 registry 绑定，终态（`COMPLETED`、`FAILED`、`CANCELLED`、`DEGRADED_REPORT`）后只允许 `status`。
 - `STRICT` 成功路径不降级：只有全 PASS `review`、受审 receipt 与独立 reviewer approval 后才能 `complete`。发生 writer/reviewer/tool/systemError 时，脚本不能自动察觉；协调者取得宿主终止证据后，先 `confirm-terminated`，再用 `terminate` 收口为 `FAILED`、`CANCELLED` 或 `DEGRADED_REPORT`。脚本无法调用时必须如实报告“生命周期未闭环”。
+- 派发 `STRICT` reviewer 时，除 task_id、合同、实际 diff、验证证据、Manifest 和候选结论外，另给出固定风险包：`Risk focus`、`Evidence`、`Passed checks`、`Do not repeat`、`Stop when`、`Return`。风险包只帮助 reviewer 优先核查未决风险，不替代逐条规格审查、receipt 或 approval。
 - 同一工作若在 `DIRECT` 或 `STANDARD` 中出现严格条件，旧执行者不得补套 v4；必须创建新的 `STRICT` task、agent 和 snapshot。用户明确要求完整 v4、独立 reviewer 或指定证据时同样按 `STRICT` 处理。完整接口与场景表见 `docs/agents/harness.md`；验证选择见 `docs/agents/testing.md`。
 
 ## 总边界
