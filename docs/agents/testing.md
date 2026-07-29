@@ -14,15 +14,21 @@
 
 ## 交付路由
 
-先按任务事实人工判断，用户明确要求优先；判断不清时默认 `STANDARD`，遇到严格条件马上升级为 `STRICT`，不使用 NLP 分类器。
+先按当前任务事实人工判断，用户明确要求优先；不使用 NLP 分类器，也不能用“是否写文件”、文件数量或关键词代替判断。委派档位只决定执行者和交付生命周期，不降低验证强度；验证仍由实际改动面决定。
+
+- 用户明确要求“子代理端到端完成”时，主代理不探索仓库，直接派发一个全新交付子代理；无严格条件时按 `STANDARD`，命中严格条件时按 `STRICT`。
+- 除上述明确委派外，主代理只可做最小只读分诊：读取适用 `AGENTS.md` 与工作区状态；一次针对用户明确路径或符号的 `rg`；读取目标文件及至多一个直接相邻的调用点或测试文件。若需要第二层调用链、领域规则、多模块或验证策略探索，立即进入 `STANDARD`。
 
 | 档位 | 验证与交付 |
 | --- | --- |
 | `LIGHT` | 简单问答、状态查询或单文件只读检查；主代理可直接完成，不运行 `agent_delivery`，也不强制子代理/reviewer。 |
-| `STANDARD` | 多文件分析、小文档、普通代码修复；一个全新交付 agent 运行 focused 验证，常规代码再运行 `./scripts/verify-local.sh`；默认没有完整 v4/reviewer 门禁。 |
-| `STRICT` | 破坏性 cleanup、commit/push、外部写入、迁移、安全、资金、数据丢失、显式 1:1/UI 证据、复杂跨层改动；使用完整 v4、独立 reviewer 和成功 `complete`。 |
+| `DIRECT` | 需求明确、影响局部、改动可逆、无严格风险且验证路径确定的写入；主代理直接完成，不运行 `agent_delivery`，也不强制子代理/reviewer。代码改动仍按本文件选择 focused 和默认验证。 |
+| `STANDARD` | 需求、影响面或验证路径在分诊预算内不能确定，或需要继续调用链、领域规则、多模块或验证策略探索；一个全新交付 agent 完成剩余工作，运行 focused 验证，常规代码再运行 `./scripts/verify-local.sh`；默认没有完整 v4/reviewer 门禁。 |
+| `STRICT` | 破坏性 cleanup、`push` 或其他外部写入、迁移、安全、资金、数据丢失、显式 1:1/UI 证据、复杂跨层改动，或用户明确要求完整 v4/reviewer；使用完整 v4、独立 reviewer 和成功 `complete`。 |
 
-- `STANDARD` 出现严格条件，或用户明确要求 v4、独立 reviewer、1:1 或外部交付时，必须新建 `STRICT` task/agent，不能复用旧 agent。已结束的交付 agent 不复用。
+- `DIRECT` 发现影响面或验证路径超出分诊结论时，停止继续探索并派发全新 `STANDARD` 交付 agent；`DIRECT` 或 `STANDARD` 出现严格条件，或用户明确要求 v4、独立 reviewer、1:1 或外部交付时，必须新建 `STRICT` task/agent，不能复用旧执行者。已结束的交付 agent 不复用。
+- 本地 `commit` 不单独触发 `STRICT`，应随待提交变更的风险路由；仍须取得用户授权，并在提交前核实 `git status --short --branch`、暂存内容与 diff、匹配验证和对抗式审查。`push`、PR 回写及其他外部写入仍是 `STRICT`。
+- `DIRECT` 仅改变执行者，不形成代码验证豁免：常规代码改动仍按“默认入口”和“命令选择”运行 focused 验证及 `./scripts/verify-local.sh`；纯 Markdown 文档改动仍按本文件的文档检查要求执行。
 - `STRICT` 的 writer/reviewer/tool/systemError 不会被仓库脚本自动感知。协调者有宿主终止证据时，先 `confirm-terminated`，再用 `terminate` 收口为 `FAILED`、`CANCELLED` 或 `DEGRADED_REPORT`；脚本不可调用时交付必须写“生命周期未闭环”，不能把降级报告称为 PASS 或 `COMPLETED`。
 
 子代理结构化交付脚本改动使用以下 focused 验证：

@@ -43,17 +43,22 @@
 
 ## 子代理交付模式
 
-- 先由人按任务事实选择，不使用语义分类器；用户明确要求优先。判断不清时默认 `STANDARD`，出现任一严格条件立即升级为 `STRICT`。
+- 先按当前任务的事实人工路由，不使用语义分类器。依据是需求是否明确、影响面是否局部、改动是否可逆、是否命中严格风险、验证路径是否确定；不能用“是否写文件”、文件数量或关键词代替判断。
+- 用户明确要求“子代理端到端完成”时，主代理不探索仓库，直接派发一个全新交付子代理；无严格条件时按 `STANDARD`，命中严格条件时按 `STRICT`。
+- 除上述明确委派外，主代理只可做最小只读分诊：读取适用 `AGENTS.md` 与工作区状态；一次针对用户明确路径或符号的 `rg`；读取目标文件及至多一个直接相邻的调用点或测试文件。若需要第二层调用链、领域规则、多模块或验证策略探索，立即进入 `STANDARD`，其余探索、分析、实现和验证由新交付子代理完成。
 
 | 档位 | 人工判断 | 执行方式 |
 | --- | --- | --- |
-| `LIGHT` | 简单问答、状态查询、单文件只读检查；无写入且无需广泛探索。 | 主代理可直接完成；不运行 `agent_delivery`，不强制交付子代理或 reviewer。 |
-| `STANDARD` | 多文件分析、小文档、普通代码修复。 | 一个全新交付子代理端到端完成；按改动运行 focused 验证，常规代码再运行 `./scripts/verify-local.sh`。默认不要求完整 v4 或独立 reviewer。 |
-| `STRICT` | 破坏性清理、commit/push/外部写入、迁移、安全、资金、数据丢失风险、显式 1:1/UI 证据或复杂跨层改动。 | 运行完整 v4：冻结原话与 `MUST / FORBIDDEN / UNCHANGED`、`snapshot`、独立 reviewer、`review`、`render`、`approve` 与成功 `complete`。 |
+| `LIGHT` | 简单问答、状态查询、单文件只读检查；无写入且无需深入探索。 | 主代理可直接完成；不运行 `agent_delivery`，不强制交付子代理或 reviewer。 |
+| `DIRECT` | 需求明确；分诊预算内已证明影响局部；改动可逆；未命中严格风险；验证路径确定。例如单处文本样式调整、私有函数改名。 | 主代理直接完成读写和匹配验证；不运行 `agent_delivery`，不强制交付子代理或 reviewer。`DIRECT` 不免除验证。 |
+| `STANDARD` | 需求、影响面或验证路径在分诊预算内不能确定，或需要继续调用链、领域规则、多模块或验证策略探索。 | 一个全新交付子代理端到端完成剩余探索、分析、实现和验证；按改动运行 focused 验证，常规代码再运行 `./scripts/verify-local.sh`。默认不要求完整 v4 或独立 reviewer。 |
+| `STRICT` | 破坏性清理、`push` 或其他外部写入、迁移、安全、资金、数据丢失风险、显式 1:1/UI 证据、复杂跨层改动，或用户明确要求完整 v4/reviewer。 | 运行完整 v4：冻结原话与 `MUST / FORBIDDEN / UNCHANGED`、`snapshot`、独立 reviewer、`review`、`render`、`approve` 与成功 `complete`。 |
 
+- `DIRECT` 发现影响面或验证路径超出分诊结论时，立即停止继续探索：未命中严格条件则派发全新 `STANDARD` 交付子代理；命中严格条件则新建 `STRICT` task、agent 和 snapshot。不能由主代理先完成大范围分析再委派。
+- 本地 `commit` 不单独触发 `STRICT`，应随待提交变更的风险路由；仍须取得用户授权，并在提交前核实 `git status --short --branch`、暂存内容与 diff、匹配验证和对抗式审查。`push`、PR 回写及其他外部写入仍是 `STRICT`。
 - 一个 `STANDARD` 或 `STRICT` 交付只使用一个全新交付 agent；已完成或已收口的 agent 不接受新目标。`STRICT` 的 `task_id`、writer 和 reviewer 仍受 registry 绑定，终态（`COMPLETED`、`FAILED`、`CANCELLED`、`DEGRADED_REPORT`）后只允许 `status`。
 - `STRICT` 成功路径不降级：只有全 PASS `review`、受审 receipt 与独立 reviewer approval 后才能 `complete`。发生 writer/reviewer/tool/systemError 时，脚本不能自动察觉；协调者取得宿主终止证据后，先 `confirm-terminated`，再用 `terminate` 收口为 `FAILED`、`CANCELLED` 或 `DEGRADED_REPORT`。脚本无法调用时必须如实报告“生命周期未闭环”。
-- 同一工作若在 `STANDARD` 中出现严格条件，旧 agent 不得补套 v4；必须创建新的 `STRICT` task、agent 和 snapshot。用户明确要求完整 v4、独立 reviewer 或指定证据时同样按 `STRICT` 处理。完整接口与场景表见 `docs/agents/harness.md`。
+- 同一工作若在 `DIRECT` 或 `STANDARD` 中出现严格条件，旧执行者不得补套 v4；必须创建新的 `STRICT` task、agent 和 snapshot。用户明确要求完整 v4、独立 reviewer 或指定证据时同样按 `STRICT` 处理。完整接口与场景表见 `docs/agents/harness.md`；验证选择见 `docs/agents/testing.md`。
 
 ## 总边界
 
