@@ -107,6 +107,9 @@ class AgentDeliveryTest(unittest.TestCase):
         self.assertIn("| 基线既有未变 | 未出现在任务级 diff，禁止归因本轮 | 0 个文件 |", manifest)
         self.assertIn("单元测试通过；独立审查通过", manifest)
         self.assertIn("尚未通过新会话复跑验证", manifest)
+        self.assertIn("## 执行权交接", manifest)
+        self.assertIn("- 协调者：`coordinator-a`", manifest)
+        self.assertIn("| implementation_started | writer-a |", manifest)
 
     def test_render_does_not_report_preexisting_changes(self) -> None:
         (self.repository / "tracked.txt").write_text("user change\n", encoding="utf-8")
@@ -435,6 +438,7 @@ class AgentDeliveryTest(unittest.TestCase):
 
     def test_review_rejects_report_inside_repository(self) -> None:
         self.run_script("snapshot", "--output", str(self.snapshot))
+        self.ensure_execution_milestones(self.snapshot, "writer-a")
         verdicts_file = self.write_passing_verdicts()
 
         result = self.run_script(
@@ -469,6 +473,71 @@ class AgentDeliveryTest(unittest.TestCase):
         self.assertEqual("ACTIVE", data["task"]["lifecycle"])
         self.assertEqual(data["contract"]["digest"], data["task"]["contract_digest"])
         self.assertEqual(str(uuid.UUID(data["task"]["id"])), data["task"]["id"])
+        self.assertEqual("coordinator-a", data["execution"]["coordinator"])
+        self.assertEqual([], data["execution"]["milestones"])
+
+    def test_review_requires_current_writer_execution_milestones(self) -> None:
+        self.run_script("snapshot", "--output", str(self.snapshot))
+        verdicts = self.write_passing_verdicts()
+
+        rejected = self.run_script(
+            "review",
+            "--snapshot",
+            str(self.snapshot),
+            "--writer-id",
+            "writer-a",
+            "--reviewer-id",
+            self.reviewer_id,
+            "--verdicts-file",
+            str(verdicts),
+            "--verification-evidence-file",
+            str(self.verification_evidence_file),
+            check=False,
+            ensure_execution_milestones=False,
+        )
+
+        self.assertNotEqual(0, rejected.returncode)
+        self.assertIn("当前 writer 缺少执行权里程碑", rejected.stderr)
+
+        verification_before_implementation = self.run_script(
+            "record-milestone",
+            "--snapshot",
+            str(self.snapshot),
+            "--writer-id",
+            "writer-a",
+            "--stage",
+            "verification_started",
+            "--evidence",
+            "不能跳过实现里程碑",
+            check=False,
+        )
+
+        self.assertNotEqual(0, verification_before_implementation.returncode)
+        self.assertIn(
+            "必须先记录 implementation_started",
+            verification_before_implementation.stderr,
+        )
+
+        wrong_writer = self.run_script(
+            "record-milestone",
+            "--snapshot",
+            str(self.snapshot),
+            "--writer-id",
+            "coordinator-a",
+            "--stage",
+            "implementation_started",
+            "--evidence",
+            "主代理不得代替 writer 记录里程碑",
+            check=False,
+        )
+
+        self.assertNotEqual(0, wrong_writer.returncode)
+        self.assertIn("当前任务写入者是 writer-a", wrong_writer.stderr)
+
+        self.ensure_execution_milestones(self.snapshot, "writer-a")
+        review_path = self.create_review(self.snapshot, "writer-a")
+        report = json.loads(review_path.read_text(encoding="utf-8"))
+        self.assertIn("execution_digest", report)
 
     def test_task_id_digest_rejects_silent_replacement(self) -> None:
         self.run_script("snapshot", "--output", str(self.snapshot))
@@ -668,6 +737,18 @@ class AgentDeliveryTest(unittest.TestCase):
             "--evidence",
             "interrupt_agent 返回 writer-a 已停止",
         )
+        coordinator_takeover = self.run_script(
+            "takeover",
+            "--snapshot",
+            str(self.snapshot),
+            "--expected-writer",
+            "writer-a",
+            "--new-writer",
+            "coordinator-a",
+            check=False,
+        )
+        self.assertNotEqual(0, coordinator_takeover.returncode)
+        self.assertIn("协调者不能接管", coordinator_takeover.stderr)
         self.run_script(
             "takeover",
             "--snapshot",
@@ -685,9 +766,11 @@ class AgentDeliveryTest(unittest.TestCase):
             ["claimed", "termination_confirmed", "takeover"],
             [event["event"] for event in snapshot["writer"]["history"]],
         )
+        self.assertEqual([], snapshot["execution"]["milestones"])
 
     def test_review_requires_all_ids_and_non_build_evidence(self) -> None:
         self.run_script("snapshot", "--output", str(self.snapshot))
+        self.ensure_execution_milestones(self.snapshot, "writer-a")
         incomplete = self.inputs / "incomplete-verdicts.json"
         incomplete.write_text(
             json.dumps(
@@ -773,6 +856,38 @@ class AgentDeliveryTest(unittest.TestCase):
 
         self.assertNotEqual(0, result.returncode)
         self.assertIn("任务级 diff 已过期", result.stderr)
+
+    def test_render_rejects_review_after_execution_record_changes(self) -> None:
+        self.run_script("snapshot", "--output", str(self.snapshot))
+        review_path = self.create_review(self.snapshot, "writer-a")
+        snapshot = json.loads(self.snapshot.read_text(encoding="utf-8"))
+        snapshot["execution"]["milestones"][0]["evidence"] = "已被篡改"
+        self.snapshot.write_text(
+            json.dumps(snapshot, ensure_ascii=False),
+            encoding="utf-8",
+        )
+
+        result = self.run_script(
+            "render",
+            "--snapshot",
+            str(self.snapshot),
+            "--writer-id",
+            "writer-a",
+            "--review-report",
+            str(review_path),
+            "--changes",
+            "未修改文件",
+            "--verification",
+            "单元测试通过",
+            "--risks",
+            "无已知剩余风险",
+            "--receipt-output",
+            str(self.inputs / "execution-record-receipt.json"),
+            check=False,
+        )
+
+        self.assertNotEqual(0, result.returncode)
+        self.assertIn("不属于当前合同或 writer 状态", result.stderr)
 
     def test_original_regression_preserves_theme_and_old_manifests(self) -> None:
         theme = self.repository / "theme.json"
@@ -1558,6 +1673,7 @@ class AgentDeliveryTest(unittest.TestCase):
             "--writer-id",
             "writer-b",
         )
+        self.ensure_execution_milestones(other_snapshot, "writer-b")
         verdicts = self.write_passing_verdicts(other_snapshot)
 
         rejected = self.run_script(
@@ -1579,6 +1695,7 @@ class AgentDeliveryTest(unittest.TestCase):
 
     def test_writer_and_reviewer_roles_cannot_overlap(self) -> None:
         self.run_script("snapshot", "--output", str(self.snapshot))
+        self.ensure_execution_milestones(self.snapshot, "writer-a")
         verdicts = self.write_passing_verdicts()
         self_review = self.run_script(
             "review",
@@ -1794,6 +1911,8 @@ class AgentDeliveryTest(unittest.TestCase):
         self.assertEqual(expected_contract, migrated["contract"])
         self.assertEqual(expected_writer, migrated["writer"])
         self.assertEqual(migrated_task_id, migrated["task"]["id"])
+        self.assertEqual("coordinator-a", migrated["execution"]["coordinator"])
+        self.assertEqual([], migrated["execution"]["milestones"])
 
     def test_concurrent_complete_has_one_atomic_winner(self) -> None:
         self.run_script("snapshot", "--output", str(self.snapshot))
@@ -1912,6 +2031,7 @@ class AgentDeliveryTest(unittest.TestCase):
         *arguments: str,
         check: bool = True,
         cwd: Path | None = None,
+        ensure_execution_milestones: bool = True,
     ) -> subprocess.CompletedProcess[str]:
         prepared = list(arguments)
         if prepared and prepared[0] == "snapshot":
@@ -1921,8 +2041,23 @@ class AgentDeliveryTest(unittest.TestCase):
                 prepared.extend(("--requirements-file", str(self.requirements_file)))
             if "--writer-id" not in prepared:
                 prepared.extend(("--writer-id", "writer-a"))
+            if "--coordinator-id" not in prepared:
+                prepared.extend(("--coordinator-id", "coordinator-a"))
+        if prepared and prepared[0] == "migrate-v3" and "--coordinator-id" not in prepared:
+            prepared.extend(("--coordinator-id", "coordinator-a"))
         if prepared and prepared[0] == "review" and "--reviewer-id" not in prepared:
             prepared.extend(("--reviewer-id", self.reviewer_id))
+        if (
+            ensure_execution_milestones
+            and check
+            and prepared
+            and prepared[0] == "review"
+            and "--writer-id" in prepared
+            and "--snapshot" in prepared
+        ):
+            snapshot_path = Path(prepared[prepared.index("--snapshot") + 1])
+            writer = prepared[prepared.index("--writer-id") + 1]
+            self.ensure_execution_milestones(snapshot_path, writer)
         if prepared and prepared[0] == "render":
             prepared = self.prepare_render_arguments(prepared)
             if "--receipt-output" not in prepared:
@@ -1960,6 +2095,7 @@ class AgentDeliveryTest(unittest.TestCase):
         return arguments
 
     def create_review(self, snapshot_path: Path, writer: str) -> Path:
+        self.ensure_execution_milestones(snapshot_path, writer)
         verdicts_file = self.write_passing_verdicts(snapshot_path)
         result = subprocess.run(
             [
@@ -1989,6 +2125,32 @@ class AgentDeliveryTest(unittest.TestCase):
         review_path = Path(result.stdout.strip())
         self.generated_artifacts.append(review_path)
         return review_path
+
+    def ensure_execution_milestones(
+        self,
+        snapshot_path: Path,
+        writer: str,
+    ) -> None:
+        snapshot = json.loads(snapshot_path.read_text(encoding="utf-8"))
+        milestones = snapshot.get("execution", {}).get("milestones", [])
+        completed = {
+            item.get("stage")
+            for item in milestones
+            if item.get("writer") == writer
+        }
+        for stage in ("implementation_started", "verification_started"):
+            if stage not in completed:
+                self.run_script(
+                    "record-milestone",
+                    "--snapshot",
+                    str(snapshot_path),
+                    "--writer-id",
+                    writer,
+                    "--stage",
+                    stage,
+                    "--evidence",
+                    f"{writer} 已开始 {stage}",
+                )
 
     def write_passing_verdicts(self, snapshot_path: Path | None = None) -> Path:
         snapshot = json.loads(

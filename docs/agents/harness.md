@@ -87,10 +87,28 @@
 python3 scripts/agent_delivery.py snapshot \
   --request-file <用户原话文件> \
   --requirements-file <验收合同 JSON> \
-  --writer-id <当前写入者 ID>
+  --writer-id <当前唯一写入者 ID> \
+  --coordinator-id <只协调、不写入的主代理 ID>
 ```
 
-命令会把用户原话、原始合同摘要、唯一写入者、不可变 `task_id`、ACTIVE 生命周期、当前所有受 Git 管理及未忽略文件的内容指纹写入系统临时目录，并复制任务开始前已经脏的文件作为最小基线，同时原子登记 task/writer。默认身份注册表也位于仓库外系统临时目录；需要跨系统清理周期保留 agent/task 绑定时，必须用 `KMP_MUSIC_AGENT_DELIVERY_STATE_DIR` 指向持久目录。注册表被外部删除后，脚本无法恢复此前的身份历史。已绑定其他 task 或 reviewer 角色的 agent、新旧 task_id 碰撞、已有 snapshot 输出路径都会拒绝。干净文件从快照记录的原始 `HEAD` 还原；用户已有修改不会被自动算作本任务改动。返工必须保持同一 task 和原合同边界，在 snapshot 进程锁内追加连续版本，不能覆盖原始合同：
+命令会把用户原话、原始合同摘要、唯一写入者、只协调的主代理、不可变 `task_id`、ACTIVE 生命周期、当前所有受 Git 管理及未忽略文件的内容指纹写入系统临时目录，并复制任务开始前已经脏的文件作为最小基线，同时原子登记 task/writer。默认身份注册表也位于仓库外系统临时目录；需要跨系统清理周期保留 agent/task 绑定时，必须用 `KMP_MUSIC_AGENT_DELIVERY_STATE_DIR` 指向持久目录。注册表被外部删除后，脚本无法恢复此前的身份历史。已绑定其他 task 或 reviewer 角色的 agent、新旧 task_id 碰撞、已有 snapshot 输出路径都会拒绝。干净文件从快照记录的原始 `HEAD` 还原；用户已有修改不会被自动算作本任务改动。返工必须保持同一 task 和原合同边界，在 snapshot 进程锁内追加连续版本，不能覆盖原始合同：
+
+writer 取得执行权后，在首次实现与首次验证前分别记录里程碑；没有两项记录的 task 不能进入 `review`、`render` 或 `complete`：
+
+```bash
+python3 scripts/agent_delivery.py record-milestone \
+  --snapshot <快照路径> \
+  --writer-id <当前唯一写入者 ID> \
+  --stage implementation_started \
+  --evidence '<首次实现的单行证据>'
+python3 scripts/agent_delivery.py record-milestone \
+  --snapshot <快照路径> \
+  --writer-id <当前唯一写入者 ID> \
+  --stage verification_started \
+  --evidence '<首次验证的单行证据>'
+```
+
+里程碑记录让遗漏的交接无法完成，但共享工作区无法从文件写入本身识别 Codex 的真实调用者。因此独立 reviewer 必须把 Manifest 中的执行权交接表与 Codex 会话轨迹对照；主代理在派发后出现仓库探索、文件变更、实现或验证命令时，必须判定角色越权，不能批准交付。
 
 ```bash
 python3 scripts/agent_delivery.py append-rework \
@@ -143,6 +161,7 @@ python3 scripts/agent_delivery.py status --snapshot <v3 快照路径>
 python3 scripts/agent_delivery.py migrate-v3 \
   --snapshot <v3 快照路径> \
   --expected-writer <当前写入者 ID> \
+  --coordinator-id <只协调、不写入的主代理 ID> \
   [--task-id <已有规范 UUID>]
 ```
 
@@ -180,7 +199,7 @@ python3 scripts/agent_delivery.py complete \
   --review-approval <reviewer approval 路径>
 ```
 
-`review` 同时绑定 reviewer ID、task_id、原始合同摘要、用户原话、全部返工指令和当前任务级 diff，要求逐个 requirement 给出结论与证据。reviewer 必须与当前及历史 writer 不同；同一 task 的复核可复用，不同角色或 task 复用直接拒绝。任务 diff、合同、writer 或 reviewer 状态变化后旧报告失效；任一 requirement 为 FAIL 时禁止 render/complete。
+`review` 同时绑定 reviewer ID、task_id、原始合同摘要、用户原话、全部返工指令、当前任务级 diff 和执行权交接记录，要求逐个 requirement 给出结论与证据。reviewer 必须与当前及历史 writer 不同；同一 task 的复核可复用，不同角色或 task 复用直接拒绝。任务 diff、合同、writer、执行权记录或 reviewer 状态变化后旧报告失效；任一 requirement 为 FAIL 时禁止 render/complete。
 
 `render` 在 ACTIVE 内生成新的仓库外 Markdown Manifest、三行候选结论和 receipt，不关闭任务。Manifest 包含 task/reviewer 身份、本轮变化、基线归因、完整文件清单、任务级 unified diff、验证证据、逐条规格审查和剩余风险；同一快照的旧 Manifest 不会被覆盖。receipt 绑定 task、合同、reviewer、当前 diff、review 报告、Manifest 内容和三行候选，任何一项变化都会使它过期。
 
@@ -189,6 +208,7 @@ python3 scripts/agent_delivery.py complete \
 ### STRICT 审查与复核
 
 - 交付前，代码、文档和任务结论的审查由本 task 全新、独立、只读的审查子代理完成；审查子代理不修改实现文件或任务文档，并核对 task_id、合同摘要、实际 diff、验证证据、Manifest 与 `render` 候选三行是否一致。
+- 审查子代理必须核对 Manifest 的执行权交接表与 Codex 会话轨迹；主代理在 writer 启动后出现仓库读取、文件变更、实现、验证或审查判断，均为角色越权。除用户取消或宿主不可恢复错误外，必须拒绝 approval，并要求终态收口后以新 task 重新派发。
 - reviewer 派发提示除上述完整审查输入外，固定附带风险包：`Risk focus`（本轮最需要证伪的未决风险）、`Evidence`（可直接检查的路径、命令或产物）、`Passed checks`、`Do not repeat`、`Stop when`、`Return`。风险包用于避免重复已通过的宽泛验证；reviewer 仍必须完成合同要求的逐条规格审查、review、render 与 approval。
 - 审查发现先回流给交付子代理或实现子代理修复，再由审查子代理复核最终 diff 和验证证据。没有完成该回流时，不得给出“无问题”结论。
 - 同一 task 可让同一 reviewer 完成复核循环；新 task 必须创建新 reviewer。reviewer 检查候选后才能 complete，且完成后该 reviewer 不得用于后续任务。

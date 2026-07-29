@@ -51,6 +51,7 @@ REVIEW_EVIDENCE_SOURCES = {
     "build",
 }
 CLAIM_EVIDENCE_SOURCES = {"task_diff", "test", "runtime"}
+EXECUTION_MILESTONES = {"implementation_started", "verification_started"}
 
 
 class DeliveryError(RuntimeError):
@@ -272,6 +273,61 @@ def build_writer(writer_id: str) -> dict[str, Any]:
     }
 
 
+def build_execution_record(coordinator_id: str, writer: dict[str, Any]) -> dict[str, Any]:
+    coordinator = single_line_field(coordinator_id, "协调者 ID")
+    if not coordinator:
+        raise DeliveryError("协调者 ID 不能为空")
+    if coordinator == writer["current"]:
+        raise DeliveryError("协调者与初始 writer 必须不同")
+    return {
+        "coordinator": coordinator,
+        "milestones": [],
+    }
+
+
+def validate_execution_record(
+    value: Any,
+    writer: dict[str, Any],
+) -> dict[str, Any]:
+    if not isinstance(value, dict):
+        raise DeliveryError("v4 快照缺少执行权交接记录")
+    coordinator = value.get("coordinator")
+    if not isinstance(coordinator, str) or not coordinator:
+        raise DeliveryError("执行权交接记录缺少协调者 ID")
+    if coordinator == writer["current"]:
+        raise DeliveryError("当前 writer 不能同时作为协调者")
+    milestones = value.get("milestones")
+    if not isinstance(milestones, list):
+        raise DeliveryError("执行权交接记录的里程碑必须是数组")
+    for milestone in milestones:
+        if not isinstance(milestone, dict):
+            raise DeliveryError("执行权交接记录包含无效里程碑")
+        if milestone.get("stage") not in EXECUTION_MILESTONES:
+            raise DeliveryError("执行权交接记录包含未知里程碑")
+        for field in ("writer", "evidence", "at"):
+            if not isinstance(milestone.get(field), str) or not milestone[field]:
+                raise DeliveryError("执行权交接记录的里程碑字段无效")
+    return value
+
+
+def require_writer_execution_milestones(snapshot: dict[str, Any]) -> dict[str, Any]:
+    writer = validate_writer(snapshot["writer"])
+    execution = validate_execution_record(snapshot.get("execution"), writer)
+    completed = {
+        milestone["stage"]
+        for milestone in execution["milestones"]
+        if milestone["writer"] == writer["current"]
+    }
+    missing = sorted(EXECUTION_MILESTONES - completed)
+    if missing:
+        raise DeliveryError(
+            "当前 writer 缺少执行权里程碑："
+            + ", ".join(missing)
+            + "；禁止 review、render 或 complete"
+        )
+    return execution
+
+
 def normalized_task_id(value: str) -> str:
     try:
         identifier = uuid.UUID(value)
@@ -367,6 +423,7 @@ def snapshot_command(arguments: argparse.Namespace) -> int:
         "contract": contract,
         "rework_history": [],
         "writer": writer,
+        "execution": build_execution_record(arguments.coordinator_id, writer),
         "task": build_task(contract, writer),
         "reviewer": None,
     }
@@ -479,6 +536,8 @@ def load_snapshot(path: Path) -> dict[str, Any]:
     if version == SNAPSHOT_VERSION:
         validate_task(snapshot.get("task"), snapshot["contract"], snapshot["writer"])
         validate_reviewer(snapshot.get("reviewer"), snapshot["task"])
+        if snapshot.get("execution") is not None:
+            validate_execution_record(snapshot["execution"], snapshot["writer"])
     return snapshot
 
 
@@ -682,6 +741,10 @@ def migrate_v3_command(arguments: argparse.Namespace) -> int:
         snapshot["task"] = build_task(
             snapshot["contract"], snapshot["writer"], arguments.task_id
         )
+        snapshot["execution"] = build_execution_record(
+            arguments.coordinator_id,
+            snapshot["writer"],
+        )
         snapshot["reviewer"] = None
         snapshot.pop("manifest_path", None)
         register_task_and_writer(path, snapshot, require_new_snapshot=False)
@@ -729,6 +792,7 @@ def status_command(arguments: argparse.Namespace) -> int:
                 else task["resources"]
             ),
             "writer": snapshot["writer"],
+            "execution": snapshot.get("execution"),
             "reviewer_id": reviewer["id"] if reviewer else None,
             "terminal": terminal,
         }
@@ -899,6 +963,7 @@ def takeover_command(arguments: argparse.Namespace) -> int:
         require_current_snapshot(snapshot)
         require_registered_active_task(path, snapshot)
         writer = validate_writer(snapshot["writer"])
+        execution = validate_execution_record(snapshot.get("execution"), writer)
         expected_writer = single_line_field(arguments.expected_writer, "旧写入者 ID")
         new_writer = single_line_field(arguments.new_writer, "新写入者 ID")
         if writer["current"] != expected_writer:
@@ -907,6 +972,8 @@ def takeover_command(arguments: argparse.Namespace) -> int:
             raise DeliveryError("旧写入者尚未确认终止，禁止并发接管")
         if not new_writer or new_writer == expected_writer:
             raise DeliveryError("新写入者 ID 必须与旧写入者不同")
+        if execution["coordinator"] == new_writer:
+            raise DeliveryError("协调者不能接管为新的 writer")
         register_takeover_writer(snapshot, new_writer)
         writer["current"] = new_writer
         writer["status"] = "active"
@@ -920,6 +987,42 @@ def takeover_command(arguments: argparse.Namespace) -> int:
         )
         atomic_write_json(path, snapshot)
     print(f"当前写入者：{new_writer}")
+    return 0
+
+
+def record_milestone_command(arguments: argparse.Namespace) -> int:
+    snapshot_path = Path(arguments.snapshot)
+    with snapshot_lock(snapshot_path):
+        snapshot = load_snapshot(snapshot_path)
+        require_current_snapshot(snapshot)
+        require_registered_active_task(snapshot_path, snapshot)
+        require_writer(snapshot_path, snapshot, arguments.writer_id)
+        writer = validate_writer(snapshot["writer"])
+        execution = validate_execution_record(snapshot.get("execution"), writer)
+        stage = arguments.stage
+        if stage not in EXECUTION_MILESTONES:
+            raise DeliveryError("执行权里程碑无效")
+        if any(
+            item["writer"] == writer["current"] and item["stage"] == stage
+            for item in execution["milestones"]
+        ):
+            raise DeliveryError("当前 writer 已记录该执行权里程碑")
+        if stage == "verification_started" and not any(
+            item["writer"] == writer["current"]
+            and item["stage"] == "implementation_started"
+            for item in execution["milestones"]
+        ):
+            raise DeliveryError("必须先记录 implementation_started 才能记录 verification_started")
+        execution["milestones"].append(
+            {
+                "stage": stage,
+                "writer": writer["current"],
+                "evidence": terminal_detail(arguments.evidence, "里程碑证据")["summary"],
+                "at": utc_now(),
+            }
+        )
+        atomic_write_json(snapshot_path, snapshot)
+    print(f"已记录执行权里程碑：{stage}")
     return 0
 
 
@@ -1252,6 +1355,7 @@ def review_command(arguments: argparse.Namespace) -> int:
         snapshot = load_snapshot(snapshot_path)
         require_current_snapshot(snapshot)
         require_writer(snapshot_path, snapshot, arguments.writer_id)
+        execution = require_writer_execution_milestones(snapshot)
         contract = validate_contract(snapshot["contract"])
         requirements = normalized_requirements(contract["requirements"])
         verdicts = normalized_verdicts(
@@ -1276,6 +1380,7 @@ def review_command(arguments: argparse.Namespace) -> int:
             "snapshot_digest": structured_digest(snapshot),
             "contract_digest": contract["digest"],
             "task_diff_digest": text_digest(diff),
+            "execution_digest": structured_digest(execution),
             "review_inputs": {
                 "raw_request": contract["raw_request"],
                 "original_requirements": requirements,
@@ -1310,6 +1415,7 @@ def load_review_report(
     reviewer = validate_reviewer(snapshot.get("reviewer"), task)
     if reviewer is None:
         raise DeliveryError("规格审查报告缺少 task 级 reviewer 绑定")
+    execution = require_writer_execution_milestones(snapshot)
     diff = task_diff(snapshot, file_changes)
     if report.get("task_id") != task["id"]:
         raise DeliveryError("规格审查报告未绑定当前 task_id")
@@ -1321,6 +1427,8 @@ def load_review_report(
         raise DeliveryError("规格审查报告未绑定原始验收合同")
     if report.get("task_diff_digest") != text_digest(diff):
         raise DeliveryError("规格审查报告对应的任务级 diff 已过期")
+    if report.get("execution_digest") != structured_digest(execution):
+        raise DeliveryError("规格审查报告未绑定当前执行权交接记录")
     inputs = report.get("review_inputs")
     if not isinstance(inputs, dict):
         raise DeliveryError("规格审查报告缺少审查输入")
@@ -1696,6 +1804,10 @@ def write_manifest(
             ),
             f"- 修改文件数：{len(file_changes)}",
             "",
+            "## 执行权交接",
+            "",
+            render_execution_record(snapshot),
+            "",
             "## 基线归因",
             "",
             attribution,
@@ -1732,6 +1844,31 @@ def write_manifest(
     )
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(content, encoding="utf-8")
+
+
+def render_execution_record(snapshot: dict[str, Any]) -> str:
+    execution = snapshot.get("execution")
+    if execution is None:
+        return "历史 v4 快照未记录执行权交接。"
+    writer = validate_writer(snapshot["writer"])
+    execution = validate_execution_record(execution, writer)
+    rows = [
+        f"- 协调者：`{execution['coordinator']}`",
+        "",
+        "| 阶段 | writer | 证据 |",
+        "| --- | --- | --- |",
+    ]
+    rows.extend(
+        "| {stage} | {writer} | {evidence} |".format(
+            stage=html.escape(item["stage"]),
+            writer=html.escape(item["writer"]),
+            evidence=html.escape(item["evidence"]),
+        )
+        for item in execution["milestones"]
+    )
+    if not execution["milestones"]:
+        rows.append("| 无 | 无 | 未记录 |")
+    return "\n".join(rows)
 
 
 def render_baseline_attribution(
@@ -2010,6 +2147,7 @@ def build_parser() -> argparse.ArgumentParser:
         help="包含 MUST/FORBIDDEN/UNCHANGED 条目的 JSON 文件",
     )
     snapshot.add_argument("--writer-id", required=True, help="当前唯一写入者 ID")
+    snapshot.add_argument("--coordinator-id", required=True, help="只协调、不写入的主代理 ID")
     snapshot.set_defaults(handler=snapshot_command)
 
     initialize = subparsers.add_parser(
@@ -2032,6 +2170,11 @@ def build_parser() -> argparse.ArgumentParser:
     )
     migrate_v3.add_argument("--snapshot", required=True, help="执行中的 v3 快照路径")
     migrate_v3.add_argument("--expected-writer", required=True, help="v3 当前 writer ID")
+    migrate_v3.add_argument(
+        "--coordinator-id",
+        required=True,
+        help="只协调、不写入的主代理 ID",
+    )
     migrate_v3.add_argument(
         "--task-id",
         help="已有的规范 UUID task_id；省略时自动生成",
@@ -2072,6 +2215,21 @@ def build_parser() -> argparse.ArgumentParser:
     takeover.add_argument("--expected-writer", required=True, help="已终止的 writer ID")
     takeover.add_argument("--new-writer", required=True, help="新 writer ID")
     takeover.set_defaults(handler=takeover_command)
+
+    record_milestone = subparsers.add_parser(
+        "record-milestone",
+        help="由当前 writer 记录实现或验证开始的执行权里程碑",
+    )
+    record_milestone.add_argument("--snapshot", required=True, help="ACTIVE v4 快照路径")
+    record_milestone.add_argument("--writer-id", required=True, help="当前唯一写入者 ID")
+    record_milestone.add_argument(
+        "--stage",
+        required=True,
+        choices=sorted(EXECUTION_MILESTONES),
+        help="执行权里程碑",
+    )
+    record_milestone.add_argument("--evidence", required=True, help="单行里程碑证据")
+    record_milestone.set_defaults(handler=record_milestone_command)
 
     terminate = subparsers.add_parser(
         "terminate",
